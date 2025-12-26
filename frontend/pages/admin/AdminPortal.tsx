@@ -1,0 +1,331 @@
+
+import React, { useState } from 'react';
+import { store } from '../../services/mockStore';
+
+const AdminPortal: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS'>('DRIVERS');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  const handleTabChange = (tab: typeof activeTab) => {
+      setActiveTab(tab);
+      setCurrentPage(1); // Reset to first page when switching tabs
+  };
+
+  const drivers = store.drivers;
+  const customers = store.customers;
+  const packages = store.packages;
+  const payments = store.payments;
+
+  // Pagination Helper
+  const getPaginatedData = <T,>(data: T[]) => {
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      return {
+          data: data.slice(startIndex, endIndex),
+          total: data.length,
+          totalPages: Math.ceil(data.length / ITEMS_PER_PAGE)
+      };
+  };
+
+  const driverData = getPaginatedData(drivers);
+  const customerData = getPaginatedData(customers);
+  const paymentData = getPaginatedData(payments);
+
+  const PaginationControls = ({ total, totalPages }: { total: number, totalPages: number }) => {
+      if (total === 0) return null;
+      
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, total);
+
+      return (
+        <div className="flex flex-col md:flex-row justify-between items-center p-4 border-t border-gray-100 gap-4 bg-white">
+            <span className="text-xs text-gray-500 font-medium">
+                Showing {startIndex + 1}-{endIndex} of {total} entries
+            </span>
+            <div className="flex gap-2">
+                <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded border border-gray-200 text-xs font-bold disabled:opacity-50 disabled:bg-gray-50 hover:bg-gray-50 transition text-gray-700"
+                >
+                    Previous
+                </button>
+                {/* Show limited page numbers if too many, for now simple list */}
+                {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
+                    <button 
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded text-xs font-bold flex items-center justify-center transition ${currentPage === page ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}
+                    >
+                        {page}
+                    </button>
+                ))}
+                    <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 rounded border border-gray-200 text-xs font-bold disabled:opacity-50 disabled:bg-gray-50 hover:bg-gray-50 transition text-gray-700"
+                >
+                    Next
+                </button>
+            </div>
+        </div>
+      );
+  };
+
+  return (
+    <div className="space-y-6 md:space-y-8 pb-20 md:pb-10">
+        {/* Responsive Header */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-gray-200 pb-4">
+             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+             <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                <div className="flex space-x-6">
+                    {['DRIVERS', 'CUSTOMERS', 'PACKAGES', 'PAYMENTS'].map(tab => (
+                        <button 
+                            key={tab}
+                            onClick={() => handleTabChange(tab as any)}
+                            className={`text-sm font-bold transition-colors whitespace-nowrap ${
+                                activeTab === tab ? 'text-black underline underline-offset-8' : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-card overflow-hidden border border-gray-100">
+            <div>
+                {activeTab === 'DRIVERS' && (
+                    <>
+                        {/* Mobile View: Cards */}
+                        <div className="md:hidden p-4 space-y-4">
+                             {driverData.data.map(driver => (
+                                <div key={driver.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                           <div className="font-bold text-gray-900 text-lg">{driver.name}</div>
+                                           <div className="text-xs text-gray-500">{driver.phone}</div>
+                                        </div>
+                                        <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${driver.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {driver.isVerified ? 'Verified' : 'Pending'}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm mb-4 bg-gray-50 p-3 rounded-lg">
+                                         <div>
+                                            <span className="text-gray-400 text-xs font-bold uppercase block mb-1">Package</span> 
+                                            <span className="font-medium">{driver.packageSubscription || 'None'}</span>
+                                         </div>
+                                         <div>
+                                            <span className="text-gray-400 text-xs font-bold uppercase block mb-1">Rating</span> 
+                                            <span className="font-medium flex items-center gap-1">{driver.rating} <span className="text-yellow-500">★</span></span>
+                                         </div>
+                                    </div>
+                                    <button className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:text-black hover:bg-gray-50 transition">
+                                        Edit Details
+                                    </button>
+                                </div>
+                             ))}
+                        </div>
+
+                        {/* Desktop View: Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="min-w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Name</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Package</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Verification</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Rating</th>
+                                        <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {driverData.data.map(driver => (
+                                        <tr key={driver.id} className="hover:bg-gray-50/50">
+                                            <td className="px-8 py-5">
+                                                <div className="font-bold text-gray-900">{driver.name}</div>
+                                                <div className="text-xs text-gray-500">{driver.phone}</div>
+                                            </td>
+                                            <td className="px-8 py-5 text-sm">{driver.packageSubscription || 'None'}</td>
+                                            <td className="px-8 py-5">
+                                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${driver.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                    {driver.isVerified ? 'Verified' : 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-sm font-medium">{driver.rating} ★</td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button className="text-sm font-bold text-gray-400 hover:text-black">Edit</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <PaginationControls total={driverData.total} totalPages={driverData.totalPages} />
+                    </>
+                )}
+
+                {activeTab === 'PACKAGES' && (
+                     <div className="p-4 md:p-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                            <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
+                            <button className="w-full md:w-auto bg-black text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold">Add Package</button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                            {packages.map(pkg => (
+                                <div key={pkg.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h4 className="font-bold text-lg">{pkg.name}</h4>
+                                        <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">{pkg.type}</span>
+                                    </div>
+                                    <p className="text-2xl font-bold mb-2">₹{pkg.price}</p>
+                                    <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
+                                    <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+                                        <button className="px-3 py-1 text-xs font-bold text-red-500 bg-red-50 rounded">Delete</button>
+                                        <button className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded">Edit</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                     </div>
+                )}
+
+                {activeTab === 'PAYMENTS' && (
+                    <>
+                         {/* Mobile View: Cards */}
+                         <div className="md:hidden p-4 space-y-4">
+                            {paymentData.data.map(pay => (
+                                <div key={pay.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <span className="text-sm font-bold text-gray-900">{pay.type}</span>
+                                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">{pay.status}</span>
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <div className="text-xs text-gray-500 space-y-1">
+                                            <p className="font-medium text-gray-900">{pay.date}</p>
+                                            <p>User: <span className="font-mono">{pay.userId}</span></p>
+                                        </div>
+                                        <p className="font-bold text-xl">₹{pay.amount}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Desktop View: Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="min-w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">User ID</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Type</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                                        <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {paymentData.data.map(pay => (
+                                        <tr key={pay.id} className="hover:bg-gray-50/50">
+                                            <td className="px-8 py-5 text-sm font-medium">{pay.date}</td>
+                                            <td className="px-8 py-5 text-sm text-gray-500">{pay.userId}</td>
+                                            <td className="px-8 py-5 text-sm font-bold">{pay.type}</td>
+                                            <td className="px-8 py-5 text-sm">₹{pay.amount}</td>
+                                            <td className="px-8 py-5 text-right">
+                                                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">{pay.status}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <PaginationControls total={paymentData.total} totalPages={paymentData.totalPages} />
+                    </>
+                )}
+                
+                {activeTab === 'CUSTOMERS' && (
+                    <>
+                        {/* Mobile View: Cards */}
+                        <div className="md:hidden p-4 space-y-4">
+                            {customerData.data.map(customer => (
+                                <div key={customer.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
+                                    <div className="flex items-center gap-3 mb-3">
+                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-lg text-gray-600">
+                                             {customer.name[0]}
+                                         </div>
+                                         <div>
+                                             <div className="font-bold text-gray-900">{customer.name}</div>
+                                             <div className="text-xs text-gray-500">{customer.phone}</div>
+                                         </div>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-3 mb-3 grid grid-cols-2 gap-4">
+                                        <div>
+                                             <p className="text-[10px] uppercase font-bold text-gray-400">Wallet</p>
+                                             <p className="font-bold text-gray-900">₹{customer.advancePaymentBalance}</p>
+                                        </div>
+                                         <div>
+                                             <p className="text-[10px] uppercase font-bold text-gray-400">KYC Status</p>
+                                             <p className={`text-xs font-bold ${customer.addressProofUrl ? 'text-green-600' : 'text-orange-500'}`}>
+                                                 {customer.addressProofUrl ? 'Verified' : 'Pending'}
+                                             </p>
+                                        </div>
+                                    </div>
+                                    <button className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:text-black hover:bg-gray-50 transition">
+                                        View Profile
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Desktop View: Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="min-w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Contact</th>
+                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Wallet Balance</th>
+                                         <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">KYC</th>
+                                        <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {customerData.data.map(customer => (
+                                        <tr key={customer.id} className="hover:bg-gray-50/50">
+                                            <td className="px-8 py-5">
+                                                <div className="flex items-center gap-3">
+                                                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-xs text-gray-600">
+                                                         {customer.name[0]}
+                                                     </div>
+                                                     <span className="font-bold text-gray-900">{customer.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="text-sm text-gray-900">{customer.phone}</div>
+                                                <div className="text-xs text-gray-500">{customer.email}</div>
+                                            </td>
+                                            <td className="px-8 py-5 text-sm font-medium">₹{customer.advancePaymentBalance}</td>
+                                            <td className="px-8 py-5">
+                                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${customer.addressProofUrl ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                                                    {customer.addressProofUrl ? 'Verified' : 'Pending'}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button className="text-sm font-bold text-gray-400 hover:text-black">Edit</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <PaginationControls total={customerData.total} totalPages={customerData.totalPages} />
+                    </>
+                )}
+            </div>
+        </div>
+    </div>
+  );
+};
+
+export default AdminPortal;

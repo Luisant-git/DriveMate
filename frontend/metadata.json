@@ -1,0 +1,8 @@
+{
+  "name": "DriveMate - Acting Driver Booking",
+  "description": "A comprehensive platform for booking acting drivers for local, outstation, and specialized trips. Connects customers with verified drivers.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
