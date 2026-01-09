@@ -7,7 +7,7 @@ import DriverPortal from './pages/driver/DriverPortal';
 import CustomerPortal from './pages/customer/CustomerPortal';
 import AdminPortal from './pages/admin/AdminPortal';
 
-type LoginStep = 'SELECT_ROLE' | 'PHONE_INPUT' | 'OTP_INPUT' | 'PASSWORD_LOGIN';
+type LoginStep = 'SELECT_ROLE' | 'PHONE_INPUT' | 'OTP_INPUT' | 'PASSWORD_LOGIN' | 'DRIVER_REGISTER';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -22,6 +22,20 @@ const App: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Driver Registration State
+  const [driverRegData, setDriverRegData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    aadharNo: '',
+    licenseNo: '',
+    altPhone: '',
+    upiId: '',
+    photo: null as File | null,
+    dl: null as File | null,
+    pan: null as File | null
+  });
 
   const handleRoleSelect = (role: UserRole) => {
     setTargetRole(role);
@@ -126,7 +140,52 @@ const App: React.FC = () => {
 
   const handleBack = () => {
     if (loginStep === 'OTP_INPUT') setLoginStep('PHONE_INPUT');
+    else if (loginStep === 'DRIVER_REGISTER') setLoginStep('PASSWORD_LOGIN');
     else setLoginStep('SELECT_ROLE');
+  };
+
+  const handleDriverRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      const newDriver = {
+        id: store.generateId(),
+        name: driverRegData.name,
+        role: UserRole.DRIVER,
+        email: driverRegData.email,
+        phone: driverRegData.phone,
+        aadharNo: driverRegData.aadharNo,
+        licenseNo: driverRegData.licenseNo,
+        altPhone: driverRegData.altPhone ? [driverRegData.altPhone] : [],
+        upiId: driverRegData.upiId,
+        isVerified: false,
+        rating: 0,
+        completedTrips: 0,
+        packageSubscription: null,
+        documents: {},
+        avatarUrl: ''
+      };
+      
+      store.drivers.push(newDriver as any);
+      store.save();
+      
+      setIsLoading(false);
+      alert('Registration successful! Please login with your phone number and password.');
+      setLoginStep('PASSWORD_LOGIN');
+      setDriverRegData({
+        name: '',
+        email: '',
+        phone: '',
+        aadharNo: '',
+        licenseNo: '',
+        altPhone: '',
+        upiId: '',
+        photo: null,
+        dl: null,
+        pan: null
+      });
+    }, 1000);
   };
 
   const handleLogout = () => {
@@ -259,10 +318,139 @@ const App: React.FC = () => {
                     
                     {targetRole === UserRole.DRIVER && (
                         <p className="text-center text-xs text-gray-400 mt-4">
-                            First time? <span className="font-bold text-black cursor-pointer">Register here</span>
+                            First time? <span onClick={() => setLoginStep('DRIVER_REGISTER')} className="font-bold text-black cursor-pointer hover:underline">Register here</span>
                         </p>
                     )}
                  </form>
+              )}
+
+              {/* Driver Registration */}
+              {loginStep === 'DRIVER_REGISTER' && (
+                <form onSubmit={handleDriverRegister} className="animate-fade-in flex-grow flex flex-col overflow-y-auto">
+                  <button type="button" onClick={handleBack} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
+                    ← Back to Login
+                  </button>
+                  <h2 className="text-xl font-bold mb-4 text-black">Driver Registration</h2>
+                  
+                  <div className="space-y-3 flex-grow overflow-y-auto pr-2">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Full Name</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        value={driverRegData.name}
+                        onChange={(e) => setDriverRegData({...driverRegData, name: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Email</label>
+                      <input 
+                        type="email"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        value={driverRegData.email}
+                        onChange={(e) => setDriverRegData({...driverRegData, email: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Phone Number</label>
+                      <input 
+                        type="tel"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        value={driverRegData.phone}
+                        onChange={(e) => setDriverRegData({...driverRegData, phone: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Aadhar Number</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        value={driverRegData.aadharNo}
+                        onChange={(e) => setDriverRegData({...driverRegData, aadharNo: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">License Number</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        value={driverRegData.licenseNo}
+                        onChange={(e) => setDriverRegData({...driverRegData, licenseNo: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Alternate Phone (Optional)</label>
+                      <input 
+                        type="tel"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        value={driverRegData.altPhone}
+                        onChange={(e) => setDriverRegData({...driverRegData, altPhone: e.target.value})}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">UPI ID</label>
+                      <input 
+                        type="text"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                        placeholder="yourname@upi"
+                        value={driverRegData.upiId}
+                        onChange={(e) => setDriverRegData({...driverRegData, upiId: e.target.value})}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Photo</label>
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-black file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                        onChange={(e) => setDriverRegData({...driverRegData, photo: e.target.files?.[0] || null})}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Driving License</label>
+                      <input 
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-black file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                        onChange={(e) => setDriverRegData({...driverRegData, dl: e.target.files?.[0] || null})}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">PAN Card</label>
+                      <input 
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="w-full bg-gray-100 border-none rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-black file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                        onChange={(e) => setDriverRegData({...driverRegData, pan: e.target.files?.[0] || null})}
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="w-full mt-4 bg-black text-white py-3 rounded-xl font-bold text-base hover:bg-gray-800 transition disabled:opacity-50 flex justify-center"
+                  >
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : 'Register'}
+                  </button>
+                </form>
               )}
 
               {/* Login Step: Phone Input (Customer) */}

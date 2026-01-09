@@ -18,6 +18,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [aiQuery, setAiQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiRecommendation, setAiRecommendation] = useState<{ recommendedType: BookingType, reason: string } | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     pickup: '',
@@ -25,6 +26,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     date: '',
     time: '',
     duration: '',
+    whenNeeded: 'Now',
+    carType: 'Manual',
+    vehicleType: 'Hatchback',
+    tripType: 'Round Trip',
+    estimatedUsage: '12 Hrs',
   });
   const [estimate, setEstimate] = useState<string | null>(null);
 
@@ -37,6 +43,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     address: initialCustomer.address || ''
   });
 
+  // Registration Modal State
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationData, setRegistrationData] = useState({
+    name: '',
+    email: '',
+    address: '',
+    idProof: null as File | null
+  });
+
   useEffect(() => {
       setCustomer(initialCustomer);
       setEditProfileData({
@@ -45,6 +60,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         phone: initialCustomer.phone,
         address: initialCustomer.address || ''
       });
+      // Show registration modal if customer has incomplete profile
+      if (!initialCustomer.email || !initialCustomer.address) {
+        setShowRegistrationModal(true);
+        setRegistrationData({
+          name: initialCustomer.name,
+          email: initialCustomer.email || '',
+          address: initialCustomer.address || '',
+          idProof: null
+        });
+      }
   }, [initialCustomer]);
 
   const handleAiAssist = async () => {
@@ -115,6 +140,32 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       alert("Profile updated successfully!");
   };
 
+  const handleRegistrationSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      const updatedCustomer = { 
+          ...customer, 
+          name: registrationData.name,
+          email: registrationData.email,
+          address: registrationData.address
+      };
+      setCustomer(updatedCustomer);
+      
+      const storeCustomer = store.customers.find(c => c.id === customer.id);
+      if (storeCustomer) {
+          storeCustomer.name = registrationData.name;
+          storeCustomer.email = registrationData.email;
+          storeCustomer.address = registrationData.address;
+          store.save();
+      }
+
+      setShowRegistrationModal(false);
+      alert("Registration completed successfully!");
+  };
+
+  const handleSkipRegistration = () => {
+      setShowRegistrationModal(false);
+  };
+
   return (
     <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
       {/* Background Map Image */}
@@ -123,8 +174,82 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
       ></div>
       
+      {/* Registration Modal */}
+      {showRegistrationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleRegistrationSubmit} className="p-6 space-y-4">
+              <div className="text-center mb-4">
+                <h2 className="text-xl font-bold">Complete Your Profile</h2>
+                <p className="text-sm text-gray-500 mt-1">Help us serve you better</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Full Name</label>
+                <input 
+                  type="text"
+                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                  value={registrationData.name}
+                  onChange={(e) => setRegistrationData({...registrationData, name: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Email Address</label>
+                <input 
+                  type="email"
+                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                  value={registrationData.email}
+                  onChange={(e) => setRegistrationData({...registrationData, email: e.target.value})}
+                  placeholder="name@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Address</label>
+                <textarea 
+                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
+                  rows={3}
+                  value={registrationData.address}
+                  onChange={(e) => setRegistrationData({...registrationData, address: e.target.value})}
+                  placeholder="#123, Street Name, City"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
+                <input 
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                  onChange={(e) => setRegistrationData({...registrationData, idProof: e.target.files?.[0] || null})}
+                />
+                <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport</p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={handleSkipRegistration}
+                  className="flex-1 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200"
+                >
+                  Skip
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 bg-black text-white py-3 rounded-lg text-sm font-bold hover:bg-gray-800"
+                >
+                  Complete Registration
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
       {/* Floating Panel */}
-      <div className="absolute inset-0 md:relative md:top-4 md:left-4 md:w-[480px] md:h-auto md:max-h-[calc(100vh-32px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden">
+      <div className="absolute inset-0 md:relative md:top-4 md:left-4 md:w-[420px] md:h-auto md:max-h-[calc(100vh-32px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden">
           
           {/* Header & Tabs */}
           <div className="bg-white px-4 sm:px-6 pt-4 pb-2 border-b border-gray-100 flex justify-between items-center">
@@ -166,7 +291,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
 
                     {/* AI Helper */}
-                    <div className="flex gap-2 mb-4">
+                    {/* <div className="flex gap-2 mb-4">
                         <input 
                             className="flex-grow bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs"
                             placeholder="Describe your trip (e.g. Need driver for 2 days outstation)"
@@ -176,53 +301,480 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         <button onClick={handleAiAssist} className="bg-black text-white rounded-lg w-8 flex items-center justify-center">
                             {isAiLoading ? '...' : '→'}
                         </button>
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="flex-grow overflow-y-auto px-4 sm:px-6 pb-2 custom-scrollbar">
-                    <h3 className="font-bold text-gray-900 mb-3 text-sm">Choose Service</h3>
-                    <div className="space-y-2">
-                        {Object.values(BookingType).map((type, idx) => (
-                            <div 
-                                key={type}
-                                onClick={() => setBookingType(type)}
-                                className={`flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all ${bookingType === type ? 'border-black bg-gray-50' : 'border-transparent hover:bg-gray-50'}`}
-                            >
-                                <div className="w-10 h-10 sm:w-12 sm:h-10 bg-gray-200 rounded-md mr-3 sm:mr-4 flex items-center justify-center shrink-0">
-                                    <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-xs sm:text-sm">{type}</h4>
-                                    <p className="text-[10px] text-gray-500">Reliable & Verified</p>
-                                </div>
+                    <div className="relative">
+                        <label className="block text-xs font-bold text-gray-500 mb-2">Choose Service</label>
+                        <div 
+                            onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
+                            className="w-full bg-gray-100 rounded-lg p-3 text-sm font-bold cursor-pointer flex justify-between items-center"
+                        >
+                            <span>{bookingType}</span>
+                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                        {openDropdown === 'service' && (
+                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
+                                {Object.values(BookingType).map((type) => (
+                                    <div 
+                                        key={type}
+                                        onClick={() => { setBookingType(type); setOpenDropdown(null); }}
+                                        className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${bookingType === type ? 'bg-gray-100' : ''}`}
+                                    >
+                                        <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center shrink-0">
+                                            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-xs sm:text-sm">{type}</h4>
+                                            <p className="text-[10px] text-gray-500">Reliable & Verified</p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
+                        )}
                     </div>
 
-                    <div className="mt-4 sm:mt-6 space-y-3 pb-4 sm:pb-6">
+                    <div className="mt-4 sm:mt-6 space-y-3 pb-24 sm:pb-6">
                         <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
-                        <div className="flex gap-3">
-                            <input 
-                                type="date" 
-                                className="flex-1 bg-gray-100 border-none rounded-lg p-3 text-xs font-bold"
-                                value={formData.date}
-                                onChange={e => setFormData({...formData, date: e.target.value})}
-                            />
-                            <input 
-                                type="time" 
-                                className="flex-1 bg-gray-100 border-none rounded-lg p-3 text-xs font-bold"
-                                value={formData.time}
-                                onChange={e => setFormData({...formData, time: e.target.value})}
-                            />
-                        </div>
-                        <input 
-                            type="text"
-                            placeholder="Duration (e.g. 4 hours, 2 days)"
-                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-xs font-bold"
-                            value={formData.duration}
-                            onChange={e => setFormData({...formData, duration: e.target.value})}
-                        />
+                        {bookingType === BookingType.ONEWAY && (
+                            <>
+                                <div className="relative">
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">When is driver needed?</label>
+                                    <div 
+                                        onClick={() => setOpenDropdown(openDropdown === 'when' ? null : 'when')}
+                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                    >
+                                        <span>{formData.whenNeeded}</span>
+                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'when' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                    {openDropdown === 'when' && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                            {['Now', 'Schedule Later'].map(option => (
+                                                <div 
+                                                    key={option}
+                                                    onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
+                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
+                                                >
+                                                    {option}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {formData.whenNeeded === 'Schedule Later' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                        <div className="flex gap-2 sm:gap-3">
+                                            <input 
+                                                type="date" 
+                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                value={formData.date}
+                                                onChange={e => setFormData({...formData, date: e.target.value})}
+                                            />
+                                            <input 
+                                                type="time" 
+                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                value={formData.time}
+                                                onChange={e => setFormData({...formData, time: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.carType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'car' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Manual', 'Automatic'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.vehicleType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'vehicle' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {bookingType === BookingType.OUTSTATION && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.tripType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'tripType' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Round Trip', 'One Way'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.estimatedUsage}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'usage' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['12 Hrs', '24 Hrs', '2 Days', '3 Days'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                    <div className="flex gap-2 sm:gap-3">
+                                        <input 
+                                            type="date" 
+                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                            value={formData.date}
+                                            onChange={e => setFormData({...formData, date: e.target.value})}
+                                        />
+                                        <input 
+                                            type="time" 
+                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                            value={formData.time}
+                                            onChange={e => setFormData({...formData, time: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.carType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'car' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Manual', 'Automatic'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.vehicleType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'vehicle' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {bookingType === BookingType.LOCAL_HOURLY && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.tripType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'tripType' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Round Trip', 'One Way'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.estimatedUsage}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'usage' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['12 Hrs', '24 Hrs', '2 Days', '3 Days'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                    <div className="flex gap-2 sm:gap-3">
+                                        <input 
+                                            type="date" 
+                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                            value={formData.date}
+                                            onChange={e => setFormData({...formData, date: e.target.value})}
+                                        />
+                                        <input 
+                                            type="time" 
+                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                            value={formData.time}
+                                            onChange={e => setFormData({...formData, time: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.carType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'car' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Manual', 'Automatic'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.vehicleType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'vehicle' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                        {bookingType !== BookingType.ONEWAY && bookingType !== BookingType.OUTSTATION && bookingType !== BookingType.LOCAL_HOURLY && (
+                            <>
+                                <div className="relative">
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">When is driver needed?</label>
+                                    <div 
+                                        onClick={() => setOpenDropdown(openDropdown === 'when' ? null : 'when')}
+                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                    >
+                                        <span>{formData.whenNeeded}</span>
+                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'when' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                    {openDropdown === 'when' && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                            {['Now', 'Schedule Later'].map(option => (
+                                                <div 
+                                                    key={option}
+                                                    onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
+                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
+                                                >
+                                                    {option}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {formData.whenNeeded === 'Schedule Later' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                        <div className="flex gap-2 sm:gap-3">
+                                            <input 
+                                                type="date" 
+                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                value={formData.date}
+                                                onChange={e => setFormData({...formData, date: e.target.value})}
+                                            />
+                                            <input 
+                                                type="time" 
+                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                value={formData.time}
+                                                onChange={e => setFormData({...formData, time: e.target.value})}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.carType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'car' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Manual', 'Automatic'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.vehicleType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'vehicle' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
+
+                    {/* Fare Estimate - Only show when both locations are filled */}
+                    {formData.pickup && formData.drop && (
+                        <div className="mx-4 mb-4 text-center py-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fare Estimate</p>
+                            <p className="text-2xl font-bold text-black mb-1">₹349</p>
+                            <p className="text-xs text-gray-500">This is just an estimate</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-4 border-t border-gray-100 bg-white">
@@ -247,7 +799,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     .map(trip => (
                         <div key={trip.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                              <div className="flex justify-between items-start mb-2">
-                                <span className="font-bold text-lg">{trip.startTime}, {trip.startDate}</span>
+                                <div>
+                                    <span className="font-bold text-lg">{trip.startTime}, {trip.startDate}</span>
+                                    {trip.estimatedCost > 0 && (
+                                        <p className="text-sm font-bold text-green-600 mt-1">₹{trip.estimatedCost}</p>
+                                    )}
+                                </div>
                                 <span className={`text-xs px-2 py-1 rounded font-bold ${trip.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>{trip.status}</span>
                              </div>
                              <p className="text-sm font-medium mb-1">{trip.type}</p>
@@ -316,13 +873,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <p className="text-sm font-medium">{customer.address || 'No address added'}</p>
                         </div>
 
-                         <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                         {/* <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
                              <div className="flex justify-between items-center mb-4">
                                  <span className="text-sm font-bold text-gray-600">Advance Payment</span>
                                  <span className="text-2xl font-bold">₹{customer.advancePaymentBalance}</span>
                              </div>
                              <button className="w-full bg-black text-white py-2 rounded-lg text-sm font-bold">Add Money</button>
-                         </div>
+                         </div> */}
 
                          <div className="space-y-2">
                              <h4 className="font-bold text-sm">ID Proof</h4>
@@ -387,6 +944,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  onChange={(e) => setEditProfileData({...editProfileData, address: e.target.value})}
                                  placeholder="#123, Street Name, City"
                              />
+                         </div>
+
+                         <div>
+                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
+                             <button 
+                                 type="button"
+                                 className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium hover:bg-gray-200 transition"
+                             >
+                                 Upload ID Proof
+                             </button>
                          </div>
 
                          <div className="flex gap-3 pt-4">

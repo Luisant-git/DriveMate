@@ -15,8 +15,8 @@ export enum BookingType {
   WEEKLY = 'Weekly Driver',
   DAILY = 'Daily Driver',
   VALET = 'Valet/Wallet Parking',
-  ONEWAY = 'One-way Drop',
-  TWOWAY = 'Two-way Drop'
+  ONEWAY = 'One-way Trip',
+  TWOWAY = 'Two-way Trip'
 }
 
 export interface User {
