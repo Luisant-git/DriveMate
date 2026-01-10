@@ -2,7 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, BookingType, Trip } from '../../types';
 import { store } from '../../services/mockStore';
-import { getRecommendedPackage, getTripEstimate } from '../../services/geminiService';
+import { getRecommendedPackage } from '../../services/geminiService';
+import { updateCustomerProfile } from '../../api/customer';
+import { uploadFile } from '../../api/upload';
+import { createBooking, getFareEstimate, getCustomerBookings } from '../../api/booking';
+import { toast } from 'react-toastify';
+import LocationAutocomplete from '../../components/LocationAutocomplete';
 
 interface CustomerPortalProps {
   customer: Customer;
@@ -11,7 +16,7 @@ interface CustomerPortalProps {
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
   const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
-  const [myTrips, setMyTrips] = useState<Trip[]>(store.getTripsForCustomer(customer.id));
+  const [myTrips, setMyTrips] = useState<any[]>([]);
   const [bookingType, setBookingType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
   
   // AI & Booking States
@@ -32,7 +37,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     tripType: 'Round Trip',
     estimatedUsage: '12 Hrs',
   });
-  const [estimate, setEstimate] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState<number | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
 
   // Profile Edit States
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -40,7 +46,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     name: initialCustomer.name,
     email: initialCustomer.email,
     phone: initialCustomer.phone,
-    address: initialCustomer.address || ''
+    address: initialCustomer.address || '',
+    idProof: initialCustomer.idProof || null
   });
 
   // Registration Modal State
@@ -49,10 +56,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     name: '',
     email: '',
     address: '',
-    idProof: null as File | null
+    idProof: null as string | null
   });
 
+  const fetchBookings = async () => {
+    try {
+      const response = await getCustomerBookings();
+      if (response.success) {
+        setMyTrips(response.bookings);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  };
+
   useEffect(() => {
+      console.log('Customer data:', initialCustomer); // Debug log
       setCustomer(initialCustomer);
       setEditProfileData({
         name: initialCustomer.name,
@@ -60,14 +79,24 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         phone: initialCustomer.phone,
         address: initialCustomer.address || ''
       });
+      
+      // Fetch real bookings
+      fetchBookings();
+      
       // Show registration modal if customer has incomplete profile
-      if (!initialCustomer.email || !initialCustomer.address) {
+      const hasEmail = initialCustomer.email && initialCustomer.email.trim() !== '';
+      const hasAddress = initialCustomer.address && initialCustomer.address.trim() !== '';
+      const hasIdProof = initialCustomer.idProof && initialCustomer.idProof.trim() !== '';
+      
+      console.log('Profile check:', { hasEmail, hasAddress, hasIdProof }); // Debug log
+      
+      if (!hasEmail || !hasAddress || !hasIdProof) {
         setShowRegistrationModal(true);
         setRegistrationData({
           name: initialCustomer.name,
           email: initialCustomer.email || '',
           address: initialCustomer.address || '',
-          idProof: null
+          idProof: initialCustomer.idProof || null
         });
       }
   }, [initialCustomer]);
@@ -84,29 +113,80 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   };
 
   const handleEstimate = async () => {
-     if(!formData.pickup || !formData.drop) return;
-     const est = await getTripEstimate(`${bookingType} from ${formData.pickup} to ${formData.drop}`);
-     setEstimate(est);
+     if(!formData.pickup || !formData.drop || !formData.vehicleType) return;
+
+     // Only calculate if both locations contain commas (indicating complete addresses)
+    //  if(!formData.pickup.includes(',') || !formData.drop.includes(',')) return;
+     
+     setEstimateLoading(true);
+     try {
+       const response = await getFareEstimate(
+         formData.pickup, 
+         formData.drop, 
+         formData.vehicleType
+       );
+       
+       if (response.success) {
+         setEstimate(response.estimate);
+       } else {
+         console.error('Estimate error:', response.error);
+         setEstimate(null);
+       }
+     } catch (error) {
+       console.error('Error getting estimate:', error);
+       setEstimate(null);
+     } finally {
+       setEstimateLoading(false);
+     }
   };
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newTrip: Trip = {
-      id: store.generateId(),
-      customerId: customer.id,
-      type: bookingType,
-      pickupLocation: formData.pickup,
-      dropLocation: formData.drop,
-      startDate: formData.date,
-      startTime: formData.time,
-      duration: formData.duration,
-      status: 'PENDING',
-      estimatedCost: 0
-    };
-    store.addTrip(newTrip);
-    setMyTrips(store.getTripsForCustomer(customer.id));
-    setActiveTab('TRIPS');
-    alert("Request Sent to Drivers!");
+    
+    if (!formData.pickup || !formData.drop) {
+      toast.error('Please enter pickup and drop locations');
+      return;
+    }
+
+    try {
+      const bookingData = {
+        pickupLocation: formData.pickup,
+        dropLocation: formData.drop,
+        bookingType: bookingType,
+        startDateTime: formData.date && formData.time ? 
+          `${formData.date}T${formData.time}` : new Date().toISOString(),
+        duration: formData.duration || formData.estimatedUsage,
+        carType: formData.carType,
+        vehicleType: formData.vehicleType,
+        estimateAmount: estimate
+      };
+
+      const response = await createBooking(bookingData);
+      
+      if (response.success) {
+        toast.success(response.message || 'Request sent to drivers!');
+        // Reset form
+        setFormData({
+          pickup: '',
+          drop: '',
+          date: '',
+          time: '',
+          duration: '',
+          whenNeeded: 'Now',
+          carType: 'Manual',
+          vehicleType: 'Hatchback',
+          tripType: 'Round Trip',
+          estimatedUsage: '12 Hrs',
+        });
+        // Refresh bookings
+        fetchBookings();
+        setActiveTab('TRIPS');
+      } else {
+        toast.error(response.error || 'Failed to send request');
+      }
+    } catch (error) {
+      toast.error('Error sending request. Please try again.');
+    }
   };
 
   const handleRating = (tripId: string, rating: number) => {
@@ -114,52 +194,63 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       setMyTrips(store.getTripsForCustomer(customer.id)); // Refresh
   };
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
       e.preventDefault();
-      // Update local state to reflect changes immediately
-      const updatedCustomer = { 
-          ...customer, 
-          name: editProfileData.name, 
+      try {
+        const response = await updateCustomerProfile({
+          name: editProfileData.name,
           email: editProfileData.email,
-          phone: editProfileData.phone,
-          address: editProfileData.address
-      };
-      setCustomer(updatedCustomer);
-      
-      // Update store (mock)
-      const storeCustomer = store.customers.find(c => c.id === customer.id);
-      if (storeCustomer) {
-          storeCustomer.name = editProfileData.name;
-          storeCustomer.email = editProfileData.email;
-          storeCustomer.phone = editProfileData.phone;
-          storeCustomer.address = editProfileData.address;
-          store.save();
+          address: editProfileData.address,
+          idProof: editProfileData.idProof
+        });
+        
+        if (response.success) {
+          const updatedCustomer = { 
+            ...customer, 
+            name: editProfileData.name, 
+            email: editProfileData.email,
+            phone: editProfileData.phone,
+            address: editProfileData.address,
+            idProof: editProfileData.idProof
+          };
+          setCustomer(updatedCustomer);
+          setIsEditingProfile(false);
+          toast.success("Profile updated successfully!");
+        } else {
+          alert(response.error || 'Failed to update profile');
+        }
+      } catch (error) {
+        alert('Error updating profile. Please try again.');
       }
-
-      setIsEditingProfile(false);
-      alert("Profile updated successfully!");
   };
 
-  const handleRegistrationSubmit = (e: React.FormEvent) => {
+  const handleRegistrationSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      const updatedCustomer = { 
-          ...customer, 
+      try {
+        const response = await updateCustomerProfile({
           name: registrationData.name,
           email: registrationData.email,
-          address: registrationData.address
-      };
-      setCustomer(updatedCustomer);
-      
-      const storeCustomer = store.customers.find(c => c.id === customer.id);
-      if (storeCustomer) {
-          storeCustomer.name = registrationData.name;
-          storeCustomer.email = registrationData.email;
-          storeCustomer.address = registrationData.address;
-          store.save();
+          address: registrationData.address,
+          idProof: registrationData.idProof
+        });
+        
+        if (response.success) {
+          const updatedCustomer = { 
+            ...customer, 
+            name: registrationData.name,
+            email: registrationData.email,
+            address: registrationData.address,
+            idProof: registrationData.idProof
+          };
+          setCustomer(updatedCustomer);
+          setShowRegistrationModal(false);
+          toast.success("Registration completed successfully!");
+        } else {
+          alert(response.error || 'Failed to update profile');
+        }
+      } catch (error) {
+        alert('Error updating profile. Please try again.');
       }
-
-      setShowRegistrationModal(false);
-      alert("Registration completed successfully!");
   };
 
   const handleSkipRegistration = () => {
@@ -221,11 +312,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
                 <input 
                   type="file"
-                  accept="image/*,.pdf"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
                   className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
-                  onChange={(e) => setRegistrationData({...registrationData, idProof: e.target.files?.[0] || null})}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const uploadResponse = await uploadFile(file);
+                      if (uploadResponse.success) {
+                        setRegistrationData({...registrationData, idProof: uploadResponse.fileId});
+                        toast.success('File uploaded successfully!');
+                      } else {
+                        toast.error(uploadResponse.error || 'Failed to upload file');
+                      }
+                    }
+                  }}
                 />
-                <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport</p>
+                <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport (Max 5MB)</p>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -272,20 +374,23 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <div className="w-2 h-2 bg-black border border-black"></div>
                         </div>
                         <div className="pl-10 space-y-3">
-                            <input 
-                                type="text" 
-                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
-                                placeholder="Pickup location"
+                            <LocationAutocomplete
                                 value={formData.pickup}
-                                onChange={e => setFormData({...formData, pickup: e.target.value})}
-                            />
-                            <input 
-                                type="text" 
+                                onChange={(value) => setFormData({...formData, pickup: value})}
+                                placeholder="Pickup location"
                                 className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
-                                placeholder="Drop location"
+                            />
+                            <LocationAutocomplete
                                 value={formData.drop}
-                                onChange={e => setFormData({...formData, drop: e.target.value})}
-                                onBlur={handleEstimate}
+                                onChange={(value) => {
+                                    setFormData({...formData, drop: value});
+                                    // Only trigger estimate if it looks like a complete address (contains comma)
+                                    if (value && formData.pickup && formData.vehicleType && value.includes(',')) {
+                                        setTimeout(handleEstimate, 500);
+                                    }
+                                }}
+                                placeholder="Drop location"
+                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
                             />
                         </div>
                     </div>
@@ -767,11 +872,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         )}
                     </div>
 
-                    {/* Fare Estimate - Only show when both locations are filled */}
-                    {formData.pickup && formData.drop && (
+                    {/* Fare Estimate - Only show when estimate is available */}
+                    {(estimate || estimateLoading) && (
                         <div className="mx-4 mb-4 text-center py-3 bg-gray-50 rounded-lg">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fare Estimate</p>
-                            <p className="text-2xl font-bold text-black mb-1">₹349</p>
+                            {estimateLoading ? (
+                                <p className="text-lg font-bold text-gray-500 mb-1">Calculating...</p>
+                            ) : (
+                                <p className="text-2xl font-bold text-black mb-1">₹{estimate}</p>
+                            )}
                             <p className="text-xs text-gray-500">This is just an estimate</p>
                         </div>
                     )}
@@ -795,19 +904,29 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     <p className="text-gray-500">No trips booked yet.</p>
                  ) : (
                     myTrips
-                    .sort((a, b) => `${b.startDate}T${b.startTime}`.localeCompare(`${a.startDate}T${a.startTime}`))
-                    .map(trip => (
+                    .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime())
+                    .map(trip => {
+                        const startDate = new Date(trip.startDateTime);
+                        const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                        const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
+                        return (
                         <div key={trip.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                              <div className="flex justify-between items-start mb-2">
                                 <div>
-                                    <span className="font-bold text-lg">{trip.startTime}, {trip.startDate}</span>
-                                    {trip.estimatedCost > 0 && (
-                                        <p className="text-sm font-bold text-green-600 mt-1">₹{trip.estimatedCost}</p>
+                                    <span className="font-bold text-lg">{formattedTime}, {formattedDate}</span>
+                                    {trip.estimateAmount && (
+                                        <p className="text-sm font-bold text-green-600 mt-1">₹{trip.estimateAmount}</p>
                                     )}
                                 </div>
-                                <span className={`text-xs px-2 py-1 rounded font-bold ${trip.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>{trip.status}</span>
+                                <span className={`text-xs px-2 py-1 rounded font-bold ${
+                                    trip.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 
+                                    trip.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                                    trip.status === 'ONGOING' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100'
+                                }`}>{trip.status}</span>
                              </div>
-                             <p className="text-sm font-medium mb-1">{trip.type}</p>
+                             <p className="text-sm font-medium mb-1">{trip.bookingType}</p>
                              <div className="text-xs text-gray-500 flex flex-col gap-1">
                                 <span>From: {trip.pickupLocation}</span>
                                 <span>To: {trip.dropLocation}</span>
@@ -839,7 +958,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  </div>
                              )}
                         </div>
-                    ))
+                        );
+                    })
                  )}
               </div>
           )}
@@ -884,10 +1004,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                          <div className="space-y-2">
                              <h4 className="font-bold text-sm">ID Proof</h4>
                              <div className="border border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 cursor-pointer">
-                                 {customer.addressProofUrl ? (
+                                 {customer.idProof ? (
                                      <div className="text-green-600 font-bold text-sm flex flex-col items-center gap-2">
                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                         ID Proof Uploaded
+                                         <span>ID Proof Uploaded</span>
+                                         <button 
+                                             onClick={() => window.open(`http://localhost:5000/uploads/${customer.idProof}`, '_blank')}
+                                             className="mt-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700"
+                                         >
+                                             View Document
+                                         </button>
                                      </div>
                                  ) : (
                                      <div className="text-gray-500 text-sm">
@@ -948,12 +1074,64 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                          <div>
                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
-                             <button 
-                                 type="button"
-                                 className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium hover:bg-gray-200 transition"
-                             >
-                                 Upload ID Proof
-                             </button>
+                             {customer.idProof ? (
+                                 <div className="space-y-2">
+                                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                                         <div className="flex items-center gap-2">
+                                             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                             <span className="text-sm font-medium text-green-800">ID Proof Uploaded</span>
+                                         </div>
+                                         <button 
+                                             type="button"
+                                             onClick={() => {
+                                                 if (confirm('Replace existing ID proof?')) {
+                                                     document.getElementById('idProofInput')?.click();
+                                                 }
+                                             }}
+                                             className="text-xs font-bold text-green-600 hover:text-green-800"
+                                         >
+                                             Replace
+                                         </button>
+                                     </div>
+                                     <input 
+                                         id="idProofInput"
+                                         type="file"
+                                         accept="image/*,.pdf,.doc,.docx,.txt"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const uploadResponse = await uploadFile(file);
+                                                 if (uploadResponse.success) {
+                                                     setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
+                                                     toast.success('New ID proof uploaded successfully!');
+                                                 } else {
+                                                     toast.error(uploadResponse.error || 'Failed to upload file');
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                 </div>
+                             ) : (
+                                 <input 
+                                     type="file"
+                                     accept="image/*,.pdf,.doc,.docx,.txt"
+                                     className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                                     onChange={async (e) => {
+                                         const file = e.target.files?.[0];
+                                         if (file) {
+                                             const uploadResponse = await uploadFile(file);
+                                             if (uploadResponse.success) {
+                                                 setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
+                                                 toast.success('ID proof uploaded successfully!');
+                                             } else {
+                                                 toast.error(uploadResponse.error || 'Failed to upload file');
+                                             }
+                                         }
+                                     }}
+                                 />
+                             )}
+                             <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport (Max 5MB)</p>
                          </div>
 
                          <div className="flex gap-3 pt-4">

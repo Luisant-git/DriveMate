@@ -7,28 +7,38 @@ const DEMO_OTP = '1234';
 
 export const register = async (req, res) => {
   try {
-    const { email, phone, password, name, role = 'CUSTOMER' } = req.body;
+    const { email, phone, password, name, role = 'CUSTOMER', ...otherFields } = req.body;
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    const user = await prisma.user.create({
-      data: {
-        email,
-        phone,
-        password: hashedPassword,
-        name,
-        role,
-      },
-    });
-
-    // Create role-specific record
+    let user;
     if (role === 'CUSTOMER') {
-      await prisma.customer.create({
-        data: { userId: user.id },
+      user = await prisma.customer.create({
+        data: {
+          email,
+          phone,
+          password: hashedPassword,
+          name,
+        },
+      });
+    } else if (role === 'DRIVER') {
+      user = await prisma.driver.create({
+        data: {
+          email,
+          phone,
+          password: hashedPassword,
+          name,
+          ...otherFields
+        },
       });
     } else if (role === 'ADMIN') {
-      await prisma.admin.create({
-        data: { userId: user.id },
+      user = await prisma.admin.create({
+        data: {
+          email,
+          phone,
+          password: hashedPassword,
+          name,
+        },
       });
     }
 
@@ -49,7 +59,12 @@ export const login = async (req, res) => {
   try {
     const { email, phone, password } = req.body;
     
-    const user = await prisma.user.findFirst({
+    // Try to find user in each table
+    let user = null;
+    let role = null;
+    
+    // Check customer
+    user = await prisma.customer.findFirst({
       where: {
         OR: [
           { email: email || '' },
@@ -57,18 +72,45 @@ export const login = async (req, res) => {
         ]
       },
     });
+    if (user) role = 'CUSTOMER';
+    
+    // Check driver if not found
+    if (!user) {
+      user = await prisma.driver.findFirst({
+        where: {
+          OR: [
+            { email: email || '' },
+            { phone: phone || '' }
+          ]
+        },
+      });
+      if (user) role = 'DRIVER';
+    }
+    
+    // Check admin if not found
+    if (!user) {
+      user = await prisma.admin.findFirst({
+        where: {
+          OR: [
+            { email: email || '' },
+            { phone: phone || '' }
+          ]
+        },
+      });
+      if (user) role = 'ADMIN';
+    }
 
     if (!user || !await bcrypt.compare(password, user.password)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET);
     req.session.userId = user.id;
-    req.session.role = user.role;
+    req.session.role = role;
     
     res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone },
+      user: { id: user.id, email: user.email, name: user.name, role, phone: user.phone, address: user.address, idProof: user.idProof },
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -105,34 +147,28 @@ export const verifyOTP = async (req, res) => {
     }
 
     // Find or create customer
-    let user = await prisma.user.findUnique({ where: { phone } });
+    let user = await prisma.customer.findUnique({ where: { phone } });
     
     if (!user) {
-      const hashedPassword = await bcrypt.hash('otp-user', 10);
-      user = await prisma.user.create({
+      user = await prisma.customer.create({
         data: {
           phone,
           name: `Customer ${phone.slice(-4)}`,
-          role: 'CUSTOMER',
           email: `${phone}@temp.com`,
-          password: hashedPassword
         }
-      });
-      
-      await prisma.customer.create({
-        data: { userId: user.id }
       });
     }
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user.id, role: 'CUSTOMER' }, process.env.JWT_SECRET);
     if (req.session) {
       req.session.userId = user.id;
-      req.session.role = user.role;
+      req.session.role = 'CUSTOMER';
     }
     
     res.json({
+      success: true,
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone }
+      user: { id: user.id, email: user.email, name: user.name, role: 'CUSTOMER', phone: user.phone, address: user.address, idProof: user.idProof }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -155,21 +191,68 @@ export const logout = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      include: {
-        customer: true,
-        driver: true,
-        admin: true
-      }
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    let user = null;
+    
+    if (req.user.role === 'CUSTOMER') {
+      user = await prisma.customer.findUnique({ where: { id: req.user.id } });
+    } else if (req.user.role === 'DRIVER') {
+      user = await prisma.driver.findUnique({ where: { id: req.user.id } });
+    } else if (req.user.role === 'ADMIN') {
+      user = await prisma.admin.findUnique({ where: { id: req.user.id } });
     }
 
-    res.json({ user });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.json({ success: true, user: { ...user, role: req.user.role } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, email, address, idProof } = req.body;
+    
+    let user = null;
+    
+    if (req.user.role === 'CUSTOMER') {
+      user = await prisma.customer.update({
+        where: { id: req.user.id },
+        data: {
+          name,
+          email,
+          address,
+          idProof
+        }
+      });
+    } else if (req.user.role === 'DRIVER') {
+      user = await prisma.driver.update({
+        where: { id: req.user.id },
+        data: {
+          name,
+          email
+        }
+      });
+    } else if (req.user.role === 'ADMIN') {
+      user = await prisma.admin.update({
+        where: { id: req.user.id },
+        data: {
+          name,
+          email
+        }
+      });
+    }
+
+    res.json({ 
+      success: true,
+      user: { 
+        ...user,
+        role: req.user.role
+      } 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };

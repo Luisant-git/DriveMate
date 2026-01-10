@@ -7,7 +7,7 @@ export const geocodeAddress = async (req, res) => {
     const { address } = req.query;
     
     if (!address) {
-      return res.status(400).json({ error: 'Address is required' });
+      return res.status(400).json({ success: false, error: 'Address is required' });
     }
 
     const response = await axios.get(
@@ -17,15 +17,46 @@ export const geocodeAddress = async (req, res) => {
     if (response.data.status === 'OK' && response.data.results.length > 0) {
       const result = response.data.results[0];
       res.json({
+        success: true,
         lat: result.geometry.location.lat,
         lng: result.geometry.location.lng,
         formatted_address: result.formatted_address,
       });
     } else {
-      res.status(404).json({ error: 'Address not found' });
+      res.status(404).json({ success: false, error: 'Address not found' });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getPlaceAutocomplete = async (req, res) => {
+  try {
+    const { input } = req.query;
+    
+    if (!input || input.length < 3) {
+      return res.status(400).json({ success: false, error: 'Input must be at least 3 characters' });
+    }
+
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&components=country:in`
+    );
+
+    if (response.data.status === 'OK') {
+      const suggestions = response.data.predictions.map(prediction => ({
+        description: prediction.description,
+        place_id: prediction.place_id
+      }));
+      
+      res.json({
+        success: true,
+        suggestions
+      });
+    } else {
+      res.json({ success: true, suggestions: [] });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

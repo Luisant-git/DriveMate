@@ -7,31 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Customer {
   id        String   @id @default(cuid())
+  name      String
   email     String   @unique
   phone     String   @unique
-  password  String
-  name      String
-  role      Role     @default(CUSTOMER)
+  password  String?
+  address   String?
+  idProof   String?
+  advancePayment Float @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relations
-  customer Customer?
-  driver   Driver?
-  admin    Admin?
-
-  @@map("users")
-}
-
-model Customer {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phone  String
-  addressProof String?
-  advancePayment Float @default(0)
 
   // Relations
   rides Ride[]
@@ -43,10 +29,12 @@ model Customer {
 
 model Driver {
   id           String        @id @default(cuid())
-  userId       String        @unique
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  phone        String
+  name         String
+  email        String        @unique
+  phone        String        @unique
+  password     String
   aadharNo     String        @unique
+  licenseNo    String        @unique
   photo        String?
   dlPhoto      String?
   panPhoto     String?
@@ -56,8 +44,8 @@ model Driver {
   alternateMobile4 String?
   gpayNo       String?
   phonepeNo    String?
-  vehicleNo    String
-  vehicleType  String
+  vehicleNo    String?
+  vehicleType  String?
   status       DriverStatus  @default(PENDING)
   isOnline     Boolean       @default(false)
   latitude     Float?
@@ -65,6 +53,8 @@ model Driver {
   rating       Float         @default(0)
   totalRides   Int           @default(0)
   packageType  PackageType   @default(LOCAL)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // Relations
   subscription Subscription?
@@ -75,9 +65,13 @@ model Driver {
 }
 
 model Admin {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("admins")
 }
@@ -153,12 +147,6 @@ model TrackingPoint {
   timestamp DateTime @default(now())
 
   @@map("tracking_points")
-}
-
-enum Role {
-  ADMIN
-  DRIVER
-  CUSTOMER
 }
 
 enum DriverStatus {
@@ -270,17 +258,19 @@ model Booking {
   id              String      @id @default(cuid())
   customerId      String
   customer        Customer    @relation(fields: [customerId], references: [id])
-  packageId       String
-  package         Package     @relation(fields: [packageId], references: [id])
+  packageId       String?
+  package         Package?    @relation(fields: [packageId], references: [id])
   
   pickupLocation  String
   dropLocation    String
-  bookingType     BookingType
+  bookingType     String      // Changed from BookingType enum to String
   duration        String?
   startDateTime   DateTime
   endDateTime     DateTime?
+  vehicleType     String?     // Only vehicle type needed
+  carType         String?     // Manual/Automatic
   
-  quotationAmount Float?
+  estimateAmount  Float?
   finalAmount     Float?
   advancePayment  Float       @default(0)
   status          BookingStatus @default(PENDING)

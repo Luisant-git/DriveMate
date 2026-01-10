@@ -1,156 +1,150 @@
 import prisma from '../config/database.js';
+import axios from 'axios';
+
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 export const createBooking = async (req, res) => {
   try {
-    const {
-      packageId,
-      pickupLocation,
-      dropLocation,
-      bookingType,
+    const { 
+      pickupLocation, 
+      dropLocation, 
+      bookingType, 
+      startDateTime, 
       duration,
-      startDateTime,
-      endDateTime,
-      quotationAmount,
-      advancePayment,
+      vehicleType,
+      carType,
+      estimateAmount 
     } = req.body;
-    const userId = req.user.userId;
 
-    const customer = await prisma.customer.findUnique({
-      where: { userId },
-    });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, error: 'User not logged in' });
+    }
 
     const booking = await prisma.booking.create({
       data: {
-        customerId: customer.id,
-        packageId,
+        customerId: req.user.id,
         pickupLocation,
         dropLocation,
         bookingType,
-        duration,
         startDateTime: new Date(startDateTime),
-        endDateTime: endDateTime ? new Date(endDateTime) : null,
-        quotationAmount,
-        advancePayment,
-      },
-      include: {
-        package: true,
-        customer: { include: { user: true } },
-      },
+        duration,
+        vehicleType,
+        carType,
+        estimateAmount,
+        status: 'PENDING'
+      }
     });
 
-    res.status(201).json(booking);
+    res.status(201).json({
+      success: true,
+      booking,
+      message: 'Booking request sent to drivers!'
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Booking creation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getEstimate = async (req, res) => {
+  try {
+    const { pickupLocation, dropLocation, vehicleType } = req.query;
+    
+    if (!pickupLocation || !dropLocation) {
+      return res.status(400).json({ success: false, error: 'Pickup and drop locations required' });
+    }
+
+    // Get distance and duration from Google Maps
+    const directionsResponse = await axios.get(
+      `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(dropLocation)}&key=${GOOGLE_MAPS_API_KEY}`
+    );
+
+    if (directionsResponse.data.status !== 'OK' || !directionsResponse.data.routes.length) {
+      return res.status(400).json({ success: false, error: 'Unable to calculate route' });
+    }
+
+    const route = directionsResponse.data.routes[0].legs[0];
+    const distanceKm = route.distance.value / 1000; // Convert meters to km
+    const durationMin = route.duration.value / 60; // Convert seconds to minutes
+
+    // Vehicle-specific pricing
+    const vehiclePricing = {
+      'Hatchback': { baseFare: 30, perKm: 7, perMin: 1, bookingFee: 10 },
+      'Sedan': { baseFare: 40, perKm: 9, perMin: 1.2, bookingFee: 15 },
+      'SUV': { baseFare: 50, perKm: 12, perMin: 1.5, bookingFee: 20 }
+    };
+
+    const pricing = vehiclePricing[vehicleType] || vehiclePricing['Hatchback'];
+    
+    // Calculate fare using Uber-like formula
+    const baseFare = pricing.baseFare;
+    const distanceFare = distanceKm * pricing.perKm;
+    const timeFare = durationMin * pricing.perMin;
+    const bookingFee = pricing.bookingFee;
+    
+    let totalFare = baseFare + distanceFare + timeFare + bookingFee;
+    
+    // Apply surge pricing (random between 1.0 to 1.8)
+    const surgeFactor = 1 + (Math.random() * 0.8);
+    if (surgeFactor > 1.3) {
+      totalFare *= surgeFactor;
+    }
+    
+    const estimate = Math.round(totalFare);
+    
+    res.json({
+      success: true,
+      estimate,
+      currency: 'INR',
+      breakdown: {
+        baseFare: Math.round(baseFare),
+        distanceFare: Math.round(distanceFare),
+        timeFare: Math.round(timeFare),
+        bookingFee,
+        surgeFactor: surgeFactor > 1.3 ? Math.round(surgeFactor * 100) / 100 : null,
+        distance: `${Math.round(distanceKm * 10) / 10} km`,
+        duration: `${Math.round(durationMin)} min`
+      }
+    });
+  } catch (error) {
+    console.error('Estimate calculation error:', error);
+    res.status(500).json({ success: false, error: 'Failed to calculate estimate' });
   }
 };
 
 export const getCustomerBookings = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    
-    const customer = await prisma.customer.findUnique({
-      where: { userId },
-    });
-
     const bookings = await prisma.booking.findMany({
-      where: { customerId: customer.id },
-      include: {
-        package: true,
+      where: {
+        customerId: req.user.id
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
-
-    res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const updateBookingStatus = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    const { status, finalAmount } = req.body;
-
-    const booking = await prisma.booking.update({
-      where: { id: bookingId },
-      data: { 
-        status,
-        ...(finalAmount && { finalAmount }),
-      },
-      include: {
-        package: true,
-        customer: { include: { user: true } },
-      },
-    });
-
-    res.json(booking);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
-export const getAllBookings = async (req, res) => {
-  try {
-    const bookings = await prisma.booking.findMany({
-      include: {
-        package: true,
-        customer: { include: { user: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const getMonthlyDriverQuotation = async (req, res) => {
-  try {
-    const { bookingType, duration, location } = req.query;
-    
-    // Calculate quotation based on booking type and duration
-    let basePrice = 0;
-    
-    switch (bookingType) {
-      case 'MONTHLY_DRIVER':
-        basePrice = 25000;
-        break;
-      case 'WEEKLY':
-        basePrice = 7000;
-        break;
-      case 'DAILY':
-        basePrice = 1200;
-        break;
-      case 'HOURLY':
-        basePrice = 150;
-        break;
-      case 'ONEWAY_DROP':
-        basePrice = 800;
-        break;
-      case 'TWOWAY_DROP':
-        basePrice = 1500;
-        break;
-      default:
-        basePrice = 1000;
-    }
-
-    // Add location-based pricing if needed
-    const locationMultiplier = location?.includes('outstation') ? 1.5 : 1;
-    const quotation = basePrice * locationMultiplier;
 
     res.json({
-      bookingType,
-      duration,
-      location,
-      quotation,
-      breakdown: {
-        basePrice,
-        locationMultiplier,
-        finalAmount: quotation,
-      },
+      success: true,
+      bookings
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// Total Fare=Base Fare+(Distance Fare × km)+(Time Fare × min)+Booking Fee×Surge
+// 2️⃣ Example
+
+// Suppose you take UberGo for 5 km, 15 minutes in traffic:
+
+// Base fare: ₹30
+
+// Distance: 5 km × ₹7/km = ₹35
+
+// Time: 15 min × ₹1/min = ₹15
+
+// Booking fee: ₹10
+
+// Total = 30 + 35 + 15 + 10 = ₹90
+// (If surge pricing is active, multiply by surge factor, e.g., ×1.5 → ₹135)

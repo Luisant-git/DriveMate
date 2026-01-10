@@ -1,0 +1,42 @@
+/* Success toasts - White background with black text */
+.Toastify__toast--success {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.Toastify__toast--success .Toastify__toast-icon svg {
+  fill: #000000 !important;
+}
+
+/* Error toasts - White background with red text */
+.Toastify__toast--error {
+  background-color: #ffffff !important;
+  color: #dc2626 !important;
+}
+
+.Toastify__toast--error .Toastify__toast-icon svg {
+  fill: #dc2626 !important;
+}
+
+/* Info toasts - White background with sky blue text */
+.Toastify__toast--info {
+  background-color: #ffffff !important;
+  color: #0ea5e9 !important;
+}
+
+.Toastify__toast--info .Toastify__toast-icon svg {
+  fill: #0ea5e9 !important;
+}
+
+/* Progress bar colors */
+.Toastify__progress-bar--success {
+  background: #000000 !important;
+}
+
+.Toastify__progress-bar--error {
+  background: #dc2626 !important;
+}
+
+.Toastify__progress-bar--info {
+  background: #0ea5e9 !important;
+}
