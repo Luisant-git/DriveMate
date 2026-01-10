@@ -1,0 +1,11 @@
+import express from 'express';
+import { geocodeAddress, getDirections, findNearbyDrivers } from '../controllers/maps.controller.js';
+import { authenticateToken } from '../middleware/auth.js';
+
+const router = express.Router();
+
+router.get('/geocode', authenticateToken, geocodeAddress);
+router.get('/directions', authenticateToken, getDirections);
+router.get('/nearby-drivers', authenticateToken, findNearbyDrivers);
+
+export default router;
