@@ -9,6 +9,7 @@ import { createBooking, getFareEstimate, getCustomerBookings } from '../../api/b
 import { checkAuth } from '../../api/auth';
 import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
+import RouteMap from '../../components/RouteMap';
 
 interface CustomerPortalProps {
   customer: Customer;
@@ -356,11 +357,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
   return (
     <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
-      {/* Background Map Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center opacity-80"
-        style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
-      ></div>
+      {/* Background Map Image or Route Map */}
+      {formData.pickup && formData.drop && formData.pickup.includes(',') && formData.drop.includes(',') ? (
+        <RouteMap 
+          pickup={formData.pickup}
+          drop={formData.drop}
+          apiKey="AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8"
+        />
+      ) : (
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-80"
+          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
+        ></div>
+      )}
       
       {/* Registration Modal */}
       {showRegistrationModal && (
