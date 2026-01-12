@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/auth.js';
 const router = express.Router();
 
 router.get('/geocode', authenticateToken, geocodeAddress);
-router.get('/autocomplete', authenticateToken, getPlaceAutocomplete);
+router.get('/autocomplete', getPlaceAutocomplete);
 router.get('/directions', authenticateToken, getDirections);
 router.get('/nearby-drivers', authenticateToken, findNearbyDrivers);
 

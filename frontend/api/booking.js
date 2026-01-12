@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
 // Get fare estimate
 export const getFareEstimate = async (pickupLocation, dropLocation, vehicleType) => {
@@ -10,11 +10,17 @@ export const getFareEstimate = async (pickupLocation, dropLocation, vehicleType)
     });
     
     const response = await fetch(`${API_BASE_URL}/api/bookings/estimate?${params}`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error || 'Failed to get estimate' };
+    }
     
     const data = await response.json();
     return data;
@@ -35,10 +41,17 @@ export const createBooking = async (bookingData) => {
       credentials: 'include',
       body: JSON.stringify(bookingData),
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error || 'Failed to create booking' };
+    }
+    
     const data = await response.json();
-    return { success: response.ok, ...data };
+    return { success: true, ...data };
   } catch (error) {
-    return { success: false, message: 'Network error' };
+    console.error('Error creating booking:', error);
+    return { success: false, error: 'Network error' };
   }
 };
 
@@ -46,11 +59,18 @@ export const createBooking = async (bookingData) => {
 export const getCustomerBookings = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error || 'Failed to fetch bookings' };
+    }
+    
     const data = await response.json();
     return data;
   } catch (error) {

@@ -99,3 +99,16 @@ export const getProfile = async () => {
     return { success: false, message: 'Network error' };
   }
 };
+
+// Check authentication status
+export const checkAuth = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return { success: response.ok, authenticated: response.ok };
+  } catch (error) {
+    return { success: false, authenticated: false };
+  }
+};

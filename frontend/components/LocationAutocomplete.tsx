@@ -46,13 +46,17 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     setLoading(true);
     try {
       const response = await getPlaceAutocomplete(input);
-      if (response.success) {
+      if (response.success && response.suggestions) {
         setSuggestions(response.suggestions);
         setShowSuggestions(true);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
       }
     } catch (error) {
       console.error('Error fetching suggestions:', error);
       setSuggestions([]);
+      setShowSuggestions(false);
     } finally {
       setLoading(false);
     }
@@ -72,6 +76,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   };
 
   const handleSuggestionClick = (suggestion: Suggestion) => {
+    console.log('Suggestion clicked:', suggestion.description);
     onChange(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -100,22 +105,22 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
               <button
                 key={suggestion.place_id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-sm"
+                className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-sm transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span className="truncate">{suggestion.description}</span>
+                  <span className="truncate font-medium">{suggestion.description}</span>
                 </div>
               </button>
             ))
-          ) : (
+          ) : value.length >= 3 ? (
             <div className="p-3 text-center text-gray-500 text-sm">
-              No locations found
+              No locations found for "{value}"
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

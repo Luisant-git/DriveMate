@@ -6,6 +6,7 @@ import { getRecommendedPackage } from '../../services/geminiService';
 import { updateCustomerProfile } from '../../api/customer';
 import { uploadFile } from '../../api/upload';
 import { createBooking, getFareEstimate, getCustomerBookings } from '../../api/booking';
+import { checkAuth } from '../../api/auth';
 import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 
@@ -20,6 +21,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [bookingType, setBookingType] = useState<BookingType>(BookingType.ONEWAY);
   const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
   
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [authChecking, setAuthChecking] = useState<boolean>(false);
   // AI & Booking States
   const [aiQuery, setAiQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -60,11 +64,32 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     idProof: null as string | null
   });
 
+  const checkAuthStatus = async () => {
+    setAuthChecking(true);
+    try {
+      const authStatus = await checkAuth();
+      setIsAuthenticated(authStatus.authenticated);
+      if (!authStatus.authenticated) {
+        toast.warning('Please log in to access all features');
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setIsAuthenticated(false);
+    } finally {
+      setAuthChecking(false);
+    }
+  };
+
   const fetchBookings = async () => {
+    if (!isAuthenticated) return;
+    
     try {
       const response = await getCustomerBookings();
       if (response.success) {
         setMyTrips(response.bookings);
+      } else if (response.error === 'User not logged in') {
+        setIsAuthenticated(false);
+        toast.warning('Please log in to view your trips');
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -80,6 +105,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         phone: initialCustomer.phone,
         address: initialCustomer.address || ''
       });
+      
+      // Check authentication status
+      checkAuthStatus();
       
       // Fetch real bookings
       fetchBookings();
@@ -116,8 +144,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const handleEstimate = async () => {
      if(!formData.pickup || !formData.drop || !formData.vehicleType) return;
 
-     // Only calculate if both locations contain commas (indicating complete addresses)
-    //  if(!formData.pickup.includes(',') || !formData.drop.includes(',')) return;
+     // Check authentication before making API call
+     if (!isAuthenticated) {
+       toast.warning('Please log in to get fare estimates');
+       return;
+     }
+
+     console.log('Triggering estimate with:', { pickup: formData.pickup, drop: formData.drop, vehicleType: formData.vehicleType });
      
      setEstimateLoading(true);
      try {
@@ -131,10 +164,53 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
          setEstimate(response.estimate);
        } else {
          console.error('Estimate error:', response.error);
+         if (response.error === 'User not logged in') {
+           setIsAuthenticated(false);
+           toast.error('Please log in to get fare estimates');
+         } else {
+          //  toast.error(response.error || 'Failed to calculate estimate');
+         }
          setEstimate(null);
        }
      } catch (error) {
        console.error('Error getting estimate:', error);
+       toast.error('Failed to calculate estimate');
+       setEstimate(null);
+     } finally {
+       setEstimateLoading(false);
+     }
+  };
+
+  const handleEstimateWithValues = async (pickup: string, drop: string, vehicleType: string) => {
+     if(!pickup || !drop || !vehicleType) return;
+
+     // Check authentication before making API call
+     if (!isAuthenticated) {
+       toast.warning('Please log in to get fare estimates');
+       return;
+     }
+
+     console.log('Triggering estimate with values:', { pickup, drop, vehicleType });
+     
+     setEstimateLoading(true);
+     try {
+       const response = await getFareEstimate(pickup, drop, vehicleType);
+       
+       if (response.success) {
+         setEstimate(response.estimate);
+       } else {
+         console.error('Estimate error:', response.error);
+         if (response.error === 'User not logged in') {
+           setIsAuthenticated(false);
+           toast.error('Please log in to get fare estimates');
+         } else {
+          //  toast.error(response.error || 'Failed to calculate estimate');
+         }
+         setEstimate(null);
+       }
+     } catch (error) {
+       console.error('Error getting estimate:', error);
+      //  toast.error('Failed to calculate estimate');
        setEstimate(null);
      } finally {
        setEstimateLoading(false);
@@ -144,8 +220,20 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check authentication first
+    if (!isAuthenticated) {
+      toast.error('Please log in to book a ride');
+      return;
+    }
+    
     if (!formData.pickup || !formData.drop) {
       toast.error('Please enter pickup and drop locations');
+      return;
+    }
+
+    // Validate that locations are filled
+    if (!formData.pickup.includes(',') || !formData.drop.includes(',')) {
+      toast.error('Please select complete addresses from the suggestions');
       return;
     }
 
@@ -153,7 +241,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       const bookingData = {
         pickupLocation: formData.pickup,
         dropLocation: formData.drop,
-        bookingType: `${bookingType} - ${serviceType}`,
+        bookingType: bookingType,
+        serviceType: serviceType,
         startDateTime: formData.date && formData.time ? 
           `${formData.date}T${formData.time}` : new Date().toISOString(),
         duration: formData.duration || formData.estimatedUsage,
@@ -179,13 +268,20 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           tripType: 'Round Trip',
           estimatedUsage: '12 Hrs',
         });
+        setEstimate(null);
         // Refresh bookings
         fetchBookings();
         setActiveTab('TRIPS');
       } else {
-        toast.error(response.error || 'Failed to send request');
+        if (response.error === 'User not logged in') {
+          setIsAuthenticated(false);
+          toast.error('Please log in to book a ride');
+        } else {
+          // toast.error(response.error || 'Failed to send request');
+        }
       }
     } catch (error) {
+      console.error('Booking error:', error);
       toast.error('Error sending request. Please try again.');
     }
   };
@@ -375,19 +471,29 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <div className="w-2 h-2 bg-black border border-black"></div>
                         </div>
                         <div className="pl-10 space-y-3">
-                            <LocationAutocomplete
-                                value={formData.pickup}
-                                onChange={(value) => setFormData({...formData, pickup: value})}
-                                placeholder="Pickup location"
-                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
-                            />
+                                            <LocationAutocomplete
+                                                value={formData.pickup}
+                                                onChange={(value) => {
+                                                    setFormData({...formData, pickup: value});
+                                                    // Trigger estimate when both locations are filled
+                                                    if (value && formData.drop && formData.vehicleType) {
+                                                        setTimeout(handleEstimate, 500);
+                                                    }
+                                                }}
+                                                placeholder="Pickup location"
+                                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                            />
                             <LocationAutocomplete
                                 value={formData.drop}
                                 onChange={(value) => {
+                                    console.log('Drop location selected:', value);
                                     setFormData({...formData, drop: value});
-                                    // Only trigger estimate if it looks like a complete address (contains comma)
-                                    if (value && formData.pickup && formData.vehicleType && value.includes(',')) {
-                                        setTimeout(handleEstimate, 500);
+                                    // Trigger estimate when both locations are filled
+                                    if (value && formData.pickup && formData.vehicleType) {
+                                        setTimeout(() => {
+                                            // Call estimate with updated values directly
+                                            handleEstimateWithValues(formData.pickup, value, formData.vehicleType);
+                                        }, 500);
                                     }
                                 }}
                                 placeholder="Drop location"
@@ -958,11 +1064,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </div>
 
                 <div className="p-4 border-t border-gray-100 bg-white">
+                    {!isAuthenticated && (
+                        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-center gap-2 text-yellow-800 text-sm">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span className="font-medium">Please log in to book rides and get estimates</span>
+                            </div>
+                        </div>
+                    )}
                     <button 
                         onClick={handleBookingSubmit}
-                        className="w-full bg-black text-white py-4 rounded-lg font-bold text-lg hover:bg-gray-900 transition shadow-lg"
+                        disabled={!isAuthenticated || authChecking}
+                        className={`w-full py-4 rounded-lg font-bold text-lg transition shadow-lg ${
+                            !isAuthenticated || authChecking 
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                : 'bg-black text-white hover:bg-gray-900'
+                        }`}
                     >
-                        Request Driver
+                        {authChecking ? 'Checking...' : 'Request Driver'}
                     </button>
                 </div>
               </>
@@ -971,7 +1092,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           {activeTab === 'TRIPS' && (
               <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
                  <h3 className="text-lg font-bold">Your Trips</h3>
-                 {myTrips.length === 0 ? (
+                 {!isAuthenticated ? (
+                    <div className="text-center py-8">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                            <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <h4 className="text-lg font-bold text-yellow-800 mb-2">Login Required</h4>
+                            <p className="text-yellow-700">Please log in to view your trip history</p>
+                        </div>
+                    </div>
+                 ) : myTrips.length === 0 ? (
                     <p className="text-gray-500">No trips booked yet.</p>
                  ) : (
                     myTrips

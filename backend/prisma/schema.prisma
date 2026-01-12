@@ -264,6 +264,7 @@ model Booking {
   pickupLocation  String
   dropLocation    String
   bookingType     String      // Changed from BookingType enum to String
+  serviceType     String?     // LOCAL_HOURLY, OUTSTATION
   duration        String?
   startDateTime   DateTime
   endDateTime     DateTime?
