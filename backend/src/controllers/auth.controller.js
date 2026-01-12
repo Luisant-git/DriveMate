@@ -153,8 +153,6 @@ export const verifyOTP = async (req, res) => {
       user = await prisma.customer.create({
         data: {
           phone,
-          name: `Customer ${phone.slice(-4)}`,
-          email: `${phone}@temp.com`,
         }
       });
     }

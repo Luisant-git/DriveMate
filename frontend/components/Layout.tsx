@@ -24,9 +24,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
               {currentUser && (
                 <>
                   <div className="flex items-center gap-3">
-                     <span className="hidden md:block text-sm font-medium">{currentUser.name}</span>
+                     <span className="hidden md:block text-sm font-medium">{currentUser.name || 'User'}</span>
                      <div className="h-8 w-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-sm">
-                       {currentUser.name[0]}
+                       {currentUser.name?.[0] || 'U'}
                      </div>
                   </div>
                   <button 

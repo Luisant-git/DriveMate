@@ -56,13 +56,38 @@ export const getEstimate = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Pickup and drop locations required' });
     }
 
+    // Validate that locations are not just single characters or too short
+    if (pickupLocation.trim().length < 3 || dropLocation.trim().length < 3) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Please select valid pickup and drop locations from autocomplete suggestions' 
+      });
+    }
+
+    // Check if locations contain proper address components (city, state, etc.)
+    const isValidLocation = (location) => {
+      const hasComma = location.includes(',');
+      const hasMinLength = location.length > 10;
+      return hasComma && hasMinLength;
+    };
+
+    if (!isValidLocation(pickupLocation) || !isValidLocation(dropLocation)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Please select complete addresses from the autocomplete dropdown' 
+      });
+    }
+
     // Get distance and duration from Google Maps
     const directionsResponse = await axios.get(
       `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(dropLocation)}&key=${GOOGLE_MAPS_API_KEY}`
     );
 
     if (directionsResponse.data.status !== 'OK' || !directionsResponse.data.routes.length) {
-      return res.status(400).json({ success: false, error: 'Unable to calculate route' });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Unable to calculate route. Please ensure both locations are valid addresses.' 
+      });
     }
 
     const route = directionsResponse.data.routes[0].legs[0];
