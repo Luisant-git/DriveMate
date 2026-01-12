@@ -107,21 +107,10 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
   return (
     <div className="max-w-3xl mx-auto pb-20 px-4 sm:px-0">
-      {/* Top Status Bar */}
+      {/* Top Header Bar */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center sticky top-16 z-40 shadow-md -mx-4 sm:mx-0 sm:rounded-lg">
-          <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500'}`}></div>
-              <div>
-                  <p className="font-bold text-sm leading-none">{isOnline ? 'Online' : 'Offline'}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{driver.packageSubscription ? `${driver.packageSubscription} Plan Active` : 'No Active Plan'}</p>
-              </div>
-          </div>
-          <button 
-            onClick={() => setIsOnline(!isOnline)} 
-            className="text-[10px] sm:text-xs bg-gray-800 hover:bg-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold border border-gray-700 transition"
-          >
-              {isOnline ? 'GO OFFLINE' : 'GO ONLINE'}
-          </button>
+          <p className="font-bold text-sm leading-none">SNP Driver</p>
+          <p className="text-xs text-gray-400">Welcome, {driver.name}</p>
       </div>
 
       {/* Tabs */}
@@ -184,9 +173,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             </div>
                         ) : (
                             availableTrips.map(trip => (
-                                <div key={trip.id} className="bg-white rounded-xl p-4 sm:p-5 shadow-floating border border-gray-100 mb-4 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-2 h-full bg-black"></div>
-                                    <div className="flex justify-between items-start mb-3 sm:mb-4 pr-4">
+                                <div key={trip.id} className="bg-white rounded-xl p-4 sm:p-5 shadow-floating border border-gray-100 mb-4">
+                                    <div className="flex justify-between items-start mb-3 sm:mb-4">
                                          <div>
                                              <h4 className="text-xl sm:text-2xl font-bold">₹{trip.estimatedCost}</h4>
                                              <p className="text-gray-500 text-[10px] sm:text-xs font-medium">{trip.duration} • {trip.type}</p>
@@ -241,7 +229,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                          </div>
                      ) : (
                          activeTrips.map(trip => (
-                             <div key={trip.id} className="bg-white border-l-4 border-black rounded-xl p-4 sm:p-5 mb-3 shadow-sm flex flex-col gap-2">
+                             <div key={trip.id} className="bg-gray-50 border-2 border-gray-300 rounded-xl p-4 sm:p-5 mb-3 shadow-md flex flex-col gap-2">
                                  <div className="flex justify-between items-start">
                                      <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{trip.type}</span>
                                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded uppercase">{trip.status}</span>

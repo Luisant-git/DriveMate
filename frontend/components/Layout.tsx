@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
             {/* Logo */}
             <div className="flex items-center gap-1 cursor-pointer">
-              <span className="text-2xl font-bold tracking-tight">DriveMate</span>
+              <span className="text-2xl font-bold tracking-tight">SNP</span>
             </div>
 
             {/* Right Actions */}

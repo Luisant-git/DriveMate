@@ -72,7 +72,7 @@ const App: React.FC = () => {
             id: 'admin1',
             name: 'Super Admin',
             role: UserRole.ADMIN,
-            email: 'admin@drivemate.com',
+            email: 'admin@snp.com',
             phone: '0000000000'
           });
      } else if (role === UserRole.DRIVER) {
@@ -100,7 +100,7 @@ const App: React.FC = () => {
         <div className="absolute inset-0 "></div>
 
         <div className="w-full max-w-md relative z-10">
-           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-6 sm:mb-8 tracking-tight text-center">DriveMate</h1>
+           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-6 sm:mb-8 tracking-tight text-center">SNP</h1>
            
            <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden min-h-[400px] flex flex-col">
               

@@ -16,7 +16,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
     password: '',
     aadharNo: '',
     licenseNo: '',
-    altPhone: '',
+    altPhone: ['', '', '', ''],
     upiId: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -142,13 +142,23 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Alternate Phone (Optional)</label>
-            <input 
-              type="tel"
-              className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
-              value={registerData.altPhone}
-              onChange={(e) => setRegisterData({...registerData, altPhone: e.target.value})}
-            />
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Alternate Phone Numbers (Optional - Up to 4)</label>
+            <div className="space-y-2">
+              {registerData.altPhone.map((phone, index) => (
+                <input 
+                  key={index}
+                  type="tel"
+                  className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
+                  placeholder={`Alternate Phone ${index + 1}`}
+                  value={phone}
+                  onChange={(e) => {
+                    const newAltPhones = [...registerData.altPhone];
+                    newAltPhones[index] = e.target.value;
+                    setRegisterData({...registerData, altPhone: newAltPhones});
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           <div>
@@ -219,8 +229,8 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
         ) : 'Login'}
       </button>
       
-      <p className="text-center text-xs text-gray-400 mt-4">
-        First time? <span onClick={() => setStep('REGISTER')} className="font-bold text-black cursor-pointer hover:underline">Register here</span>
+      <p className="text-center text-sm text-gray-500 mt-4">
+        Join as driver partner? <span onClick={() => setStep('REGISTER')} className="font-bold text-black cursor-pointer hover:underline">Register here</span>
       </p>
     </form>
   );
