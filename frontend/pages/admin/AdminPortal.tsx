@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import BookingWorkflow from './BookingWorkflow';
-import PendingDriverApproval from './PendingDriverApproval';
+import { API_BASE_URL } from '../../api/config.js';
 
 const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS'>('BOOKINGS');
@@ -19,7 +17,7 @@ const AdminPortal: React.FC = () => {
 
   const fetchDrivers = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/drivers`, {
+      const response = await fetch(`${API_BASE_URL}/api/drivers`, {
         credentials: 'include'
       });
       if (response.ok) {

@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Driver, Trip, Package } from '../../types';
 import { tripAPI } from '../../api/trip';
 import DriverBookingRequests from './DriverBookingRequests';
+import { API_BASE_URL } from '../../api/config.js';
 
 interface DriverPortalProps {
   driver: Driver;
@@ -107,7 +107,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const handleCancelTrip = async (tripId: string) => {
     if (window.confirm("Are you sure you want to cancel this trip? This action cannot be undone.")) {
         try {
-          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/trips/${tripId}/cancel`, {
+          const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/cancel`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       const confirmed = window.confirm(`Subscribe to ${pkg.name} for ₹${pkg.price}?`);
       if (confirmed) {
           try {
-              const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/drivers/package`, {
+              const response = await fetch(`${API_BASE_URL}/api/drivers/package`, {
                   method: 'PUT',
                   headers: {
                       'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       
       try {
           const token = localStorage.getItem('auth-token');
-          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/profile`, {
+          const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
               method: 'PUT',
               headers: {
                   'Content-Type': 'application/json',

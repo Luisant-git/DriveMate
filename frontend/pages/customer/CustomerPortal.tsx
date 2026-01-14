@@ -1349,7 +1349,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                          <span>ID Proof Uploaded</span>
                                          <button 
-                                             onClick={() => window.open(`http://localhost:5000/uploads/${customer.idProof}`, '_blank')}
+                                             onClick={() => window.open(`${import.meta.env.VITE_APP_API_URL}/uploads/${customer.idProof}`, '_blank')}
                                              className="mt-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700"
                                          >
                                              View Document
