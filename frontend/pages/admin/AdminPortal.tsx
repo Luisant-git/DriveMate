@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
+import BookingWorkflow from './BookingWorkflow';
+import PendingDriverApproval from './PendingDriverApproval';
 
 const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS'>('BOOKINGS');
