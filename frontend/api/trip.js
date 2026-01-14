@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from './config.js';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
@@ -23,7 +23,7 @@ const handleResponse = async (response) => {
 export const tripAPI = {
   // Get available trips for driver
   getAvailableTrips: async () => {
-    const response = await fetch(`${API_URL}/api/trips/available`, {
+    const response = await fetch(`${API_BASE_URL}/api/trips/available`, {
       headers: getAuthHeaders(),
       credentials: 'include',
     });
@@ -32,7 +32,7 @@ export const tripAPI = {
 
   // Get driver's trips
   getDriverTrips: async () => {
-    const response = await fetch(`${API_URL}/api/trips/driver`, {
+    const response = await fetch(`${API_BASE_URL}/api/trips/driver`, {
       headers: getAuthHeaders(),
       credentials: 'include',
     });
@@ -41,7 +41,7 @@ export const tripAPI = {
 
   // Accept trip
   acceptTrip: async (tripId) => {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/accept`, {
+    const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/accept`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -51,7 +51,7 @@ export const tripAPI = {
 
   // Complete trip
   completeTrip: async (tripId) => {
-    const response = await fetch(`${API_URL}/api/trips/${tripId}/complete`, {
+    const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/complete`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -61,7 +61,7 @@ export const tripAPI = {
 
   // Create trip (customer)
   createTrip: async (tripData) => {
-    const response = await fetch(`${API_URL}/api/trips`, {
+    const response = await fetch(`${API_BASE_URL}/api/trips`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
