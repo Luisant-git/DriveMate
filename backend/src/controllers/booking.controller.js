@@ -145,6 +145,9 @@ export const getCustomerBookings = async (req, res) => {
       where: {
         customerId: req.user.id
       },
+      include: {
+        driver: true,
+      },
       orderBy: {
         createdAt: 'desc'
       }
@@ -156,6 +159,38 @@ export const getCustomerBookings = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching bookings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getDriverBookings = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        driverId: req.user.id
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            address: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      success: true,
+      bookings
+    });
+  } catch (error) {
+    console.error('Error fetching driver bookings:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

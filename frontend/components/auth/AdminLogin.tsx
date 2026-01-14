@@ -7,7 +7,7 @@ interface AdminLoginProps {
 }
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
-  const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -16,7 +16,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
     
     try {
       const response = await login({
-        email: loginData.username,
+        email: loginData.email,
         password: loginData.password
       });
       
@@ -44,13 +44,13 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
       
       <div className="space-y-4 flex-grow">
         <div>
-          <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Username</label>
+          <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Email</label>
           <input 
-            type="text"
+            type="email"
             className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-black outline-none"
-            placeholder="admin"
-            value={loginData.username}
-            onChange={(e) => setLoginData({...loginData, username: e.target.value})}
+            placeholder="admin@drivemate.com"
+            value={loginData.email}
+            onChange={(e) => setLoginData({...loginData, email: e.target.value})}
             autoFocus
           />
         </div>
@@ -68,7 +68,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
 
       <button 
         type="submit" 
-        disabled={!loginData.username || !loginData.password || isLoading}
+        disabled={!loginData.email || !loginData.password || isLoading}
         className="w-full mt-6 bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
       >
         {isLoading ? (

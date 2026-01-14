@@ -1,8 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import { User, UserRole } from './types';
-import { store } from './services/mockStore';
 import DriverPortal from './pages/driver/DriverPortal';
 import CustomerPortal from './pages/customer/CustomerPortal';
 import AdminPortal from './pages/admin/AdminPortal';
@@ -65,21 +63,9 @@ const App: React.FC = () => {
     }
   };
 
-  // --- Dev Switch Helper ---
+  // Dev Switch Helper - removed mock store usage
   const handleDevSwitch = (role: UserRole) => {
-     if (role === UserRole.ADMIN) {
-         setCurrentUser({
-            id: 'admin1',
-            name: 'Super Admin',
-            role: UserRole.ADMIN,
-            email: 'admin@snp.com',
-            phone: '0000000000'
-          });
-     } else if (role === UserRole.DRIVER) {
-         setCurrentUser(store.drivers[0]);
-     } else {
-         setCurrentUser(store.customers[0]);
-     }
+    console.log('Dev switch not available - please login properly');
   };
 
   if (isLoading) {

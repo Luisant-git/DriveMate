@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Customer, BookingType, Trip } from '../../types';
-import { store } from '../../services/mockStore';
 import { getRecommendedPackage } from '../../services/geminiService';
 import { updateCustomerProfile } from '../../api/customer';
 import { uploadFile } from '../../api/upload';
@@ -10,6 +9,7 @@ import { checkAuth } from '../../api/auth';
 import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
+import CustomerBookingStatus from './CustomerBookingStatus';
 
 interface CustomerPortalProps {
   customer: Customer;
@@ -288,8 +288,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   };
 
   const handleRating = (tripId: string, rating: number) => {
-      store.rateTrip(tripId, rating);
-      setMyTrips(store.getTripsForCustomer(customer.id)); // Refresh
+      // Rating functionality removed - using real API
+      console.log('Rating:', tripId, rating);
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -358,7 +358,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   return (
     <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
       {/* Background Map Image or Route Map */}
-      {formData.pickup && formData.drop && formData.pickup.includes(',') && formData.drop.includes(',') ? (
+      {formData.pickup && formData.drop ? (
         <RouteMap 
           pickup={formData.pickup}
           drop={formData.drop}
@@ -457,7 +457,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       )}
       
       {/* Floating Panel */}
-      <div className="absolute inset-0 md:relative md:top-4 md:left-4 md:w-[420px] md:h-auto md:max-h-[calc(100vh-32px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden">
+      <div className={`absolute md:relative md:top-4 md:left-4 md:w-[420px] md:h-auto md:max-h-[calc(100vh-32px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden ${
+        formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[60vh] rounded-t-3xl' : 'inset-0'
+      }`}>
           
           {/* Header & Tabs */}
           <div className="bg-white px-4 sm:px-6 pt-4 pb-2 border-b border-gray-100 flex justify-between items-center">
@@ -1100,6 +1102,111 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
           {activeTab === 'TRIPS' && (
               <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
+                 <h3 className="text-lg font-bold">Your Bookings</h3>
+                 {!isAuthenticated ? (
+                    <div className="text-center py-8">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                            <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <h4 className="text-lg font-bold text-yellow-800 mb-2">Login Required</h4>
+                            <p className="text-yellow-700">Please log in to view your bookings</p>
+                        </div>
+                    </div>
+                 ) : myTrips.length === 0 ? (
+                    <p className="text-gray-500">No bookings yet.</p>
+                 ) : (
+                    myTrips
+                    .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime())
+                    .map(booking => {
+                        const startDate = new Date(booking.startDateTime);
+                        const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                        const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
+                        return (
+                        <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
+                             <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
+                                <div className="flex-1 min-w-0">
+                                    <span className="font-bold text-base sm:text-lg block">{formattedTime}, {formattedDate}</span>
+                                    {booking.estimateAmount && (
+                                        <p className="text-sm font-bold text-green-600 mt-1">₹{booking.estimateAmount}</p>
+                                    )}
+                                </div>
+                                <span className={`text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
+                                    booking.status === 'CONFIRMED' && booking.driverId ? 'bg-green-100 text-green-800' : 
+                                    booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                                    booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100'
+                                }`}>
+                                    {booking.status === 'CONFIRMED' && booking.driverId ? 'DRIVER ALLOCATED' : booking.status}
+                                </span>
+                             </div>
+                             
+                             <p className="text-xs sm:text-sm font-medium mb-2">{booking.bookingType}</p>
+                             <div className="text-xs text-gray-500 space-y-1 mb-3">
+                                <div className="flex items-start gap-2">
+                                    <span className="font-bold shrink-0">From:</span>
+                                    <span className="flex-1 break-words">{booking.pickupLocation}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="font-bold shrink-0">To:</span>
+                                    <span className="flex-1 break-words">{booking.dropLocation}</span>
+                                </div>
+                             </div>
+                             
+                             {/* Status Messages */}
+                             {booking.status === 'PENDING' && !booking.selectedPackageType && (
+                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
+                                     <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
+                                 </div>
+                             )}
+                             
+                             {booking.status === 'CONFIRMED' && !booking.driverId && (
+                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
+                                     <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
+                                     <p className="text-xs text-blue-600 mt-1">Request sent to {booking.selectedPackageType} drivers</p>
+                                 </div>
+                             )}
+                             
+                             {/* Driver Details - Show when driver is allocated */}
+                             {booking.driver && booking.driverId && (
+                                 <div className="mt-3 pt-3 border-t border-gray-200">
+                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
+                                     <div className="flex items-center gap-2 bg-gradient-to-r from-green-50 to-blue-50 p-2.5 rounded-lg border border-green-200">
+                                         <div className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">
+                                             {booking.driver.name[0]}
+                                         </div>
+                                         <div className="flex-grow min-w-0">
+                                             <p className="font-bold text-sm truncate">{booking.driver.name}</p>
+                                             <p className="text-xs text-gray-600">{booking.driver.phone}</p>
+                             {booking.driver.vehicleType && (
+                                                 <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                                     {booking.driver.vehicleType} • {booking.driver.vehicleNo}
+                                                 </p>
+                                             )}
+                                         </div>
+                                         <a 
+                                             href={`tel:${booking.driver.phone}`}
+                                             className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
+                                         >
+                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                         </a>
+                                     </div>
+                                 </div>
+                             )}
+                        </div>
+                        );
+                    })
+                 )}
+              </div>
+          )}
+
+          {false && activeTab === 'TRIPS' && (
+              <CustomerBookingStatus />
+          )}
+
+          {false && activeTab === 'TRIPS' && (
+              <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
                  <h3 className="text-lg font-bold">Your Trips</h3>
                  {!isAuthenticated ? (
                     <div className="text-center py-8">
@@ -1164,8 +1271,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                      </div>
                                  </div>
                              )}
-                             {/* Rating UI for Completed Trips */}
-                             {trip.status === 'COMPLETED' && (
+                             {/* Rating UI for Completed Trips - COMMENTED OUT */}
+                             {/* {trip.status === 'COMPLETED' && (
                                  <div className="mt-3 pt-3 border-t border-gray-100">
                                      {trip.rating ? (
                                          <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
@@ -1189,7 +1296,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          </div>
                                      )}
                                  </div>
-                             )}
+                             )} */}
                         </div>
                         );
                     })

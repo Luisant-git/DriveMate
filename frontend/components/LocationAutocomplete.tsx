@@ -37,7 +37,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   }, []);
 
   const fetchSuggestions = async (input: string) => {
-    if (input.length < 3) {
+    if (input.length < 1) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -90,7 +90,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         onChange={handleInputChange}
         placeholder={placeholder}
         className={`w-full ${className}`}
-        onFocus={() => value.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+        onFocus={() => value.length >= 1 && suggestions.length > 0 && setShowSuggestions(true)}
       />
       
       {showSuggestions && (
@@ -116,7 +116,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
                 </div>
               </button>
             ))
-          ) : value.length >= 3 ? (
+          ) : value.length >= 1 ? (
             <div className="p-3 text-center text-gray-500 text-sm">
               No locations found for "{value}"
             </div>

@@ -125,3 +125,90 @@ export const getDriverProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const updateDriverPackage = async (req, res) => {
+  try {
+    const { packageType } = req.body;
+    const driverId = req.user.id;
+
+    console.log('Updating driver package:', { driverId, packageType });
+
+    const driver = await prisma.driver.update({
+      where: { id: driverId },
+      data: { packageType },
+    });
+
+    console.log('Driver updated:', driver);
+
+    res.json({ success: true, driver, packageType: driver.packageType });
+  } catch (error) {
+    console.error('Error updating package:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const getAvailableDriversByPackage = async (req, res) => {
+  try {
+    const { packageType } = req.params;
+
+    const drivers = await prisma.driver.findMany({
+      where: {
+        OR: [
+          { packageType: packageType },
+          { packageType: 'ALL_PREMIUM' }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        rating: true,
+        totalRides: true,
+        vehicleNo: true,
+        vehicleType: true,
+        packageType: true,
+        photo: true,
+        status: true,
+        isOnline: true
+      },
+      orderBy: {
+        rating: 'desc'
+      }
+    });
+
+    res.json({ success: true, drivers, count: drivers.length });
+  } catch (error) {
+    console.error('Error fetching available drivers:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getAllDrivers = async (req, res) => {
+  try {
+    const drivers = await prisma.driver.findMany({
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        rating: true,
+        totalRides: true,
+        vehicleNo: true,
+        vehicleType: true,
+        packageType: true,
+        status: true,
+        isOnline: true,
+        photo: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json(drivers);
+  } catch (error) {
+    console.error('Error fetching drivers:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

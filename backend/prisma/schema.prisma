@@ -38,6 +38,7 @@ model Driver {
   photo        String?
   dlPhoto      String?
   panPhoto     String?
+  aadharPhoto  String?
   alternateMobile1 String?
   alternateMobile2 String?
   alternateMobile3 String?
@@ -60,6 +61,8 @@ model Driver {
   subscription Subscription?
   rides        Ride[]
   trips        Trip[]
+  bookings     Booking[]
+  bookingResponses BookingResponse[]
 
   @@map("drivers")
 }
@@ -173,6 +176,7 @@ enum RideStatus {
 enum PackageType {
   LOCAL
   OUTSTATION
+  ALL_PREMIUM
 }
 
 enum TripStatus {
@@ -258,6 +262,8 @@ model Booking {
   id              String      @id @default(cuid())
   customerId      String
   customer        Customer    @relation(fields: [customerId], references: [id])
+  driverId        String?
+  driver          Driver?     @relation(fields: [driverId], references: [id])
   packageId       String?
   package         Package?    @relation(fields: [packageId], references: [id])
   
@@ -276,10 +282,36 @@ model Booking {
   advancePayment  Float       @default(0)
   status          BookingStatus @default(PENDING)
   
+  // Admin workflow fields
+  adminReviewedAt DateTime?
+  selectedPackageType PackageType?
+  
+  // Driver responses
+  driverResponses BookingResponse[]
+  allocatedDriverId String?
+  allocatedAt     DateTime?
+  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   @@map("bookings")
+}
+
+model BookingResponse {
+  id              String      @id @default(cuid())
+  bookingId       String
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driverId        String
+  driver          Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  
+  status          String      @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  respondedAt     DateTime?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@unique([bookingId, driverId])
+  @@map("booking_responses")
 }
 
 model Payment {

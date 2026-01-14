@@ -1,21 +1,50 @@
 
-import React, { useState } from 'react';
-import { store } from '../../services/mockStore';
+import React, { useState, useEffect } from 'react';
+import BookingWorkflow from './BookingWorkflow';
+import PendingDriverApproval from './PendingDriverApproval';
 
 const AdminPortal: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS'>('DRIVERS');
+  const [activeTab, setActiveTab] = useState<'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS'>('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  const [drivers, setDrivers] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [payments, setPayments] = useState([]);
+
+  useEffect(() => {
+    if (activeTab === 'DRIVERS') {
+      fetchDrivers();
+    }
+  }, [activeTab]);
+
+  const fetchDrivers = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/drivers`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDrivers(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch drivers:', response.status);
+        setDrivers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+      setDrivers([]);
+    }
+  };
 
   const handleTabChange = (tab: typeof activeTab) => {
       setActiveTab(tab);
-      setCurrentPage(1); // Reset to first page when switching tabs
+      setCurrentPage(1);
   };
 
-  const drivers = store.drivers;
-  const customers = store.customers;
-  const packages = store.packages;
-  const payments = store.payments;
+  const packages = [
+    { id: 'p1', name: 'Local Driver Pass', type: 'LOCAL', price: 499, durationDays: 30, description: 'Accept unlimited local hourly rides for 30 days' },
+    { id: 'p2', name: 'Outstation Pro', type: 'OUTSTATION', price: 999, durationDays: 30, description: 'Accept outstation and long-distance trips' },
+    { id: 'p3', name: 'All Access Premium', type: 'ALL', price: 1299, durationDays: 30, description: 'Access to all trip types + Priority support' },
+  ];
 
   // Pagination Helper
   const getPaginatedData = <T,>(data: T[]) => {
@@ -80,7 +109,7 @@ const AdminPortal: React.FC = () => {
              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
              <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
                 <div className="flex space-x-6">
-                    {['DRIVERS', 'CUSTOMERS', 'PACKAGES', 'PAYMENTS'].map(tab => (
+                    {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'PACKAGES', 'PAYMENTS'].map(tab => (
                         <button 
                             key={tab}
                             onClick={() => handleTabChange(tab as any)}
@@ -97,66 +126,43 @@ const AdminPortal: React.FC = () => {
 
         <div className="bg-white rounded-3xl shadow-card overflow-hidden border border-gray-100">
             <div>
+                {activeTab === 'BOOKINGS' && (
+                    <BookingWorkflow />
+                )}
+
+                {activeTab === 'APPROVALS' && (
+                    <PendingDriverApproval />
+                )}
+
                 {activeTab === 'DRIVERS' && (
                     <>
-                        {/* Mobile View: Cards */}
-                        <div className="md:hidden p-4 space-y-4">
-                             {driverData.data.map(driver => (
-                                <div key={driver.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                           <div className="font-bold text-gray-900 text-lg">{driver.name}</div>
-                                           <div className="text-xs text-gray-500">{driver.phone}</div>
-                                        </div>
-                                        <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${driver.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                            {driver.isVerified ? 'Verified' : 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3 text-sm mb-4 bg-gray-50 p-3 rounded-lg">
-                                         <div>
-                                            <span className="text-gray-400 text-xs font-bold uppercase block mb-1">Package</span> 
-                                            <span className="font-medium">{driver.packageSubscription || 'None'}</span>
-                                         </div>
-                                         <div>
-                                            <span className="text-gray-400 text-xs font-bold uppercase block mb-1">Rating</span> 
-                                            <span className="font-medium flex items-center gap-1">{driver.rating} <span className="text-yellow-500">★</span></span>
-                                         </div>
-                                    </div>
-                                    <button className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:text-black hover:bg-gray-50 transition">
-                                        Edit Details
-                                    </button>
-                                </div>
-                             ))}
-                        </div>
-
-                        {/* Desktop View: Table */}
-                        <div className="hidden md:block overflow-x-auto">
-                            <table className="min-w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-100">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Name</th>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Package</th>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Verification</th>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Rating</th>
-                                        <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
+                                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">Driver</th>
+                                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">Package</th>
+                                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">Status</th>
+                                        <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">Rating</th>
+                                        <th className="px-8 py-4 text-right text-xs font-bold text-gray-600 uppercase">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {driverData.data.map(driver => (
-                                        <tr key={driver.id} className="hover:bg-gray-50/50">
+                                <tbody className="divide-y divide-gray-100">
+                                    {driverData.data.map((driver: any) => (
+                                        <tr key={driver._id} className="hover:bg-gray-50 transition">
                                             <td className="px-8 py-5">
                                                 <div className="font-bold text-gray-900">{driver.name}</div>
                                                 <div className="text-xs text-gray-500">{driver.phone}</div>
                                             </td>
-                                            <td className="px-8 py-5 text-sm">{driver.packageSubscription || 'None'}</td>
+                                            <td className="px-8 py-5 text-sm">{driver.packageType || 'None'}</td>
                                             <td className="px-8 py-5">
-                                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${driver.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                    {driver.isVerified ? 'Verified' : 'Pending'}
+                                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${driver.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    {driver.status}
                                                 </span>
                                             </td>
-                                            <td className="px-8 py-5 text-sm font-medium">{driver.rating} ★</td>
+                                            <td className="px-8 py-5 text-sm">⭐ {driver.rating?.toFixed(1) || 'N/A'}</td>
                                             <td className="px-8 py-5 text-right">
-                                                <button className="text-sm font-bold text-gray-400 hover:text-black">Edit</button>
+                                                <button className="text-sm font-bold text-gray-400 hover:text-black">View</button>
                                             </td>
                                         </tr>
                                     ))}

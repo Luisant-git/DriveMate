@@ -34,8 +34,8 @@ export const getPlaceAutocomplete = async (req, res) => {
   try {
     const { input } = req.query;
     
-    if (!input || input.length < 3) {
-      return res.status(400).json({ success: false, error: 'Input must be at least 3 characters' });
+    if (!input || input.length < 1) {
+      return res.status(400).json({ success: false, error: 'Input is required' });
     }
 
     const response = await axios.get(

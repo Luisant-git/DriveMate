@@ -1,5 +1,13 @@
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth-token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
 // Get fare estimate
 export const getFareEstimate = async (pickupLocation, dropLocation, vehicleType) => {
   try {
@@ -11,9 +19,7 @@ export const getFareEstimate = async (pickupLocation, dropLocation, vehicleType)
     
     const response = await fetch(`${API_BASE_URL}/api/bookings/estimate?${params}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     
@@ -35,9 +41,7 @@ export const createBooking = async (bookingData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/bookings`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
       body: JSON.stringify(bookingData),
     });
@@ -60,9 +64,7 @@ export const getCustomerBookings = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     

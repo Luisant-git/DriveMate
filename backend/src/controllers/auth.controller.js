@@ -22,13 +22,37 @@ export const register = async (req, res) => {
         },
       });
     } else if (role === 'DRIVER') {
+      // Check if driver already exists
+      const existingDriver = await prisma.driver.findFirst({
+        where: {
+          OR: [
+            { email },
+            { phone }
+          ]
+        }
+      });
+
+      if (existingDriver) {
+        return res.status(400).json({ error: 'Driver with this email or phone already exists' });
+      }
+
+      const { altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto, ...validDriverFields } = otherFields;
       user = await prisma.driver.create({
         data: {
           email,
           phone,
           password: hashedPassword,
           name,
-          ...otherFields
+          ...validDriverFields,
+          ...(altPhone?.[0] && { alternateMobile1: altPhone[0] }),
+          ...(altPhone?.[1] && { alternateMobile2: altPhone[1] }),
+          ...(altPhone?.[2] && { alternateMobile3: altPhone[2] }),
+          ...(altPhone?.[3] && { alternateMobile4: altPhone[3] }),
+          ...(upiId && { gpayNo: upiId, phonepeNo: upiId }),
+          ...(photo && { photo }),
+          ...(dlPhoto && { dlPhoto }),
+          ...(panPhoto && { panPhoto }),
+          ...(aadharPhoto && { aadharPhoto })
         },
       });
     } else if (role === 'ADMIN') {
@@ -100,7 +124,12 @@ export const login = async (req, res) => {
       if (user) role = 'ADMIN';
     }
 
-    if (!user || !await bcrypt.compare(password, user.password)) {
+    if (!user || !user.password || typeof user.password !== 'string') {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -110,7 +139,44 @@ export const login = async (req, res) => {
     
     res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name, role, phone: user.phone, address: user.address, idProof: user.idProof },
+      user: { 
+        id: user.id, 
+        email: user.email, 
+        name: user.name, 
+        role, 
+        phone: user.phone,
+        ...(role === 'DRIVER' && {
+          aadharNo: user.aadharNo,
+          licenseNo: user.licenseNo,
+          alternateMobile1: user.alternateMobile1,
+          alternateMobile2: user.alternateMobile2,
+          alternateMobile3: user.alternateMobile3,
+          alternateMobile4: user.alternateMobile4,
+          gpayNo: user.gpayNo,
+          phonepeNo: user.phonepeNo,
+          upiId: user.gpayNo,
+          altPhone: [
+            user.alternateMobile1,
+            user.alternateMobile2,
+            user.alternateMobile3,
+            user.alternateMobile4
+          ].filter(Boolean),
+          status: user.status,
+          isOnline: user.isOnline,
+          rating: user.rating,
+          completedTrips: user.totalRides,
+          packageSubscription: user.packageType,
+          avatarUrl: user.photo || '/default-avatar.png',
+          photo: user.photo,
+          dlPhoto: user.dlPhoto,
+          panPhoto: user.panPhoto,
+          aadharPhoto: user.aadharPhoto
+        }),
+        ...(role === 'CUSTOMER' && {
+          address: user.address,
+          idProof: user.idProof
+        })
+      },
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -203,7 +269,14 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    res.json({ success: true, user: { ...user, role: req.user.role } });
+    res.json({ 
+      success: true, 
+      user: { 
+        ...user, 
+        role: req.user.role,
+        ...(req.user.role === 'DRIVER' && { packageType: user.packageType })
+      } 
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -211,7 +284,7 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, idProof } = req.body;
+    const { name, email, address, idProof, phone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto } = req.body;
     
     let user = null;
     
@@ -230,7 +303,17 @@ export const updateProfile = async (req, res) => {
         where: { id: req.user.id },
         data: {
           name,
-          email
+          email,
+          ...(phone && { phone }),
+          ...(alternateMobile1 !== undefined && { alternateMobile1: alternateMobile1 || null }),
+          ...(alternateMobile2 !== undefined && { alternateMobile2: alternateMobile2 || null }),
+          ...(alternateMobile3 !== undefined && { alternateMobile3: alternateMobile3 || null }),
+          ...(alternateMobile4 !== undefined && { alternateMobile4: alternateMobile4 || null }),
+          ...(upiId !== undefined && { gpayNo: upiId, phonepeNo: upiId }),
+          ...(photo !== undefined && { photo }),
+          ...(dlPhoto !== undefined && { dlPhoto }),
+          ...(panPhoto !== undefined && { panPhoto }),
+          ...(aadharPhoto !== undefined && { aadharPhoto })
         }
       });
     } else if (req.user.role === 'ADMIN') {

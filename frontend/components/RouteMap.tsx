@@ -48,7 +48,11 @@ const RouteMap: React.FC<RouteMapProps> = ({ pickup, drop, apiKey }) => {
         center: { lat: 11.6643, lng: 78.1460 }, // Salem coordinates as default
         zoom: 13,
         styles: mapStyles,
-        disableDefaultUI: true
+        disableDefaultUI: true,
+        zoomControl: false,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false
       });
 
       // Initialize directions service and renderer
@@ -59,6 +63,7 @@ const RouteMap: React.FC<RouteMapProps> = ({ pickup, drop, apiKey }) => {
           strokeColor: '#000000',
           strokeWeight: 4,
         },
+        preserveViewport: false
       });
 
       directionsRendererRef.current.setMap(mapInstanceRef.current);
@@ -79,6 +84,25 @@ const RouteMap: React.FC<RouteMapProps> = ({ pickup, drop, apiKey }) => {
         (result, status) => {
           if (status === 'OK' && result) {
             directionsRendererRef.current?.setDirections(result);
+            
+            // Auto-center and zoom to fit the route with padding
+            if (mapInstanceRef.current && result.routes[0]) {
+              const bounds = new google.maps.LatLngBounds();
+              result.routes[0].legs.forEach(leg => {
+                bounds.extend(leg.start_location);
+                bounds.extend(leg.end_location);
+              });
+              
+              // Use setTimeout to ensure map is fully rendered
+              setTimeout(() => {
+                mapInstanceRef.current?.fitBounds(bounds, {
+                  top: 50,
+                  right: 50,
+                  bottom: 300,
+                  left: 50
+                });
+              }, 100);
+            }
           } else {
             console.error('Directions request failed due to ' + status);
           }
