@@ -74,7 +74,7 @@ export default function CustomerBookingStatus() {
                     <p className="text-[10px] font-semibold text-green-700 mb-2">✓ Your Driver</p>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                        {booking.driver.name[0]}
+                        {booking.driver.name?.[0] || 'D'}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900">{booking.driver.name}</p>

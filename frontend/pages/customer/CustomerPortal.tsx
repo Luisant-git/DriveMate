@@ -1174,7 +1174,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
                                      <div className="flex items-center gap-2 bg-gradient-to-r from-green-50 to-blue-50 p-2.5 rounded-lg border border-green-200">
                                          <div className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                                             {booking.driver.name[0]}
+                                             {booking.driver.name?.[0] || 'D'}
                                          </div>
                                          <div className="flex-grow min-w-0">
                                              <p className="font-bold text-sm truncate">{booking.driver.name}</p>
@@ -1256,7 +1256,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Driver Details</p>
                                      <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
                                          <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
-                                             {trip.driver.name[0]}
+                                             {trip.driver.name?.[0] || 'D'}
                                          </div>
                                          <div className="flex-grow">
                                              <p className="font-bold text-sm">{trip.driver.name}</p>
@@ -1311,7 +1311,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         <div className="flex justify-between items-start">
                              <div className="flex items-center gap-3 sm:gap-4">
                                  <div className="w-14 h-14 sm:w-16 sm:h-16 bg-black text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
-                                     {customer.name[0]}
+                                     {customer.name?.[0] || 'C'}
                                  </div>
                                  <div>
                                      <h3 className="text-lg sm:text-xl font-bold">{customer.name}</h3>
