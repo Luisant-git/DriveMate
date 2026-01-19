@@ -151,8 +151,8 @@ const AdminPortal: React.FC = () => {
                                     {driverData.data.map((driver: any) => (
                                         <tr key={driver._id} className="hover:bg-gray-50 transition">
                                             <td className="px-8 py-5">
-                                                <div className="font-bold text-gray-900">{driver.name}</div>
-                                                <div className="text-xs text-gray-500">{driver.phone}</div>
+                                                <div className="font-bold text-gray-900">{driver.name || 'N/A'}</div>
+                                                <div className="text-xs text-gray-500">{driver.phone || 'N/A'}</div>
                                             </td>
                                             <td className="px-8 py-5 text-sm">{driver.packageType || 'None'}</td>
                                             <td className="px-8 py-5">
@@ -258,11 +258,11 @@ const AdminPortal: React.FC = () => {
                                 <div key={customer.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
                                     <div className="flex items-center gap-3 mb-3">
                                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-lg text-gray-600">
-                                             {customer.name[0]}
+                                             {customer.name?.[0] || 'C'}
                                          </div>
                                          <div>
-                                             <div className="font-bold text-gray-900">{customer.name}</div>
-                                             <div className="text-xs text-gray-500">{customer.phone}</div>
+                                             <div className="font-bold text-gray-900">{customer.name || 'N/A'}</div>
+                                             <div className="text-xs text-gray-500">{customer.phone || 'N/A'}</div>
                                          </div>
                                     </div>
                                     <div className="bg-gray-50 rounded-lg p-3 mb-3 grid grid-cols-2 gap-4">
@@ -302,14 +302,14 @@ const AdminPortal: React.FC = () => {
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-3">
                                                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-xs text-gray-600">
-                                                         {customer.name[0]}
+                                                         {customer.name?.[0] || 'C'}
                                                      </div>
-                                                     <span className="font-bold text-gray-900">{customer.name}</span>
+                                                     <span className="font-bold text-gray-900">{customer.name || 'N/A'}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
-                                                <div className="text-sm text-gray-900">{customer.phone}</div>
-                                                <div className="text-xs text-gray-500">{customer.email}</div>
+                                                <div className="text-sm text-gray-900">{customer.phone || 'N/A'}</div>
+                                                <div className="text-xs text-gray-500">{customer.email || 'N/A'}</div>
                                             </td>
                                             <td className="px-8 py-5 text-sm font-medium">₹{customer.advancePaymentBalance}</td>
                                             <td className="px-8 py-5">

@@ -102,11 +102,11 @@ export default function PendingDriverApproval() {
               <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                    {response.driver.name[0]}
+                    {response.driver.name?.[0] || 'D'}
                   </div>
                   <div className="flex-1">
-                    <p className="text-base font-semibold text-gray-900">{response.driver.name}</p>
-                    <p className="text-sm text-gray-600">{response.driver.phone}</p>
+                    <p className="text-base font-semibold text-gray-900">{response.driver.name || 'Driver'}</p>
+                    <p className="text-sm text-gray-600">{response.driver.phone || 'N/A'}</p>
                   </div>
                   {response.driver.rating > 0 && (
                     <div className="flex items-center gap-1">

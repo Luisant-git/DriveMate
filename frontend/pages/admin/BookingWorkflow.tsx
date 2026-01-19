@@ -210,11 +210,11 @@ export default function BookingWorkflow() {
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-gray-700 font-semibold text-xs">{booking.customer.name.charAt(0)}</span>
+                                <span className="text-gray-700 font-semibold text-xs">{booking.customer?.name?.charAt(0) || 'C'}</span>
                               </div>
                               <div>
-                                <p className="text-sm font-semibold text-gray-900">{booking.customer.name}</p>
-                                <p className="text-xs text-gray-600">{booking.customer.phone}</p>
+                                <p className="text-sm font-semibold text-gray-900">{booking.customer?.name || 'N/A'}</p>
+                                <p className="text-xs text-gray-600">{booking.customer?.phone || 'N/A'}</p>
                               </div>
                             </div>
                           </td>
@@ -324,11 +324,11 @@ export default function BookingWorkflow() {
                   <div className="p-5">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                        {response.driver.name[0]}
+                        {response.driver.name?.[0] || 'D'}
                       </div>
                       <div className="flex-1">
-                        <p className="text-base font-semibold text-gray-900">{response.driver.name}</p>
-                        <p className="text-sm text-gray-600">{response.driver.phone}</p>
+                        <p className="text-base font-semibold text-gray-900">{response.driver.name || 'Driver'}</p>
+                        <p className="text-sm text-gray-600">{response.driver.phone || 'N/A'}</p>
                       </div>
                       {response.driver.rating && (
                         <div className="flex items-center gap-1">
