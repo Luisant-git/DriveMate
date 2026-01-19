@@ -1177,11 +1177,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                              {booking.driver.name?.[0] || 'D'}
                                          </div>
                                          <div className="flex-grow min-w-0">
-                                             <p className="font-bold text-sm truncate">{booking.driver.name}</p>
-                                             <p className="text-xs text-gray-600">{booking.driver.phone}</p>
+                                             <p className="font-bold text-sm truncate">{booking.driver.name || 'Driver'}</p>
+                                             <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
                              {booking.driver.vehicleType && (
                                                  <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                                     {booking.driver.vehicleType} • {booking.driver.vehicleNo}
+                                                     {booking.driver.vehicleType} • {booking.driver.vehicleNo || 'N/A'}
                                                  </p>
                                              )}
                                          </div>
@@ -1259,8 +1259,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                              {trip.driver.name?.[0] || 'D'}
                                          </div>
                                          <div className="flex-grow">
-                                             <p className="font-bold text-sm">{trip.driver.name}</p>
-                                             <p className="text-xs text-gray-500">{trip.driver.phone}</p>
+                                             <p className="font-bold text-sm">{trip.driver.name || 'Driver'}</p>
+                                             <p className="text-xs text-gray-500">{trip.driver.phone || 'N/A'}</p>
                                          </div>
                                          <a 
                                              href={`tel:${trip.driver.phone}`}

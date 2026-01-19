@@ -77,8 +77,8 @@ export default function CustomerBookingStatus() {
                         {booking.driver.name?.[0] || 'D'}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{booking.driver.name}</p>
-                        <p className="text-xs text-gray-600">{booking.driver.phone}</p>
+                        <p className="text-sm font-semibold text-gray-900">{booking.driver.name || 'Driver'}</p>
+                        <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
