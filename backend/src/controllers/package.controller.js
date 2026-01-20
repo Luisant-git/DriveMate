@@ -4,11 +4,11 @@ export const createPackage = async (req, res) => {
   try {
     const { name, type, duration, price, description } = req.body;
 
-    const package = await prisma.package.create({
+    const pkg = await prisma.package.create({
       data: { name, type, duration, price, description },
     });
 
-    res.status(201).json(package);
+    res.status(201).json(pkg);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -36,12 +36,12 @@ export const updatePackage = async (req, res) => {
     const { packageId } = req.params;
     const updateData = req.body;
 
-    const package = await prisma.package.update({
+    const pkg = await prisma.package.update({
       where: { id: packageId },
       data: updateData,
     });
 
-    res.json(package);
+    res.json(pkg);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

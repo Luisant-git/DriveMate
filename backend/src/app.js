@@ -16,6 +16,7 @@ import mapsRoutes from "./routes/maps.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import bookingWorkflowRoutes from "./routes/booking.workflow.routes.js";
+import packageRoutes from "./routes/package.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,7 +44,10 @@ app.use(session({
 }));
 
 app.get("/api", (req, res) => res.json({ status: "ok", message: "DriveMate API is running" }));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "DriveMate API Documentation"
+}));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/driver/auth", driverAuthRoutes);
@@ -56,5 +60,6 @@ app.use("/api/maps", mapsRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/booking-workflow", bookingWorkflowRoutes);
+app.use("/api/packages", packageRoutes);
 
 export default app;
