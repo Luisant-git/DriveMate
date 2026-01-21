@@ -1,5 +1,17 @@
 import prisma from '../config/database.js';
 
+export const getAllCustomers = async (req, res) => {
+  try {
+    const customers = await prisma.customer.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ customers });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const getAllDrivers = async (req, res) => {
   try {
     const drivers = await prisma.driver.findMany({

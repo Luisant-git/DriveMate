@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
 import BookingWorkflow from './BookingWorkflow';
 import PendingDriverApproval from './PendingDriverApproval';
+import Customer from './Customer';
 
 const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS'>('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const [drivers, setDrivers] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [payments, setPayments] = useState([]);
 
   useEffect(() => {
@@ -58,7 +58,6 @@ const AdminPortal: React.FC = () => {
   };
 
   const driverData = getPaginatedData(drivers);
-  const customerData = getPaginatedData(customers);
   const paymentData = getPaginatedData(payments);
 
   const PaginationControls = ({ total, totalPages }: { total: number, totalPages: number }) => {
@@ -80,7 +79,6 @@ const AdminPortal: React.FC = () => {
                 >
                     Previous
                 </button>
-                {/* Show limited page numbers if too many, for now simple list */}
                 {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
                     <button 
                         key={page}
@@ -90,7 +88,7 @@ const AdminPortal: React.FC = () => {
                         {page}
                     </button>
                 ))}
-                    <button
+                <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                     className="px-3 py-1 rounded border border-gray-200 text-xs font-bold disabled:opacity-50 disabled:bg-gray-50 hover:bg-gray-50 transition text-gray-700"
@@ -104,7 +102,6 @@ const AdminPortal: React.FC = () => {
 
   return (
     <div className="space-y-6 md:space-y-8 pb-20 md:pb-10">
-        {/* Responsive Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-gray-200 pb-4">
              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
              <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
@@ -132,6 +129,10 @@ const AdminPortal: React.FC = () => {
 
                 {activeTab === 'APPROVALS' && (
                     <PendingDriverApproval />
+                )}
+
+                {activeTab === 'CUSTOMERS' && (
+                    <Customer />
                 )}
 
                 {activeTab === 'DRIVERS' && (
@@ -200,26 +201,6 @@ const AdminPortal: React.FC = () => {
 
                 {activeTab === 'PAYMENTS' && (
                     <>
-                         {/* Mobile View: Cards */}
-                         <div className="md:hidden p-4 space-y-4">
-                            {paymentData.data.map(pay => (
-                                <div key={pay.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-sm font-bold text-gray-900">{pay.type}</span>
-                                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">{pay.status}</span>
-                                    </div>
-                                    <div className="flex justify-between items-end">
-                                        <div className="text-xs text-gray-500 space-y-1">
-                                            <p className="font-medium text-gray-900">{pay.date}</p>
-                                            <p>User: <span className="font-mono">{pay.userId}</span></p>
-                                        </div>
-                                        <p className="font-bold text-xl">₹{pay.amount}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Desktop View: Table */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="min-w-full text-left">
                                 <thead className="bg-gray-50 border-b border-gray-100">
@@ -232,7 +213,7 @@ const AdminPortal: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {paymentData.data.map(pay => (
+                                    {paymentData.data.map((pay: any) => (
                                         <tr key={pay.id} className="hover:bg-gray-50/50">
                                             <td className="px-8 py-5 text-sm font-medium">{pay.date}</td>
                                             <td className="px-8 py-5 text-sm text-gray-500">{pay.userId}</td>
@@ -247,85 +228,6 @@ const AdminPortal: React.FC = () => {
                             </table>
                         </div>
                         <PaginationControls total={paymentData.total} totalPages={paymentData.totalPages} />
-                    </>
-                )}
-                
-                {activeTab === 'CUSTOMERS' && (
-                    <>
-                        {/* Mobile View: Cards */}
-                        <div className="md:hidden p-4 space-y-4">
-                            {customerData.data.map(customer => (
-                                <div key={customer.id} className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white">
-                                    <div className="flex items-center gap-3 mb-3">
-                                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-lg text-gray-600">
-                                             {customer.name?.[0] || 'C'}
-                                         </div>
-                                         <div>
-                                             <div className="font-bold text-gray-900">{customer.name || 'N/A'}</div>
-                                             <div className="text-xs text-gray-500">{customer.phone || 'N/A'}</div>
-                                         </div>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-3 mb-3 grid grid-cols-2 gap-4">
-                                        <div>
-                                             <p className="text-[10px] uppercase font-bold text-gray-400">Wallet</p>
-                                             <p className="font-bold text-gray-900">₹{customer.advancePaymentBalance}</p>
-                                        </div>
-                                         <div>
-                                             <p className="text-[10px] uppercase font-bold text-gray-400">KYC Status</p>
-                                             <p className={`text-xs font-bold ${customer.addressProofUrl ? 'text-green-600' : 'text-orange-500'}`}>
-                                                 {customer.addressProofUrl ? 'Verified' : 'Pending'}
-                                             </p>
-                                        </div>
-                                    </div>
-                                    <button className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:text-black hover:bg-gray-50 transition">
-                                        View Profile
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Desktop View: Table */}
-                        <div className="hidden md:block overflow-x-auto">
-                            <table className="min-w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Contact</th>
-                                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Wallet Balance</th>
-                                         <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">KYC</th>
-                                        <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {customerData.data.map(customer => (
-                                        <tr key={customer.id} className="hover:bg-gray-50/50">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-3">
-                                                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-xs text-gray-600">
-                                                         {customer.name?.[0] || 'C'}
-                                                     </div>
-                                                     <span className="font-bold text-gray-900">{customer.name || 'N/A'}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="text-sm text-gray-900">{customer.phone || 'N/A'}</div>
-                                                <div className="text-xs text-gray-500">{customer.email || 'N/A'}</div>
-                                            </td>
-                                            <td className="px-8 py-5 text-sm font-medium">₹{customer.advancePaymentBalance}</td>
-                                            <td className="px-8 py-5">
-                                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${customer.addressProofUrl ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
-                                                    {customer.addressProofUrl ? 'Verified' : 'Pending'}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <button className="text-sm font-bold text-gray-400 hover:text-black">Edit</button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        <PaginationControls total={customerData.total} totalPages={customerData.totalPages} />
                     </>
                 )}
             </div>
