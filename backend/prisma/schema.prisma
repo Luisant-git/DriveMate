@@ -85,6 +85,7 @@ model SubscriptionPlan {
   duration    Int      // days
   price       Float
   description String?
+  type  PackageType 
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 

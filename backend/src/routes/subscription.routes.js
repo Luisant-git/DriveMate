@@ -4,6 +4,8 @@ import {
   getSubscriptionPlans,
   purchaseSubscription,
   getDriverSubscription,
+  updateSubscriptionPlan,
+  deleteSubscriptionPlan,
 } from '../controllers/subscription.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
@@ -96,7 +98,73 @@ router.get('/plans', getSubscriptionPlans);
  *       201:
  *         description: Subscription purchased
  */
+
+
 router.post('/purchase', authenticateToken, requireRole(['DRIVER']), purchaseSubscription);
+/**
+ * @swagger
+ * /api/subscriptions/plans/{id}:
+ *   put:
+ *     summary: Update subscription plan (Admin)
+ *     tags: [Subscription]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               duration:
+ *                 type: integer
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Plan updated successfully
+ */
+router.put(
+  '/plans/:id',
+  authenticateToken,
+  requireRole(['ADMIN']),
+  updateSubscriptionPlan
+);
+
+/**
+ * @swagger
+ * /api/subscriptions/plans/{id}:
+ *   delete:
+ *     summary: Delete subscription plan (Admin)
+ *     tags: [Subscription]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Plan deleted successfully
+ */
+router.delete(
+  '/plans/:id',
+  authenticateToken,
+  requireRole(['ADMIN']),
+  deleteSubscriptionPlan
+);
 
 /**
  * @swagger

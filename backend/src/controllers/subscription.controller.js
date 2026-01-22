@@ -2,10 +2,10 @@ import prisma from '../config/database.js';
 
 export const createSubscriptionPlan = async (req, res) => {
   try {
-    const { name, duration, price, description } = req.body;
+    const { name, duration, price, description ,type} = req.body;
 
     const plan = await prisma.subscriptionPlan.create({
-      data: { name, duration, price, description },
+      data: { name, duration, price, description, type },
     });
 
     res.status(201).json(plan);
@@ -18,6 +18,9 @@ export const getSubscriptionPlans = async (req, res) => {
   try {
     const plans = await prisma.subscriptionPlan.findMany({
       where: { isActive: true },
+      orderBy: {
+        price: 'asc',   
+      },
     });
 
     res.json(plans);
@@ -26,6 +29,37 @@ export const getSubscriptionPlans = async (req, res) => {
   }
 };
 
+export const updateSubscriptionPlan = async (req, res) => {
+  try {
+    const id = (req.params.id);
+    const { name, duration, price, description, type } = req.body;
+
+    const plan = await prisma.subscriptionPlan.update({
+      where: { id },
+      data: { name, duration, price, description, type },
+    });
+
+    res.json(plan);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+
+export const deleteSubscriptionPlan = async (req, res) => {
+  try {
+    const id = req.params.id; 
+
+    await prisma.subscriptionPlan.update({
+      where: { id }, 
+      data: { isActive: false },
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 export const purchaseSubscription = async (req, res) => {
   try {
     const { planId } = req.body;
