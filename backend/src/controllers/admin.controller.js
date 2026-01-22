@@ -16,7 +16,6 @@ export const getAllDrivers = async (req, res) => {
   try {
     const drivers = await prisma.driver.findMany({
       include: {
-        user: true,
         subscription: { include: { plan: true } },
       },
     });

@@ -53,19 +53,20 @@ export default function Customer() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer ID</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Address</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ID Proof</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Joined</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {customers.map(customer => (
+              {customers.map((customer, index) => (
                 <tr key={customer.id} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-4">
-                    <p className="text-xs text-gray-500 font-mono">#{customer.id.slice(-8)}</p>
+                    <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
@@ -83,6 +84,18 @@ export default function Customer() {
                   </td>
                   <td className="px-4 py-4">
                     <p className="text-sm text-gray-600">{customer.address || 'N/A'}</p>
+                  </td>
+                  <td className="px-4 py-4">
+                    {customer.idProof ? (
+                      <button 
+                        onClick={() => window.open(`${API_BASE_URL}/uploads/${customer.idProof}`, '_blank')}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
+                      >
+                        Download
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Not uploaded</span>
+                    )}
                   </td>
                   <td className="px-4 py-4">
                     <p className="text-xs text-gray-500">
