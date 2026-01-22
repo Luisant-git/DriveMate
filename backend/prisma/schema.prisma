@@ -58,7 +58,7 @@ model Driver {
   updatedAt    DateTime      @updatedAt
 
   // Relations
-  subscription Subscription?
+  subscriptions Subscription[]
   rides        Ride[]
   trips        Trip[]
   bookings     Booking[]
@@ -97,7 +97,7 @@ model SubscriptionPlan {
 
 model Subscription {
   id       String           @id @default(cuid())
-  driverId String           @unique
+  driverId String
   driver   Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
   planId   String
   plan     SubscriptionPlan @relation(fields: [planId], references: [id])
@@ -164,6 +164,7 @@ enum SubStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+  REJECTED
 }
 
 enum RideStatus {

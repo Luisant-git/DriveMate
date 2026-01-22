@@ -16,7 +16,7 @@ export const getAllDrivers = async (req, res) => {
   try {
     const drivers = await prisma.driver.findMany({
       include: {
-        subscription: { include: { plan: true } },
+        subscriptions: { include: { plan: true } },
       },
     });
 
@@ -114,14 +114,16 @@ export const findNearestDrivers = async (req, res) => {
         isOnline: true,
         latitude: { not: null },
         longitude: { not: null },
-        subscription: {
-          status: 'ACTIVE',
-          endDate: { gt: new Date() },
+        subscriptions: {
+          some: {
+            status: 'ACTIVE',
+            endDate: { gt: new Date() },
+          }
         },
       },
       include: {
         user: true,
-        subscription: { include: { plan: true } },
+        subscriptions: { include: { plan: true } },
       },
     });
 

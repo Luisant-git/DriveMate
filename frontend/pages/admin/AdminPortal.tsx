@@ -4,18 +4,20 @@ import BookingWorkflow from './BookingWorkflow';
 import PendingDriverApproval from './PendingDriverApproval';
 import Customer from './Customer';
 import Driver from './Driver';
+import SubscriptionList from './SubscriptionList';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
 
 
 type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'ALL';
 
 interface SubscriptionPlan {
-  id: string;             // <-- string ID like "cmkny9ui700077jkmhqmc9zaf"
+  id: string;
   name: string;
-  duration: number;       // in days
+  duration: number;
   price: number;
   description?: string;
-  type?: SubscriptionType; // optional, since response you showed has no `type`
+  type?: SubscriptionType;
+  isActive?: boolean;
 }
 
 interface PackageFormState {
@@ -28,7 +30,7 @@ interface PackageFormState {
 
 const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS'
+    'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -249,21 +251,24 @@ const AdminPortal: React.FC = () => {
     }
   };
 
-  const handleDeletePackage = async (pkg: SubscriptionPlan) => {
+  const handleTogglePackageStatus = async (pkg: SubscriptionPlan) => {
+    const newStatus = pkg.isActive ? false : true;
+    const action = newStatus ? 'activate' : 'deactivate';
+    
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${pkg.name}"?`,
+      `Are you sure you want to ${action} "${pkg.name}"?`,
     );
     if (!confirmed) return;
 
     try {
-      const res = await deleteSubscriptionPlan(pkg.id);
+      const res = await updateSubscriptionPlan(pkg.id, { isActive: newStatus });
       if (!res.success) {
-        alert(res.message || res.error || 'Failed to delete package');
+        alert(res.message || res.error || `Failed to ${action} package`);
         return;
       }
       await fetchPackages();
     } catch (error) {
-      console.error('Error deleting package:', error);
+      console.error(`Error ${action}ing package:`, error);
       alert('Something went wrong. Please try again.');
     }
   };
@@ -277,7 +282,7 @@ const AdminPortal: React.FC = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
         <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
           <div className="flex space-x-6">
-            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'PACKAGES', 'PAYMENTS'].map(
+            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'PACKAGES', 'SUBSCRIPTIONS', 'PAYMENTS'].map(
               (tab) => (
                 <button
                   key={tab}
@@ -352,13 +357,17 @@ const AdminPortal: React.FC = () => {
   {/* Right: action buttons */}
   <div className="flex gap-2">
     <button
-      className="px-3 py-1 text-xs font-bold text-red-500 bg-red-50 rounded"
-      onClick={() => handleDeletePackage(pkg)}
+      className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${
+        pkg.isActive 
+          ? 'text-green-600 bg-green-50 hover:bg-green-100' 
+          : 'text-red-600 bg-red-50 hover:bg-red-100'
+      }`}
+      onClick={() => handleTogglePackageStatus(pkg)}
     >
-      Delete
+      {pkg.isActive ? 'Active' : 'Inactive'}
     </button>
     <button
-      className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded"
+      className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
       onClick={() => openEditPackageModal(pkg)}
     >
       Edit
@@ -370,6 +379,12 @@ const AdminPortal: React.FC = () => {
     </div>
   </div>
 )}
+
+          {activeTab === 'SUBSCRIPTIONS' && (
+            <div className="p-4 md:p-6">
+              <SubscriptionList />
+            </div>
+          )}
 
           {activeTab === 'PAYMENTS' && (
             <>

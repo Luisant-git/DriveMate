@@ -114,7 +114,7 @@ export const getDriverProfile = async (req, res) => {
       where: { userId },
       include: {
         user: true,
-        subscription: {
+        subscriptions: {
           include: { plan: true },
         },
       },

@@ -6,6 +6,9 @@ import {
   getDriverSubscription,
   updateSubscriptionPlan,
   deleteSubscriptionPlan,
+  getActivePackagesForDrivers,
+  getAllSubscriptions,
+  rejectSubscription,
 } from '../controllers/subscription.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
@@ -194,6 +197,12 @@ router.delete(
  *                   type: string
  *                   format: date-time
  */
+router.get('/all', authenticateToken, requireRole(['ADMIN']), getAllSubscriptions);
+
+router.get('/active-packages', getActivePackagesForDrivers);
+
+router.put('/reject/:id', authenticateToken, requireRole(['ADMIN']), rejectSubscription);
+
 router.get('/driver', authenticateToken, requireRole(['DRIVER']), getDriverSubscription);
 
 export default router;
