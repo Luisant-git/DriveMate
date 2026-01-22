@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
 import BookingWorkflow from './BookingWorkflow';
 import PendingDriverApproval from './PendingDriverApproval';
+import Customer from './Customer';
+import Driver from './Driver';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
 
 
@@ -300,73 +302,9 @@ const AdminPortal: React.FC = () => {
 
           {activeTab === 'APPROVALS' && <PendingDriverApproval />}
 
-          {activeTab === 'DRIVERS' && (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                        Driver
-                      </th>
-                      <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                        Package
-                      </th>
-                      <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                        Status
-                      </th>
-                      <th className="px-8 py-4 text-left text-xs font-bold text-gray-600 uppercase">
-                        Rating
-                      </th>
-                      <th className="px-8 py-4 text-right text-xs font-bold text-gray-600 uppercase">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {driverData.data.map((driver: any) => (
-                      <tr key={driver._id} className="hover:bg-gray-50 transition">
-                        <td className="px-8 py-5">
-                          <div className="font-bold text-gray-900">
-                            {driver.name || 'N/A'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {driver.phone || 'N/A'}
-                          </div>
-                        </td>
-                        <td className="px-8 py-5 text-sm">
-                          {driver.packageType || 'None'}
-                        </td>
-                        <td className="px-8 py-5">
-                          <span
-                            className={`px-3 py-1 text-xs font-bold rounded-full ${
-                              driver.status === 'APPROVED'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {driver.status}
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 text-sm">
-                          ⭐ {driver.rating?.toFixed(1) || 'N/A'}
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <button className="text-sm font-bold text-gray-400 hover:text-black">
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <PaginationControls
-                total={driverData.total}
-                totalPages={driverData.totalPages}
-              />
-            </>
-          )}
+          {activeTab === 'CUSTOMERS' && <Customer />}
+
+          {activeTab === 'DRIVERS' && <Driver />}
 
 {activeTab === 'PACKAGES' && (
   <div className="p-4 md:p-6">
