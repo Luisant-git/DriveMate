@@ -124,7 +124,6 @@ const AdminPortal: React.FC = () => {
   };
 
   const driverData = getPaginatedData(drivers);
-  const customerData = getPaginatedData(customers);
   const paymentData = getPaginatedData(payments);
 
   const PaginationControls = ({
@@ -508,132 +507,7 @@ const AdminPortal: React.FC = () => {
             </>
           )}
 
-          {activeTab === 'CUSTOMERS' && (
-            <>
-              {/* Mobile View: Cards */}
-              <div className="md:hidden p-4 space-y-4">
-                {customerData.data.map((customer: any) => (
-                  <div
-                    key={customer.id}
-                    className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-lg text-gray-600">
-                        {customer.name?.[0] || 'C'}
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-900">
-                          {customer.name || 'N/A'}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {customer.phone || 'N/A'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 mb-3 grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-400">
-                          Wallet
-                        </p>
-                        <p className="font-bold text-gray-900">
-                          ₹{customer.advancePaymentBalance}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-400">
-                          KYC Status
-                        </p>
-                        <p
-                          className={`text-xs font-bold ${
-                            customer.addressProofUrl
-                              ? 'text-green-600'
-                              : 'text-orange-500'
-                          }`}
-                        >
-                          {customer.addressProofUrl ? 'Verified' : 'Pending'}
-                        </p>
-                      </div>
-                    </div>
-                    <button className="w-full py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:text-black hover:bg-gray-50 transition">
-                      View Profile
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Desktop View: Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full text-left">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Wallet Balance
-                      </th>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        KYC
-                      </th>
-                      <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {customerData.data.map((customer: any) => (
-                      <tr key={customer.id} className="hover:bg-gray-50/50">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-xs text-gray-600">
-                              {customer.name?.[0] || 'C'}
-                            </div>
-                            <span className="font-bold text-gray-900">
-                              {customer.name || 'N/A'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-5">
-                          <div className="text-sm text-gray-900">
-                            {customer.phone || 'N/A'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {customer.email || 'N/A'}
-                          </div>
-                        </td>
-                        <td className="px-8 py-5 text-sm font-medium">
-                          ₹{customer.advancePaymentBalance}
-                        </td>
-                        <td className="px-8 py-5">
-                          <span
-                            className={`px-3 py-1 text-xs font-bold rounded-full ${
-                              customer.addressProofUrl
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-orange-100 text-orange-800'
-                            }`}
-                          >
-                            {customer.addressProofUrl ? 'Verified' : 'Pending'}
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <button className="text-sm font-bold text-gray-400 hover:text-black">
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <PaginationControls
-                total={customerData.total}
-                totalPages={customerData.totalPages}
-              />
-            </>
-          )}
+        
         </div>
       </div>
 

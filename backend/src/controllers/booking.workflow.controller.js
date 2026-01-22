@@ -3,14 +3,26 @@ import prisma from '../config/database.js';
 // ADMIN: Get all pending bookings for review
 export const getAdminPendingBookings = async (req, res) => {
   try {
+    const { bookingType, serviceType } = req.query;
+    
+    const whereClause = {
+      OR: [
+        { status: 'PENDING' },
+        { status: 'CONFIRMED' }
+      ],
+      allocatedDriverId: null
+    };
+    
+    if (bookingType) {
+      whereClause.bookingType = bookingType;
+    }
+    
+    if (serviceType) {
+      whereClause.serviceType = serviceType;
+    }
+    
     const bookings = await prisma.booking.findMany({
-      where: {
-        OR: [
-          { status: 'PENDING' },
-          { status: 'CONFIRMED' }
-        ],
-        allocatedDriverId: null
-      },
+      where: whereClause,
       include: {
         customer: true,
         package: true,

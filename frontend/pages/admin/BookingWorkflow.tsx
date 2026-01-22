@@ -6,16 +6,18 @@ const API_URL = API_BASE_URL + '/api';
 
 export default function BookingWorkflow() {
   const [pendingBookings, setPendingBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [bookingDrivers, setBookingDrivers] = useState({});
   const [driverCounts, setDriverCounts] = useState({ LOCAL: 0, OUTSTATION: 0, ALL_PREMIUM: 0 });
+  const [filters, setFilters] = useState({ bookingType: '', serviceType: '' });
 
   useEffect(() => {
     fetchPendingBookings();
     fetchDriverCounts();
-  }, []);
+  }, [filters]);
 
   const fetchDriverCounts = async () => {
     try {
@@ -36,11 +38,20 @@ export default function BookingWorkflow() {
 
   const fetchPendingBookings = async () => {
     try {
-      const res = await axios.get(`${API_URL}/booking-workflow/admin/pending`, { withCredentials: true });
+      const params = new URLSearchParams();
+      if (filters.bookingType) params.append('bookingType', filters.bookingType);
+      if (filters.serviceType) params.append('serviceType', filters.serviceType);
+      
+      const res = await axios.get(`${API_URL}/booking-workflow/admin/pending?${params}`, { withCredentials: true });
       setPendingBookings(res.data.bookings);
+      setFilteredBookings(res.data.bookings);
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({ ...prev, [filterType]: value }));
   };
 
   const fetchAvailableDrivers = async (bookingId, packageType) => {
@@ -119,7 +130,33 @@ export default function BookingWorkflow() {
     <div className="px-3 sm:px-6 py-4 sm:py-6">
       {!selectedBooking ? (
         <div className="space-y-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pending Bookings</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pending Bookings</h2>
+            
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select 
+                value={filters.bookingType} 
+                onChange={(e) => handleFilterChange('bookingType', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Booking Types</option>
+                <option value="One-way Trip">One-way Trip</option>
+                <option value="Round Trip">Round Trip</option>
+                <option value="Hourly">Hourly</option>
+              </select>
+              
+              <select 
+                value={filters.serviceType} 
+                onChange={(e) => handleFilterChange('serviceType', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Service Types</option>
+                <option value="Local - Hourly">Local - Hourly</option>
+                <option value="Outstation">Outstation</option>
+              </select>
+            </div>
+          </div>
           
           {/* Driver Availability Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -163,7 +200,7 @@ export default function BookingWorkflow() {
               </div>
             </div>
           </div>
-          {pendingBookings.length === 0 ? (
+          {filteredBookings.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +225,7 @@ export default function BookingWorkflow() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {pendingBookings.map(booking => {
+                    {filteredBookings.map(booking => {
                       const startDate = new Date(booking.startDateTime);
                       const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
                       const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -231,7 +268,14 @@ export default function BookingWorkflow() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.bookingType}</span>
+                            <div className="space-y-1">
+                              <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.bookingType}</span>
+                              {booking.serviceType && (
+                                <div>
+                                  <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.serviceType}</span>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-4">
                             {!booking.selectedPackageType ? (

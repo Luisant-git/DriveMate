@@ -159,7 +159,7 @@ export default function PendingDriverApproval() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Booking ID</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
@@ -169,18 +169,18 @@ export default function PendingDriverApproval() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {bookingsWithAcceptedDrivers.map(booking => {
+              {bookingsWithAcceptedDrivers.map((booking, index) => {
                 const acceptedCount = booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0;
                 
                 return (
                   <tr key={booking.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-4">
-                      <p className="text-xs text-gray-500 font-mono">#{booking.id.slice(-8)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-gray-700 font-semibold text-xs">{booking.customer?.name?.charAt(0)}</span>
+                        <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-xs">{booking.customer?.name?.charAt(0)}</span>
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{booking.customer?.name}</p>
