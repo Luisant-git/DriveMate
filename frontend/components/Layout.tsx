@@ -48,12 +48,12 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
       </main>
 
       {/* Dev Controls */}
-       <div className="bg-gray-100 text-gray-500 py-2 text-center text-[9px] sm:text-[10px] uppercase tracking-wider">
+       {/* <div className="bg-gray-100 text-gray-500 py-2 text-center text-[9px] sm:text-[10px] uppercase tracking-wider">
          <span className="opacity-50 mr-2">Dev Switch:</span>
          <button onClick={() => onSwitchRole(UserRole.CUSTOMER)} className="mx-1 sm:mx-2 hover:text-black font-bold">Customer</button>
          <button onClick={() => onSwitchRole(UserRole.DRIVER)} className="mx-1 sm:mx-2 hover:text-black font-bold">Driver</button>
          <button onClick={() => onSwitchRole(UserRole.ADMIN)} className="mx-1 sm:mx-2 hover:text-black font-bold">Admin</button>
-      </div>
+      </div> */}
     </div>
   );
 };

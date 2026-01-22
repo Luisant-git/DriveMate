@@ -40,11 +40,52 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     whenNeeded: 'Now',
     carType: 'Manual',
     vehicleType: 'Hatchback',
-    tripType: 'Round Trip',
-    estimatedUsage: '12 Hrs',
+    tripType: 'One Way',
+    estimatedUsage: '4 Hrs',
   });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
+
+  // Get minimum time (15 minutes from now)
+  const getMinDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 15);
+    return {
+      date: now.toISOString().split('T')[0],
+      time: now.toTimeString().slice(0, 5)
+    };
+  };
+
+  // Generate time slots starting from 15 minutes from now
+  const getTimeSlots = () => {
+    const slots = [];
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 15);
+    
+    // Round to next 15-minute interval
+    const minutes = now.getMinutes();
+    const roundedMinutes = Math.ceil(minutes / 15) * 15;
+    now.setMinutes(roundedMinutes);
+    now.setSeconds(0);
+    
+    // Generate slots for next 12 hours (48 slots of 15 min each)
+    for (let i = 0; i < 48; i++) {
+      const time = new Date(now.getTime() + i * 15 * 60000);
+      const hours = time.getHours();
+      const mins = time.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      const displayMins = mins.toString().padStart(2, '0');
+      const timeValue = `${hours.toString().padStart(2, '0')}:${displayMins}`;
+      
+      slots.push({
+        value: timeValue,
+        label: `${displayHours}:${displayMins} ${ampm}`
+      });
+    }
+    
+    return slots;
+  };
 
   // Profile Edit States
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -266,8 +307,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           whenNeeded: 'Now',
           carType: 'Manual',
           vehicleType: 'Hatchback',
-          tripType: 'Round Trip',
-          estimatedUsage: '12 Hrs',
+          tripType: 'One Way',
+          estimatedUsage: '4 Hrs',
         });
         setEstimate(null);
         // Refresh bookings
@@ -373,19 +414,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       
       {/* Registration Modal */}
       {showRegistrationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleRegistrationSubmit} className="p-6 space-y-4">
-              <div className="text-center mb-4">
-                <h2 className="text-xl font-bold">Complete Your Profile</h2>
-                <p className="text-sm text-gray-500 mt-1">Help us serve you better</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleRegistrationSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="text-center mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-xl font-bold">Complete Your Profile</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">Help us serve you better</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Full Name</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Full Name</label>
                 <input 
                   type="text"
-                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
                   value={registrationData.name}
                   onChange={(e) => setRegistrationData({...registrationData, name: e.target.value})}
                   required
@@ -393,10 +434,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Email Address</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Email Address</label>
                 <input 
                   type="email"
-                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
                   value={registrationData.email}
                   onChange={(e) => setRegistrationData({...registrationData, email: e.target.value})}
                   placeholder="name@example.com"
@@ -404,9 +445,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Address</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Address</label>
                 <textarea 
-                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
+                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
                   rows={3}
                   value={registrationData.address}
                   onChange={(e) => setRegistrationData({...registrationData, address: e.target.value})}
@@ -415,11 +456,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">ID Proof</label>
                 <input 
                   type="file"
                   accept="image/*,.pdf,.doc,.docx,.txt"
-                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                  className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-black file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -433,20 +474,20 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     }
                   }}
                 />
-                <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport (Max 5MB)</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport (Max 5MB)</p>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
                 <button 
                   type="button" 
                   onClick={handleSkipRegistration}
-                  className="flex-1 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200"
+                  className="flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200"
                 >
                   Skip
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 bg-black text-white py-3 rounded-lg text-sm font-bold hover:bg-gray-800"
+                  className="flex-1 bg-black text-white py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-bold hover:bg-gray-800"
                 >
                   Complete Registration
                 </button>
@@ -457,12 +498,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       )}
       
       {/* Floating Panel */}
-      <div className={`absolute md:relative md:top-4 md:left-4 md:w-[420px] md:h-auto md:max-h-[calc(100vh-32px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden ${
+      <div className={`absolute md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden ${
         formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[60vh] rounded-t-3xl' : 'inset-0'
       }`}>
           
           {/* Header & Tabs */}
-          <div className="bg-white px-4 sm:px-6 pt-4 pb-2 border-b border-gray-100 flex justify-between items-center">
+          <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
               <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
               <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
                   <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
@@ -473,9 +514,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
           {activeTab === 'BOOK' && (
               <>
-                <div className="p-4 sm:p-6 pb-0">
+                <div className="p-3 sm:p-4 pb-0">
                     {/* Location Inputs */}
-                    <div className="relative mb-6">
+                    <div className="relative mb-4">
                         <div className="absolute left-4 top-4 bottom-4 w-4 flex flex-col items-center">
                             <div className="w-2 h-2 bg-black rounded-full"></div>
                             <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
@@ -527,13 +568,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div> */}
                 </div>
 
-                <div className="flex-grow overflow-y-auto px-4 sm:px-6 pb-2 custom-scrollbar">
+                <div className="flex-grow overflow-y-auto px-3 sm:px-4 pb-2 custom-scrollbar">
                     {/* Choose Service Dropdown */}
-                    <div className="relative mb-4">
-                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Choose Service</label>
+                    <div className="relative mb-3">
+                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose Service</label>
                         <div 
                             onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
-                            className="w-full bg-gray-100 rounded-lg p-3 text-sm font-bold cursor-pointer flex justify-between items-center"
+                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                         >
                             <span>{bookingType}</span>
                             <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -553,13 +594,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <div 
                                         key={type}
                                         onClick={() => { setBookingType(type); setOpenDropdown(null); }}
-                                        className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${bookingType === type ? 'bg-gray-100' : ''}`}
+                                        className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${bookingType === type ? 'bg-gray-100' : ''}`}
                                     >
-                                        <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center shrink-0">
-                                            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                        <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
+                                            <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-xs sm:text-sm">{type}</h4>
+                                            <h4 className="font-bold text-xs">{type}</h4>
                                             <p className="text-[10px] text-gray-500">Reliable & Verified</p>
                                         </div>
                                     </div>
@@ -570,11 +611,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                     {/* Choose Type of Service Dropdown - Only show for One-way and Two-way trips */}
                     {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && (
-                        <div className="relative">
-                            <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Choose type of service</label>
+                        <div className="relative mb-3">
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose type of service</label>
                             <div 
                                 onClick={() => setOpenDropdown(openDropdown === 'serviceType' ? null : 'serviceType')}
-                                className="w-full bg-gray-100 rounded-lg p-3 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                             >
                                 <span>{serviceType}</span>
                                 <svg className={`w-4 h-4 transition-transform ${openDropdown === 'serviceType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -588,13 +629,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <div 
                                             key={type}
                                             onClick={() => { setServiceType(type); setOpenDropdown(null); }}
-                                            className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 ${serviceType === type ? 'bg-gray-100' : ''}`}
+                                            className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${serviceType === type ? 'bg-gray-100' : ''}`}
                                         >
-                                            <div className="w-10 h-10 bg-gray-200 rounded-md mr-3 flex items-center justify-center shrink-0">
-                                                <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                            <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
+                                                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-xs sm:text-sm">{type}</h4>
+                                                <h4 className="font-bold text-xs">{type}</h4>
                                                 <p className="text-[10px] text-gray-500">Reliable & Verified</p>
                                             </div>
                                         </div>
@@ -604,9 +645,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         </div>
                     )}
 
-                    <div className="mt-4 sm:mt-6 space-y-3 pb-24 sm:pb-6">
+                    <div className="mt-3 sm:mt-4 space-y-3 pb-4">
                         <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
-                        {serviceType === BookingType.OUTSTATION && (
+                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.OUTSTATION && (
                             <>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
@@ -621,7 +662,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'tripType' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Round Trip', 'One Way'].map(option => (
+                                                    {['One Way', 'Round Trip'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
@@ -642,8 +683,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                             {openDropdown === 'usage' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['12 Hrs', '24 Hrs', '2 Days', '3 Days'].map(option => (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                    {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
@@ -666,12 +707,28 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             value={formData.date}
                                             onChange={e => setFormData({...formData, date: e.target.value})}
                                         />
-                                        <input 
-                                            type="time" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.time}
-                                            onChange={e => setFormData({...formData, time: e.target.value})}
-                                        />
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
+                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.time ? getTimeSlots().find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'timeSlot' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                    {getTimeSlots().map(slot => (
+                                                        <div 
+                                                            key={slot.value}
+                                                            onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {slot.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div>
@@ -687,7 +744,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'car' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic'].map(option => (
+                                                    {['Manual', 'Automatic', 'Both'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
@@ -709,7 +766,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'vehicle' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
@@ -725,7 +782,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             </>
                         )}
-                        {serviceType === BookingType.LOCAL_HOURLY && (
+                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && (
                             <>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
@@ -740,7 +797,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'tripType' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Round Trip', 'One Way'].map(option => (
+                                                    {['One Way', 'Round Trip'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
@@ -761,8 +818,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                             {openDropdown === 'usage' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['12 Hrs', '24 Hrs', '2 Days', '3 Days'].map(option => (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                    {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
@@ -785,12 +842,28 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             value={formData.date}
                                             onChange={e => setFormData({...formData, date: e.target.value})}
                                         />
-                                        <input 
-                                            type="time" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.time}
-                                            onChange={e => setFormData({...formData, time: e.target.value})}
-                                        />
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
+                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.time ? getTimeSlots().find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'timeSlot2' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                    {getTimeSlots().map(slot => (
+                                                        <div 
+                                                            key={slot.value}
+                                                            onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {slot.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div>
@@ -806,7 +879,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'car' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic'].map(option => (
+                                                    {['Manual', 'Automatic', 'Both'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
@@ -828,7 +901,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'vehicle' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
@@ -844,74 +917,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             </>
                         )}
-                        {(serviceType !== BookingType.LOCAL_HOURLY && serviceType !== BookingType.OUTSTATION) && (
+                        {(bookingType === BookingType.VALET || bookingType === BookingType.DAILY || bookingType === BookingType.WEEKLY || bookingType === BookingType.TEMPORARY || bookingType === BookingType.SPARE || bookingType === BookingType.MONTHLY) && (
                             <>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.tripType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'tripType' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Round Trip', 'One Way'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.estimatedUsage}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'usage' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['12 Hrs', '24 Hrs', '2 Days', '3 Days'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-                                    <div className="flex gap-2 sm:gap-3">
-                                        <input 
-                                            type="date" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.date}
-                                            onChange={e => setFormData({...formData, date: e.target.value})}
-                                        />
-                                        <input 
-                                            type="time" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.time}
-                                            onChange={e => setFormData({...formData, time: e.target.value})}
-                                        />
-                                    </div>
-                                </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
                                     <div className="flex gap-2">
@@ -925,7 +932,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'car' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic'].map(option => (
+                                                    {['Manual', 'Automatic', 'Both'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
@@ -947,7 +954,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'vehicle' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
@@ -1020,7 +1027,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'car' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic'].map(option => (
+                                                    {['Manual', 'Automatic', 'Both'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
@@ -1042,7 +1049,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'vehicle' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV'].map(option => (
+                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
@@ -1074,7 +1081,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
                 </div>
 
-                <div className="p-4 border-t border-gray-100 bg-white">
+                <div className="p-3 border-t border-gray-100 bg-white sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                     {!isAuthenticated && (
                         <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <div className="flex items-center gap-2 text-yellow-800 text-sm">
@@ -1088,7 +1095,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     <button 
                         onClick={handleBookingSubmit}
                         disabled={!isAuthenticated || authChecking}
-                        className={`w-full py-4 rounded-lg font-bold text-lg transition shadow-lg ${
+                        className={`w-full py-3 rounded-lg font-bold text-base transition shadow-lg ${
                             !isAuthenticated || authChecking 
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                                 : 'bg-black text-white hover:bg-gray-900'
@@ -1499,3 +1506,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 };
 
 export default CustomerPortal;
+
+
+
+
