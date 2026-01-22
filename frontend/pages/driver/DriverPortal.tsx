@@ -14,11 +14,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [trips, setTrips] = useState<Trip[]>([]);
   const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
   const [isOnline, setIsOnline] = useState(true);
-  const [packages] = useState<Package[]>([
-    { id: 'p1', name: 'Local Driver Pass', type: 'LOCAL', price: 499, durationDays: 30, description: 'Accept unlimited local hourly rides for 30 days' },
-    { id: 'p2', name: 'Outstation Pro', type: 'OUTSTATION', price: 999, durationDays: 30, description: 'Accept outstation and long-distance trips' },
-    { id: 'p3', name: 'All Access Premium', type: 'ALL_PREMIUM', price: 1299, durationDays: 30, description: 'Access to all trip types + Priority support' },
-  ]);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
 
   // Profile Edit States
   const [profileData, setProfileData] = useState({
@@ -48,6 +45,37 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   }, [initialDriver]);
 
   useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/subscriptions/active-packages`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success) {
+          setPackages(data.packages);
+        }
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+      }
+    };
+
+    const fetchCurrentSubscription = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          },
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (response.ok && data) {
+          setCurrentSubscription(data);
+        }
+      } catch (error) {
+        console.error('Error fetching subscription:', error);
+      }
+    };
+
     const fetchTrips = async () => {
       try {
         const token = localStorage.getItem('auth-token');
@@ -77,6 +105,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       }
     };
     
+    fetchPackages();
+    fetchCurrentSubscription();
     fetchTrips();
   }, [activeTab, driver.id]);
 
@@ -135,21 +165,31 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       const confirmed = window.confirm(`Subscribe to ${pkg.name} for ₹${pkg.price}?`);
       if (confirmed) {
           try {
-              const response = await fetch(`${API_BASE_URL}/api/drivers/package`, {
-                  method: 'PUT',
+              const response = await fetch(`${API_BASE_URL}/api/subscriptions/purchase`, {
+                  method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
                       'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
                   },
                   credentials: 'include',
-                  body: JSON.stringify({ packageType: pkg.type })
+                  body: JSON.stringify({ planId: pkg.id })
               });
               
               const data = await response.json();
               
-              if (data.success) {
+              if (response.ok) {
                   alert("Package subscribed successfully!");
-                  window.location.reload();
+                  // Refresh subscription data
+                  const subResponse = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
+                      headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+                      },
+                      credentials: 'include'
+                  });
+                  const subData = await subResponse.json();
+                  if (subResponse.ok && subData) {
+                      setCurrentSubscription(subData);
+                  }
               } else {
                   alert(data.error || 'Failed to subscribe');
               }
@@ -476,7 +516,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 
                 <div className="space-y-3 sm:space-y-4">
                     {packages.map(pkg => {
-                        const isActive = driver.packageSubscription === pkg.type || driver.packageType === pkg.type;
+                        const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+                        const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.type === pkg.type && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
                         return (
                         <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : 'border-gray-100 bg-white'}`}>
                             {isActive && (
@@ -485,7 +526,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                 </div>
                             )}
                             <h3 className="font-bold text-base sm:text-lg">{pkg.name}</h3>
-                            <p className="text-2xl sm:text-3xl font-extrabold mt-2">₹{pkg.price}<span className="text-xs sm:text-sm font-normal text-gray-500">/{pkg.durationDays} days</span></p>
+                            <p className="text-2xl sm:text-3xl font-extrabold mt-2">₹{pkg.price}<span className="text-xs sm:text-sm font-normal text-gray-500">/{pkg.duration} days</span></p>
                             <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
                             
                             <button 
@@ -549,6 +590,81 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      </div>
                                  </div>
                              </div>
+
+                             {/* Current Subscription */}
+                             {currentSubscription && currentSubscription.plan ? (() => {
+                                 const daysLeft = Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+                                 const isExpired = daysLeft === 0;
+                                 
+                                 if (isExpired) {
+                                     return (
+                                     <div className="mb-6">
+                                         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+                                             <div className="flex items-center gap-2 sm:gap-3">
+                                                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                                     <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                     </svg>
+                                                 </div>
+                                                 <div className="flex-1 min-w-0">
+                                                     <p className="text-xs sm:text-sm text-gray-500">No Active Plan</p>
+                                                     <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
+                                                     <button 
+                                                         onClick={() => setActiveTab('PACKAGES')}
+                                                         className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
+                                                     >
+                                                         Make Plan
+                                                     </button>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     );
+                                 }
+                                 
+                                 return (
+                                 <div className="mb-6">
+                                     <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+                                         <div className="flex items-center gap-2 sm:gap-3">
+                                             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                                                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                 </svg>
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <p className="text-xs sm:text-sm text-gray-500">Current Plan</p>
+                                                 <p className="text-lg sm:text-xl font-bold text-black">{currentSubscription.plan.name}</p>
+                                                 <p className="text-xs px-2 py-1 rounded border text-green-600 border-green-200 bg-green-50">
+                                                     {daysLeft} days left
+                                                 </p>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                                 );
+                             })() : (
+                                 <div className="mb-6">
+                                     <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+                                         <div className="flex items-center gap-2 sm:gap-3">
+                                             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                 </svg>
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <p className="text-xs sm:text-sm text-gray-500">No Active Plan</p>
+                                                 <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
+                                                 <button 
+                                                     onClick={() => setActiveTab('PACKAGES')}
+                                                     className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
+                                                 >
+                                                     Make Plan
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             )}
 
                              <div className="space-y-4">
                                  <div className="p-4 bg-gray-50 rounded-xl">
