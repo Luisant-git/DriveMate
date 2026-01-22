@@ -38,11 +38,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     date: '',
     time: '',
     duration: '',
-    whenNeeded: 'Now',
+    whenNeeded: 'Immediately',
     carType: 'Manual',
     vehicleType: 'Hatchback',
     tripType: 'One Way',
-    estimatedUsage: '4 Hrs',
+    estimatedUsage: '1 Hr',
   });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
@@ -276,7 +276,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
     // Validate that locations are filled
     if (!formData.pickup.includes(',') || !formData.drop.includes(',')) {
-      toast.error('Please select complete addresses from the suggestions');
+      toast.error('Please select complete loaction from the suggestions');
       return;
     }
 
@@ -305,11 +305,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           date: '',
           time: '',
           duration: '',
-          whenNeeded: 'Now',
+          whenNeeded: 'Immediately',
           carType: 'Manual',
           vehicleType: 'Hatchback',
           tripType: 'One Way',
-          estimatedUsage: '4 Hrs',
+          estimatedUsage: '1 Hr',
         });
         setEstimate(null);
         // Refresh bookings
@@ -535,6 +535,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 }}
                                                 placeholder="Pickup location"
                                                 className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                                showMyLocation={true}
+                                                readOnly={true}
                                             />
                             <LocationAutocomplete
                                 value={formData.drop}
@@ -551,6 +553,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 }}
                                 placeholder="Drop location"
                                 className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                readOnly={true}
                             />
                         </div>
                     </div>
@@ -612,6 +615,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                     {/* Choose Type of Service Dropdown - Only show for One-way and Two-way trips */}
                     {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && (
+                        <>
                         <div className="relative mb-3">
                             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose type of service</label>
                             <div 
@@ -629,7 +633,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     ].map((type) => (
                                         <div 
                                             key={type}
-                                            onClick={() => { setServiceType(type); setOpenDropdown(null); }}
+                                            onClick={() => { 
+                                                setServiceType(type); 
+                                                // Update estimated usage based on service type
+                                                setFormData({...formData, estimatedUsage: type === BookingType.LOCAL_HOURLY ? '1 Hr' : '4 Hrs'});
+                                                setOpenDropdown(null); 
+                                            }}
                                             className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${serviceType === type ? 'bg-gray-100' : ''}`}
                                         >
                                             <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
@@ -644,10 +653,41 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             )}
                         </div>
+                        
+                        {/* When Needed Dropdown - Only show for LOCAL_HOURLY */}
+                        {serviceType === BookingType.LOCAL_HOURLY && (
+                            <div className="relative mb-3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
+                                <div 
+                                    onClick={() => setOpenDropdown(openDropdown === 'whenNeeded' ? null : 'whenNeeded')}
+                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                >
+                                    <span>{formData.whenNeeded}</span>
+                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'whenNeeded' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                                {openDropdown === 'whenNeeded' && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                        {['Immediately', 'Schedule'].map((option) => (
+                                            <div 
+                                                key={option}
+                                                onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
+                                                className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
+                                            >
+                                                <h4 className="font-bold text-xs">{option}</h4>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        </>
                     )}
 
                     <div className="mt-3 sm:mt-4 space-y-3 pb-4">
-                        <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
+                        {/* Only show Schedule Details heading when needed */}
+                        {!((bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately') && (
+                            <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
+                        )}
                         {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.OUTSTATION && (
                             <>
                                 <div>
@@ -783,7 +823,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             </>
                         )}
-                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && (
+                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
                             <>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
@@ -820,7 +860,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'usage' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
+                                                    {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
