@@ -838,10 +838,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          accept="image/*"
                                          id="editPhoto"
                                          className="hidden"
-                                         onChange={(e) => {
+                                         onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
-                                                 setProfileData({...profileData, photo: file.name});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, photo: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
                                              }
                                          }}
                                      />
@@ -865,10 +878,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          accept="image/*"
                                          id="editDlPhoto"
                                          className="hidden"
-                                         onChange={(e) => {
+                                         onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
-                                                 setProfileData({...profileData, dlPhoto: file.name});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, dlPhoto: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
                                              }
                                          }}
                                      />
@@ -892,10 +918,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          accept="image/*"
                                          id="editPanPhoto"
                                          className="hidden"
-                                         onChange={(e) => {
+                                         onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
-                                                 setProfileData({...profileData, panPhoto: file.name});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, panPhoto: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
                                              }
                                          }}
                                      />
@@ -919,10 +958,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          accept="image/*"
                                          id="editAadharPhoto"
                                          className="hidden"
-                                         onChange={(e) => {
+                                         onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
-                                                 setProfileData({...profileData, aadharPhoto: file.name});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, aadharPhoto: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
                                              }
                                          }}
                                      />

@@ -5,6 +5,7 @@ import { getRecommendedPackage } from '../../services/geminiService';
 import { updateCustomerProfile } from '../../api/customer';
 import { uploadFile } from '../../api/upload';
 import { createBooking, getFareEstimate, getCustomerBookings } from '../../api/booking';
+import { API_BASE_URL } from '../../api/config.js';
 import { checkAuth } from '../../api/auth';
 import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
@@ -1186,11 +1187,37 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          <div className="flex-grow min-w-0">
                                              <p className="font-bold text-sm truncate">{booking.driver.name || 'Driver'}</p>
                                              <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
-                             {booking.driver.vehicleType && (
-                                                 <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                                     {booking.driver.vehicleType} • {booking.driver.vehicleNo || 'N/A'}
-                                                 </p>
-                                             )}
+                                             <p className="text-xs text-gray-600 cursor-pointer hover:text-blue-600 underline" 
+                                                onClick={async () => {
+                                                  try {
+                                                    const token = localStorage.getItem('auth-token');
+                                                    const response = await fetch(`${API_BASE_URL}/api/download/driver/${booking.driverId}`, {
+                                                      headers: {
+                                                        'Authorization': `Bearer ${token}`
+                                                      },
+                                                      credentials: 'include'
+                                                    });
+                                                    
+                                                    if (response.ok) {
+                                                      const blob = await response.blob();
+                                                      const url = window.URL.createObjectURL(blob);
+                                                      const link = document.createElement('a');
+                                                      link.href = url;
+                                                      link.download = `driver_${booking.driver.name}_documents.zip`;
+                                                      document.body.appendChild(link);
+                                                      link.click();
+                                                      document.body.removeChild(link);
+                                                      window.URL.revokeObjectURL(url);
+                                                    } else {
+                                                      console.error('Download failed:', response.status);
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('Download error:', error);
+                                                  }
+                                                }}
+                                             >
+                                               Download Driver Info
+                                             </p>
                                          </div>
                                          <a 
                                              href={`tel:${booking.driver.phone}`}

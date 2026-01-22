@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../../api/config.js';
 import { login, register } from '../../api/auth';
 
 interface DriverLoginProps {
@@ -52,14 +53,41 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
     setIsLoading(true);
     
     try {
+      // Upload files first and get URLs
+      const uploadFile = async (file: File | null, fieldName: string) => {
+        if (!file) return '';
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          return result.fileId; // This is now the full URL
+        } else {
+          throw new Error(`Failed to upload ${fieldName}`);
+        }
+      };
+      
+      // Upload all files
+      const [photoUrl, dlPhotoUrl, panPhotoUrl, aadharPhotoUrl] = await Promise.all([
+        uploadFile(registerData.photo, 'photo'),
+        uploadFile(registerData.dlPhoto, 'driving license'),
+        uploadFile(registerData.panPhoto, 'PAN card'),
+        uploadFile(registerData.aadharPhoto, 'Aadhar card')
+      ]);
+      
       const response = await register({
         ...registerData,
         role: 'DRIVER',
-        // Convert file objects to filenames for mock storage
-        photo: registerData.photo?.name || '',
-        dlPhoto: registerData.dlPhoto?.name || '',
-        panPhoto: registerData.panPhoto?.name || '',
-        aadharPhoto: registerData.aadharPhoto?.name || ''
+        photo: photoUrl,
+        dlPhoto: dlPhotoUrl,
+        panPhoto: panPhotoUrl,
+        aadharPhoto: aadharPhotoUrl
       });
       
       if (response.success) {

@@ -17,6 +17,7 @@ import mapsRoutes from "./routes/maps.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import bookingWorkflowRoutes from "./routes/booking.workflow.routes.js";
+import downloadRoutes from "./routes/download.routes.js";
 import packageRoutes from "./routes/package.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,5 +69,6 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/booking-workflow", bookingWorkflowRoutes);
 app.use("/api/packages", packageRoutes);
+app.use("/api/download", downloadRoutes);
 
 export default app;
