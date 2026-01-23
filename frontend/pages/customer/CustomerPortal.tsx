@@ -684,9 +684,114 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
 
                     <div className="mt-3 sm:mt-4 space-y-3 pb-4">
-                        {/* Only show Schedule Details heading when needed */}
-                        {!((bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately') && (
+                        {/* Show Schedule Details heading for all cases except when it's not needed */}
+                        {((bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) || 
+                          (bookingType === BookingType.VALET || bookingType === BookingType.DAILY || 
+                           bookingType === BookingType.WEEKLY || bookingType === BookingType.TEMPORARY || 
+                           bookingType === BookingType.SPARE || bookingType === BookingType.MONTHLY)) && (
                             <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
+                        )}
+                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.tripType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'tripType' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['One Way', 'Round Trip'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.estimatedUsage}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'usage' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                    {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.carType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'car' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Manual', 'Automatic', 'Both'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.vehicleType}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'vehicle' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                                        <div 
+                                                            key={option}
+                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         )}
                         {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.OUTSTATION && (
                             <>
@@ -1173,13 +1278,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         
                         return (
                         <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
-                             <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
-                                <div className="flex-1 min-w-0">
-                                    <span className="font-bold text-base sm:text-lg block">{formattedTime}, {formattedDate}</span>
-                                    {booking.estimateAmount && (
-                                        <p className="text-sm font-bold text-green-600 mt-1">₹{booking.estimateAmount}</p>
-                                    )}
-                                </div>
+                             <div className="flex justify-between items-center gap-2 mb-3">
+                                <span className="text-sm font-bold">{formattedTime}, {formattedDate}</span>
                                 <span className={`text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
                                     booking.status === 'CONFIRMED' && booking.driverId ? 'bg-green-100 text-green-800' : 
                                     booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
@@ -1190,6 +1290,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </span>
                              </div>
                              
+                             {booking.estimateAmount && (
+                                <p className="text-sm font-bold text-green-600 mb-2">₹{booking.estimateAmount}</p>
+                             )}
                              <p className="text-xs sm:text-sm font-medium mb-2">{booking.bookingType}</p>
                              <div className="text-xs text-gray-500 space-y-1 mb-3">
                                 <div className="flex items-start gap-2">
@@ -1220,51 +1323,57 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              {booking.driver && booking.driverId && (
                                  <div className="mt-3 pt-3 border-t border-gray-200">
                                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
-                                     <div className="flex items-center gap-2 bg-gradient-to-r from-green-50 to-blue-50 p-2.5 rounded-lg border border-green-200">
-                                         <div className="w-9 h-9 bg-black text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                                             {booking.driver.name?.[0] || 'D'}
-                                         </div>
-                                         <div className="flex-grow min-w-0">
-                                             <p className="font-bold text-sm truncate">{booking.driver.name || 'Driver'}</p>
-                                             <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
-                                             <p className="text-xs text-gray-600 cursor-pointer hover:text-blue-600 underline" 
-                                                onClick={async () => {
-                                                  try {
-                                                    const token = localStorage.getItem('auth-token');
-                                                    const response = await fetch(`${API_BASE_URL}/api/download/driver/${booking.driverId}`, {
-                                                      headers: {
-                                                        'Authorization': `Bearer ${token}`
-                                                      },
-                                                      credentials: 'include'
-                                                    });
-                                                    
-                                                    if (response.ok) {
-                                                      const blob = await response.blob();
-                                                      const url = window.URL.createObjectURL(blob);
-                                                      const link = document.createElement('a');
-                                                      link.href = url;
-                                                      link.download = `driver_${booking.driver.name}_documents.zip`;
-                                                      document.body.appendChild(link);
-                                                      link.click();
-                                                      document.body.removeChild(link);
-                                                      window.URL.revokeObjectURL(url);
-                                                    } else {
-                                                      console.error('Download failed:', response.status);
-                                                    }
-                                                  } catch (error) {
-                                                    console.error('Download error:', error);
-                                                  }
-                                                }}
+                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
+                                         <div className="flex items-center gap-2.5">
+                                             <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
+                                                 {booking.driver.name?.[0] || 'D'}
+                                             </div>
+                                             <div className="flex-grow min-w-0">
+                                                 <p className="font-bold text-sm truncate">{booking.driver.name || 'Driver'}</p>
+                                                 <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
+                                             </div>
+                                             <a 
+                                                 href={`tel:${booking.driver.phone}`}
+                                                 className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
                                              >
-                                               Download Driver Info
-                                             </p>
+                                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                             </a>
                                          </div>
-                                         <a 
-                                             href={`tel:${booking.driver.phone}`}
-                                             className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
+                                         <button
+                                             onClick={async () => {
+                                               try {
+                                                 const token = localStorage.getItem('auth-token');
+                                                 const response = await fetch(`${API_BASE_URL}/api/download/driver/${booking.driverId}`, {
+                                                   headers: {
+                                                     'Authorization': `Bearer ${token}`
+                                                   },
+                                                   credentials: 'include'
+                                                 });
+                                                 
+                                                 if (response.ok) {
+                                                   const blob = await response.blob();
+                                                   const url = window.URL.createObjectURL(blob);
+                                                   const link = document.createElement('a');
+                                                   link.href = url;
+                                                   link.download = `driver_${booking.driver.name}_documents.zip`;
+                                                   document.body.appendChild(link);
+                                                   link.click();
+                                                   document.body.removeChild(link);
+                                                   window.URL.revokeObjectURL(url);
+                                                 } else {
+                                                   console.error('Download failed:', response.status);
+                                                 }
+                                               } catch (error) {
+                                                 console.error('Download error:', error);
+                                               }
+                                             }}
+                                             className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
                                          >
-                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                                         </a>
+                                             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                             </svg>
+                                             <span className="text-xs font-bold text-gray-700">Download Driver Info</span>
+                                         </button>
                                      </div>
                                  </div>
                              )}

@@ -8,10 +8,29 @@ export default function Driver() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [packageMap, setPackageMap] = useState({});
 
   useEffect(() => {
+    fetchPackages();
     fetchDrivers();
   }, []);
+
+  const fetchPackages = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/subscriptions/active-packages`, { withCredentials: true });
+      if (res.data.success) {
+        setPackages(res.data.packages);
+        const map = {};
+        res.data.packages.forEach(pkg => {
+          map[pkg.type] = pkg.name;
+        });
+        setPackageMap(map);
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    }
+  };
 
   const fetchDrivers = async () => {
     try {
@@ -89,7 +108,7 @@ export default function Driver() {
                   </td>
                   <td className="px-4 py-4">
                     <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                      {driver.packageType}
+                      {packageMap[driver.packageType] || driver.packageType}
                     </span>
                   </td>
                   {/* <td className="px-4 py-4">
@@ -222,7 +241,7 @@ export default function Driver() {
                     <div><span className="font-medium">PhonePe:</span> {selectedDriver.phonepeNo || 'N/A'}</div>
                     {/* <div><span className="font-medium">Vehicle Type:</span> {selectedDriver.vehicleType || 'N/A'}</div>
                     <div><span className="font-medium">Vehicle No:</span> {selectedDriver.vehicleNo || 'N/A'}</div> */}
-                    <div><span className="font-medium">Package:</span> {selectedDriver.packageType}</div>
+                    <div><span className="font-medium">Package:</span> {packageMap[selectedDriver.packageType] || selectedDriver.packageType}</div>
                     <div><span className="font-medium">Total Rides:</span> {selectedDriver.totalRides}</div>
                   </div>
                 </div>

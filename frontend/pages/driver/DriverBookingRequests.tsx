@@ -8,13 +8,26 @@ export default function DriverBookingRequests() {
   const [requests, setRequests] = useState([]);
   const [allocatedBookings, setAllocatedBookings] = useState([]);
   const [driverPackage, setDriverPackage] = useState(null);
+  const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDriverInfo();
     fetchRequests();
     fetchAllocatedBookings();
+    fetchActivePackages();
   }, []);
+
+  const fetchActivePackages = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/subscriptions/active-packages`, { withCredentials: true });
+      if (res.data.success) {
+        setPackages(res.data.packages);
+      }
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    }
+  };
 
   const fetchDriverInfo = async () => {
     try {
@@ -104,11 +117,17 @@ export default function DriverBookingRequests() {
           </div>
           <div className="flex-1">
             <p className="text-xs text-gray-500 font-medium">Active Package</p>
-            <p className="text-sm sm:text-base font-semibold text-gray-900">
-              {driverPackage === 'LOCAL' && 'Local Driver Pass'}
-              {driverPackage === 'OUTSTATION' && 'Outstation Pro'}
-              {driverPackage === 'ALL_PREMIUM' && 'All Access Premium'}
-            </p>
+            {packages.length > 0 ? (
+              packages.map(pkg => (
+                <p key={pkg.id} className="text-sm sm:text-base font-semibold text-gray-900">{pkg.name}</p>
+              ))
+            ) : (
+              <p className="text-sm sm:text-base font-semibold text-gray-900">
+                {driverPackage === 'LOCAL' && 'Local Driver Pass'}
+                {driverPackage === 'OUTSTATION' && 'Outstation Pro'}
+                {driverPackage === 'ALL_PREMIUM' && 'All Access Premium'}
+              </p>
+            )}
           </div>
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         </div>
