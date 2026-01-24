@@ -9,14 +9,13 @@ export enum UserRole {
 export enum BookingType {
   LOCAL_HOURLY = 'Local - Hourly',
   OUTSTATION = 'Outstation',
-  MONTHLY = 'Monthly Driver',
+  ACTING = 'Acting Driver',
   SPARE = 'Spare Driver',
   TEMPORARY = 'Temporary Driver',
-  WEEKLY = 'Weekly Driver',
-  DAILY = 'Daily Driver',
   VALET = 'Valet/Wallet Parking',
-  ONEWAY = 'One-way Trip',
-  TWOWAY = 'Two-way Trip'
+  DAILY = 'Daily Driver',
+  WEEKLY = 'Weekly Driver',
+  MONTHLY = 'Monthly Driver'
 }
 
 export interface User {

@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
+import { calculateFare, parseDurationToHours, FareBreakdown } from '../../utils/fareCalculator';
 
 interface CustomerPortalProps {
   customer: Customer;
@@ -20,8 +21,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [myTrips, setMyTrips] = useState<any[]>([]);
-  const [bookingType, setBookingType] = useState<BookingType>(BookingType.ONEWAY);
+  const [bookingType, setBookingType] = useState<BookingType>(BookingType.ACTING);
   const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
+  const [showDriverProfile, setShowDriverProfile] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<any>(null);
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
@@ -46,6 +49,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
+  const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
 
   // Get minimum time (15 minutes from now)
   const getMinDateTime = () => {
@@ -185,76 +189,40 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   };
 
   const handleEstimate = async () => {
-     if(!formData.pickup || !formData.drop || !formData.vehicleType) return;
-
-     // Check authentication before making API call
-     if (!isAuthenticated) {
-       toast.warning('Please log in to get fare estimates');
-       return;
-     }
-
-     console.log('Triggering estimate with:', { pickup: formData.pickup, drop: formData.drop, vehicleType: formData.vehicleType });
+     if(!formData.estimatedUsage) return;
      
      setEstimateLoading(true);
      try {
-       const response = await getFareEstimate(
-         formData.pickup, 
-         formData.drop, 
-         formData.vehicleType
-       );
+       const hours = parseDurationToHours(formData.estimatedUsage);
+       const isOutstation = serviceType === BookingType.OUTSTATION;
+       const breakdown = calculateFare(hours, 0, isOutstation);
        
-       if (response.success) {
-         setEstimate(response.estimate);
-       } else {
-         console.error('Estimate error:', response.error);
-         if (response.error === 'User not logged in') {
-           setIsAuthenticated(false);
-           toast.error('Please log in to get fare estimates');
-         } else {
-          //  toast.error(response.error || 'Failed to calculate estimate');
-         }
-         setEstimate(null);
-       }
+       setFareBreakdown(breakdown);
+       setEstimate(breakdown.totalFare);
      } catch (error) {
-       console.error('Error getting estimate:', error);
-       toast.error('Failed to calculate estimate');
+       console.error('Error calculating fare:', error);
        setEstimate(null);
+       setFareBreakdown(null);
      } finally {
        setEstimateLoading(false);
      }
   };
 
-  const handleEstimateWithValues = async (pickup: string, drop: string, vehicleType: string) => {
-     if(!pickup || !drop || !vehicleType) return;
-
-     // Check authentication before making API call
-     if (!isAuthenticated) {
-       toast.warning('Please log in to get fare estimates');
-       return;
-     }
-
-     console.log('Triggering estimate with values:', { pickup, drop, vehicleType });
+  const handleEstimateWithValues = async (estimatedUsage: string) => {
+     if(!estimatedUsage) return;
      
      setEstimateLoading(true);
      try {
-       const response = await getFareEstimate(pickup, drop, vehicleType);
+       const hours = parseDurationToHours(estimatedUsage);
+       const isOutstation = serviceType === BookingType.OUTSTATION;
+       const breakdown = calculateFare(hours, 0, isOutstation);
        
-       if (response.success) {
-         setEstimate(response.estimate);
-       } else {
-         console.error('Estimate error:', response.error);
-         if (response.error === 'User not logged in') {
-           setIsAuthenticated(false);
-           toast.error('Please log in to get fare estimates');
-         } else {
-          //  toast.error(response.error || 'Failed to calculate estimate');
-         }
-         setEstimate(null);
-       }
+       setFareBreakdown(breakdown);
+       setEstimate(breakdown.totalFare);
      } catch (error) {
-       console.error('Error getting estimate:', error);
-      //  toast.error('Failed to calculate estimate');
+       console.error('Error calculating fare:', error);
        setEstimate(null);
+       setFareBreakdown(null);
      } finally {
        setEstimateLoading(false);
      }
@@ -399,6 +367,89 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
   return (
     <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
+      {showDriverProfile && selectedDriver && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
+            {/* Header */}
+            <div className="relative bg-gradient-to-br from-black to-gray-800 p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl">
+              <button onClick={() => setShowDriverProfile(false)} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+              <div className="flex flex-col items-center text-white">
+                {selectedDriver.documents?.photo ? (
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-lg mb-2 sm:mb-3 overflow-hidden bg-white flex items-center justify-center p-1">
+                    <img 
+                      src={selectedDriver.documents.photo.startsWith('http') ? selectedDriver.documents.photo : `${API_BASE_URL}${selectedDriver.documents.photo}`} 
+                      alt="Driver Photo" 
+                      className="w-full h-full object-contain rounded-full" 
+                      onError={(e) => {
+                        e.currentTarget.parentElement.style.display = 'none';
+                        e.currentTarget.parentElement.nextElementSibling.style.display = 'flex';
+                      }}
+                    />
+                  </div>
+                ) : null}
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${selectedDriver.documents?.photo ? 'hidden' : ''}`}>
+                  {selectedDriver.name?.[0] || 'D'}
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriver.name || 'Driver'}</h2>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              {/* Contact Info */}
+              <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Phone Number</p>
+                    <a href={`tel:${selectedDriver.phone}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.phone || 'N/A'}</a>
+                  </div>
+                  <a href={`tel:${selectedDriver.phone}`} className="w-9 h-9 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition shadow-lg flex-shrink-0">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                  </a>
+                </div>
+                {selectedDriver.alternateMobile1 && (
+                  <div className="flex items-center gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-200">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate Number</p>
+                      <a href={`tel:${selectedDriver.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile1}</a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* License Info */}
+              {selectedDriver.licenseNo && (
+                <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm2.45 4a2.5 2.5 0 10-4.9 0h4.9zM12 9a1 1 0 100 2h3a1 1 0 100-2h-3zm-1 4a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs text-gray-500 font-medium">License Number</p>
+                      <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{selectedDriver.licenseNo}</p>
+                    </div>
+                  </div>
+                  {selectedDriver.documents?.dl && (
+                    <img 
+                      src={selectedDriver.documents.dl.startsWith('http') ? selectedDriver.documents.dl : `${API_BASE_URL}${selectedDriver.documents.dl}`} 
+                      alt="Driver License" 
+                      className="w-full h-32 sm:h-40 rounded-lg sm:rounded-xl object-contain bg-white border border-gray-200" 
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Background Map Image or Route Map */}
       {formData.pickup && formData.drop ? (
         <RouteMap 
@@ -528,10 +579,6 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 value={formData.pickup}
                                                 onChange={(value) => {
                                                     setFormData({...formData, pickup: value});
-                                                    // Trigger estimate when both locations are filled
-                                                    if (value && formData.drop && formData.vehicleType) {
-                                                        setTimeout(handleEstimate, 500);
-                                                    }
                                                 }}
                                                 placeholder="Pickup location"
                                                 className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
@@ -541,15 +588,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <LocationAutocomplete
                                 value={formData.drop}
                                 onChange={(value) => {
-                                    console.log('Drop location selected:', value);
                                     setFormData({...formData, drop: value});
-                                    // Trigger estimate when both locations are filled
-                                    if (value && formData.pickup && formData.vehicleType) {
-                                        setTimeout(() => {
-                                            // Call estimate with updated values directly
-                                            handleEstimateWithValues(formData.pickup, value, formData.vehicleType);
-                                        }, 500);
-                                    }
                                 }}
                                 placeholder="Drop location"
                                 className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
@@ -586,13 +625,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         {openDropdown === 'service' && (
                             <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
                                 {[
-                                    BookingType.ONEWAY,
-                                    BookingType.TWOWAY,
+                                    BookingType.ACTING,
+                                    BookingType.SPARE,
+                                    BookingType.TEMPORARY,
                                     BookingType.VALET,
                                     BookingType.DAILY,
                                     BookingType.WEEKLY,
-                                    BookingType.TEMPORARY,
-                                    BookingType.SPARE,
                                     BookingType.MONTHLY
                                 ].map((type) => (
                                     <div 
@@ -613,85 +651,74 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         )}
                     </div>
 
-                    {/* Choose Type of Service Dropdown - Only show for One-way and Two-way trips */}
-                    {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && (
-                        <>
+                    {/* Choose Type of Service Dropdown - Show for all services */}
+                    <div className="relative mb-3">
+                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose type of service</label>
+                        <div 
+                            onClick={() => setOpenDropdown(openDropdown === 'serviceType' ? null : 'serviceType')}
+                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                        >
+                            <span>{serviceType}</span>
+                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'serviceType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                        {openDropdown === 'serviceType' && (
+                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                {[
+                                    BookingType.LOCAL_HOURLY,
+                                    BookingType.OUTSTATION
+                                ].map((type) => (
+                                    <div 
+                                        key={type}
+                                        onClick={() => { 
+                                            setServiceType(type); 
+                                            setFormData({...formData, estimatedUsage: type === BookingType.LOCAL_HOURLY ? '1 Hr' : '4 Hrs'});
+                                            setOpenDropdown(null); 
+                                        }}
+                                        className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${serviceType === type ? 'bg-gray-100' : ''}`}
+                                    >
+                                        <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
+                                            <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-xs">{type}</h4>
+                                            <p className="text-[10px] text-gray-500">Reliable & Verified</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* When Needed Dropdown - Show for LOCAL_HOURLY */}
+                    {serviceType === BookingType.LOCAL_HOURLY && (
                         <div className="relative mb-3">
-                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose type of service</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
                             <div 
-                                onClick={() => setOpenDropdown(openDropdown === 'serviceType' ? null : 'serviceType')}
+                                onClick={() => setOpenDropdown(openDropdown === 'whenNeeded' ? null : 'whenNeeded')}
                                 className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                             >
-                                <span>{serviceType}</span>
-                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'serviceType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                <span>{formData.whenNeeded}</span>
+                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'whenNeeded' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </div>
-                            {openDropdown === 'serviceType' && (
+                            {openDropdown === 'whenNeeded' && (
                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                    {[
-                                        BookingType.LOCAL_HOURLY,
-                                        BookingType.OUTSTATION
-                                    ].map((type) => (
+                                    {['Immediately', 'Schedule'].map((option) => (
                                         <div 
-                                            key={type}
-                                            onClick={() => { 
-                                                setServiceType(type); 
-                                                // Update estimated usage based on service type
-                                                setFormData({...formData, estimatedUsage: type === BookingType.LOCAL_HOURLY ? '1 Hr' : '4 Hrs'});
-                                                setOpenDropdown(null); 
-                                            }}
-                                            className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${serviceType === type ? 'bg-gray-100' : ''}`}
+                                            key={option}
+                                            onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
+                                            className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
                                         >
-                                            <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
-                                                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-xs">{type}</h4>
-                                                <p className="text-[10px] text-gray-500">Reliable & Verified</p>
-                                            </div>
+                                            <h4 className="font-bold text-xs">{option}</h4>
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
-                        
-                        {/* When Needed Dropdown - Only show for LOCAL_HOURLY */}
-                        {serviceType === BookingType.LOCAL_HOURLY && (
-                            <div className="relative mb-3">
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
-                                <div 
-                                    onClick={() => setOpenDropdown(openDropdown === 'whenNeeded' ? null : 'whenNeeded')}
-                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                                >
-                                    <span>{formData.whenNeeded}</span>
-                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'whenNeeded' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                                {openDropdown === 'whenNeeded' && (
-                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                        {['Immediately', 'Schedule'].map((option) => (
-                                            <div 
-                                                key={option}
-                                                onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
-                                                className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
-                                            >
-                                                <h4 className="font-bold text-xs">{option}</h4>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        </>
                     )}
 
                     <div className="mt-3 sm:mt-4 space-y-3 pb-4">
-                        {/* Show Schedule Details heading for all cases except when it's not needed */}
-                        {((bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) || 
-                          (bookingType === BookingType.VALET || bookingType === BookingType.DAILY || 
-                           bookingType === BookingType.WEEKLY || bookingType === BookingType.TEMPORARY || 
-                           bookingType === BookingType.SPARE || bookingType === BookingType.MONTHLY)) && (
-                            <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
-                        )}
-                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
+                        <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
+                        {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
                             <>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
@@ -731,7 +758,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs'].map(option => (
                                                         <div 
                                                             key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
+                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
                                                             className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
                                                         >
                                                             {option}
@@ -793,7 +820,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             </>
                         )}
-                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.OUTSTATION && (
+                        {serviceType === BookingType.OUTSTATION && (
                             <>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
@@ -833,7 +860,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
                                                         <div 
                                                             key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
+                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
                                                             className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
                                                         >
                                                             {option}
@@ -928,8 +955,41 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             </>
                         )}
-                        {(bookingType === BookingType.ONEWAY || bookingType === BookingType.TWOWAY) && serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
+                        {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
                             <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                    <div className="flex gap-2 sm:gap-3">
+                                        <input 
+                                            type="date" 
+                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                            value={formData.date}
+                                            onChange={e => setFormData({...formData, date: e.target.value})}
+                                        />
+                                        <div className="relative flex-1">
+                                            <div 
+                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
+                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span>{formData.time ? getTimeSlots().find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                            {openDropdown === 'timeSlot2' && (
+                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                    {getTimeSlots().map(slot => (
+                                                        <div 
+                                                            key={slot.value}
+                                                            onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
+                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {slot.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
                                     <div className="flex gap-2">
@@ -968,7 +1028,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs'].map(option => (
                                                         <div 
                                                             key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); }}
+                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
                                                             className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
                                                         >
                                                             {option}
@@ -980,39 +1040,6 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-                                    <div className="flex gap-2 sm:gap-3">
-                                        <input 
-                                            type="date" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.date}
-                                            onChange={e => setFormData({...formData, date: e.target.value})}
-                                        />
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
-                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.time ? getTimeSlots().find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'timeSlot2' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {getTimeSlots().map(slot => (
-                                                        <div 
-                                                            key={slot.value}
-                                                            onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {slot.label}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
                                     <div className="flex gap-2">
                                         <div className="relative flex-1">
@@ -1063,59 +1090,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </div>
                             </>
                         )}
-                        {(bookingType === BookingType.VALET || bookingType === BookingType.DAILY || bookingType === BookingType.WEEKLY || bookingType === BookingType.TEMPORARY || bookingType === BookingType.SPARE || bookingType === BookingType.MONTHLY) && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.carType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'car' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic', 'Both'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.vehicleType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'vehicle' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+
                         {false && (
                             <>
                                 <div className="relative">
@@ -1215,14 +1190,24 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                     {/* Fare Estimate - Only show when estimate is available */}
                     {(estimate || estimateLoading) && (
-                        <div className="mx-4 mb-4 text-center py-3 bg-gray-50 rounded-lg">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fare Estimate</p>
+                        <div className="mx-4 mb-4 bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fare Estimate</p>
                             {estimateLoading ? (
                                 <p className="text-lg font-bold text-gray-500 mb-1">Calculating...</p>
                             ) : (
-                                <p className="text-2xl font-bold text-black mb-1">₹{estimate}</p>
+                                <>
+                                    <p className="text-3xl font-bold text-black mb-1">₹{estimate}</p>
+                                    {fareBreakdown && (
+                                        <div className="text-xs text-gray-600 mt-2 space-y-1">
+                                            <p className="font-medium">{fareBreakdown.description}</p>
+                                            {fareBreakdown.extraHours > 0 && (
+                                                <p className="text-[10px]">Base: ₹{fareBreakdown.baseFare} + Extra: ₹{fareBreakdown.extraHourCharge}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-2">This is just an estimate</p>
+                                </>
                             )}
-                            <p className="text-xs text-gray-500">This is just an estimate</p>
                         </div>
                     )}
                 </div>
@@ -1340,39 +1325,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                              </a>
                                          </div>
                                          <button
-                                             onClick={async () => {
-                                               try {
-                                                 const token = localStorage.getItem('auth-token');
-                                                 const response = await fetch(`${API_BASE_URL}/api/download/driver/${booking.driverId}`, {
-                                                   headers: {
-                                                     'Authorization': `Bearer ${token}`
-                                                   },
-                                                   credentials: 'include'
-                                                 });
-                                                 
-                                                 if (response.ok) {
-                                                   const blob = await response.blob();
-                                                   const url = window.URL.createObjectURL(blob);
-                                                   const link = document.createElement('a');
-                                                   link.href = url;
-                                                   link.download = `driver_${booking.driver.name}_documents.zip`;
-                                                   document.body.appendChild(link);
-                                                   link.click();
-                                                   document.body.removeChild(link);
-                                                   window.URL.revokeObjectURL(url);
-                                                 } else {
-                                                   console.error('Download failed:', response.status);
-                                                 }
-                                               } catch (error) {
-                                                 console.error('Download error:', error);
-                                               }
+                                             onClick={() => {
+                                               setSelectedDriver(booking.driver);
+                                               setShowDriverProfile(true);
                                              }}
                                              className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
                                          >
                                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                              </svg>
-                                             <span className="text-xs font-bold text-gray-700">Download Driver Info</span>
+                                             <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
                                          </button>
                                      </div>
                                  </div>

@@ -29,6 +29,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [password, setPassword] = useState('');
+  const [imagePreviews, setImagePreviews] = useState<{[key: string]: string}>({});
 
   // Update local driver state when prop changes
   useEffect(() => {
@@ -550,16 +551,21 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                          <div className="bg-black h-20 sm:h-24 relative">
                              <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6">
-                                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-gray-200 flex items-center justify-center overflow-hidden">
+                                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
                                      {driver.photo && driver.photo !== '' ? (
-                                         <div className="w-full h-full bg-blue-100 flex items-center justify-center">
-                                             <span className="text-blue-600 text-lg font-bold">{driver.name?.charAt(0) || 'D'}</span>
-                                         </div>
-                                     ) : (
-                                         <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                                             <span className="text-gray-600 text-lg font-bold">{driver.name?.charAt(0) || 'D'}</span>
-                                         </div>
-                                     )}
+                                         <img 
+                                             src={driver.photo.startsWith('http') ? driver.photo : `${API_BASE_URL}${driver.photo}`} 
+                                             alt="Profile Photo" 
+                                             className="w-full h-full object-contain rounded-full"
+                                             onError={(e) => {
+                                                 e.currentTarget.style.display = 'none';
+                                                 e.currentTarget.nextElementSibling.style.display = 'flex';
+                                             }}
+                                         />
+                                     ) : null}
+                                     <div className={`w-full h-full ${driver.photo && driver.photo !== '' ? 'hidden' : 'flex'} items-center justify-center bg-gray-300 rounded-full`}>
+                                         <span className="text-gray-600 text-lg font-bold">{driver.name?.charAt(0) || 'D'}</span>
+                                     </div>
                                  </div>
                              </div>
                          </div>
@@ -633,8 +639,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                              </div>
                                              <div className="flex-1 min-w-0">
                                                  <p className="text-xs sm:text-sm text-gray-500">Current Plan</p>
-                                                 <p className="text-lg sm:text-xl font-bold text-black">{currentSubscription.plan.name}</p>
-                                                 <p className="text-xs px-2 py-1 rounded border text-green-600 border-green-200 bg-green-50">
+                                                 <p className="text-base sm:text-lg md:text-xl font-bold text-black truncate">{currentSubscription.plan.name}</p>
+                                                 <p className="text-xs px-2 py-1 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1">
                                                      {daysLeft} days left
                                                  </p>
                                              </div>
@@ -841,6 +847,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, photo: previewUrl});
                                                  try {
                                                      const formData = new FormData();
                                                      formData.append('file', file);
@@ -860,15 +868,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      />
                                      <label 
                                          htmlFor="editPhoto"
-                                         className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
                                      >
-                                         <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                                             <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                             </svg>
-                                             <p className="text-xs text-gray-500 font-medium">Photo</p>
-                                             {profileData.photo && <p className="text-xs text-green-600 font-bold">✓ Selected</p>}
-                                         </div>
+                                         {imagePreviews.photo || profileData.photo ? (
+                                             <img 
+                                                 src={imagePreviews.photo || (profileData.photo.startsWith('http') ? profileData.photo : `${API_BASE_URL}${profileData.photo}`)} 
+                                                 alt="Photo" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Photo</p>
+                                             </div>
+                                         )}
                                      </label>
                                  </div>
                                  
@@ -881,6 +896,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, dlPhoto: previewUrl});
                                                  try {
                                                      const formData = new FormData();
                                                      formData.append('file', file);
@@ -900,15 +917,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      />
                                      <label 
                                          htmlFor="editDlPhoto"
-                                         className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
                                      >
-                                         <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                                             <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                             </svg>
-                                             <p className="text-xs text-gray-500 font-medium">Driving License</p>
-                                             {profileData.dlPhoto && <p className="text-xs text-green-600 font-bold">✓ Selected</p>}
-                                         </div>
+                                         {imagePreviews.dlPhoto || profileData.dlPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.dlPhoto || (profileData.dlPhoto.startsWith('http') ? profileData.dlPhoto : `${API_BASE_URL}${profileData.dlPhoto}`)} 
+                                                 alt="Driving License" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Driving License</p>
+                                             </div>
+                                         )}
                                      </label>
                                  </div>
                                  
@@ -921,6 +945,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, panPhoto: previewUrl});
                                                  try {
                                                      const formData = new FormData();
                                                      formData.append('file', file);
@@ -940,15 +966,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      />
                                      <label 
                                          htmlFor="editPanPhoto"
-                                         className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
                                      >
-                                         <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                                             <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                                             </svg>
-                                             <p className="text-xs text-gray-500 font-medium">PAN Card</p>
-                                             {profileData.panPhoto && <p className="text-xs text-green-600 font-bold">✓ Selected</p>}
-                                         </div>
+                                         {imagePreviews.panPhoto || profileData.panPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.panPhoto || (profileData.panPhoto.startsWith('http') ? profileData.panPhoto : `${API_BASE_URL}${profileData.panPhoto}`)} 
+                                                 alt="PAN Card" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">PAN Card</p>
+                                             </div>
+                                         )}
                                      </label>
                                  </div>
                                  
@@ -961,6 +994,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          onChange={async (e) => {
                                              const file = e.target.files?.[0];
                                              if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, aadharPhoto: previewUrl});
                                                  try {
                                                      const formData = new FormData();
                                                      formData.append('file', file);
@@ -980,15 +1015,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      />
                                      <label 
                                          htmlFor="editAadharPhoto"
-                                         className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
                                      >
-                                         <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                                             <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                             </svg>
-                                             <p className="text-xs text-gray-500 font-medium">Aadhar Card</p>
-                                             {profileData.aadharPhoto && <p className="text-xs text-green-600 font-bold">✓ Selected</p>}
-                                         </div>
+                                         {imagePreviews.aadharPhoto || profileData.aadharPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.aadharPhoto || (profileData.aadharPhoto.startsWith('http') ? profileData.aadharPhoto : `${API_BASE_URL}${profileData.aadharPhoto}`)} 
+                                                 alt="Aadhar Card" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Aadhar Card</p>
+                                             </div>
+                                         )}
                                      </label>
                                  </div>
                              </div>

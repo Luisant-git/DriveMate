@@ -146,16 +146,39 @@ export const getCustomerBookings = async (req, res) => {
         customerId: req.user.id
       },
       include: {
-        driver: true,
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            licenseNo: true,
+            alternateMobile1: true,
+            photo: true,
+            dlPhoto: true
+          }
+        },
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
+    // Transform driver data to include documents object
+    const transformedBookings = bookings.map(booking => ({
+      ...booking,
+      driver: booking.driver ? {
+        ...booking.driver,
+        documents: {
+          photo: booking.driver.photo,
+          dl: booking.driver.dlPhoto
+        }
+      } : null
+    }));
+
     res.json({
       success: true,
-      bookings
+      bookings: transformedBookings
     });
   } catch (error) {
     console.error('Error fetching bookings:', error);
