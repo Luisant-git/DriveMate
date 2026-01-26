@@ -1,9 +1,5 @@
 import prisma from '../config/database.js';
-import axios from 'axios';
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-
-// Helper function to convert file ID to full URL
 const getFileUrl = (fileId) => {
   if (!fileId) return null;
   if (fileId.startsWith('http')) return fileId;
@@ -58,87 +54,36 @@ export const createBooking = async (req, res) => {
 
 export const getEstimate = async (req, res) => {
   try {
-    const { pickupLocation, dropLocation, vehicleType } = req.query;
+    const { packageType, hours } = req.query;
     
-    if (!pickupLocation || !dropLocation) {
-      return res.status(400).json({ success: false, error: 'Pickup and drop locations required' });
+    if (!packageType || !hours) {
+      return res.status(400).json({ success: false, error: 'Package type and hours required' });
     }
 
-    // Validate that locations are not just single characters or too short
-    if (pickupLocation.trim().length < 3 || dropLocation.trim().length < 3) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Please select valid pickup and drop locations from autocomplete suggestions' 
-      });
+    const pkg = await prisma.pricingPackage.findUnique({
+      where: { 
+        packageType_hours: { 
+          packageType, 
+          hours: parseInt(hours) 
+        },
+        isActive: true
+      }
+    });
+
+    if (!pkg) {
+      return res.status(404).json({ success: false, error: 'Package not found' });
     }
-
-    // Check if locations contain proper address components (city, state, etc.)
-    const isValidLocation = (location) => {
-      const hasComma = location.includes(',');
-      const hasMinLength = location.length > 10;
-      return hasComma && hasMinLength;
-    };
-
-    if (!isValidLocation(pickupLocation) || !isValidLocation(dropLocation)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Please select complete addresses from the autocomplete dropdown' 
-      });
-    }
-
-    // Get distance and duration from Google Maps
-    const directionsResponse = await axios.get(
-      `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(dropLocation)}&key=${GOOGLE_MAPS_API_KEY}`
-    );
-
-    if (directionsResponse.data.status !== 'OK' || !directionsResponse.data.routes.length) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Unable to calculate route. Please ensure both locations are valid addresses.' 
-      });
-    }
-
-    const route = directionsResponse.data.routes[0].legs[0];
-    const distanceKm = route.distance.value / 1000; // Convert meters to km
-    const durationMin = route.duration.value / 60; // Convert seconds to minutes
-
-    // Vehicle-specific pricing
-    const vehiclePricing = {
-      'Hatchback': { baseFare: 30, perKm: 7, perMin: 1, bookingFee: 10 },
-      'Sedan': { baseFare: 40, perKm: 9, perMin: 1.2, bookingFee: 15 },
-      'SUV': { baseFare: 50, perKm: 12, perMin: 1.5, bookingFee: 20 }
-    };
-
-    const pricing = vehiclePricing[vehicleType] || vehiclePricing['Hatchback'];
-    
-    // Calculate fare using Uber-like formula
-    const baseFare = pricing.baseFare;
-    const distanceFare = distanceKm * pricing.perKm;
-    const timeFare = durationMin * pricing.perMin;
-    const bookingFee = pricing.bookingFee;
-    
-    let totalFare = baseFare + distanceFare + timeFare + bookingFee;
-    
-    // Apply surge pricing (random between 1.0 to 1.8)
-    const surgeFactor = 1 + (Math.random() * 0.8);
-    if (surgeFactor > 1.3) {
-      totalFare *= surgeFactor;
-    }
-    
-    const estimate = Math.round(totalFare);
     
     res.json({
       success: true,
-      estimate,
+      estimate: pkg.minimumCharge,
       currency: 'INR',
       breakdown: {
-        baseFare: Math.round(baseFare),
-        distanceFare: Math.round(distanceFare),
-        timeFare: Math.round(timeFare),
-        bookingFee,
-        surgeFactor: surgeFactor > 1.3 ? Math.round(surgeFactor * 100) / 100 : null,
-        distance: `${Math.round(distanceKm * 10) / 10} km`,
-        duration: `${Math.round(durationMin)} min`
+        minimumCharge: pkg.minimumCharge,
+        hours: pkg.hours,
+        extraPerHour: pkg.extraPerHour,
+        minimumKm: pkg.minimumKm,
+        description: pkg.description
       }
     });
   } catch (error) {
@@ -172,7 +117,6 @@ export const getCustomerBookings = async (req, res) => {
       }
     });
 
-    // Transform driver data to include documents object and full URLs
     const transformedBookings = bookings.map(booking => ({
       ...booking,
       driver: booking.driver ? {
@@ -227,19 +171,3 @@ export const getDriverBookings = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
-// Total Fare=Base Fare+(Distance Fare × km)+(Time Fare × min)+Booking Fee×Surge
-// 2️⃣ Example
-
-// Suppose you take UberGo for 5 km, 15 minutes in traffic:
-
-// Base fare: ₹30
-
-// Distance: 5 km × ₹7/km = ₹35
-
-// Time: 15 min × ₹1/min = ₹15
-
-// Booking fee: ₹10
-
-// Total = 30 + 35 + 15 + 10 = ₹90
-// (If surge pricing is active, multiply by surge factor, e.g., ×1.5 → ₹135)

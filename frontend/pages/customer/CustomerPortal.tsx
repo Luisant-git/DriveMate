@@ -195,10 +195,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
      try {
        const hours = parseDurationToHours(formData.estimatedUsage);
        const isOutstation = serviceType === BookingType.OUTSTATION;
-       const breakdown = calculateFare(hours, 0, isOutstation);
+       const breakdown = await calculateFare(hours, 0, isOutstation);
        
-       setFareBreakdown(breakdown);
-       setEstimate(breakdown.totalFare);
+       if (breakdown) {
+         setFareBreakdown(breakdown);
+         setEstimate(breakdown.totalFare);
+       } else {
+         setEstimate(null);
+         setFareBreakdown(null);
+       }
      } catch (error) {
        console.error('Error calculating fare:', error);
        setEstimate(null);
@@ -215,10 +220,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
      try {
        const hours = parseDurationToHours(estimatedUsage);
        const isOutstation = serviceType === BookingType.OUTSTATION;
-       const breakdown = calculateFare(hours, 0, isOutstation);
+       const breakdown = await calculateFare(hours, 0, isOutstation);
        
-       setFareBreakdown(breakdown);
-       setEstimate(breakdown.totalFare);
+       if (breakdown) {
+         setFareBreakdown(breakdown);
+         setEstimate(breakdown.totalFare);
+       } else {
+         setEstimate(null);
+         setFareBreakdown(null);
+       }
      } catch (error) {
        console.error('Error calculating fare:', error);
        setEstimate(null);

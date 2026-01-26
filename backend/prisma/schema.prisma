@@ -328,3 +328,19 @@ model Payment {
 
   @@map("payments")
 }
+
+model PricingPackage {
+  id              String   @id @default(cuid())
+  packageType     String   // LOCAL_HOURLY, OUTSTATION
+  hours           Int
+  minimumCharge   Float
+  minimumKm       Int?     // Only for outstation
+  extraPerHour    Float    @default(100)
+  description     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([packageType, hours])
+  @@map("pricing_packages")
+}

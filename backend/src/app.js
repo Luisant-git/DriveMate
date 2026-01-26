@@ -19,6 +19,7 @@ import bookingRoutes from "./routes/booking.routes.js";
 import bookingWorkflowRoutes from "./routes/booking.workflow.routes.js";
 import downloadRoutes from "./routes/download.routes.js";
 import packageRoutes from "./routes/package.routes.js";
+import pricingPackageRoutes from "./routes/pricingPackage.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,5 +71,6 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/booking-workflow", bookingWorkflowRoutes);
 app.use("/api/packages", packageRoutes);
 app.use("/api/download", downloadRoutes);
+app.use("/api/pricing-packages", pricingPackageRoutes);
 
 export default app;

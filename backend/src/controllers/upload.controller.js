@@ -49,7 +49,11 @@ export const uploadFile = async (req, res) => {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
+    // Use localhost for local development, API_URL for production
+    const isLocal = req.get('host')?.includes('localhost') || req.get('host')?.includes('127.0.0.1');
+    const baseUrl = isLocal 
+      ? `http://${req.get('host')}`
+      : (process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`);
     const fullUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
     res.json({
