@@ -3,6 +3,14 @@ import axios from 'axios';
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
+// Helper function to convert file ID to full URL
+const getFileUrl = (fileId) => {
+  if (!fileId) return null;
+  if (fileId.startsWith('http')) return fileId;
+  const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+  return `${baseUrl}/uploads/${fileId}`;
+};
+
 export const createBooking = async (req, res) => {
   try {
     const { 
@@ -164,14 +172,16 @@ export const getCustomerBookings = async (req, res) => {
       }
     });
 
-    // Transform driver data to include documents object
+    // Transform driver data to include documents object and full URLs
     const transformedBookings = bookings.map(booking => ({
       ...booking,
       driver: booking.driver ? {
         ...booking.driver,
+        photo: getFileUrl(booking.driver.photo),
+        dlPhoto: getFileUrl(booking.driver.dlPhoto),
         documents: {
-          photo: booking.driver.photo,
-          dl: booking.driver.dlPhoto
+          photo: getFileUrl(booking.driver.photo),
+          dl: getFileUrl(booking.driver.dlPhoto)
         }
       } : null
     }));
