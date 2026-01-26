@@ -55,22 +55,20 @@ export const driverRegister = async (req, res) => {
 
 export const driverLogin = async (req, res) => {
   try {
-    const { email, phone, password } = req.body;
+    const { phone, password } = req.body;
+    
+    if (!phone || !password) {
+      return res.status(400).json({ error: 'Phone number and password are required' });
+    }
     
     const driver = await prisma.driver.findFirst({
-      where: {
-        OR: [
-          { email: email || '' },
-          { phone: phone || '' }
-        ]
-      }
+      where: { phone }
     });
 
     if (!driver) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Ensure password is a string
     if (!driver.password || typeof driver.password !== 'string') {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

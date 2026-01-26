@@ -5,7 +5,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/driver-auth/register:
+ * /api/driver/auth/register:
  *   post:
  *     summary: Register a new driver
  *     tags: [Driver Auth]
@@ -64,7 +64,7 @@ router.post('/register', driverRegister);
 
 /**
  * @swagger
- * /api/driver-auth/login:
+ * /api/driver/auth/login:
  *   post:
  *     summary: Driver login
  *     tags: [Driver Auth]
@@ -75,12 +75,12 @@ router.post('/register', driverRegister);
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - phone
  *               - password
  *             properties:
- *               email:
+ *               phone:
  *                 type: string
- *                 example: "driver@example.com"
+ *                 example: "9078654321"
  *               password:
  *                 type: string
  *                 example: "password123"

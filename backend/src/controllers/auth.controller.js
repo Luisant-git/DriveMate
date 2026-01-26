@@ -5,6 +5,14 @@ import prisma from '../config/database.js';
 // Hardcoded OTP for demo
 const DEMO_OTP = '1234';
 
+// Helper function to convert file ID to full URL
+const getFileUrl = (fileId) => {
+  if (!fileId) return null;
+  if (fileId.startsWith('http')) return fileId;
+  const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+  return `${baseUrl}/uploads/${fileId}`;
+};
+
 export const register = async (req, res) => {
   try {
     const { email, phone, password, name, role = 'CUSTOMER', ...otherFields } = req.body;
@@ -167,10 +175,10 @@ export const login = async (req, res) => {
           completedTrips: user.totalRides,
           packageSubscription: user.packageType,
           avatarUrl: user.photo || '/default-avatar.png',
-          photo: user.photo,
-          dlPhoto: user.dlPhoto,
-          panPhoto: user.panPhoto,
-          aadharPhoto: user.aadharPhoto
+          photo: getFileUrl(user.photo),
+          dlPhoto: getFileUrl(user.dlPhoto),
+          panPhoto: getFileUrl(user.panPhoto),
+          aadharPhoto: getFileUrl(user.aadharPhoto)
         }),
         ...(role === 'CUSTOMER' && {
           address: user.address,
