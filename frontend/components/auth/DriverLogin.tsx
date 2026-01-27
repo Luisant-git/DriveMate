@@ -41,7 +41,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
       if (data.token) localStorage.setItem('auth-token', data.token);
       
       if (response.ok) {
-        onLogin(data.driver);
+        onLogin({ ...data.driver, role: 'DRIVER' });
       } else {
         alert(data.error || data.message || 'Invalid credentials');
       }
