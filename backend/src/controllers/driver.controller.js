@@ -18,11 +18,9 @@ export const registerDriver = async (req, res) => {
       vehicleType,
       packageType 
     } = req.body;
-    const userId = req.user.userId;
 
     const driver = await prisma.driver.create({
       data: {
-        userId,
         phone,
         aadharNo,
         photo,
@@ -66,10 +64,10 @@ export const updateDriverStatus = async (req, res) => {
 export const updateDriverLocation = async (req, res) => {
   try {
     const { latitude, longitude, rideId } = req.body;
-    const userId = req.user.userId;
+    const driverId = req.user.userId;
 
     const driver = await prisma.driver.update({
-      where: { userId },
+      where: { id: driverId },
       data: { latitude, longitude },
     });
 
@@ -93,10 +91,10 @@ export const updateDriverLocation = async (req, res) => {
 export const toggleOnlineStatus = async (req, res) => {
   try {
     const { isOnline } = req.body;
-    const userId = req.user.userId;
+    const driverId = req.user.userId;
 
     const driver = await prisma.driver.update({
-      where: { userId },
+      where: { id: driverId },
       data: { isOnline },
     });
 
@@ -108,12 +106,11 @@ export const toggleOnlineStatus = async (req, res) => {
 
 export const getDriverProfile = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const driverId = req.user.userId;
 
     const driver = await prisma.driver.findUnique({
-      where: { userId },
+      where: { id: driverId },
       include: {
-        user: true,
         subscriptions: {
           include: { plan: true },
         },

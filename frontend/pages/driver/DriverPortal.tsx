@@ -291,7 +291,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* REQUESTS TAB: Booking Requests */}
         {activeTab === 'REQUESTS' && (
-            <DriverBookingRequests />
+            <DriverBookingRequests onNavigateToPackages={() => setActiveTab('PACKAGES')} />
         )}
 
         {/* HOME TAB: New Requests & Active Trips */}
@@ -518,7 +518,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 <div className="space-y-3 sm:space-y-4">
                     {packages.map(pkg => {
                         const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
-                        const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.type === pkg.type && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+                        const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
                         return (
                         <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : 'border-gray-100 bg-white'}`}>
                             {isActive && (
