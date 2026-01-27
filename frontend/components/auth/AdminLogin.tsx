@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { login } from '../../api/auth';
 
+const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+
+const adminLogin = async (credentials: { email: string; password: string }) => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials),
+    credentials: 'include',
+  });
+  const data = await response.json();
+  if (data.token) localStorage.setItem('auth-token', data.token);
+  return { success: response.ok, ...data };
+};
+
 interface AdminLoginProps {
   onLogin: (user: any) => void;
   onBack: () => void;
@@ -15,7 +29,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
     setIsLoading(true);
     
     try {
-      const response = await login({
+      const response = await adminLogin({
         email: loginData.email,
         password: loginData.password
       });
