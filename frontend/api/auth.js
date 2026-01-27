@@ -11,7 +11,7 @@ const getAuthHeaders = () => {
 // Register function
 export const register = async (userData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const response = await fetch(`${API_BASE_URL}/api/driver/auth/register`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(userData),
@@ -30,7 +30,7 @@ export const register = async (userData) => {
 // Login function
 export const login = async (credentials) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/api/driver/auth/login`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(credentials),
