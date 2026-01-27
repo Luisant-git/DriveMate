@@ -31,15 +31,19 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
     setIsLoading(true);
     
     try {
-      const response = await login({
-        phone: loginData.phone,
-        password: loginData.password
+      const response = await fetch(`${API_BASE_URL}/api/driver/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: loginData.phone, password: loginData.password }),
+        credentials: 'include',
       });
+      const data = await response.json();
+      if (data.token) localStorage.setItem('auth-token', data.token);
       
-      if (response.success) {
-        onLogin(response.user);
+      if (response.ok) {
+        onLogin(data.driver);
       } else {
-        alert(response.error || response.message || 'Invalid credentials');
+        alert(data.error || data.message || 'Invalid credentials');
       }
     } catch (error) {
       alert('Login failed. Please try again.');
