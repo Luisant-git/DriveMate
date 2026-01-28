@@ -12,7 +12,7 @@ export default function BookingWorkflow() {
   const [loading, setLoading] = useState(false);
   const [bookingDrivers, setBookingDrivers] = useState({});
   const [driverCounts, setDriverCounts] = useState({ LOCAL: 0, OUTSTATION: 0, ALL_PREMIUM: 0 });
-  const [filters, setFilters] = useState({ bookingType: '', serviceType: '' });
+  const [filters, setFilters] = useState({ bookingType: '', serviceType: '', paymentStatus: '' });
 
   useEffect(() => {
     fetchPendingBookings();
@@ -127,14 +127,24 @@ export default function BookingWorkflow() {
   };
 
   return (
-    <div className="px-3 sm:px-6 py-4 sm:py-6">
+    <div className="w-full py-4">
       {!selectedBooking ? (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-4 w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pending Bookings</h2>
             
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <select 
+                value={filters.paymentStatus} 
+                onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Payments</option>
+                <option value="PAID">Paid</option>
+                <option value="UNPAID">Unpaid</option>
+              </select>
+              
               <select 
                 value={filters.bookingType} 
                 onChange={(e) => handleFilterChange('bookingType', e.target.value)}
@@ -186,7 +196,7 @@ export default function BookingWorkflow() {
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-500 font-medium mb-1">ALL PREMIUM Drivers</p>
@@ -198,7 +208,7 @@ export default function BookingWorkflow() {
                   </svg>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
           {filteredBookings.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
@@ -211,13 +221,13 @@ export default function BookingWorkflow() {
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date & Time</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
@@ -243,6 +253,13 @@ export default function BookingWorkflow() {
                           </td>
                           <td className="px-4 py-4">
                             <span className="inline-block bg-yellow-100 text-yellow-700 text-xs px-2.5 py-1 rounded-full font-medium">PENDING</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${
+                              booking.advancePayment > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {booking.advancePayment > 0 ? 'PAID' : 'UNPAID'}
+                            </span>
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
@@ -334,7 +351,6 @@ export default function BookingWorkflow() {
                     })}
                   </tbody>
                 </table>
-              </div>
             </div>
           )}
         </div>

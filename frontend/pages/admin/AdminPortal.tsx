@@ -303,7 +303,7 @@ const AdminPortal: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-card overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-3xl shadow-card overflow-visible border border-gray-100 w-full">
         <div>
           {activeTab === 'BOOKINGS' && <BookingWorkflow />}
 

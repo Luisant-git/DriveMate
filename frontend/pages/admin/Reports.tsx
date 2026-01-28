@@ -10,10 +10,16 @@ const Reports: React.FC = () => {
   const [filters, setFilters] = useState({ startDate: '', endDate: '', status: '' });
   const [selectedEntity, setSelectedEntity] = useState<any>(null);
   const [tripDetails, setTripDetails] = useState<any>(null);
+  const [originalTripDetails, setOriginalTripDetails] = useState<any>(null);
+  const [modalFilters, setModalFilters] = useState({ search: '', status: '' });
 
   useEffect(() => {
     fetchReports();
   }, [activeReport, filters]);
+
+  useEffect(() => {
+    applyModalFilters();
+  }, [modalFilters]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -55,7 +61,11 @@ const Reports: React.FC = () => {
       const res = type === 'driver' 
         ? await getDriverTrips(entity.id, filters)
         : await getCustomerTrips(entity.id, filters);
-      if (res.success) setTripDetails(res.data);
+      if (res.success) {
+        setTripDetails(res.data);
+        setOriginalTripDetails(res.data);
+        setModalFilters({ search: '', status: '' });
+      }
     } catch (error) {
       console.error('Error fetching trips:', error);
     } finally {
@@ -63,9 +73,35 @@ const Reports: React.FC = () => {
     }
   };
 
+  const applyModalFilters = () => {
+    if (!originalTripDetails) return;
+    
+    let filtered = [...originalTripDetails.bookings];
+    
+    if (modalFilters.search) {
+      const search = modalFilters.search.toLowerCase();
+      filtered = filtered.filter((b: any) => 
+        b.pickupLocation?.toLowerCase().includes(search) ||
+        b.dropLocation?.toLowerCase().includes(search) ||
+        b.customer?.name?.toLowerCase().includes(search) ||
+        b.customer?.phone?.includes(search) ||
+        b.driver?.name?.toLowerCase().includes(search) ||
+        b.driver?.phone?.includes(search)
+      );
+    }
+    
+    if (modalFilters.status) {
+      filtered = filtered.filter((b: any) => b.status === modalFilters.status);
+    }
+    
+    setTripDetails({ ...originalTripDetails, bookings: filtered });
+  };
+
   const closeModal = () => {
     setSelectedEntity(null);
     setTripDetails(null);
+    setOriginalTripDetails(null);
+    setModalFilters({ search: '', status: '' });
   };
 
   return (
@@ -237,6 +273,29 @@ const Reports: React.FC = () => {
               </h3>
               <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
+            <div className="p-6 border-b">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  placeholder="Search by location, customer, driver..."
+                  value={modalFilters.search}
+                  onChange={(e) => setModalFilters({ ...modalFilters, search: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <select
+                  value={modalFilters.status}
+                  onChange={(e) => setModalFilters({ ...modalFilters, status: e.target.value })}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Status</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="ONGOING">Ongoing</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+            </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
               {selectedEntity.type === 'driver' ? (
                 <div className="grid grid-cols-3 gap-4 mb-6">
@@ -278,6 +337,18 @@ const Reports: React.FC = () => {
                       {tripDetails.bookings?.map((booking: any) => (
                         <div key={booking.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="grid grid-cols-2 gap-2 text-sm">
+                            {selectedEntity.type === 'driver' && booking.customer && (
+                              <>
+                                <p><span className="font-bold">Customer:</span> {booking.customer.name}</p>
+                                <p><span className="font-bold">Customer Phone:</span> {booking.customer.phone}</p>
+                              </>
+                            )}
+                            {selectedEntity.type === 'customer' && booking.driver && (
+                              <>
+                                <p><span className="font-bold">Driver:</span> {booking.driver.name}</p>
+                                <p><span className="font-bold">Driver Phone:</span> {booking.driver.phone}</p>
+                              </>
+                            )}
                             <p><span className="font-bold">From:</span> {booking.pickupLocation}</p>
                             <p><span className="font-bold">To:</span> {booking.dropLocation}</p>
                             <p><span className="font-bold">Type:</span> {booking.bookingType}</p>

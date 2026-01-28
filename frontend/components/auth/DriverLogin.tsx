@@ -109,7 +109,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
 
   if (step === 'REGISTER') {
     return (
-      <form onSubmit={handleRegister} className="animate-fade-in flex-grow flex flex-col overflow-y-auto">
+      <form onSubmit={handleRegister} className="animate-fade-in flex-grow flex flex-col overflow-y-auto max-w-2xl mx-auto">
         <button type="button" onClick={() => setStep('LOGIN')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
           ← Back to Login
         </button>
