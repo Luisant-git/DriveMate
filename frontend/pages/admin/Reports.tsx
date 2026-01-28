@@ -166,8 +166,8 @@ const Reports: React.FC = () => {
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Phone</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Package</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Rides</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Bookings</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Total Rides</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Completed</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Revenue</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Action</th>
                     </tr>
