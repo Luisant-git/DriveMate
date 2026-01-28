@@ -7,6 +7,7 @@ import {
   updateDriverPackage,
   getAvailableDriversByPackage,
   getAllDrivers,
+  getDriverCountByType,
 } from '../controllers/driver.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { requireAuth } from '../middleware/sessionAuth.js';
@@ -121,19 +122,18 @@ router.put('/package', requireAuth, updateDriverPackage);
 
 /**
  * @swagger
- * /api/drivers/available/{packageType}:
+ * /api/drivers/available/{packageId}:
  *   get:
- *     summary: Get available drivers by package type
+ *     summary: Get available drivers by package ID
  *     tags: [Driver]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: packageType
+ *         name: packageId
  *         required: true
  *         schema:
  *           type: string
- *           enum: [LOCAL, OUTSTATION, ALL_PREMIUM]
  *     responses:
  *       200:
  *         description: List of available drivers
@@ -144,7 +144,9 @@ router.put('/package', requireAuth, updateDriverPackage);
  *               items:
  *                 $ref: '#/components/schemas/Driver'
  */
-router.get('/available/:packageType', requireAuth, getAvailableDriversByPackage);
+router.get('/available/:packageId', requireAuth, getAvailableDriversByPackage);
+
+router.get('/count-by-type/:packageType', requireAuth, getDriverCountByType);
 
 /**
  * @swagger

@@ -13,23 +13,32 @@ export default function BookingWorkflow() {
   const [bookingDrivers, setBookingDrivers] = useState({});
   const [driverCounts, setDriverCounts] = useState({ LOCAL: 0, OUTSTATION: 0, ALL_PREMIUM: 0 });
   const [filters, setFilters] = useState({ bookingType: '', serviceType: '', paymentStatus: '' });
+  const [packages, setPackages] = useState([]);
 
   useEffect(() => {
     fetchPendingBookings();
     fetchDriverCounts();
+    fetchPackages();
   }, [filters]);
+
+  const fetchPackages = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/subscriptions/plans`, { withCredentials: true });
+      setPackages(Array.isArray(res.data) ? res.data.filter(p => p.isActive) : []);
+    } catch (error) {
+      console.error('Error fetching packages:', error);
+    }
+  };
 
   const fetchDriverCounts = async () => {
     try {
-      const [localRes, outstationRes, allRes] = await Promise.all([
-        axios.get(`${API_URL}/drivers/available/LOCAL`, { withCredentials: true }),
-        axios.get(`${API_URL}/drivers/available/OUTSTATION`, { withCredentials: true }),
-        axios.get(`${API_URL}/drivers/available/ALL_PREMIUM`, { withCredentials: true })
-      ]);
+      const localDrivers = await axios.get(`${API_URL}/drivers/count-by-type/LOCAL`, { withCredentials: true });
+      const outstationDrivers = await axios.get(`${API_URL}/drivers/count-by-type/OUTSTATION`, { withCredentials: true });
+      
       setDriverCounts({
-        LOCAL: localRes.data.count || 0,
-        OUTSTATION: outstationRes.data.count || 0,
-        ALL_PREMIUM: allRes.data.count || 0
+        LOCAL: localDrivers.data.count || 0,
+        OUTSTATION: outstationDrivers.data.count || 0,
+        ALL_PREMIUM: 0
       });
     } catch (error) {
       console.error('Error fetching driver counts:', error);
@@ -54,37 +63,40 @@ export default function BookingWorkflow() {
     setFilters(prev => ({ ...prev, [filterType]: value }));
   };
 
-  const fetchAvailableDrivers = async (bookingId, packageType) => {
+  const fetchAvailableDrivers = async (bookingId, packageId) => {
     try {
-      console.log('Fetching drivers for:', { bookingId, packageType });
-      const res = await axios.get(`${API_URL}/drivers/available/${packageType}`, { withCredentials: true });
-      console.log('Drivers response:', res.data);
+      const selectedPackage = packages.find(p => p.id === packageId);
+      if (!selectedPackage) return;
+      
+      const res = await axios.get(`${API_URL}/drivers/available/${packageId}`, { withCredentials: true });
       setBookingDrivers({
         ...bookingDrivers,
         [bookingId]: {
-          packageType,
+          packageId,
+          packageType: selectedPackage.type,
+          packageName: selectedPackage.name,
           drivers: res.data.drivers || []
         }
       });
-      console.log('Updated bookingDrivers state');
     } catch (error) {
       console.error('Error fetching drivers:', error);
-      console.error('Error response:', error.response?.data);
       setBookingDrivers({
         ...bookingDrivers,
         [bookingId]: {
-          packageType,
+          packageId,
+          packageType: '',
+          packageName: '',
           drivers: []
         }
       });
     }
   };
 
-  const reviewBooking = async (bookingId, packageType) => {
+  const reviewBooking = async (bookingId, packageType, packageId) => {
     try {
       setLoading(true);
       await axios.put(`${API_URL}/booking-workflow/admin/${bookingId}/review`, 
-        { selectedPackageType: packageType }, 
+        { selectedPackageType: packageType, selectedPackageId: packageId }, 
         { withCredentials: true }
       );
       const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-drivers`, {}, { withCredentials: true });
@@ -297,30 +309,28 @@ export default function BookingWorkflow() {
                           <td className="px-4 py-4">
                             {!booking.selectedPackageType ? (
                               <div className="space-y-2">
-                                <p className="text-xs text-gray-500 font-medium mb-2">Select Package Type:</p>
-                                <button 
-                                  onClick={() => fetchAvailableDrivers(booking.id, 'LOCAL')} 
+                                <select
+                                  onChange={(e) => e.target.value && fetchAvailableDrivers(booking.id, e.target.value)}
                                   disabled={loading}
-                                  className="w-full bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition"
+                                  className="w-full bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition cursor-pointer"
+                                  defaultValue=""
                                 >
-                                  Local Driver Pass
-                                </button>
-                                <button 
-                                  onClick={() => fetchAvailableDrivers(booking.id, 'OUTSTATION')} 
-                                  disabled={loading}
-                                  className="w-full bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition"
-                                >
-                                  Outstation Driver Pass
-                                </button>
+                                  <option value="" disabled className="bg-white text-black">Select Package</option>
+                                  {packages.map(pkg => (
+                                    <option key={pkg.id} value={pkg.id} className="bg-white text-black">
+                                      {pkg.name} - ₹{pkg.price}
+                                    </option>
+                                  ))}
+                                </select>
                                 
                                 {bookingDrivers[booking.id] && (
                                   <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                     <p className="text-xs font-semibold text-gray-700 mb-2">
-                                      Available {bookingDrivers[booking.id].packageType} Drivers: {bookingDrivers[booking.id].drivers.length}
+                                      {bookingDrivers[booking.id].packageName}: {bookingDrivers[booking.id].drivers.length} Available
                                     </p>
                                     {bookingDrivers[booking.id].drivers.length > 0 ? (
                                       <button 
-                                        onClick={() => reviewBooking(booking.id, bookingDrivers[booking.id].packageType)} 
+                                        onClick={() => reviewBooking(booking.id, bookingDrivers[booking.id].packageType, bookingDrivers[booking.id].packageId)} 
                                         disabled={loading}
                                         className="w-full bg-green-600 text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-green-700 disabled:opacity-50 transition"
                                       >

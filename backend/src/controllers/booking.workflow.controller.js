@@ -44,16 +44,17 @@ export const getAdminPendingBookings = async (req, res) => {
 export const adminReviewBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { selectedPackageType } = req.body;
+    const { selectedPackageType, selectedPackageId } = req.body;
 
-    if (!selectedPackageType) {
-      return res.status(400).json({ success: false, error: 'Package type required' });
+    if (!selectedPackageType || !selectedPackageId) {
+      return res.status(400).json({ success: false, error: 'Package type and ID required' });
     }
 
     const booking = await prisma.booking.update({
       where: { id: bookingId },
       data: {
         selectedPackageType,
+        selectedPackageId,
         adminReviewedAt: new Date(),
         status: 'CONFIRMED'
       },
@@ -81,24 +82,29 @@ export const sendBookingToDrivers = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Booking not found' });
     }
 
-    if (!booking.selectedPackageType) {
-      return res.status(400).json({ success: false, error: 'Package type not selected' });
+    if (!booking.selectedPackageId) {
+      return res.status(400).json({ success: false, error: 'Package not selected' });
     }
 
-    // Find all drivers with the selected package type
+    // Find all drivers with active subscriptions for this specific package
     const drivers = await prisma.driver.findMany({
       where: {
-        OR: [
-          { packageType: booking.selectedPackageType },
-          { packageType: 'ALL_PREMIUM' }
-        ]
+        subscriptions: {
+          some: {
+            status: 'ACTIVE',
+            planId: booking.selectedPackageId,
+            endDate: {
+              gte: new Date()
+            }
+          }
+        }
       }
     });
 
     if (drivers.length === 0) {
       return res.status(400).json({ 
         success: false, 
-        error: `No online drivers available with ${booking.selectedPackageType} package` 
+        error: `No drivers available with this package subscription` 
       });
     }
 

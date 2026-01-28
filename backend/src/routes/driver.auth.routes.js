@@ -41,12 +41,26 @@ const router = express.Router();
  *               licenseNo:
  *                 type: string
  *                 example: "DL1234567890"
- *               vehicleNo:
+ *               altPhone:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["9876543211", "9876543212"]
+ *               upiId:
  *                 type: string
- *                 example: "KA01AB1234"
- *               vehicleType:
+ *                 example: "driver@upi"
+ *               photo:
  *                 type: string
- *                 example: "Sedan"
+ *                 example: "https://example.com/photo.jpg"
+ *               dlPhoto:
+ *                 type: string
+ *                 example: "https://example.com/dl.jpg"
+ *               panPhoto:
+ *                 type: string
+ *                 example: "https://example.com/pan.jpg"
+ *               aadharPhoto:
+ *                 type: string
+ *                 example: "https://example.com/aadhar.jpg"
  *     responses:
  *       201:
  *         description: Driver registered successfully

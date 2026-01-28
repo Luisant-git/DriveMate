@@ -146,14 +146,20 @@ export const updateDriverPackage = async (req, res) => {
 
 export const getAvailableDriversByPackage = async (req, res) => {
   try {
-    const { packageType } = req.params;
+    const { packageId } = req.params;
 
+    // Find drivers with active subscriptions for this specific package
     const drivers = await prisma.driver.findMany({
       where: {
-        OR: [
-          { packageType: packageType },
-          { packageType: 'ALL_PREMIUM' }
-        ]
+        subscriptions: {
+          some: {
+            status: 'ACTIVE',
+            planId: packageId,
+            endDate: {
+              gte: new Date()
+            }
+          }
+        }
       },
       select: {
         id: true,
@@ -167,7 +173,19 @@ export const getAvailableDriversByPackage = async (req, res) => {
         packageType: true,
         photo: true,
         status: true,
-        isOnline: true
+        isOnline: true,
+        subscriptions: {
+          where: {
+            status: 'ACTIVE',
+            planId: packageId,
+            endDate: {
+              gte: new Date()
+            }
+          },
+          include: {
+            plan: true
+          }
+        }
       },
       orderBy: {
         rating: 'desc'
@@ -177,6 +195,34 @@ export const getAvailableDriversByPackage = async (req, res) => {
     res.json({ success: true, drivers, count: drivers.length });
   } catch (error) {
     console.error('Error fetching available drivers:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getDriverCountByType = async (req, res) => {
+  try {
+    const { packageType } = req.params;
+
+    const count = await prisma.driver.count({
+      where: {
+        subscriptions: {
+          some: {
+            status: 'ACTIVE',
+            plan: {
+              type: packageType,
+              isActive: true
+            },
+            endDate: {
+              gte: new Date()
+            }
+          }
+        }
+      }
+    });
+
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('Error counting drivers:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

@@ -36,7 +36,11 @@ export default function Driver() {
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/admin/drivers`, { withCredentials: true });
-      setDrivers(res.data || []);
+      const driversWithActiveSubscription = (res.data || []).map(driver => {
+        const activeSubscription = driver.subscriptions?.find(sub => sub.status === 'ACTIVE');
+        return { ...driver, activeSubscription };
+      });
+      setDrivers(driversWithActiveSubscription);
     } catch (error) {
       console.error('Error fetching drivers:', error);
       setDrivers([]);
@@ -108,7 +112,7 @@ export default function Driver() {
                   </td>
                   <td className="px-4 py-4">
                     <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                      {packageMap[driver.packageType] || driver.packageType}
+                      {driver.activeSubscription?.plan?.name || 'No Active Package'}
                     </span>
                   </td>
                   {/* <td className="px-4 py-4">
@@ -241,7 +245,7 @@ export default function Driver() {
                     <div><span className="font-medium">PhonePe:</span> {selectedDriver.phonepeNo || 'N/A'}</div>
                     {/* <div><span className="font-medium">Vehicle Type:</span> {selectedDriver.vehicleType || 'N/A'}</div>
                     <div><span className="font-medium">Vehicle No:</span> {selectedDriver.vehicleNo || 'N/A'}</div> */}
-                    <div><span className="font-medium">Package:</span> {packageMap[selectedDriver.packageType] || selectedDriver.packageType}</div>
+                    <div><span className="font-medium">Package:</span> {selectedDriver.activeSubscription?.plan?.name || 'No Active Package'}</div>
                     <div><span className="font-medium">Total Rides:</span> {selectedDriver.totalRides}</div>
                   </div>
                 </div>
