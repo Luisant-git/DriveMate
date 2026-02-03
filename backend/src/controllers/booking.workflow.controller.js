@@ -54,7 +54,6 @@ export const adminReviewBooking = async (req, res) => {
       where: { id: bookingId },
       data: {
         selectedPackageType,
-        selectedPackageId,
         adminReviewedAt: new Date(),
         status: 'CONFIRMED'
       },
@@ -82,17 +81,19 @@ export const sendBookingToDrivers = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Booking not found' });
     }
 
-    if (!booking.selectedPackageId) {
-      return res.status(400).json({ success: false, error: 'Package not selected' });
+    if (!booking.selectedPackageType) {
+      return res.status(400).json({ success: false, error: 'Package type not selected' });
     }
 
-    // Find all drivers with active subscriptions for this specific package
+    // Find all drivers with active subscriptions matching the package type
     const drivers = await prisma.driver.findMany({
       where: {
         subscriptions: {
           some: {
             status: 'ACTIVE',
-            planId: booking.selectedPackageId,
+            plan: {
+              type: booking.selectedPackageType
+            },
             endDate: {
               gte: new Date()
             }
