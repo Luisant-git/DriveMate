@@ -12,8 +12,6 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'PROFILE' | 'PACKAGES' | 'REQUESTS'>('REQUESTS');
   const [driver, setDriver] = useState<Driver>(initialDriver);
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [availableTrips, setAvailableTrips] = useState<Trip[]>([]);
-  const [isOnline, setIsOnline] = useState(true);
   const [packages, setPackages] = useState<Package[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
 
@@ -85,16 +83,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           return;
         }
         
-        const [availableRes, driverRes] = await Promise.all([
-          tripAPI.getAvailableTrips(),
-          tripAPI.getDriverTrips()
-        ]);
-        
-        if (availableRes.success) {
-          setAvailableTrips(availableRes.trips || []);
-        } else {
-          console.error('Failed to fetch available trips:', availableRes.error);
-        }
+        const driverRes = await tripAPI.getDriverTrips();
         
         if (driverRes.success) {
           setTrips(driverRes.trips || []);
@@ -112,27 +101,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   }, [activeTab, driver.id]);
 
   const handleAcceptTrip = async (tripId: string) => {
-    try {
-      const result = await tripAPI.acceptTrip(tripId);
-      
-      if (result.success) {
-        alert('✓ Trip accepted successfully!');
-        
-        // Refresh both available and driver trips
-        const [availableRes, driverRes] = await Promise.all([
-          tripAPI.getAvailableTrips(),
-          tripAPI.getDriverTrips()
-        ]);
-        
-        if (availableRes.success) setAvailableTrips(availableRes.trips || []);
-        if (driverRes.success) setTrips(driverRes.trips || []);
-      } else {
-        alert('Failed to accept trip: ' + (result.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error accepting trip:', error);
-      alert('Failed to accept trip');
-    }
+    // This function is no longer used - admin assigns bookings
+    alert('Bookings are assigned by admin. Please wait for assignment.');
   };
 
   const handleCancelTrip = async (tripId: string) => {
@@ -148,12 +118,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           });
           
           if (response.ok) {
-            const [availableRes, driverRes] = await Promise.all([
-              tripAPI.getAvailableTrips(),
-              tripAPI.getDriverTrips()
-            ]);
-            
-            if (availableRes.success) setAvailableTrips(availableRes.trips || []);
+            const driverRes = await tripAPI.getDriverTrips();
             if (driverRes.success) setTrips(driverRes.trips || []);
           }
         } catch (error) {
@@ -291,14 +256,14 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* REQUESTS TAB: Booking Requests */}
         {activeTab === 'REQUESTS' && (
-            <DriverBookingRequests />
+            <DriverBookingRequests onNavigateToPackages={() => setActiveTab('PACKAGES')} />
         )}
 
-        {/* HOME TAB: New Requests & Active Trips */}
+        {/* HOME TAB: Active Trips Only */}
         {activeTab === 'HOME' && (
             <div className="space-y-4 sm:space-y-6 animate-fade-in">
-                {/* Active Trips First */}
-                {activeTrips.length > 0 && (
+                {/* Active Trips */}
+                {activeTrips.length > 0 ? (
                     <div>
                         <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
@@ -358,54 +323,13 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             </div>
                         ))}
                     </div>
-                )}
-
-                {/* Available Requests */}
-                {isOnline ? (
-                    <div>
-                        <h3 className="text-base sm:text-lg font-bold mb-3">New Opportunities</h3>
-                        {availableTrips.length === 0 ? (
-                            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                                <p className="text-gray-400">Searching for rides...</p>
-                            </div>
-                        ) : (
-                            availableTrips.map(trip => (
-                                <div key={trip.id} className="bg-white rounded-xl p-4 sm:p-5 shadow-floating border border-gray-100 mb-4">
-                                    <div className="flex justify-between items-start mb-3 sm:mb-4">
-                                         <div>
-                                             <h4 className="text-xl sm:text-2xl font-bold">₹{trip.estimateAmount || trip.estimatedCost || 0}</h4>
-                                             <p className="text-gray-500 text-[10px] sm:text-xs font-medium">{trip.duration} • {trip.serviceType || trip.type}</p>
-                                         </div>
-                                    </div>
-                                    
-                                    <div className="relative pl-5 sm:pl-6 space-y-3 sm:space-y-4 mb-4 sm:mb-5">
-                                        <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-gray-200"></div>
-                                        <div className="relative">
-                                            <div className="absolute -left-5 sm:-left-6 top-1 w-3 h-3 bg-black rounded-full"></div>
-                                            <p className="text-xs sm:text-sm font-semibold">{trip.pickupLocation}</p>
-                                        </div>
-                                        <div className="relative">
-                                            <div className="absolute -left-5 sm:-left-6 top-1 w-3 h-3 bg-white border-2 border-black"></div>
-                                            <p className="text-xs sm:text-sm font-semibold">{trip.dropLocation}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <button className="flex-1 bg-gray-100 text-black font-bold py-3 rounded-lg text-sm">Ignore</button>
-                                        <button 
-                                            onClick={() => handleAcceptTrip(trip.id)}
-                                            className="flex-[2] bg-black text-white font-bold py-3 rounded-lg text-sm hover:bg-gray-800"
-                                        >
-                                            Accept
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
                 ) : (
-                    <div className="text-center py-12">
-                        <p className="text-gray-400">You are offline. Go online to see requests.</p>
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p className="text-gray-400 font-medium">No active trips</p>
+                        <p className="text-gray-400 text-sm mt-1">Wait for admin to assign bookings</p>
                     </div>
                 )}
             </div>
@@ -518,7 +442,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 <div className="space-y-3 sm:space-y-4">
                     {packages.map(pkg => {
                         const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
-                        const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.type === pkg.type && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+                        const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
                         return (
                         <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : 'border-gray-100 bg-white'}`}>
                             {isActive && (

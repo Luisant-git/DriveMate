@@ -28,40 +28,12 @@ export const createTrip = async (req, res) => {
   }
 };
 
-// Get available trips for drivers (not assigned yet)
+// Get available trips for drivers - DISABLED (Admin assigns bookings)
 export const getAvailableTrips = async (req, res) => {
   try {
-    // Get bookings that don't have a driver assigned yet
-    const bookings = await prisma.booking.findMany({
-      where: {
-        driverId: null,
-        status: 'PENDING',
-      },
-      include: {
-        customer: true,
-      },
-      orderBy: { startDateTime: 'asc' },
-    });
-
-    // Transform bookings to match the trip format expected by frontend
-    const trips = bookings.map(booking => ({
-      id: booking.id,
-      customerId: booking.customerId,
-      customer: booking.customer,
-      pickupLocation: booking.pickupLocation,
-      dropLocation: booking.dropLocation,
-      type: booking.bookingType,
-      serviceType: booking.serviceType,
-      startDate: booking.startDateTime.toISOString().split('T')[0],
-      startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
-      duration: booking.duration,
-      vehicleType: booking.vehicleType,
-      estimateAmount: booking.estimateAmount,
-      estimatedCost: booking.estimateAmount,
-      status: booking.status,
-    }));
-
-    res.json({ success: true, trips });
+    // Return empty array - drivers don't see available trips anymore
+    // Only admin assigns bookings through the booking workflow
+    res.json({ success: true, trips: [] });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -70,7 +42,9 @@ export const getAvailableTrips = async (req, res) => {
 // Get driver's trips (accepted/ongoing)
 export const getDriverTrips = async (req, res) => {
   try {
-    const driverId = req.user.id;
+    const driverId = req.user.userId || req.user.id;
+
+    console.log('getDriverTrips - driverId:', driverId);
 
     // Get bookings assigned to this driver
     const bookings = await prisma.booking.findMany({
@@ -80,6 +54,8 @@ export const getDriverTrips = async (req, res) => {
       },
       orderBy: { startDateTime: 'desc' },
     });
+
+    console.log('Found bookings for driver:', bookings.length);
 
     // Transform bookings to match the trip format expected by frontend
     const trips = bookings.map(booking => ({
@@ -102,6 +78,7 @@ export const getDriverTrips = async (req, res) => {
 
     res.json({ success: true, trips });
   } catch (error) {
+    console.error('getDriverTrips error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -125,46 +102,15 @@ export const getCustomerTrips = async (req, res) => {
   }
 };
 
-// Driver accepts a trip
+// Driver accepts a trip - DISABLED (Admin assigns bookings)
 export const acceptTrip = async (req, res) => {
   try {
-    const { tripId } = req.params;
-    const driverId = req.user.userId; // Changed from req.user.id to req.user.userId
-
-    // Update the booking with driver and change status to ONGOING
-    const booking = await prisma.booking.update({
-      where: { id: tripId },
-      data: {
-        driverId,
-        status: 'ONGOING',
-      },
-      include: {
-        customer: true,
-        driver: true,
-      },
+    // Drivers can't accept trips directly anymore
+    // Only admin assigns bookings through the booking workflow
+    res.status(403).json({ 
+      success: false, 
+      error: 'Direct trip acceptance is disabled. Admin assigns bookings.' 
     });
-
-    // Transform to trip format
-    const trip = {
-      id: booking.id,
-      customerId: booking.customerId,
-      driverId: booking.driverId,
-      customer: booking.customer,
-      driver: booking.driver,
-      pickupLocation: booking.pickupLocation,
-      dropLocation: booking.dropLocation,
-      type: booking.bookingType,
-      serviceType: booking.serviceType,
-      startDate: booking.startDateTime.toISOString().split('T')[0],
-      startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
-      duration: booking.duration,
-      vehicleType: booking.vehicleType,
-      estimateAmount: booking.estimateAmount,
-      estimatedCost: booking.estimateAmount,
-      status: 'ONGOING',
-    };
-
-    res.json({ success: true, trip });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }

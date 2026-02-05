@@ -4,40 +4,31 @@ import { API_BASE_URL } from '../../api/config.js';
 
 const API_URL = API_BASE_URL + '/api';
 
-export default function DriverBookingRequests() {
+export default function DriverBookingRequests({ onNavigateToPackages }: { onNavigateToPackages?: () => void }) {
   const [requests, setRequests] = useState([]);
   const [allocatedBookings, setAllocatedBookings] = useState([]);
-  const [driverPackage, setDriverPackage] = useState(null);
-  const [packages, setPackages] = useState([]);
+  const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDriverInfo();
+    fetchCurrentSubscription();
     fetchRequests();
     fetchAllocatedBookings();
-    fetchActivePackages();
   }, []);
 
-  const fetchActivePackages = async () => {
+  const fetchCurrentSubscription = async () => {
     try {
-      const res = await axios.get(`${API_URL}/subscriptions/active-packages`, { withCredentials: true });
-      if (res.data.success) {
-        setPackages(res.data.packages);
+      const token = localStorage.getItem('auth-token');
+      const res = await axios.get(`${API_URL}/subscriptions/driver`, { 
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true 
+      });
+      console.log('Subscription response:', res.data);
+      if (res.data && res.data.plan) {
+        setCurrentSubscription(res.data);
       }
     } catch (error) {
-      console.error('Error fetching packages:', error);
-    }
-  };
-
-  const fetchDriverInfo = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
-      const user = res.data.user;
-      console.log('Full user data:', user);
-      console.log('Package type value:', user?.packageType);
-      setDriverPackage(user?.packageType || null);
-    } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching subscription:', error);
     } finally {
       setLoading(false);
     }
@@ -85,7 +76,7 @@ export default function DriverBookingRequests() {
     );
   }
 
-  if (!driverPackage) {
+  if (!currentSubscription || !currentSubscription.plan) {
     return (
       <div className="text-center py-12">
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 max-w-md mx-auto">
@@ -95,7 +86,7 @@ export default function DriverBookingRequests() {
           <h3 className="text-lg font-bold text-yellow-800 mb-2">Package Required</h3>
           <p className="text-yellow-700 mb-4">Please choose a driver package from the PACKAGES tab to start receiving booking requests.</p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={() => onNavigateToPackages ? onNavigateToPackages() : window.location.reload()}
             className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-yellow-700 transition"
           >
             Go to Packages
@@ -117,17 +108,7 @@ export default function DriverBookingRequests() {
           </div>
           <div className="flex-1">
             <p className="text-xs text-gray-500 font-medium">Active Package</p>
-            {packages.length > 0 ? (
-              packages.map(pkg => (
-                <p key={pkg.id} className="text-sm sm:text-base font-semibold text-gray-900">{pkg.name}</p>
-              ))
-            ) : (
-              <p className="text-sm sm:text-base font-semibold text-gray-900">
-                {driverPackage === 'LOCAL' && 'Local Driver Pass'}
-                {driverPackage === 'OUTSTATION' && 'Outstation Pro'}
-                {driverPackage === 'ALL_PREMIUM' && 'All Access Premium'}
-              </p>
-            )}
+            <p className="text-sm sm:text-base font-semibold text-gray-900">{currentSubscription.plan.name}</p>
           </div>
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         </div>

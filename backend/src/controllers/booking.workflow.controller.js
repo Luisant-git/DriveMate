@@ -44,10 +44,10 @@ export const getAdminPendingBookings = async (req, res) => {
 export const adminReviewBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { selectedPackageType } = req.body;
+    const { selectedPackageType, selectedPackageId } = req.body;
 
-    if (!selectedPackageType) {
-      return res.status(400).json({ success: false, error: 'Package type required' });
+    if (!selectedPackageType || !selectedPackageId) {
+      return res.status(400).json({ success: false, error: 'Package type and ID required' });
     }
 
     const booking = await prisma.booking.update({
@@ -85,20 +85,27 @@ export const sendBookingToDrivers = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Package type not selected' });
     }
 
-    // Find all drivers with the selected package type
+    // Find all drivers with active subscriptions matching the package type
     const drivers = await prisma.driver.findMany({
       where: {
-        OR: [
-          { packageType: booking.selectedPackageType },
-          { packageType: 'ALL_PREMIUM' }
-        ]
+        subscriptions: {
+          some: {
+            status: 'ACTIVE',
+            plan: {
+              type: booking.selectedPackageType
+            },
+            endDate: {
+              gte: new Date()
+            }
+          }
+        }
       }
     });
 
     if (drivers.length === 0) {
       return res.status(400).json({ 
         success: false, 
-        error: `No online drivers available with ${booking.selectedPackageType} package` 
+        error: `No drivers available with this package subscription` 
       });
     }
 

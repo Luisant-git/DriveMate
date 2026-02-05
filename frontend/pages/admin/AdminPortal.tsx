@@ -6,6 +6,7 @@ import Customer from './Customer';
 import Driver from './Driver';
 import SubscriptionList from './SubscriptionList';
 import PricingManagement from '../../components/admin/PricingManagement';
+import Reports from './Reports';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
 
 
@@ -31,7 +32,7 @@ interface PackageFormState {
 
 const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING'
+    'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'REPORTS'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -283,7 +284,7 @@ const AdminPortal: React.FC = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
         <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
           <div className="flex space-x-6">
-            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'PACKAGES', 'SUBSCRIPTIONS', 'PRICING', 'PAYMENTS'].map(
+            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'PACKAGES', 'SUBSCRIPTIONS', 'PRICING', 'PAYMENTS', 'REPORTS'].map(
               (tab) => (
                 <button
                   key={tab}
@@ -302,7 +303,7 @@ const AdminPortal: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-card overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-3xl shadow-card overflow-visible border border-gray-100 w-full">
         <div>
           {activeTab === 'BOOKINGS' && <BookingWorkflow />}
 
@@ -388,6 +389,8 @@ const AdminPortal: React.FC = () => {
           )}
 
           {activeTab === 'PRICING' && <PricingManagement />}
+
+          {activeTab === 'REPORTS' && <Reports />}
 
           {activeTab === 'PAYMENTS' && (
             <>

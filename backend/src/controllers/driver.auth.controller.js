@@ -4,7 +4,10 @@ import prisma from '../config/database.js';
 
 export const driverRegister = async (req, res) => {
   try {
-    const { name, email, phone, password, aadharNo, licenseNo, altPhone, upiId } = req.body;
+    const { 
+      name, email, phone, password, aadharNo, licenseNo, 
+      altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto 
+    } = req.body;
     
     // Check if driver already exists
     const existingDriver = await prisma.driver.findFirst({
@@ -33,7 +36,11 @@ export const driverRegister = async (req, res) => {
       ...(altPhone?.[1] && { alternateMobile2: altPhone[1] }),
       ...(altPhone?.[2] && { alternateMobile3: altPhone[2] }),
       ...(altPhone?.[3] && { alternateMobile4: altPhone[3] }),
-      ...(upiId && { gpayNo: upiId, phonepeNo: upiId })
+      ...(upiId && { gpayNo: upiId, phonepeNo: upiId }),
+      ...(photo && { photo }),
+      ...(dlPhoto && { dlPhoto }),
+      ...(panPhoto && { panPhoto }),
+      ...(aadharPhoto && { aadharPhoto })
     };
 
     const driver = await prisma.driver.create({

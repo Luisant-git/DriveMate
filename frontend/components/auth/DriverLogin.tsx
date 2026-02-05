@@ -31,15 +31,19 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
     setIsLoading(true);
     
     try {
-      const response = await login({
-        phone: loginData.phone,
-        password: loginData.password
+      const response = await fetch(`${API_BASE_URL}/api/driver/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: loginData.phone, password: loginData.password }),
+        credentials: 'include',
       });
+      const data = await response.json();
+      if (data.token) localStorage.setItem('auth-token', data.token);
       
-      if (response.success) {
-        onLogin(response.user);
+      if (response.ok) {
+        onLogin({ ...data.driver, role: 'DRIVER' });
       } else {
-        alert(response.error || response.message || 'Invalid credentials');
+        alert(data.error || data.message || 'Invalid credentials');
       }
     } catch (error) {
       alert('Login failed. Please try again.');
@@ -105,7 +109,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
 
   if (step === 'REGISTER') {
     return (
-      <form onSubmit={handleRegister} className="animate-fade-in flex-grow flex flex-col overflow-y-auto">
+      <form onSubmit={handleRegister} className="animate-fade-in flex-grow flex flex-col overflow-y-auto max-w-2xl mx-auto">
         <button type="button" onClick={() => setStep('LOGIN')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
           ← Back to Login
         </button>
