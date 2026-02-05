@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
+import TermsAndConditions from '../../components/TermsAndConditions';
 import { calculateFare, parseDurationToHours, FareBreakdown } from '../../utils/fareCalculator';
 
 interface CustomerPortalProps {
@@ -29,6 +30,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [authChecking, setAuthChecking] = useState<boolean>(false);
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
+  const [showTerms, setShowTerms] = useState<boolean>(false);
   // AI & Booking States
   const [aiQuery, setAiQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -1260,6 +1263,28 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             )}
                         </div>
                     )}
+                    
+                    {/* Terms and Conditions */}
+                    <div className="mx-4 mb-3">
+                        <label className="flex items-start gap-2 text-xs">
+                            <input 
+                                type="checkbox" 
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="mt-0.5 w-3 h-3 text-black bg-gray-100 border-gray-300 rounded focus:ring-black focus:ring-2"
+                            />
+                            <span className="text-gray-600">
+                                I agree to the{' '}
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowTerms(true)}
+                                    className="text-black font-bold underline hover:text-gray-800"
+                                >
+                                    Terms and Conditions
+                                </button>
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <div className="p-3 border-t border-gray-100 bg-white sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
@@ -1275,9 +1300,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
                     <button 
                         onClick={handleBookingSubmit}
-                        disabled={!isAuthenticated || authChecking}
+                        disabled={!isAuthenticated || authChecking || !termsAccepted}
                         className={`w-full py-3 rounded-lg font-bold text-base transition shadow-lg ${
-                            !isAuthenticated || authChecking 
+                            !isAuthenticated || authChecking || !termsAccepted 
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                                 : 'bg-black text-white hover:bg-gray-900'
                         }`}
@@ -1688,6 +1713,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                  )}
               </div>
           )}
+          
+          {/* Terms and Conditions Modal */}
+          <TermsAndConditions 
+            isOpen={showTerms} 
+            onClose={() => setShowTerms(false)} 
+          />
       </div>
     </div>
   );
