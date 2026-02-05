@@ -14,7 +14,9 @@ const localPackages = [
 
 const outstationPackages = [
   { packageType: 'OUTSTATION', hours: 8, minimumKm: 40, minimumCharge: 850, extraPerHour: 100, description: '8 Hours / 40 KM' },
+  { packageType: 'OUTSTATION', hours: 9, minimumKm: 100, minimumCharge: 900, extraPerHour: 100, description: '9 Hours / 100 KM' },
   { packageType: 'OUTSTATION', hours: 10, minimumKm: 150, minimumCharge: 900, extraPerHour: 100, description: '10 Hours / 150 KM' },
+  { packageType: 'OUTSTATION', hours: 11, minimumKm: 250, minimumCharge: 1100, extraPerHour: 100, description: '11 Hours / 250 KM' },
   { packageType: 'OUTSTATION', hours: 12, minimumKm: 300, minimumCharge: 1200, extraPerHour: 100, description: '12 Hours / 300 KM' },
   { packageType: 'OUTSTATION', hours: 16, minimumKm: 0, minimumCharge: 1500, extraPerHour: 100, description: 'Full Day Package (6AM to 10PM)' }
 ];

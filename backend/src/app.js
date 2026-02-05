@@ -21,6 +21,8 @@ import downloadRoutes from "./routes/download.routes.js";
 import packageRoutes from "./routes/package.routes.js";
 import pricingPackageRoutes from "./routes/pricingPackage.routes.js";
 import reportsRoutes from "./routes/reports.routes.js";
+import serviceAreaRoutes from "./routes/serviceArea.routes.js";
+import monthlyPricingRoutes from "./routes/monthly.pricing.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,5 +76,7 @@ app.use("/api/packages", packageRoutes);
 app.use("/api/download", downloadRoutes);
 app.use("/api/pricing-packages", pricingPackageRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/service-areas", serviceAreaRoutes);
+app.use("/api/monthly-pricing", monthlyPricingRoutes);
 
 export default app;

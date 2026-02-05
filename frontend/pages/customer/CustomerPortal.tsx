@@ -13,6 +13,7 @@ import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
 import TermsAndConditions from '../../components/TermsAndConditions';
 import { calculateFare, parseDurationToHours, FareBreakdown } from '../../utils/fareCalculator';
+import { checkServiceAvailability } from '../../api/serviceArea';
 
 interface CustomerPortalProps {
   customer: Customer;
@@ -49,11 +50,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     carType: 'Manual',
     vehicleType: 'Hatchback',
     tripType: 'One Way',
-    estimatedUsage: '1 Hr',
+    estimatedUsage: '4 Hrs',
+    hoursPerDay: '8',
+    daysPerWeek: '6',
   });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
+  const [pickupError, setPickupError] = useState<string>('');
+  const [dropError, setDropError] = useState<string>('');
 
   // Get minimum time (15 minutes from now)
   const getMinDateTime = () => {
@@ -179,6 +184,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           idProof: initialCustomer.idProof || null
         });
       }
+      
+      // Calculate initial fare estimate
+      handleEstimateWithValues('4 Hrs');
   }, [initialCustomer]);
 
   const handleAiAssist = async () => {
@@ -217,14 +225,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
      }
   };
 
-  const handleEstimateWithValues = async (estimatedUsage: string) => {
+  const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean) => {
      if(!estimatedUsage) return;
      
      setEstimateLoading(true);
      try {
        const hours = parseDurationToHours(estimatedUsage);
-       const isOutstation = serviceType === BookingType.OUTSTATION;
-       const breakdown = await calculateFare(hours, 0, isOutstation);
+       const useOutstation = isOutstation !== undefined ? isOutstation : serviceType === BookingType.OUTSTATION;
+       const breakdown = await calculateFare(hours, 0, useOutstation);
        
        if (breakdown) {
          setFareBreakdown(breakdown);
@@ -258,8 +266,44 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
     // Validate that locations are filled
     if (!formData.pickup.includes(',') || !formData.drop.includes(',')) {
-      toast.error('Please select complete loaction from the suggestions');
+      toast.error('Please select complete location from the suggestions');
       return;
+    }
+
+    // Check service availability for pickup location
+    const pickupResponse = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+    );
+    const pickupData = await pickupResponse.json();
+    
+    if (pickupData.results && pickupData.results[0]) {
+      const pickupLocation = pickupData.results[0].geometry.location;
+      console.log('Pickup coordinates:', pickupLocation);
+      const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
+      console.log('Pickup availability:', pickupAvailability);
+      
+      if (!pickupAvailability.available) {
+        toast.error('Sorry, service not available in pickup area');
+        return;
+      }
+    }
+
+    // Check service availability for drop location
+    const dropResponse = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.drop)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+    );
+    const dropData = await dropResponse.json();
+    
+    if (dropData.results && dropData.results[0]) {
+      const dropLocation = dropData.results[0].geometry.location;
+      console.log('Drop coordinates:', dropLocation);
+      const dropAvailability = await checkServiceAvailability(dropLocation.lat, dropLocation.lng);
+      console.log('Drop availability:', dropAvailability);
+      
+      if (!dropAvailability.available) {
+        toast.error('Sorry, service not available in drop area');
+        return;
+      }
     }
 
     try {
@@ -291,7 +335,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           carType: 'Manual',
           vehicleType: 'Hatchback',
           tripType: 'One Way',
-          estimatedUsage: '1 Hr',
+          estimatedUsage: '4 Hrs',
         });
         setEstimate(null);
         // Refresh bookings
@@ -398,7 +442,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </button>
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-gray-700">• One Way Drop Return Ticket & Extra Pay</p>
+                <p className="text-sm text-gray-700">• Extra Pay for One Way Drop Return Ticket</p>
                 {serviceType === BookingType.OUTSTATION && (
                   <p className="text-sm text-gray-700">• Food Extra</p>
                 )}
@@ -607,33 +651,125 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           {activeTab === 'BOOK' && (
               <>
                 <div className="p-3 sm:p-4 pb-0">
+                    {/* Trip Type Buttons */}
+                    <div className="flex gap-2 mb-4">
+                        <button 
+                            onClick={() => {
+                                setServiceType(BookingType.LOCAL_HOURLY);
+                                setFormData({...formData, tripType: 'One Way', estimatedUsage: '4 Hrs'});
+                                setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
+                            }}
+                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
+                                serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way'
+                                    ? 'bg-black text-white' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            One Way
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setServiceType(BookingType.LOCAL_HOURLY);
+                                setFormData({...formData, tripType: 'Round Trip', estimatedUsage: '4 Hrs'});
+                                setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
+                            }}
+                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
+                                serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip'
+                                    ? 'bg-black text-white' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            Round Trip
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setServiceType(BookingType.OUTSTATION);
+                                setFormData({...formData, estimatedUsage: '8 Hrs'});
+                                setTimeout(() => handleEstimateWithValues('8 Hrs', true), 100);
+                            }}
+                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
+                                serviceType === BookingType.OUTSTATION
+                                    ? 'bg-black text-white' 
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            Outstation
+                        </button>
+                    </div>
+
                     {/* Location Inputs */}
                     <div className="relative mb-4">
                         <div className="absolute left-4 top-4 bottom-4 w-4 flex flex-col items-center">
                             <div className="w-2 h-2 bg-black rounded-full"></div>
-                            <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
-                            <div className="w-2 h-2 bg-black border border-black"></div>
+                            {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
+                                <>
+                                    <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
+                                    <div className="w-2 h-2 bg-black border border-black"></div>
+                                </>
+                            )}
                         </div>
                         <div className="pl-10 space-y-3">
-                                            <LocationAutocomplete
-                                                value={formData.pickup}
-                                                onChange={(value) => {
-                                                    setFormData({...formData, pickup: value});
-                                                }}
-                                                placeholder="Pickup location"
-                                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
-                                                showMyLocation={true}
-                                                readOnly={true}
-                                            />
                             <LocationAutocomplete
-                                value={formData.drop}
-                                onChange={(value) => {
-                                    setFormData({...formData, drop: value});
+                                value={formData.pickup}
+                                onChange={async (value) => {
+                                    setFormData({...formData, pickup: value});
+                                    setPickupError('');
+                                    
+                                    if (!value) return;
+                                    
+                                    // Check service availability immediately
+                                    if (value && value.includes(',')) {
+                                        const response = await fetch(
+                                            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(value)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+                                        );
+                                        const data = await response.json();
+                                        if (data.results && data.results[0]) {
+                                            const location = data.results[0].geometry.location;
+                                            const availability = await checkServiceAvailability(location.lat, location.lng);
+                                            if (!availability.available) {
+                                                setPickupError('Sorry, service not available in this area');
+                                            }
+                                        }
+                                    }
                                 }}
-                                placeholder="Drop location"
+                                placeholder="Pickup location"
                                 className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                showMyLocation={true}
                                 readOnly={true}
                             />
+                            {pickupError && <p className="text-xs text-red-600 font-bold mt-1">{pickupError}</p>}
+                            {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
+                                <>
+                                    <LocationAutocomplete
+                                        value={formData.drop}
+                                        onChange={async (value) => {
+                                            setFormData({...formData, drop: value});
+                                            setDropError('');
+                                            
+                                            if (!value) return;
+                                            
+                                            // Check service availability immediately
+                                            if (value && value.includes(',')) {
+                                                const response = await fetch(
+                                                    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(value)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+                                                );
+                                                const data = await response.json();
+                                                if (data.results && data.results[0]) {
+                                                    const location = data.results[0].geometry.location;
+                                                    const availability = await checkServiceAvailability(location.lat, location.lng);
+                                                    if (!availability.available) {
+                                                        setDropError('Sorry, service not available in this area');
+                                                    }
+                                                }
+                                            }
+                                        }}
+                                        placeholder="Drop location"
+                                        className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                        readOnly={true}
+                                    />
+                                    {dropError && <p className="text-xs text-red-600 font-bold mt-1">{dropError}</p>}
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -692,7 +828,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
 
                     {/* Choose Type of Service Dropdown - Show for all services */}
-                    <div className="relative mb-3">
+                    {/* <div className="relative mb-3">
                         <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose type of service</label>
                         <div 
                             onClick={() => setOpenDropdown(openDropdown === 'serviceType' ? null : 'serviceType')}
@@ -727,10 +863,107 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </div> */}
                     
+                    {/* Monthly Driver Form */}
+                    {bookingType === BookingType.MONTHLY && (
+                        <>
+                            <div className="relative mb-3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Vehicle Type</label>
+                                <div 
+                                    onClick={() => setOpenDropdown(openDropdown === 'monthlyVehicle' ? null : 'monthlyVehicle')}
+                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                >
+                                    <span>{formData.vehicleType}</span>
+                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'monthlyVehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                                {openDropdown === 'monthlyVehicle' && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                        {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                            <div 
+                                                key={option}
+                                                onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
+                                                className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                            >
+                                                {option}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="relative mb-3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Hours Per Day</label>
+                                <div 
+                                    onClick={() => setOpenDropdown(openDropdown === 'hoursPerDay' ? null : 'hoursPerDay')}
+                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                >
+                                    <span>{formData.hoursPerDay} Hours</span>
+                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'hoursPerDay' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                                {openDropdown === 'hoursPerDay' && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                        {['8', '10', '12', '1 day'].map(option => (
+                                            <div 
+                                                key={option}
+                                                onClick={() => { setFormData({...formData, hoursPerDay: option}); setOpenDropdown(null); }}
+                                                className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.hoursPerDay === option ? 'bg-gray-100' : ''}`}
+                                            >
+                                                {option === '1 day' ? '1 Day' : `${option} Hours`}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="relative mb-3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Days Per Week</label>
+                                <div 
+                                    onClick={() => setOpenDropdown(openDropdown === 'daysPerWeek' ? null : 'daysPerWeek')}
+                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                >
+                                    <span>{formData.daysPerWeek === '12' ? '12 Hours' : `${formData.daysPerWeek} Days`}</span>
+                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'daysPerWeek' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                                {openDropdown === 'daysPerWeek' && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                        {formData.hoursPerDay === '1 day' ? (
+                                            <div 
+                                                onClick={() => { setFormData({...formData, daysPerWeek: '12'}); setOpenDropdown(null); }}
+                                                className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.daysPerWeek === '12' ? 'bg-gray-100' : ''}`}
+                                            >
+                                                12 Hours
+                                            </div>
+                                        ) : (
+                                            ['5', '6'].map(option => (
+                                                <div 
+                                                    key={option}
+                                                    onClick={() => { setFormData({...formData, daysPerWeek: option}); setOpenDropdown(null); }}
+                                                    className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.daysPerWeek === option ? 'bg-gray-100' : ''}`}
+                                                >
+                                                    {option} Days
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm mb-3">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Monthly Charges</p>
+                                <p className="text-3xl font-bold text-black mb-1">₹{parseInt(formData.hoursPerDay) * parseInt(formData.daysPerWeek) * 4 * 100}</p>
+                                <p className="text-xs text-gray-600 mt-2">
+                                    {formData.hoursPerDay} hrs/day × {formData.daysPerWeek} days/week × 4 weeks × ₹100/hr
+                                </p>
+                                <div className="mt-3 pt-3 border-t border-green-300">
+                                    <p className="text-xs font-bold text-red-600 uppercase">Extra Per Hour: Rs. 100/-</p>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
                     {/* When Needed Dropdown - Show for LOCAL_HOURLY */}
-                    {serviceType === BookingType.LOCAL_HOURLY && (
+                    {bookingType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && (
                         <div className="relative mb-3">
                             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
                             <div 
@@ -756,57 +989,34 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         </div>
                     )}
 
+                    {bookingType !== BookingType.MONTHLY && (
                     <div className="mt-3 sm:mt-4 space-y-3 pb-4">
                         <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
                         {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
                             <>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.tripType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'tripType' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['One Way', 'Round Trip'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
+                                    <div className="relative">
+                                        <div 
+                                            onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                        >
+                                            <span>{formData.estimatedUsage}</span>
+                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.estimatedUsage}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        {openDropdown === 'usage' && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                                                    <div 
+                                                        key={option}
+                                                        onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
+                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                    >
+                                                        {option}
+                                                    </div>
+                                                ))}
                                             </div>
-                                            {openDropdown === 'usage' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
@@ -897,7 +1107,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'usage' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
+                                                    {['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
@@ -1031,52 +1241,28 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.tripType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'tripType' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['One Way', 'Round Trip'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
+                                    <div className="relative">
+                                        <div 
+                                            onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                        >
+                                            <span>{formData.estimatedUsage}</span>
+                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.estimatedUsage}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        {openDropdown === 'usage' && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                                                    <div 
+                                                        key={option}
+                                                        onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
+                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                    >
+                                                        {option}
+                                                    </div>
+                                                ))}
                                             </div>
-                                            {openDropdown === 'usage' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
@@ -1227,9 +1413,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             </>
                         )}
                     </div>
+                    )}
 
                     {/* Fare Estimate - Only show when estimate is available */}
-                    {(estimate || estimateLoading) && (
+                    {bookingType !== BookingType.MONTHLY && (estimate || estimateLoading) && (
                         <div className="mx-4 mb-4 bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fare Estimate</p>
                             {estimateLoading ? (
