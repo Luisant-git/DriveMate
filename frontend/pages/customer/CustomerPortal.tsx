@@ -54,11 +54,18 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     hoursPerDay: '8',
     daysPerWeek: '6',
   });
+  const [oneWayData, setOneWayData] = useState({ pickup: '', drop: '' });
+  const [roundTripData, setRoundTripData] = useState({ pickup: '', drop: '' });
+  const [outstationData, setOutstationData] = useState({ pickup: '', drop: '' });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
   const [pickupError, setPickupError] = useState<string>('');
   const [dropError, setDropError] = useState<string>('');
+  const [dropKey, setDropKey] = useState(0);
+  const [oneWayErrors, setOneWayErrors] = useState({ pickup: '', drop: '' });
+  const [roundTripErrors, setRoundTripErrors] = useState({ pickup: '', drop: '' });
+  const [outstationErrors, setOutstationErrors] = useState({ pickup: '', drop: '' });
 
   // Get minimum time (15 minutes from now)
   const getMinDateTime = () => {
@@ -70,21 +77,31 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     };
   };
 
-  // Generate time slots starting from 15 minutes from now
-  const getTimeSlots = () => {
+  // Generate time slots with 30-minute intervals
+  const getTimeSlots = (selectedDate?: string) => {
     const slots = [];
     const now = new Date();
-    now.setMinutes(now.getMinutes() + 15);
+    const today = now.toISOString().split('T')[0];
+    const isToday = !selectedDate || selectedDate === today;
     
-    // Round to next 15-minute interval
-    const minutes = now.getMinutes();
-    const roundedMinutes = Math.ceil(minutes / 15) * 15;
-    now.setMinutes(roundedMinutes);
-    now.setSeconds(0);
+    let startTime: Date;
+    const interval = 30;
     
-    // Generate slots for next 12 hours (48 slots of 15 min each)
-    for (let i = 0; i < 48; i++) {
-      const time = new Date(now.getTime() + i * 15 * 60000);
+    if (isToday) {
+      startTime = new Date();
+      startTime.setMinutes(startTime.getMinutes() + 30);
+      const minutes = startTime.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 30) * 30;
+      startTime.setMinutes(roundedMinutes);
+      startTime.setSeconds(0);
+    } else {
+      startTime = new Date();
+      startTime.setHours(0, 0, 0, 0);
+    }
+    
+    const totalSlots = 48;
+    for (let i = 0; i < totalSlots; i++) {
+      const time = new Date(startTime.getTime() + i * interval * 60000);
       const hours = time.getHours();
       const mins = time.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -654,9 +671,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     {/* Trip Type Buttons */}
                     <div className="flex gap-2 mb-4">
                         <button 
+                            type="button"
                             onClick={() => {
+                                console.log('One Way clicked, clearing drop');
                                 setServiceType(BookingType.LOCAL_HOURLY);
-                                setFormData({...formData, tripType: 'One Way', estimatedUsage: '4 Hrs'});
+                                setFormData({...formData, tripType: 'One Way', estimatedUsage: '4 Hrs', pickup: oneWayData.pickup, drop: oneWayData.drop});
+                                setDropError('');
                                 setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
                             }}
                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
@@ -668,9 +688,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             One Way
                         </button>
                         <button 
+                            type="button"
                             onClick={() => {
+                                console.log('Round Trip clicked, clearing drop');
                                 setServiceType(BookingType.LOCAL_HOURLY);
-                                setFormData({...formData, tripType: 'Round Trip', estimatedUsage: '4 Hrs'});
+                                setFormData({...formData, tripType: 'Round Trip', estimatedUsage: '4 Hrs', pickup: roundTripData.pickup, drop: roundTripData.drop});
+                                setDropError('');
                                 setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
                             }}
                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
@@ -682,9 +705,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             Round Trip
                         </button>
                         <button 
+                            type="button"
                             onClick={() => {
+                                console.log('Outstation clicked, clearing drop');
                                 setServiceType(BookingType.OUTSTATION);
-                                setFormData({...formData, estimatedUsage: '8 Hrs'});
+                                setFormData({...formData, tripType: 'One Way', estimatedUsage: '8 Hrs', pickup: outstationData.pickup, drop: outstationData.drop});
+                                setDropError('');
                                 setTimeout(() => handleEstimateWithValues('8 Hrs', true), 100);
                             }}
                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
@@ -713,7 +739,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 value={formData.pickup}
                                 onChange={async (value) => {
                                     setFormData({...formData, pickup: value});
-                                    setPickupError('');
+                                    if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
+                                        setOneWayData({...oneWayData, pickup: value});
+                                        setOneWayErrors({...oneWayErrors, pickup: ''});
+                                    } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
+                                        setRoundTripData({...roundTripData, pickup: value});
+                                        setRoundTripErrors({...roundTripErrors, pickup: ''});
+                                    } else if (serviceType === BookingType.OUTSTATION) {
+                                        setOutstationData({...outstationData, pickup: value});
+                                        setOutstationErrors({...outstationErrors, pickup: ''});
+                                    }
                                     
                                     if (!value) return;
                                     
@@ -727,7 +762,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             const location = data.results[0].geometry.location;
                                             const availability = await checkServiceAvailability(location.lat, location.lng);
                                             if (!availability.available) {
-                                                setPickupError('Sorry, service not available in this area');
+                                                if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
+                                                    setOneWayErrors({...oneWayErrors, pickup: 'Sorry, service not available in this area'});
+                                                } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
+                                                    setRoundTripErrors({...roundTripErrors, pickup: 'Sorry, service not available in this area'});
+                                                } else if (serviceType === BookingType.OUTSTATION) {
+                                                    setOutstationErrors({...outstationErrors, pickup: 'Sorry, service not available in this area'});
+                                                }
                                             }
                                         }
                                     }
@@ -737,19 +778,28 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 showMyLocation={true}
                                 readOnly={true}
                             />
-                            {pickupError && <p className="text-xs text-red-600 font-bold mt-1">{pickupError}</p>}
+                            {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.pickup}</p>}
+                            {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip' && roundTripErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{roundTripErrors.pickup}</p>}
+                            {serviceType === BookingType.OUTSTATION && outstationErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.pickup}</p>}
                             {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
                                 <>
                                     <LocationAutocomplete
+                                        key={`${serviceType}-${formData.tripType}`}
                                         value={formData.drop}
                                         onChange={async (value) => {
                                             setFormData({...formData, drop: value});
-                                            setDropError('');
+                                            if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
+                                                setOneWayData({...oneWayData, drop: value});
+                                                setOneWayErrors({...oneWayErrors, drop: ''});
+                                            } else if (serviceType === BookingType.OUTSTATION) {
+                                                setOutstationData({...outstationData, drop: value});
+                                                setOutstationErrors({...outstationErrors, drop: ''});
+                                            }
                                             
                                             if (!value) return;
                                             
-                                            // Check service availability immediately
-                                            if (value && value.includes(',')) {
+                                            // Check service availability only for Local One Way, not for Outstation
+                                            if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && value.includes(',')) {
                                                 const response = await fetch(
                                                     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(value)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
                                                 );
@@ -758,7 +808,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     const location = data.results[0].geometry.location;
                                                     const availability = await checkServiceAvailability(location.lat, location.lng);
                                                     if (!availability.available) {
-                                                        setDropError('Sorry, service not available in this area');
+                                                        setOneWayErrors({...oneWayErrors, drop: 'Sorry, service not available in this area'});
                                                     }
                                                 }
                                             }
@@ -767,7 +817,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
                                         readOnly={true}
                                     />
-                                    {dropError && <p className="text-xs text-red-600 font-bold mt-1">{dropError}</p>}
+                                    {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.drop}</p>}
+                                    {serviceType === BookingType.OUTSTATION && outstationErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.drop}</p>}
                                 </>
                             )}
                         </div>
@@ -1135,12 +1186,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
                                                 className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
                                             >
-                                                <span>{formData.time ? getTimeSlots().find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
                                                 <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                             {openDropdown === 'timeSlot' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {getTimeSlots().map(slot => (
+                                                    {getTimeSlots(formData.date).map(slot => (
                                                         <div 
                                                             key={slot.value}
                                                             onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
@@ -1221,12 +1272,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
                                                 className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
                                             >
-                                                <span>{formData.time ? getTimeSlots().find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
                                                 <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                             </div>
                                             {openDropdown === 'timeSlot2' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {getTimeSlots().map(slot => (
+                                                    {getTimeSlots(formData.date).map(slot => (
                                                         <div 
                                                             key={slot.value}
                                                             onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
