@@ -32,6 +32,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [authChecking, setAuthChecking] = useState<boolean>(false);
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
   const [showTerms, setShowTerms] = useState<boolean>(false);
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   // AI & Booking States
   const [aiQuery, setAiQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -261,6 +263,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       return;
     }
 
+    // Show payment modal instead of directly submitting
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentMethodSelect = async (method: string) => {
+    setSelectedPaymentMethod(method);
+    setShowPaymentModal(false);
+
     try {
       const bookingData = {
         pickupLocation: formData.pickup,
@@ -272,7 +282,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         duration: formData.duration || formData.estimatedUsage,
         carType: formData.carType,
         vehicleType: formData.vehicleType,
-        estimateAmount: estimate
+        estimateAmount: estimate,
+        paymentMethod: method
       };
 
       const response = await createBooking(bookingData);
@@ -293,6 +304,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           estimatedUsage: '1 Hr',
         });
         setEstimate(null);
+        setTermsAccepted(false);
         // Refresh bookings
         fetchBookings();
         setActiveTab('TRIPS');
@@ -1313,6 +1325,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              {booking.estimateAmount && (
                                 <p className="text-sm font-bold text-green-600 mb-2">₹{booking.estimateAmount}</p>
                              )}
+                             {booking.paymentMethod && (
+                                <p className="text-xs text-gray-600 mb-2">Payment: <span className="font-bold">{booking.paymentMethod}</span></p>
+                             )}
                              <p className="text-xs sm:text-sm font-medium mb-2">{booking.bookingType}</p>
                              <div className="text-xs text-gray-500 space-y-1 mb-3">
                                 <div className="flex items-start gap-2">
@@ -1679,6 +1694,47 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             isOpen={showTerms} 
             onClose={() => setShowTerms(false)} 
           />
+
+          {/* Payment Method Modal */}
+          {showPaymentModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+                <h2 className="text-xl font-bold mb-2">Select Payment Method</h2>
+                <p className="text-sm text-gray-600 mb-6">Choose how you want to pay</p>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handlePaymentMethodSelect('CASH')}
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-lg flex items-center justify-center gap-3"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                      <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                    </svg>
+                    Cash
+                  </button>
+                  
+                  <button
+                    onClick={() => handlePaymentMethodSelect('UPI')}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:from-blue-600 hover:to-blue-700 transition shadow-lg flex items-center justify-center gap-3"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                      <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                    </svg>
+                    UPI
+                  </button>
+                </div>
+                
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );
