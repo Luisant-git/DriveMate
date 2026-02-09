@@ -453,8 +453,10 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     {packages.map(pkg => {
                         const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
                         const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+                        const hasActivePlan = currentSubscription && currentSubscription.plan && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+                        const isDisabled = hasActivePlan && !isActive;
                         return (
-                        <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : 'border-gray-100 bg-white'}`}>
+                        <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
                             {isActive && (
                                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-bold">
                                     CURRENT PLAN
@@ -466,8 +468,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             
                             <button 
                                 onClick={() => handleSubscriptionBuy(pkg)}
-                                disabled={isActive}
-                                className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+                                disabled={isActive || isDisabled}
+                                className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
                             >
                                 {isActive ? 'Active' : 'Choose Package & Pay'}
                             </button>
