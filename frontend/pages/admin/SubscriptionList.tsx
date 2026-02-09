@@ -53,6 +53,9 @@ const SubscriptionList: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [additionalPayment, setAdditionalPayment] = useState('');
+  const [filterPlan, setFilterPlan] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterPayment, setFilterPayment] = useState('');
 
   useEffect(() => {
     fetchSubscriptions();
@@ -156,6 +159,14 @@ const SubscriptionList: React.FC = () => {
     d.phone.includes(searchTerm)
   );
 
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    if (filterPlan && sub.plan.id !== filterPlan) return false;
+    if (filterStatus && sub.status !== filterStatus) return false;
+    if (filterPayment === 'PENDING' && (!sub.remainingAmount || sub.remainingAmount <= 0)) return false;
+    if (filterPayment === 'PAID' && sub.remainingAmount && sub.remainingAmount > 0) return false;
+    return true;
+  });
+
   const rejectSubscription = async (subscriptionId: string) => {
     if (!window.confirm('Are you sure you want to reject this subscription?')) {
       return;
@@ -232,9 +243,45 @@ const SubscriptionList: React.FC = () => {
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <select
+          value={filterPlan}
+          onChange={(e) => setFilterPlan(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <option value="">All Plans</option>
+          {packages.map(pkg => (
+            <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+          ))}
+        </select>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <option value="">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+
+        <select
+          value={filterPayment}
+          onChange={(e) => setFilterPayment(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <option value="">All Payments</option>
+          <option value="PENDING">Pending Payment</option>
+          <option value="PAID">Fully Paid</option>
+        </select>
+      </div>
+
       {/* Mobile View: Cards */}
       <div className="md:hidden space-y-4">
-        {subscriptions.map((sub) => (
+        {filteredSubscriptions.map((sub) => (
           <div
             key={sub.id}
             className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
@@ -299,7 +346,7 @@ const SubscriptionList: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {subscriptions.map((sub) => (
+            {filteredSubscriptions.map((sub) => (
               <tr key={sub.id} className="hover:bg-gray-50/50">
                 <td className="px-8 py-5 text-sm">
                   <div>
@@ -366,7 +413,7 @@ const SubscriptionList: React.FC = () => {
         </table>
       </div>
 
-      {subscriptions.length === 0 && (
+      {filteredSubscriptions.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-xl">
           <p className="text-gray-500">No subscriptions found.</p>
         </div>
