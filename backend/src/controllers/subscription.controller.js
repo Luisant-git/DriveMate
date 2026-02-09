@@ -220,3 +220,84 @@ export const getDriverSubscription = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const adminCreateSubscription = async (req, res) => {
+  try {
+    const { driverId, planId, paidAmount, paymentMethod } = req.body;
+
+    if (!driverId || !planId || !paidAmount) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    if (!plan) {
+      return res.status(404).json({ success: false, error: 'Plan not found' });
+    }
+
+    const paid = parseFloat(paidAmount);
+    if (paid <= 0 || paid > plan.price) {
+      return res.status(400).json({ success: false, error: 'Invalid paid amount' });
+    }
+
+    const startDate = new Date();
+    const endDate = new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000);
+
+    // Cancel existing active subscriptions
+    await prisma.subscription.updateMany({
+      where: { driverId, status: 'ACTIVE' },
+      data: { status: 'CANCELLED' }
+    });
+
+    const subscription = await prisma.subscription.create({
+      data: {
+        driverId,
+        planId,
+        startDate,
+        endDate,
+        amount: plan.price,
+        paidAmount: paid,
+        remainingAmount: plan.price - paid,
+        paymentMethod: paymentMethod || 'CASH',
+        isAdminCreated: true,
+        status: 'ACTIVE'
+      },
+      include: { plan: true, driver: true }
+    });
+
+    res.json({ success: true, subscription });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const updateSubscriptionPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { additionalPayment } = req.body;
+
+    if (!additionalPayment || additionalPayment <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid payment amount' });
+    }
+
+    const subscription = await prisma.subscription.findUnique({ where: { id } });
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'Subscription not found' });
+    }
+
+    const newPaidAmount = (subscription.paidAmount || 0) + parseFloat(additionalPayment);
+    const newRemainingAmount = subscription.amount - newPaidAmount;
+
+    const updated = await prisma.subscription.update({
+      where: { id },
+      data: {
+        paidAmount: newPaidAmount,
+        remainingAmount: newRemainingAmount > 0 ? newRemainingAmount : 0
+      },
+      include: { plan: true, driver: true }
+    });
+
+    res.json({ success: true, subscription: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};

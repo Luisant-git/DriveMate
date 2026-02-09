@@ -105,7 +105,10 @@ model Subscription {
   startDate DateTime        @default(now())
   endDate   DateTime
   amount    Float
+  paidAmount Float?
+  remainingAmount Float?
   paymentMethod String?
+  isAdminCreated Boolean      @default(false)
 
   @@map("subscriptions")
 }
