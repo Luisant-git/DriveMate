@@ -90,7 +90,7 @@ export const deleteSubscriptionPlan = async (req, res) => {
 };
 export const purchaseSubscription = async (req, res) => {
   try {
-    const { planId } = req.body;
+    const { planId, paymentMethod } = req.body;
     const driverId = req.user.userId;
 
     const plan = await prisma.subscriptionPlan.findUnique({
@@ -121,6 +121,7 @@ export const purchaseSubscription = async (req, res) => {
         startDate,
         endDate,
         amount: plan.price,
+        paymentMethod,
         status: 'ACTIVE',
       },
       include: { plan: true },

@@ -267,11 +267,18 @@ export default function BookingWorkflow() {
                             <span className="inline-block bg-yellow-100 text-yellow-700 text-xs px-2.5 py-1 rounded-full font-medium">PENDING</span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${
-                              booking.advancePayment > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {booking.advancePayment > 0 ? 'PAID' : 'UNPAID'}
-                            </span>
+                            <div className="space-y-1">
+                              <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${
+                                booking.advancePayment > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {booking.advancePayment > 0 ? 'PAID' : 'UNPAID'}
+                              </span>
+                              {booking.paymentMethod && (
+                                <div>
+                                  <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.paymentMethod}</span>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">

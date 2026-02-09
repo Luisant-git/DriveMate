@@ -142,6 +142,9 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                         {request.booking.estimateAmount && (
                           <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
                         )}
+                        {request.booking.paymentMethod && (
+                          <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{request.booking.paymentMethod}</span></p>
+                        )}
                         <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.bookingType}</span>
                       </div>
                     </div>
@@ -237,6 +240,9 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                         <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
                         {booking.estimateAmount && (
                           <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{booking.estimateAmount}</p>
+                        )}
+                        {booking.paymentMethod && (
+                          <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{booking.paymentMethod}</span></p>
                         )}
                         <span className={`inline-block mt-2 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium ${statusColors[booking.status] || 'bg-gray-100 text-gray-700'}`}>
                           {booking.status}

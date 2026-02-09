@@ -18,7 +18,8 @@ export const createBooking = async (req, res) => {
       duration,
       vehicleType,
       carType,
-      estimateAmount 
+      estimateAmount,
+      paymentMethod
     } = req.body;
 
     if (!req.user || !req.user.id) {
@@ -37,6 +38,7 @@ export const createBooking = async (req, res) => {
         vehicleType,
         carType,
         estimateAmount,
+        paymentMethod,
         status: 'PENDING'
       }
     });

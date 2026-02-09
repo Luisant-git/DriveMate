@@ -105,6 +105,7 @@ model Subscription {
   startDate DateTime        @default(now())
   endDate   DateTime
   amount    Float
+  paymentMethod String?
 
   @@map("subscriptions")
 }
@@ -344,4 +345,35 @@ model PricingPackage {
 
   @@unique([packageType, hours])
   @@map("pricing_packages")
+}
+
+model ServiceArea {
+  id          String   @id @default(cuid())
+  name        String   // "Bangalore", "Mysore"
+  city        String
+  state       String
+  radius      Float    // in kilometers
+  latitude    Float
+  longitude   Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("service_areas")
+}
+
+model MonthlyPricing {
+  id              String   @id @default(cuid())
+  vehicleType     String   // Mini, Sedan, SUV/MPV, Luxury Car
+  hoursPerDay     String   // 8, 10, 12, 1 day
+  daysPerWeek     String   // 5, 6, 12 (for 1 day)
+  charge5Days     Float?   // Charge for 5 days per week
+  charge6Days     Float?   // Charge for 6 days per week
+  extraPerHour    Float    @default(90)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([vehicleType, hoursPerDay, daysPerWeek])
+  @@map("monthly_pricing")
 }

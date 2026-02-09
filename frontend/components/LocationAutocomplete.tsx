@@ -7,6 +7,7 @@ interface LocationAutocompleteProps {
   placeholder: string;
   className?: string;
   showMyLocation?: boolean;
+  resetKey?: number;
 }
 
 interface Suggestion {
@@ -19,7 +20,8 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   onChange,
   placeholder,
   className = '',
-  showMyLocation = false
+  showMyLocation = false,
+  resetKey = 0
 }) => {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -66,20 +68,19 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    onChange(inputValue);
+    const newValue = e.target.value;
+    onChange(newValue);
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
     debounceRef.current = setTimeout(() => {
-      fetchSuggestions(inputValue);
+      fetchSuggestions(newValue);
     }, 300);
   };
 
   const handleSuggestionClick = (suggestion: Suggestion) => {
-    console.log('Suggestion clicked:', suggestion.description);
     onChange(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -127,6 +128,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         onChange={handleInputChange}
         placeholder={placeholder}
         className={`w-full ${className}`}
+        autoComplete="off"
         onFocus={() => {
           if (showMyLocation || (value.length >= 1 && suggestions.length > 0)) {
             setShowSuggestions(true);

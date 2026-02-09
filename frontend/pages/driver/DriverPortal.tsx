@@ -14,6 +14,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [trips, setTrips] = useState<Trip[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
   // Profile Edit States
   const [profileData, setProfileData] = useState({
@@ -128,41 +130,49 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   };
 
   const handleSubscriptionBuy = async (pkg: Package) => {
-      const confirmed = window.confirm(`Subscribe to ${pkg.name} for ₹${pkg.price}?`);
-      if (confirmed) {
-          try {
-              const response = await fetch(`${API_BASE_URL}/api/subscriptions/purchase`, {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-                  },
-                  credentials: 'include',
-                  body: JSON.stringify({ planId: pkg.id })
-              });
-              
-              const data = await response.json();
-              
-              if (response.ok) {
-                  alert("Package subscribed successfully!");
-                  // Refresh subscription data
-                  const subResponse = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
-                      headers: {
-                          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-                      },
-                      credentials: 'include'
-                  });
-                  const subData = await subResponse.json();
-                  if (subResponse.ok && subData) {
-                      setCurrentSubscription(subData);
-                  }
-              } else {
-                  alert(data.error || 'Failed to subscribe');
-              }
-          } catch (error) {
-              alert('Error subscribing to package');
-          }
+    setSelectedPackage(pkg);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentMethodSelect = async (method: string) => {
+    if (!selectedPackage) return;
+    
+    setShowPaymentModal(false);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          planId: selectedPackage.id,
+          paymentMethod: method
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert("Package subscribed successfully!");
+        // Refresh subscription data
+        const subResponse = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          },
+          credentials: 'include'
+        });
+        const subData = await subResponse.json();
+        if (subResponse.ok && subData) {
+          setCurrentSubscription(subData);
+        }
+      } else {
+        alert(data.error || 'Failed to subscribe');
       }
+    } catch (error) {
+      alert('Error subscribing to package');
+    }
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -562,7 +572,12 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                  </svg>
                                              </div>
                                              <div className="flex-1 min-w-0">
-                                                 <p className="text-xs sm:text-sm text-gray-500">Current Plan</p>
+                                                 <div className="flex items-center justify-between gap-2">
+                                                     <p className="text-xs sm:text-sm text-gray-500">Current Plan</p>
+                                                     <p className="text-xs px-2 py-1 rounded border text-blue-600 border-blue-200 bg-blue-50">
+                                                         {currentSubscription.paymentMethod || 'N/A'}
+                                                     </p>
+                                                 </div>
                                                  <p className="text-base sm:text-lg md:text-xl font-bold text-black truncate">{currentSubscription.plan.name}</p>
                                                  <p className="text-xs px-2 py-1 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1">
                                                      {daysLeft} days left
@@ -980,6 +995,48 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
             </div>
         )}
       </div>
+
+      {/* Payment Method Modal */}
+      {showPaymentModal && selectedPackage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <h2 className="text-xl font-bold mb-2">Select Payment Method</h2>
+            <p className="text-sm text-gray-600 mb-2">{selectedPackage.name} - ₹{selectedPackage.price}</p>
+            <p className="text-xs text-gray-500 mb-6">Choose how you want to pay</p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => handlePaymentMethodSelect('CASH')}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                  <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                </svg>
+                Cash
+              </button>
+              
+              <button
+                onClick={() => handlePaymentMethodSelect('UPI')}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:from-blue-600 hover:to-blue-700 transition shadow-lg flex items-center justify-center gap-3"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                  <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+                </svg>
+                UPI
+              </button>
+            </div>
+            
+            <button
+              onClick={() => setShowPaymentModal(false)}
+              className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

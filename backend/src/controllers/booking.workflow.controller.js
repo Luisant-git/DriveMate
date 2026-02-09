@@ -146,7 +146,10 @@ export const getDriverPendingRequests = async (req, res) => {
       },
       include: {
         booking: {
-          include: { customer: true }
+          include: { 
+            customer: true,
+            package: true
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
