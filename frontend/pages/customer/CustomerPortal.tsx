@@ -793,7 +793,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
                                                     setRoundTripErrors({...roundTripErrors, pickup: 'Sorry, service not available in this area'});
                                                 } else if (serviceType === BookingType.OUTSTATION) {
-                                                    // Skip validation for Outstation - no radius check needed
+                                                    setOutstationErrors({...outstationErrors, pickup: 'Sorry, service not available in this area'});
                                                 }
                                             }
                                         }
