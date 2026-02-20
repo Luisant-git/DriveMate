@@ -296,39 +296,54 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const handlePaymentMethodSelect = async (method: string) => {
     setSelectedPaymentMethod(method);
     setShowPaymentModal(false);
-    // Check service availability for pickup location
-    const pickupResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
-    );
-    const pickupData = await pickupResponse.json();
     
-    if (pickupData.results && pickupData.results[0]) {
-      const pickupLocation = pickupData.results[0].geometry.location;
-      console.log('Pickup coordinates:', pickupLocation);
-      const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
-      console.log('Pickup availability:', pickupAvailability);
+    // Skip service area validation for Outstation bookings
+    const isOutstationBooking = serviceType === 'Outstation' || 
+                                 serviceType === BookingType.OUTSTATION || 
+                                 serviceType?.toLowerCase().includes('outstation');
+    
+    console.log('Service Type Check:', {
+      serviceType,
+      BookingTypeOUTSTATION: BookingType.OUTSTATION,
+      isOutstationBooking,
+      willSkipValidation: isOutstationBooking
+    });
+    
+    if (!isOutstationBooking) {
+      // Check service availability for pickup location
+      const pickupResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+      );
+      const pickupData = await pickupResponse.json();
       
-      if (!pickupAvailability.available) {
-        toast.error('Sorry, service not available in pickup area');
-        return;
+      if (pickupData.results && pickupData.results[0]) {
+        const pickupLocation = pickupData.results[0].geometry.location;
+        console.log('Pickup coordinates:', pickupLocation);
+        const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
+        console.log('Pickup availability:', pickupAvailability);
+        
+        if (!pickupAvailability.available) {
+          toast.error('Sorry, service not available in pickup area');
+          return;
+        }
       }
-    }
 
-    // Check service availability for drop location
-    const dropResponse = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.drop)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
-    );
-    const dropData = await dropResponse.json();
-    
-    if (dropData.results && dropData.results[0]) {
-      const dropLocation = dropData.results[0].geometry.location;
-      console.log('Drop coordinates:', dropLocation);
-      const dropAvailability = await checkServiceAvailability(dropLocation.lat, dropLocation.lng);
-      console.log('Drop availability:', dropAvailability);
+      // Check service availability for drop location
+      const dropResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.drop)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+      );
+      const dropData = await dropResponse.json();
       
-      if (!dropAvailability.available) {
-        toast.error('Sorry, service not available in drop area');
-        return;
+      if (dropData.results && dropData.results[0]) {
+        const dropLocation = dropData.results[0].geometry.location;
+        console.log('Drop coordinates:', dropLocation);
+        const dropAvailability = await checkServiceAvailability(dropLocation.lat, dropLocation.lng);
+        console.log('Drop availability:', dropAvailability);
+        
+        if (!dropAvailability.available) {
+          toast.error('Sorry, service not available in drop area');
+          return;
+        }
       }
     }
 
@@ -778,7 +793,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
                                                     setRoundTripErrors({...roundTripErrors, pickup: 'Sorry, service not available in this area'});
                                                 } else if (serviceType === BookingType.OUTSTATION) {
-                                                    setOutstationErrors({...outstationErrors, pickup: 'Sorry, service not available in this area'});
+                                                    // Skip validation for Outstation - no radius check needed
                                                 }
                                             }
                                         }
