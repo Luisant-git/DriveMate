@@ -171,17 +171,19 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                     </div>
                     
                     {/* Customer Info */}
+                    {request.booking.customer && (
                     <div className="bg-gray-50 rounded-xl p-3 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-gray-700 font-semibold text-sm">{request.booking.customer.name.charAt(0)}</span>
+                          <span className="text-gray-700 font-semibold text-sm">{request.booking.customer?.name?.charAt(0) || 'C'}</span>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{request.booking.customer.name}</p>
-                          <p className="text-xs text-gray-600">{request.booking.customer.phone}</p>
+                          <p className="text-sm font-semibold text-gray-900">{request.booking.customer?.name || 'N/A'}</p>
+                          <p className="text-xs text-gray-600">{request.booking.customer?.phone || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
+                    )}
                     
                     {/* Action Buttons */}
                     <div className="flex gap-2 sm:gap-3">
@@ -279,11 +281,11 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                         <p className="text-xs text-gray-500 mb-2 font-medium">Customer Details</p>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                            <span className="text-gray-700 font-semibold text-sm">{booking.customer.name.charAt(0)}</span>
+                            <span className="text-gray-700 font-semibold text-sm">{booking.customer?.name?.charAt(0) || 'C'}</span>
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{booking.customer.name}</p>
-                            <p className="text-xs text-gray-600">{booking.customer.phone}</p>
+                            <p className="text-sm font-semibold text-gray-900">{booking.customer?.name || 'N/A'}</p>
+                            <p className="text-xs text-gray-600">{booking.customer?.phone || 'N/A'}</p>
                           </div>
                         </div>
                       </div>
