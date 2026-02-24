@@ -61,7 +61,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
       const uploadFile = async (file: File | null, fieldName: string) => {
         if (!file) return '';
         
-        const formData = new FormData();
+        const formData = new FormData(); 
         formData.append('file', file);
         
         const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
