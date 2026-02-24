@@ -215,7 +215,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       data.user.alternateMobile2,
                       data.user.alternateMobile3,
                       data.user.alternateMobile4
-                  ].filter(Boolean),
+                  ].filter(phone => phone && phone.trim() !== ''),
                   upiId: data.user.gpayNo
               });
               
@@ -643,13 +643,13 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                      driver.alternateMobile2,
                                                      driver.alternateMobile3,
                                                      driver.alternateMobile4
-                                                 ].filter(Boolean).length ? 
+                                                 ].filter(phone => phone && phone.trim() !== '').length ? 
                                                      [
                                                          driver.alternateMobile1,
                                                          driver.alternateMobile2,
                                                          driver.alternateMobile3,
                                                          driver.alternateMobile4
-                                                     ].filter(Boolean).map((phone, index) => (
+                                                     ].filter(phone => phone && phone.trim() !== '').map((phone, index) => (
                                                          <div key={index} className="flex justify-between items-center py-1">
                                                              <span className="text-gray-400 text-xs">Phone {index + 1}:</span>
                                                              <span className="font-medium">{phone}</span>
