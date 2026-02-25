@@ -34,6 +34,8 @@ export default function CustomerBookingStatus() {
             const startDate = new Date(booking.startDateTime);
             const time = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             const date = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+            const assignedPerson = booking.driver || booking.lead;
+            const isLead = !!booking.lead;
             
             return (
               <div key={booking.id} className="bg-white border rounded-lg p-4 sm:p-5">
@@ -44,11 +46,14 @@ export default function CustomerBookingStatus() {
                     <p className="text-2xl font-bold text-gray-900">₹{booking.estimateAmount}</p>
                   </div>
                   <span className={`inline-block px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold whitespace-nowrap ${
-                    booking.driver ? 'bg-green-100 text-green-700' :
+                    assignedPerson ? 'bg-green-100 text-green-700' :
+                    booking.selectedLeadPackageId ? 'bg-purple-100 text-purple-700' :
                     booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700' :
                     'bg-yellow-100 text-yellow-700'
                   }`}>
-                    {booking.driver ? 'DRIVER ALLOCATED' : booking.status}
+                    {assignedPerson ? (isLead ? 'LEAD ALLOCATED' : 'DRIVER ALLOCATED') : 
+                     booking.selectedLeadPackageId ? 'REQUEST SENT TO LEADS' :
+                     booking.status === 'CONFIRMED' ? 'REQUEST SENT TO DRIVERS' : booking.status}
                   </span>
                 </div>
 
@@ -68,23 +73,27 @@ export default function CustomerBookingStatus() {
                   </div>
                 </div>
 
-                {/* Driver or Status */}
-                {booking.driver ? (
+                {/* Driver/Lead or Status */}
+                {assignedPerson ? (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2 pt-2 border-t">
-                    <p className="text-[10px] font-semibold text-green-700 mb-2">✓ Your Driver</p>
+                    <p className="text-[10px] font-semibold text-green-700 mb-2">✓ Your {isLead ? 'Lead' : 'Driver'}</p>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                        {booking.driver.name?.[0] || 'D'}
+                        {assignedPerson.name?.[0] || (isLead ? 'L' : 'D')}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{booking.driver.name || 'Driver'}</p>
-                        <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
+                        <p className="text-sm font-semibold text-gray-900">{assignedPerson.name || (isLead ? 'Lead' : 'Driver')}</p>
+                        <p className="text-xs text-gray-600">{assignedPerson.phone || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
+                ) : booking.selectedLeadPackageId ? (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                    <p className="text-sm text-purple-700">Request sent to leads...</p>
+                  </div>
                 ) : (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                    <p className="text-sm text-blue-700">Finding available drivers...</p>
+                    <p className="text-sm text-blue-700">Request sent to drivers...</p>
                   </div>
                 )}
               </div>

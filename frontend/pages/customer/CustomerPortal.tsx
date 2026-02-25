@@ -519,11 +519,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
               <div className="flex flex-col items-center text-white">
-                {selectedDriver.documents?.photo ? (
+                {(selectedDriver.documents?.photo || selectedDriver.photo) ? (
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-lg mb-2 sm:mb-3 overflow-hidden bg-white flex items-center justify-center p-1">
                     <img 
-                      src={selectedDriver.documents.photo.startsWith('http') ? selectedDriver.documents.photo : `${API_BASE_URL}${selectedDriver.documents.photo}`} 
-                      alt="Driver Photo" 
+                      src={(selectedDriver.documents?.photo || selectedDriver.photo)?.startsWith('http') ? (selectedDriver.documents?.photo || selectedDriver.photo) : `${API_BASE_URL}${selectedDriver.documents?.photo || selectedDriver.photo}`} 
+                      alt="Photo" 
                       className="w-full h-full object-contain rounded-full" 
                       onError={(e) => {
                         e.currentTarget.parentElement.style.display = 'none';
@@ -532,10 +532,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     />
                   </div>
                 ) : null}
-                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${selectedDriver.documents?.photo ? 'hidden' : ''}`}>
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${(selectedDriver.documents?.photo || selectedDriver.photo) ? 'hidden' : ''}`}>
                   {selectedDriver.name?.[0] || 'D'}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriver.name || 'Driver'}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriver.name || 'Driver/Lead'}</h2>
               </div>
             </div>
 
@@ -555,15 +555,52 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                   </a>
                 </div>
-                {selectedDriver.alternateMobile1 && (
-                  <div className="flex items-center gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-gray-200">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate Number</p>
-                      <a href={`tel:${selectedDriver.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile1}</a>
-                    </div>
+                {(selectedDriver.alternateMobile1 || selectedDriver.alternateMobile2 || selectedDriver.alternateMobile3 || selectedDriver.alternateMobile4) && (
+                  <div className="pt-2 sm:pt-3 border-t border-gray-200 space-y-2">
+                    {selectedDriver.alternateMobile1 && (
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 1</p>
+                          <a href={`tel:${selectedDriver.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile1}</a>
+                        </div>
+                      </div>
+                    )}
+                    {selectedDriver.alternateMobile2 && (
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 2</p>
+                          <a href={`tel:${selectedDriver.alternateMobile2}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile2}</a>
+                        </div>
+                      </div>
+                    )}
+                    {selectedDriver.alternateMobile3 && (
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 3</p>
+                          <a href={`tel:${selectedDriver.alternateMobile3}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile3}</a>
+                        </div>
+                      </div>
+                    )}
+                    {selectedDriver.alternateMobile4 && (
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 4</p>
+                          <a href={`tel:${selectedDriver.alternateMobile4}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile4}</a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -580,10 +617,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                       <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{selectedDriver.licenseNo}</p>
                     </div>
                   </div>
-                  {selectedDriver.documents?.dl && (
+                  {(selectedDriver.documents?.dl || selectedDriver.dlPhoto) && (
                     <img 
-                      src={selectedDriver.documents.dl.startsWith('http') ? selectedDriver.documents.dl : `${API_BASE_URL}${selectedDriver.documents.dl}`} 
-                      alt="Driver License" 
+                      src={(selectedDriver.documents?.dl || selectedDriver.dlPhoto)?.startsWith('http') ? (selectedDriver.documents?.dl || selectedDriver.dlPhoto) : `${API_BASE_URL}${selectedDriver.documents?.dl || selectedDriver.dlPhoto}`} 
+                      alt="License" 
                       className="w-full h-32 sm:h-40 rounded-lg sm:rounded-xl object-contain bg-white border border-gray-200" 
                     />
                   )}
@@ -1636,12 +1673,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              <div className="flex justify-between items-center gap-2 mb-3">
                                 <span className="text-sm font-bold">{formattedTime}, {formattedDate}</span>
                                 <span className={`text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
-                                    booking.status === 'CONFIRMED' && booking.driverId ? 'bg-green-100 text-green-800' : 
+                                    (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'bg-green-100 text-green-800' : 
                                     booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
                                     booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-gray-100'
                                 }`}>
-                                    {booking.status === 'CONFIRMED' && booking.driverId ? 'DRIVER ALLOCATED' : booking.status}
+                                    {(booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
                                 </span>
                              </div>
                              
@@ -1670,10 +1707,46 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  </div>
                              )}
                              
-                             {booking.status === 'CONFIRMED' && !booking.driverId && (
+                             {booking.status === 'CONFIRMED' && !booking.driverId && !booking.leadId && (
                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
                                      <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
                                      <p className="text-xs text-blue-600 mt-1">Request sent to {booking.selectedPackageType} drivers</p>
+                                 </div>
+                             )}
+                             
+                             {/* Lead Details - Show when lead is allocated */}
+                             {booking.lead && booking.leadId && (
+                                 <div className="mt-3 pt-3 border-t border-gray-200">
+                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
+                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
+                                         <div className="flex items-center gap-2.5">
+                                             <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
+                                                 {booking.lead.name?.[0] || 'D'}
+                                             </div>
+                                             <div className="flex-grow min-w-0">
+                                                 <p className="font-bold text-sm truncate">{booking.lead.name || 'Driver'}</p>
+                                                 <p className="text-xs text-gray-600">{booking.lead.phone || 'N/A'}</p>
+                                             </div>
+                                             <a 
+                                                 href={`tel:${booking.lead.phone}`}
+                                                 className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
+                                             >
+                                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                             </a>
+                                         </div>
+                                         <button
+                                             onClick={() => {
+                                               setSelectedDriver(booking.lead);
+                                               setShowDriverProfile(true);
+                                             }}
+                                             className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
+                                         >
+                                             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                             </svg>
+                                             <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
+                                         </button>
+                                     </div>
                                  </div>
                              )}
                              

@@ -113,6 +113,21 @@ export const getCustomerBookings = async (req, res) => {
             dlPhoto: true
           }
         },
+        lead: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            licenseNo: true,
+            alternateMobile1: true,
+            alternateMobile2: true,
+            alternateMobile3: true,
+            alternateMobile4: true,
+            photo: true,
+            dlPhoto: true
+          }
+        },
       },
       orderBy: {
         createdAt: 'desc'
@@ -129,6 +144,11 @@ export const getCustomerBookings = async (req, res) => {
           photo: getFileUrl(booking.driver.photo),
           dl: getFileUrl(booking.driver.dlPhoto)
         }
+      } : null,
+      lead: booking.lead ? {
+        ...booking.lead,
+        photo: getFileUrl(booking.lead.photo),
+        dlPhoto: getFileUrl(booking.lead.dlPhoto)
       } : null
     }));
 

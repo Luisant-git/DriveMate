@@ -4,7 +4,11 @@ import jwt from 'jsonwebtoken';
 
 export const registerLead = async (req, res) => {
   try {
-    const { name, email, phone, password, aadharNo, licenseNo } = req.body;
+    const { 
+      name, email, phone, password, aadharNo, licenseNo,
+      alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4,
+      gpayNo, photo, dlPhoto, panPhoto, aadharPhoto
+    } = req.body;
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
@@ -15,7 +19,16 @@ export const registerLead = async (req, res) => {
         phone,
         password: hashedPassword,
         aadharNo,
-        licenseNo
+        licenseNo,
+        alternateMobile1,
+        alternateMobile2,
+        alternateMobile3,
+        alternateMobile4,
+        gpayNo,
+        photo,
+        dlPhoto,
+        panPhoto,
+        aadharPhoto
       }
     });
     
