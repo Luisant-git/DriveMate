@@ -116,16 +116,17 @@ export const acceptTrip = async (req, res) => {
   }
 };
 
-// Driver completes a trip
+// Driver/Lead completes a trip
 export const completeTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const driverId = req.user.userId; // Changed from req.user.id to req.user.userId
+    const userId = req.user.userId || req.user.id;
+    const isLead = req.user.type === 'lead';
 
-    console.log('Complete trip - driverId:', driverId, 'tripId:', tripId);
+    console.log('Complete trip - userId:', userId, 'tripId:', tripId, 'isLead:', isLead);
 
-    if (!driverId) {
-      return res.status(401).json({ success: false, error: 'Driver ID not found in request' });
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User ID not found in request' });
     }
 
     // Update booking status to completed
@@ -135,29 +136,41 @@ export const completeTrip = async (req, res) => {
       },
       data: {
         status: 'COMPLETED',
-        driverId: driverId, // Set the driverId when completing
+        ...(isLead ? { leadId: userId } : { driverId: userId }),
       },
       include: {
         customer: true,
         driver: true,
+        lead: true,
       },
     });
 
-    // Update driver's completed trips count
-    await prisma.driver.update({
-      where: { id: driverId },
-      data: {
-        totalRides: { increment: 1 },
-      },
-    });
+    // Update driver or lead's completed trips count
+    if (isLead) {
+      await prisma.lead.update({
+        where: { id: userId },
+        data: {
+          totalRides: { increment: 1 },
+        },
+      });
+    } else {
+      await prisma.driver.update({
+        where: { id: userId },
+        data: {
+          totalRides: { increment: 1 },
+        },
+      });
+    }
 
     // Transform to trip format
     const trip = {
       id: booking.id,
       customerId: booking.customerId,
       driverId: booking.driverId,
+      leadId: booking.leadId,
       customer: booking.customer,
       driver: booking.driver,
+      lead: booking.lead,
       pickupLocation: booking.pickupLocation,
       dropLocation: booking.dropLocation,
       type: booking.bookingType,

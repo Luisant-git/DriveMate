@@ -4,13 +4,16 @@ import { User, UserRole } from './types';
 import DriverPortal from './pages/driver/DriverPortal';
 import CustomerPortal from './pages/customer/CustomerPortal';
 import AdminPortal from './pages/admin/AdminPortal';
+import LeadPortal from './pages/lead/LeadPortal';
 import CustomerLogin from './components/auth/CustomerLogin';
 import DriverLogin from './components/auth/DriverLogin';
 import AdminLogin from './components/auth/AdminLogin';
+import LeadLogin from './components/auth/LeadLogin';
+import LeadRegister from './components/auth/LeadRegister';
 import Toast from './components/Toast';
 import { logout, getProfile } from './api/auth';
 
-type LoginStep = 'SELECT_ROLE' | 'CUSTOMER_LOGIN' | 'DRIVER_LOGIN' | 'ADMIN_LOGIN';
+type LoginStep = 'SELECT_ROLE' | 'CUSTOMER_LOGIN' | 'DRIVER_LOGIN' | 'LEAD_LOGIN' | 'LEAD_REGISTER' | 'ADMIN_LOGIN';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -38,6 +41,8 @@ const App: React.FC = () => {
       setLoginStep('CUSTOMER_LOGIN');
     } else if (role === UserRole.DRIVER) {
       setLoginStep('DRIVER_LOGIN');
+    } else if (role === UserRole.LEAD) {
+      setLoginStep('LEAD_LOGIN');
     } else {
       setLoginStep('ADMIN_LOGIN');
     }
@@ -126,6 +131,22 @@ const App: React.FC = () => {
                       </div>
                       <svg className="w-5 h-5 text-gray-400 group-hover:text-black transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                     </button>
+
+                    <button 
+                      onClick={() => handleRoleSelect(UserRole.LEAD)}
+                      className="w-full flex items-center justify-between p-3 sm:p-4 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors group"
+                    >
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shrink-0">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        </div>
+                        <div className="text-left">
+                          <span className="block font-bold text-base sm:text-lg">Lead</span>
+                          <span className="text-xs text-gray-500">Lead Driver</span>
+                        </div>
+                      </div>
+                      <svg className="w-5 h-5 text-gray-400 group-hover:text-black transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
                   </div>
 
                   <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100 flex justify-between items-center">
@@ -143,6 +164,20 @@ const App: React.FC = () => {
               {/* Driver Login */}
               {loginStep === 'DRIVER_LOGIN' && (
                 <DriverLogin onLogin={handleLogin} onBack={handleBack} />
+              )}
+
+              {/* Lead Login */}
+              {loginStep === 'LEAD_LOGIN' && (
+                <LeadLogin 
+                  onLogin={handleLogin} 
+                  onBack={handleBack}
+                  onRegister={() => setLoginStep('LEAD_REGISTER')}
+                />
+              )}
+
+              {/* Lead Register */}
+              {loginStep === 'LEAD_REGISTER' && (
+                <LeadRegister onBack={() => setLoginStep('LEAD_LOGIN')} />
               )}
 
               {/* Admin Login */}
@@ -168,6 +203,9 @@ const App: React.FC = () => {
       )}
       {currentUser.role === UserRole.DRIVER && (
         <DriverPortal driver={currentUser as any} />
+      )}
+      {currentUser.role === UserRole.LEAD && (
+        <LeadPortal onLogout={handleLogout} />
       )}
       {currentUser.role === UserRole.ADMIN && (
         <AdminPortal />

@@ -31,8 +31,12 @@ export default function PendingDriverApproval() {
   const viewAcceptedDrivers = async (booking) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/booking-workflow/admin/${booking.id}/responses`, { withCredentials: true });
-      setAcceptedDrivers(res.data.acceptedDrivers || []);
+      const isLeadBooking = !!booking.selectedLeadPackageId;
+      const endpoint = isLeadBooking 
+        ? `${API_URL}/booking-workflow/admin/${booking.id}/lead-responses`
+        : `${API_URL}/booking-workflow/admin/${booking.id}/responses`;
+      const res = await axios.get(endpoint, { withCredentials: true });
+      setAcceptedDrivers(res.data.acceptedDrivers || res.data.acceptedLeads || []);
       setSelectedBooking(booking);
     } catch (error) {
       console.error('Error:', error);
@@ -41,17 +45,19 @@ export default function PendingDriverApproval() {
     }
   };
 
-  const approveDriver = async (driverId) => {
+  const approveDriver = async (personId, isLead = false) => {
     try {
-      await axios.post(`${API_URL}/booking-workflow/admin/${selectedBooking.id}/allocate-driver`, 
-        { driverId }, 
-        { withCredentials: true }
-      );
-      alert('✓ Driver approved and allocated!');
+      const endpoint = isLead
+        ? `${API_URL}/booking-workflow/admin/${selectedBooking.id}/allocate-lead`
+        : `${API_URL}/booking-workflow/admin/${selectedBooking.id}/allocate-driver`;
+      const payload = isLead ? { leadId: personId } : { driverId: personId };
+      
+      await axios.post(endpoint, payload, { withCredentials: true });
+      alert(`✓ ${isLead ? 'Lead' : 'Driver'} approved and allocated!`);
       setSelectedBooking(null);
       fetchBookingsWithAcceptedDrivers();
     } catch (error) {
-      alert(error.response?.data?.error || 'Error approving driver');
+      alert(error.response?.data?.error || 'Error approving');
     }
   };
 
@@ -68,7 +74,7 @@ export default function PendingDriverApproval() {
           Back
         </button>
 
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Drivers Who Accepted</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{selectedBooking.selectedLeadPackageId ? 'Leads' : 'Drivers'} Who Accepted</h2>
 
         {/* Booking Details */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
@@ -94,47 +100,51 @@ export default function PendingDriverApproval() {
         {/* Accepted Drivers List */}
         {acceptedDrivers.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-            <p className="text-gray-500 text-sm">No drivers have accepted yet</p>
+            <p className="text-gray-500 text-sm">No {selectedBooking.selectedLeadPackageId ? 'leads' : 'drivers'} have accepted yet</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {acceptedDrivers.map(response => (
-              <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                    {response.driver.name?.[0] || 'D'}
+            {acceptedDrivers.map(response => {
+              const person = response.driver || response.lead;
+              const isLead = !!response.lead;
+              return (
+                <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
+                      {person?.name?.[0] || 'D'}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-base font-semibold text-gray-900">{person?.name || (isLead ? 'Lead' : 'Driver')}</p>
+                      <p className="text-sm text-gray-600">{person?.phone || 'N/A'}</p>
+                    </div>
+                    {person?.rating > 0 && (
+                      <div className="flex items-center gap-1">
+                        <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="text-sm font-semibold text-gray-900">{person.rating}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-base font-semibold text-gray-900">{response.driver.name || 'Driver'}</p>
-                    <p className="text-sm text-gray-600">{response.driver.phone || 'N/A'}</p>
-                  </div>
-                  {response.driver.rating > 0 && (
-                    <div className="flex items-center gap-1">
-                      <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="text-sm font-semibold text-gray-900">{response.driver.rating}</span>
+                  
+                  {(person?.vehicleType || person?.vehicleNo) && (
+                    <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {person.vehicleType || 'N/A'} • {person.vehicleNo || 'N/A'}
+                      </p>
                     </div>
                   )}
+                  
+                  <button 
+                    onClick={() => approveDriver(person.id, isLead)} 
+                    className="w-full bg-green-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
+                  >
+                    Approve & Allocate {isLead ? 'Lead' : 'Driver'}
+                  </button>
                 </div>
-                
-                {(response.driver.vehicleType || response.driver.vehicleNo) && (
-                  <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                    <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {response.driver.vehicleType || 'N/A'} • {response.driver.vehicleNo || 'N/A'}
-                    </p>
-                  </div>
-                )}
-                
-                <button 
-                  onClick={() => approveDriver(response.driver.id)} 
-                  className="w-full bg-green-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
-                >
-                  Approve & Allocate Driver
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -170,7 +180,8 @@ export default function PendingDriverApproval() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {bookingsWithAcceptedDrivers.map((booking, index) => {
-                const acceptedCount = booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0;
+                const acceptedCount = (booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0) + 
+                                     (booking.leadResponses?.filter(r => r.status === 'ACCEPTED').length || 0);
                 
                 return (
                   <tr key={booking.id} className="hover:bg-gray-50 transition">
@@ -199,12 +210,12 @@ export default function PendingDriverApproval() {
                     </td>
                     <td className="px-4 py-4">
                       <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                        {booking.selectedPackageType}
+                        {booking.selectedLeadPackageId ? 'LEAD' : booking.selectedPackageType}
                       </span>
                     </td>
                     <td className="px-4 py-4">
                       <span className="inline-block bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-bold">
-                        {acceptedCount} Driver{acceptedCount !== 1 ? 's' : ''}
+                        {acceptedCount} {booking.selectedLeadPackageId ? 'Lead' : 'Driver'}{acceptedCount !== 1 ? 's' : ''}
                       </span>
                     </td>
                     <td className="px-4 py-4">

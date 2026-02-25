@@ -67,6 +67,43 @@ model Driver {
   @@map("drivers")
 }
 
+model Lead {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  phone        String        @unique
+  password     String
+  aadharNo     String        @unique
+  licenseNo    String        @unique
+  photo        String?
+  dlPhoto      String?
+  panPhoto     String?
+  aadharPhoto  String?
+  alternateMobile1 String?
+  alternateMobile2 String?
+  alternateMobile3 String?
+  alternateMobile4 String?
+  gpayNo       String?
+  phonepeNo    String?
+  vehicleNo    String?
+  vehicleType  String?
+  isOnline     Boolean       @default(false)
+  latitude     Float?
+  longitude    Float?
+  rating       Float         @default(0)
+  totalRides   Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  leadSubscriptions LeadSubscription[]
+  leadBookings     LeadBooking[]
+  leadBookingResponses LeadBookingResponse[]
+  bookings         Booking[]
+
+  @@map("leads")
+}
+
 model Admin {
   id        String   @id @default(cuid())
   name      String
@@ -95,6 +132,22 @@ model SubscriptionPlan {
   @@map("subscription_plans")
 }
 
+model LeadSubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  duration    Int      // days
+  price       Float
+  description String?
+  type  PackageType 
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  leadSubscriptions LeadSubscription[]
+
+  @@map("lead_subscription_plans")
+}
+
 model Subscription {
   id       String           @id @default(cuid())
   driverId String
@@ -111,6 +164,24 @@ model Subscription {
   isAdminCreated Boolean      @default(false)
 
   @@map("subscriptions")
+}
+
+model LeadSubscription {
+  id       String           @id @default(cuid())
+  leadId   String
+  lead     Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  planId   String
+  plan     LeadSubscriptionPlan @relation(fields: [planId], references: [id])
+  status   SubStatus        @default(ACTIVE)
+  startDate DateTime        @default(now())
+  endDate   DateTime
+  amount    Float
+  paidAmount Float?
+  remainingAmount Float?
+  paymentMethod String?
+  isAdminCreated Boolean      @default(false)
+
+  @@map("lead_subscriptions")
 }
 
 model Ride {
@@ -292,16 +363,57 @@ model Booking {
   // Admin workflow fields
   adminReviewedAt DateTime?
   selectedPackageType PackageType?
+  selectedLeadPackageId String?
   
   // Driver responses
   driverResponses BookingResponse[]
   allocatedDriverId String?
   allocatedAt     DateTime?
   
+  // Lead responses
+  leadResponses LeadBookingResponse[]
+  allocatedLeadId String?
+  leadId          String?
+  lead            Lead?       @relation(fields: [leadId], references: [id])
+  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   @@map("bookings")
+}
+
+model LeadBooking {
+  id              String      @id @default(cuid())
+  customerId      String
+  leadId          String?
+  lead            Lead?       @relation(fields: [leadId], references: [id])
+  
+  pickupLocation  String
+  dropLocation    String
+  bookingType     String
+  serviceType     String?
+  duration        String?
+  startDateTime   DateTime
+  endDateTime     DateTime?
+  vehicleType     String?
+  carType         String?
+  
+  estimateAmount  Float?
+  finalAmount     Float?
+  advancePayment  Float       @default(0)
+  paymentMethod   String?
+  status          BookingStatus @default(PENDING)
+  
+  adminReviewedAt DateTime?
+  selectedPackageType PackageType?
+  
+  allocatedLeadId String?
+  allocatedAt     DateTime?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("lead_bookings")
 }
 
 model BookingResponse {
@@ -319,6 +431,23 @@ model BookingResponse {
   
   @@unique([bookingId, driverId])
   @@map("booking_responses")
+}
+
+model LeadBookingResponse {
+  id              String      @id @default(cuid())
+  bookingId       String
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  leadId          String
+  lead            Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  status          String      @default("PENDING")
+  respondedAt     DateTime?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@unique([bookingId, leadId])
+  @@map("lead_booking_responses")
 }
 
 model Payment {

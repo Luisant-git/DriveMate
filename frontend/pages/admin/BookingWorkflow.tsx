@@ -12,13 +12,17 @@ export default function BookingWorkflow() {
   const [loading, setLoading] = useState(false);
   const [bookingDrivers, setBookingDrivers] = useState({});
   const [driverCounts, setDriverCounts] = useState({ LOCAL: 0, OUTSTATION: 0, ALL_PREMIUM: 0 });
+  const [leadCounts, setLeadCounts] = useState({ LOCAL: 0, OUTSTATION: 0 });
   const [filters, setFilters] = useState({ bookingType: '', serviceType: '', paymentStatus: '' });
   const [packages, setPackages] = useState([]);
+  const [leadPackages, setLeadPackages] = useState([]);
 
   useEffect(() => {
     fetchPendingBookings();
     fetchDriverCounts();
+    fetchLeadCounts();
     fetchPackages();
+    fetchLeadPackages();
   }, [filters]);
 
   const fetchPackages = async () => {
@@ -27,6 +31,15 @@ export default function BookingWorkflow() {
       setPackages(Array.isArray(res.data) ? res.data.filter(p => p.isActive) : []);
     } catch (error) {
       console.error('Error fetching packages:', error);
+    }
+  };
+
+  const fetchLeadPackages = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/lead-subscriptions/plans`, { withCredentials: true });
+      setLeadPackages(res.data?.plans ? res.data.plans.filter(p => p.isActive) : []);
+    } catch (error) {
+      console.error('Error fetching lead packages:', error);
     }
   };
 
@@ -42,6 +55,20 @@ export default function BookingWorkflow() {
       });
     } catch (error) {
       console.error('Error fetching driver counts:', error);
+    }
+  };
+
+  const fetchLeadCounts = async () => {
+    try {
+      const localLeads = await axios.get(`${API_URL}/leads/count-by-type/LOCAL`, { withCredentials: true });
+      const outstationLeads = await axios.get(`${API_URL}/leads/count-by-type/OUTSTATION`, { withCredentials: true });
+      
+      setLeadCounts({
+        LOCAL: localLeads.data.count || 0,
+        OUTSTATION: outstationLeads.data.count || 0
+      });
+    } catch (error) {
+      console.error('Error fetching lead counts:', error);
     }
   };
 
@@ -65,46 +92,83 @@ export default function BookingWorkflow() {
 
   const fetchAvailableDrivers = async (bookingId, packageId) => {
     try {
-      const selectedPackage = packages.find(p => p.id === packageId);
-      if (!selectedPackage) return;
+      const isLeadPackage = packageId.startsWith('lead-');
+      const actualPackageId = isLeadPackage ? packageId.replace('lead-', '') : packageId;
       
-      const res = await axios.get(`${API_URL}/drivers/available/${packageId}`, { withCredentials: true });
-      setBookingDrivers({
-        ...bookingDrivers,
-        [bookingId]: {
-          packageId,
-          packageType: selectedPackage.type,
-          packageName: selectedPackage.name,
-          drivers: res.data.drivers || []
-        }
-      });
+      if (isLeadPackage) {
+        const selectedPackage = leadPackages.find(p => p.id === actualPackageId);
+        if (!selectedPackage) return;
+        
+        const res = await axios.get(`${API_URL}/leads/count-by-type/${selectedPackage.type}`, { withCredentials: true });
+        setBookingDrivers({
+          ...bookingDrivers,
+          [bookingId]: {
+            packageId: actualPackageId,
+            packageType: selectedPackage.type,
+            packageName: selectedPackage.name,
+            drivers: [],
+            leads: res.data.count || 0,
+            isLeadPackage: true
+          }
+        });
+      } else {
+        const selectedPackage = packages.find(p => p.id === packageId);
+        if (!selectedPackage) return;
+        
+        const res = await axios.get(`${API_URL}/drivers/available/${packageId}`, { withCredentials: true });
+        setBookingDrivers({
+          ...bookingDrivers,
+          [bookingId]: {
+            packageId,
+            packageType: selectedPackage.type,
+            packageName: selectedPackage.name,
+            drivers: res.data.drivers || [],
+            isLeadPackage: false
+          }
+        });
+      }
     } catch (error) {
-      console.error('Error fetching drivers:', error);
+      console.error('Error fetching drivers/leads:', error);
       setBookingDrivers({
         ...bookingDrivers,
         [bookingId]: {
-          packageId,
+          packageId: '',
           packageType: '',
           packageName: '',
-          drivers: []
+          drivers: [],
+          isLeadPackage: false
         }
       });
     }
   };
 
-  const reviewBooking = async (bookingId, packageType, packageId) => {
+  const reviewBooking = async (bookingId, packageType, packageId, isLeadPackage) => {
     try {
       setLoading(true);
-      await axios.put(`${API_URL}/booking-workflow/admin/${bookingId}/review`, 
-        { selectedPackageType: packageType, selectedPackageId: packageId }, 
-        { withCredentials: true }
-      );
-      const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-drivers`, {}, { withCredentials: true });
       
-      if (sendResponse.data.success) {
-        alert(`✓ Booking sent to ${sendResponse.data.driversCount} drivers!`);
-        setBookingDrivers({});
-        fetchPendingBookings();
+      if (isLeadPackage) {
+        const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-leads`, 
+          { leadPackageId: packageId }, 
+          { withCredentials: true }
+        );
+        
+        if (sendResponse.data.success) {
+          alert(`✓ Booking sent to ${sendResponse.data.leadsCount} leads!`);
+          setBookingDrivers({});
+          fetchPendingBookings();
+        }
+      } else {
+        await axios.put(`${API_URL}/booking-workflow/admin/${bookingId}/review`, 
+          { selectedPackageType: packageType, selectedPackageId: packageId }, 
+          { withCredentials: true }
+        );
+        const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-drivers`, {}, { withCredentials: true });
+        
+        if (sendResponse.data.success) {
+          alert(`✓ Booking sent to ${sendResponse.data.driversCount} drivers!`);
+          setBookingDrivers({});
+          fetchPendingBookings();
+        }
       }
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Error sending booking';
@@ -114,23 +178,28 @@ export default function BookingWorkflow() {
     }
   };
 
-  const viewResponses = async (bookingId) => {
+  const viewResponses = async (bookingId, isLeadBooking = false) => {
     try {
-      const res = await axios.get(`${API_URL}/booking-workflow/admin/${bookingId}/responses`, { withCredentials: true });
-      setResponses(res.data.acceptedDrivers);
+      const endpoint = isLeadBooking 
+        ? `${API_URL}/booking-workflow/admin/${bookingId}/lead-responses`
+        : `${API_URL}/booking-workflow/admin/${bookingId}/responses`;
+      const res = await axios.get(endpoint, { withCredentials: true });
+      setResponses(isLeadBooking ? res.data.responses : res.data.responses);
       setSelectedBooking(bookingId);
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
-  const allocateDriver = async (driverId) => {
+  const allocateDriver = async (personId, isLead = false) => {
     try {
-      await axios.post(`${API_URL}/booking-workflow/admin/${selectedBooking}/allocate-driver`, 
-        { driverId }, 
-        { withCredentials: true }
-      );
-      alert('Driver allocated!');
+      const endpoint = isLead 
+        ? `${API_URL}/booking-workflow/admin/${selectedBooking}/allocate-lead`
+        : `${API_URL}/booking-workflow/admin/${selectedBooking}/allocate-driver`;
+      const payload = isLead ? { leadId: personId } : { driverId: personId };
+      
+      await axios.post(endpoint, payload, { withCredentials: true });
+      alert(`${isLead ? 'Lead' : 'Driver'} allocated!`);
       setSelectedBooking(null);
       fetchPendingBookings();
     } catch (error) {
@@ -181,7 +250,7 @@ export default function BookingWorkflow() {
           </div>
           
           {/* Driver Availability Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -208,19 +277,32 @@ export default function BookingWorkflow() {
                 </div>
               </div>
             </div>
-            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-500 font-medium mb-1">ALL PREMIUM Drivers</p>
-                  <p className="text-2xl font-bold text-gray-900">{driverCounts.ALL_PREMIUM}</p>
+                  <p className="text-xs text-gray-500 font-medium mb-1">LOCAL Leads</p>
+                  <p className="text-2xl font-bold text-gray-900">{leadCounts.LOCAL}</p>
                 </div>
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
               </div>
-            </div> */}
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-1">OUTSTATION Leads</p>
+                  <p className="text-2xl font-bold text-gray-900">{leadCounts.OUTSTATION}</p>
+                </div>
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
           {filteredBookings.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
@@ -314,7 +396,7 @@ export default function BookingWorkflow() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            {!booking.selectedPackageType ? (
+                            {!booking.selectedPackageType && !booking.selectedLeadPackageId ? (
                               <div className="space-y-2">
                                 <select
                                   onChange={(e) => e.target.value && fetchAvailableDrivers(booking.id, e.target.value)}
@@ -323,28 +405,37 @@ export default function BookingWorkflow() {
                                   defaultValue=""
                                 >
                                   <option value="" disabled className="bg-white text-black">Select Package</option>
-                                  {packages.map(pkg => (
-                                    <option key={pkg.id} value={pkg.id} className="bg-white text-black">
-                                      {pkg.name} - ₹{pkg.price}
-                                    </option>
-                                  ))}
+                                  <optgroup label="Driver Packages" className="bg-white text-black">
+                                    {packages.map(pkg => (
+                                      <option key={pkg.id} value={pkg.id} className="bg-white text-black">
+                                        {pkg.name} - ₹{pkg.price}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                  <optgroup label="Lead Packages" className="bg-white text-black">
+                                    {leadPackages.map(pkg => (
+                                      <option key={`lead-${pkg.id}`} value={`lead-${pkg.id}`} className="bg-white text-black">
+                                        {pkg.name} - ₹{pkg.price} (Lead)
+                                      </option>
+                                    ))}
+                                  </optgroup>
                                 </select>
                                 
                                 {bookingDrivers[booking.id] && (
                                   <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                                     <p className="text-xs font-semibold text-gray-700 mb-2">
-                                      {bookingDrivers[booking.id].packageName}: {bookingDrivers[booking.id].drivers.length} Available
+                                      {bookingDrivers[booking.id].packageName}: {bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length} Available
                                     </p>
-                                    {bookingDrivers[booking.id].drivers.length > 0 ? (
+                                    {(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads > 0 : bookingDrivers[booking.id].drivers.length > 0) ? (
                                       <button 
-                                        onClick={() => reviewBooking(booking.id, bookingDrivers[booking.id].packageType, bookingDrivers[booking.id].packageId)} 
+                                        onClick={() => reviewBooking(booking.id, bookingDrivers[booking.id].packageType, bookingDrivers[booking.id].packageId, bookingDrivers[booking.id].isLeadPackage)} 
                                         disabled={loading}
                                         className="w-full bg-green-600 text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-green-700 disabled:opacity-50 transition"
                                       >
-                                        Send to {bookingDrivers[booking.id].drivers.length} Driver{bookingDrivers[booking.id].drivers.length !== 1 ? 's' : ''}
+                                        Send to {bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length} {bookingDrivers[booking.id].isLeadPackage ? 'Lead' : 'Driver'}{(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length) !== 1 ? 's' : ''}
                                       </button>
                                     ) : (
-                                      <p className="text-xs text-red-600">No drivers available</p>
+                                      <p className="text-xs text-red-600">No {bookingDrivers[booking.id].isLeadPackage ? 'leads' : 'drivers'} available</p>
                                     )}
                                   </div>
                                 )}
@@ -352,13 +443,15 @@ export default function BookingWorkflow() {
                             ) : (
                               <div className="space-y-2">
                                 <div className="bg-green-50 rounded-lg p-2">
-                                  <p className="text-xs font-medium text-green-800">✓ Sent to {booking.selectedPackageType}</p>
+                                  <p className="text-xs font-medium text-green-800">
+                                    ✓ Sent to {booking.selectedLeadPackageId ? `${booking.selectedPackageType || 'LOCAL'} Leads` : `${booking.selectedPackageType} Drivers`}
+                                  </p>
                                 </div>
                                 <button 
-                                  onClick={() => viewResponses(booking.id)} 
+                                  onClick={() => viewResponses(booking.id, !!booking.selectedLeadPackageId)} 
                                   className="w-full bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 transition"
                                 >
-                                  View ({booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0})
+                                  View ({booking.selectedLeadPackageId ? (booking.leadResponses?.length || 0) : (booking.driverResponses?.length || 0)})
                                 </button>
                               </div>
                             )}
@@ -383,7 +476,7 @@ export default function BookingWorkflow() {
             Back
           </button>
           
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Drivers Who Accepted</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Driver/Lead Responses</h2>
           
           {responses.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
@@ -392,47 +485,56 @@ export default function BookingWorkflow() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm">No drivers have accepted yet</p>
+              <p className="text-gray-500 text-sm">No responses yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {responses.map(response => (
-                <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                        {response.driver.name?.[0] || 'D'}
+              {responses.map(response => {
+                const person = response.driver || response.lead;
+                const isAccepted = response.status === 'ACCEPTED';
+                return (
+                  <div key={response.id} className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden ${isAccepted ? 'border-green-200' : response.status === 'REJECTED' ? 'border-red-200' : 'border-gray-200'}`}>
+                    <div className="p-5">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold text-lg ${isAccepted ? 'bg-green-600 text-white' : response.status === 'REJECTED' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'}`}>
+                          {person?.name?.[0] || 'D'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-base font-semibold text-gray-900">{person?.name || 'Driver'}</p>
+                          <p className="text-sm text-gray-600">{person?.phone || 'N/A'}</p>
+                        </div>
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${isAccepted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {response.status}
+                        </span>
+                        {person?.rating && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span className="text-sm font-semibold text-gray-900">{person.rating}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-base font-semibold text-gray-900">{response.driver.name || 'Driver'}</p>
-                        <p className="text-sm text-gray-600">{response.driver.phone || 'N/A'}</p>
-                      </div>
-                      {response.driver.rating && (
-                        <div className="flex items-center gap-1">
-                          <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                          <span className="text-sm font-semibold text-gray-900">{response.driver.rating}</span>
+                      
+                      {(person?.vehicleType || person?.vehicleNo) && (
+                        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                          <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
+                          <p className="text-sm font-semibold text-gray-900">{person.vehicleType} • {person.vehicleNo}</p>
                         </div>
                       )}
+                      
+                      {isAccepted && (
+                        <button 
+                          onClick={() => allocateDriver(person.id, !!response.lead)} 
+                          className="w-full bg-black text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95"
+                        >
+                          Allocate This {response.driver ? 'Driver' : 'Lead'}
+                        </button>
+                      )}
                     </div>
-                    
-                    {(response.driver.vehicleType || response.driver.vehicleNo) && (
-                      <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                        <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
-                        <p className="text-sm font-semibold text-gray-900">{response.driver.vehicleType} • {response.driver.vehicleNo}</p>
-                      </div>
-                    )}
-                    
-                    <button 
-                      onClick={() => allocateDriver(response.driver.id)} 
-                      className="w-full bg-black text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95"
-                    >
-                      Allocate This Driver
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

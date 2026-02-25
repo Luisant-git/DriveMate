@@ -10,7 +10,8 @@ export const getAdminPendingBookings = async (req, res) => {
         { status: 'PENDING' },
         { status: 'CONFIRMED' }
       ],
-      allocatedDriverId: null
+      allocatedDriverId: null,
+      allocatedLeadId: null
     };
     
     if (bookingType) {
@@ -28,6 +29,9 @@ export const getAdminPendingBookings = async (req, res) => {
         package: true,
         driverResponses: {
           include: { driver: true }
+        },
+        leadResponses: {
+          include: { lead: true }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -141,8 +145,7 @@ export const getDriverPendingRequests = async (req, res) => {
 
     const responses = await prisma.bookingResponse.findMany({
       where: {
-        driverId,
-        status: 'PENDING'
+        driverId
       },
       include: {
         booking: {
@@ -382,6 +385,186 @@ export const getDriverAllocatedBooking = async (req, res) => {
     res.json({ success: true, booking });
   } catch (error) {
     console.error('Error fetching booking:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ADMIN: Send booking to leads with selected package
+export const sendBookingToLeads = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { leadPackageId } = req.body;
+
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    const leadPackage = await prisma.leadSubscriptionPlan.findUnique({ where: { id: leadPackageId } });
+    if (!leadPackage) {
+      return res.status(404).json({ success: false, error: 'Lead package not found' });
+    }
+
+    const leads = await prisma.lead.findMany({
+      where: {
+        leadSubscriptions: {
+          some: {
+            status: 'ACTIVE',
+            planId: leadPackageId,
+            endDate: { gte: new Date() }
+          }
+        }
+      }
+    });
+
+    if (leads.length === 0) {
+      return res.status(400).json({ success: false, error: 'No leads available with this package' });
+    }
+
+    const responses = await Promise.all(
+      leads.map(lead =>
+        prisma.leadBookingResponse.create({
+          data: {
+            bookingId,
+            leadId: lead.id,
+            status: 'PENDING'
+          }
+        })
+      )
+    );
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { selectedLeadPackageId: leadPackageId }
+    });
+
+    res.json({ success: true, message: `Booking sent to ${leads.length} leads`, leadsCount: leads.length });
+  } catch (error) {
+    console.error('Error sending booking to leads:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// LEAD: Get pending booking requests
+export const getLeadPendingRequests = async (req, res) => {
+  try {
+    const leadId = req.user.id;
+
+    const responses = await prisma.leadBookingResponse.findMany({
+      where: { leadId },
+      include: {
+        booking: {
+          include: { customer: true, package: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, requests: responses });
+  } catch (error) {
+    console.error('Error fetching lead requests:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// LEAD: Accept or reject booking request
+export const respondToLeadBookingRequest = async (req, res) => {
+  try {
+    const { responseId } = req.params;
+    const { action } = req.body;
+
+    if (!['ACCEPTED', 'REJECTED'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'Invalid action' });
+    }
+
+    const response = await prisma.leadBookingResponse.update({
+      where: { id: responseId },
+      data: { status: action, respondedAt: new Date() },
+      include: { booking: true, lead: true }
+    });
+
+    res.json({ success: true, response, message: `Booking request ${action.toLowerCase()}` });
+  } catch (error) {
+    console.error('Error responding to booking:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ADMIN: Get lead booking responses
+export const getLeadBookingResponses = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const responses = await prisma.leadBookingResponse.findMany({
+      where: { bookingId },
+      include: {
+        lead: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            rating: true,
+            totalRides: true,
+            photo: true
+          }
+        }
+      }
+    });
+
+    const acceptedLeads = responses.filter(r => r.status === 'ACCEPTED');
+
+    res.json({ success: true, responses, acceptedLeads, acceptedCount: acceptedLeads.length });
+  } catch (error) {
+    console.error('Error fetching lead responses:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ADMIN: Allocate lead to booking
+export const allocateLeadToBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { leadId } = req.body;
+
+    if (!leadId) {
+      return res.status(400).json({ success: false, error: 'Lead ID required' });
+    }
+
+    const response = await prisma.leadBookingResponse.findUnique({
+      where: { bookingId_leadId: { bookingId, leadId } }
+    });
+
+    if (!response || response.status !== 'ACCEPTED') {
+      return res.status(400).json({ success: false, error: 'Lead has not accepted this booking' });
+    }
+
+    const booking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        leadId,
+        allocatedLeadId: leadId,
+        allocatedAt: new Date(),
+        status: 'CONFIRMED'
+      },
+      include: {
+        customer: true,
+        lead: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            rating: true,
+            photo: true
+          }
+        }
+      }
+    });
+
+    res.json({ success: true, booking, message: 'Lead allocated successfully' });
+  } catch (error) {
+    console.error('Error allocating lead:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

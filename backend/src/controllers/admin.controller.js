@@ -142,6 +142,55 @@ export const findNearestDrivers = async (req, res) => {
   }
 };
 
+export const getAllLeads = async (req, res) => {
+  try {
+    const leads = await prisma.lead.findMany({
+      include: {
+        leadSubscriptions: {
+          include: { plan: true },
+          orderBy: { startDate: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, leads });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const approveLeadStatus = async (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const { status } = req.body;
+    
+    const lead = await prisma.lead.update({
+      where: { id: leadId },
+      data: { status }
+    });
+    
+    res.json({ success: true, lead });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getAllLeadSubscriptions = async (req, res) => {
+  try {
+    const subscriptions = await prisma.leadSubscription.findMany({
+      include: {
+        lead: true,
+        plan: true
+      },
+      orderBy: { startDate: 'desc' }
+    });
+    res.json({ success: true, subscriptions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;

@@ -1,6 +1,7 @@
 import express from 'express';
-import { createBooking, getEstimate, getCustomerBookings, getDriverBookings } from '../controllers/booking.controller.js';
+import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips } from '../controllers/booking.controller.js';
 import { requireAuth } from '../middleware/sessionAuth.js';
+import { authenticateLead } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -125,5 +126,8 @@ router.get('/my-bookings', requireAuth, getCustomerBookings);
  *                 $ref: '#/components/schemas/Booking'
  */
 router.get('/driver-bookings', requireAuth, getDriverBookings);
+
+router.get('/lead/allocated', authenticateLead, getLeadBookings);
+router.get('/lead/completed', authenticateLead, getLeadCompletedTrips);
 
 export default router;

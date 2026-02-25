@@ -1,0 +1,17 @@
+DATABASE MIGRATION REQUIRED
+===========================
+
+Run the following commands to update the database schema:
+
+1. cd backend
+2. npx prisma migrate dev --name add_lead_workflow
+3. npx prisma generate
+
+This will add the following fields to the Booking model:
+- selectedLeadPackageId
+- leadResponses (relation)
+- allocatedLeadId
+- leadId
+- lead (relation)
+
+And update LeadBookingResponse to reference Booking instead of LeadBooking.

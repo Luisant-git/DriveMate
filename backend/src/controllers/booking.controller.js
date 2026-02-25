@@ -173,3 +173,69 @@ export const getDriverBookings = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const getLeadBookings = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        allocatedLeadId: req.user.id,
+        status: { in: ['CONFIRMED', 'ONGOING'] }
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            address: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      success: true,
+      bookings
+    });
+  } catch (error) {
+    console.error('Error fetching lead bookings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getLeadCompletedTrips = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        allocatedLeadId: req.user.id,
+        status: 'COMPLETED'
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            address: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      success: true,
+      bookings
+    });
+  } catch (error) {
+    console.error('Error fetching completed trips:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

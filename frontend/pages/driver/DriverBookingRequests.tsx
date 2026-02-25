@@ -6,6 +6,7 @@ const API_URL = API_BASE_URL + '/api';
 
 export default function DriverBookingRequests({ onNavigateToPackages }: { onNavigateToPackages?: () => void }) {
   const [requests, setRequests] = useState([]);
+  const [allRequests, setAllRequests] = useState([]);
   const [allocatedBookings, setAllocatedBookings] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,9 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
   const fetchRequests = async () => {
     try {
       const res = await axios.get(`${API_URL}/booking-workflow/driver/pending-requests`, { withCredentials: true });
-      setRequests(res.data.requests);
+      const allReqs = res.data.requests || [];
+      setAllRequests(allReqs);
+      setRequests(allReqs.filter(r => r.status === 'PENDING'));
     } catch (error) {
       console.error('Error:', error);
     }
@@ -290,6 +293,65 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                         </div>
                       </div>
                     )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Request History */}
+      <div>
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Request History</h2>
+        {allRequests.filter(r => r.status !== 'PENDING').length === 0 ? (
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
+            <p className="text-gray-500 text-sm">No request history</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {allRequests.filter(r => r.status !== 'PENDING').map(request => {
+              const startDate = new Date(request.booking.startDateTime);
+              const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+              const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              
+              return (
+                <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-4 sm:p-5">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
+                        {request.booking.estimateAmount && (
+                          <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
+                        )}
+                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.bookingType}</span>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {request.status}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="flex flex-col items-center pt-1">
+                          <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                          <div className="w-0.5 h-8 bg-gray-300"></div>
+                          <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Pickup</p>
+                            <p className="text-sm font-medium text-gray-900">{request.booking.pickupLocation}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Drop-off</p>
+                            <p className="text-sm font-medium text-gray-900">{request.booking.dropLocation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

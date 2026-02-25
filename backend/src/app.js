@@ -23,6 +23,8 @@ import pricingPackageRoutes from "./routes/pricingPackage.routes.js";
 import reportsRoutes from "./routes/reports.routes.js";
 import serviceAreaRoutes from "./routes/serviceArea.routes.js";
 import monthlyPricingRoutes from "./routes/monthly.pricing.routes.js";
+import leadRoutes from "./routes/lead.routes.js";
+import leadSubscriptionRoutes from "./routes/leadSubscription.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,5 +80,7 @@ app.use("/api/pricing-packages", pricingPackageRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/service-areas", serviceAreaRoutes);
 app.use("/api/monthly-pricing", monthlyPricingRoutes);
+app.use("/api/leads", leadRoutes);
+app.use("/api/lead-subscriptions", leadSubscriptionRoutes);
 
 export default app;

@@ -8,9 +8,15 @@ import {
   getBookingResponses,
   allocateDriverToBooking,
   getCustomerBookingWithDriver,
-  getDriverAllocatedBooking
+  getDriverAllocatedBooking,
+  sendBookingToLeads,
+  getLeadPendingRequests,
+  respondToLeadBookingRequest,
+  getLeadBookingResponses,
+  allocateLeadToBooking
 } from '../controllers/booking.workflow.controller.js';
 import { requireAuth } from '../middleware/sessionAuth.js';
+import { authenticateLead } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -210,5 +216,12 @@ router.get('/driver/:bookingId', requireAuth, getDriverAllocatedBooking);
  *         description: Booking with driver details
  */
 router.get('/customer/:bookingId', requireAuth, getCustomerBookingWithDriver);
+
+// Lead workflow routes
+router.post('/admin/:bookingId/send-to-leads', requireAuth, sendBookingToLeads);
+router.get('/admin/:bookingId/lead-responses', requireAuth, getLeadBookingResponses);
+router.post('/admin/:bookingId/allocate-lead', requireAuth, allocateLeadToBooking);
+router.get('/lead/pending-requests', authenticateLead, getLeadPendingRequests);
+router.put('/lead/respond/:responseId', authenticateLead, respondToLeadBookingRequest);
 
 export default router;

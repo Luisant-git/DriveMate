@@ -146,7 +146,7 @@ router.post('/:tripId/accept', authenticateToken, requireRole(['DRIVER']), accep
  *       200:
  *         description: Trip completed
  */
-router.post('/:tripId/complete', authenticateToken, requireRole(['DRIVER']), completeTrip);
+router.post('/:tripId/complete', authenticateToken, requireRole(['DRIVER', 'LEAD']), completeTrip);
 
 /**
  * @swagger

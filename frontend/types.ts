@@ -2,6 +2,7 @@
 export enum UserRole {
   ADMIN = 'ADMIN',
   DRIVER = 'DRIVER',
+  LEAD = 'LEAD',
   CUSTOMER = 'CUSTOMER',
   GUEST = 'GUEST'
 }
@@ -33,6 +34,24 @@ export interface Driver extends User {
   licenseNo: string;
   altPhone: string[]; // Up to 4 numbers
   upiId?: string; // GPay/PhonePe
+  isVerified: boolean;
+  packageSubscription?: 'LOCAL' | 'OUTSTATION' | 'ALL' | null;
+  subscriptionExpiry?: string;
+  documents: {
+    photo?: string;
+    dl?: string;
+    pan?: string;
+    aadhar?: string;
+  };
+  rating: number;
+  completedTrips: number;
+}
+
+export interface Lead extends User {
+  aadharNo: string;
+  licenseNo: string;
+  altPhone: string[];
+  upiId?: string;
   isVerified: boolean;
   packageSubscription?: 'LOCAL' | 'OUTSTATION' | 'ALL' | null;
   subscriptionExpiry?: string;

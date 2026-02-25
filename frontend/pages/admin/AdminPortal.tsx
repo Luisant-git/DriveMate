@@ -4,6 +4,9 @@ import BookingWorkflow from './BookingWorkflow';
 import PendingDriverApproval from './PendingDriverApproval';
 import Customer from './Customer';
 import Driver from './Driver';
+import Lead from './Lead';
+import LeadPackage from './LeadPackage';
+import LeadSubscriptionList from './LeadSubscriptionList';
 import SubscriptionList from './SubscriptionList';
 import PricingManagement from '../../components/admin/PricingManagement';
 import ServiceAreaManagement from '../../components/admin/ServiceAreaManagement';
@@ -33,7 +36,7 @@ interface PackageFormState {
 
 const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS'
+    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -285,7 +288,7 @@ const AdminPortal: React.FC = () => {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
         <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
           <div className="flex space-x-6">
-            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'PACKAGES', 'SUBSCRIPTIONS', 'PRICING', 'SERVICE_AREAS', 'PAYMENTS', 'REPORTS'].map(
+            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'LEADS', 'LEAD_PACKAGES', 'LEAD_SUBSCRIPTIONS', 'PACKAGES', 'SUBSCRIPTIONS', 'PRICING', 'SERVICE_AREAS', 'PAYMENTS', 'REPORTS'].map(
               (tab) => (
                 <button
                   key={tab}
@@ -296,7 +299,7 @@ const AdminPortal: React.FC = () => {
                       : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
-                  {tab}
+                  {tab.replace('_', ' ')}
                 </button>
               ),
             )}
@@ -313,6 +316,12 @@ const AdminPortal: React.FC = () => {
           {activeTab === 'CUSTOMERS' && <Customer />}
 
           {activeTab === 'DRIVERS' && <Driver />}
+
+          {activeTab === 'LEADS' && <Lead />}
+
+          {activeTab === 'LEAD_PACKAGES' && <LeadPackage />}
+
+          {activeTab === 'LEAD_SUBSCRIPTIONS' && <LeadSubscriptionList />}
 
 {activeTab === 'PACKAGES' && (
   <div className="p-4 md:p-6">
@@ -522,7 +531,6 @@ const AdminPortal: React.FC = () => {
                 >
                   <option value="LOCAL">LOCAL</option>
                   <option value="OUTSTATION">OUTSTATION</option>
-                  <option value="ALL_PREMIUM">ALL</option>
                 </select>
               </label>
 
