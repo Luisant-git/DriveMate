@@ -215,7 +215,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       data.user.alternateMobile2,
                       data.user.alternateMobile3,
                       data.user.alternateMobile4
-                  ].filter(Boolean),
+                  ].filter(phone => phone && phone.trim() !== ''),
                   upiId: data.user.gpayNo
               });
               
@@ -487,7 +487,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                          <div className="bg-black h-20 sm:h-24 relative">
                              <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6">
-                                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
+                                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
                                      {driver.photo && driver.photo !== '' ? (
                                          <img 
                                              src={driver.photo.startsWith('http') ? driver.photo : `${API_BASE_URL}${driver.photo}`} 
@@ -500,7 +500,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          />
                                      ) : null}
                                      <div className={`w-full h-full ${driver.photo && driver.photo !== '' ? 'hidden' : 'flex'} items-center justify-center bg-gray-300 rounded-full`}>
-                                         <span className="text-gray-600 text-lg font-bold">{driver.name?.charAt(0) || 'D'}</span>
+                                         <span className="text-gray-600 text-lg font-bold">{driver?.name?.charAt(0) || 'D'}</span>
                                      </div>
                                  </div>
                              </div>
@@ -643,13 +643,13 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                      driver.alternateMobile2,
                                                      driver.alternateMobile3,
                                                      driver.alternateMobile4
-                                                 ].filter(Boolean).length ? 
+                                                 ].filter(phone => phone && phone.trim() !== '').length ? 
                                                      [
                                                          driver.alternateMobile1,
                                                          driver.alternateMobile2,
                                                          driver.alternateMobile3,
                                                          driver.alternateMobile4
-                                                     ].filter(Boolean).map((phone, index) => (
+                                                     ].filter(phone => phone && phone.trim() !== '').map((phone, index) => (
                                                          <div key={index} className="flex justify-between items-center py-1">
                                                              <span className="text-gray-400 text-xs">Phone {index + 1}:</span>
                                                              <span className="font-medium">{phone}</span>

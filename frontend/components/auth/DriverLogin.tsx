@@ -61,7 +61,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
       const uploadFile = async (file: File | null, fieldName: string) => {
         if (!file) return '';
         
-        const formData = new FormData();
+        const formData = new FormData(); 
         formData.append('file', file);
         
         const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
@@ -191,7 +191,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin, onBack }) => {
                   type="tel"
                   className="w-full bg-gray-100 border-none rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black"
                   placeholder={`Alternate Phone ${index + 1}`}
-                  value={phone}
+                  value={phone || ''}
                   onChange={(e) => {
                     const newAltPhones = [...registerData.altPhone];
                     newAltPhones[index] = e.target.value;
