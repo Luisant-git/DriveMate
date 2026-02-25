@@ -74,9 +74,9 @@ export const checkServiceAvailability = async (req, res) => {
       where: { isActive: true }
     });
     
-    // If no service areas defined, service is not available
+    // If no service areas defined, service is available everywhere
     if (areas.length === 0) {
-      return res.json({ success: true, available: false });
+      return res.json({ success: true, available: true });
     }
     
     const lat = parseFloat(latitude);

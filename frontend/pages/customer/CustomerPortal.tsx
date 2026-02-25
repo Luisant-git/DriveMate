@@ -278,14 +278,30 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       return;
     }
     
-    if (!formData.pickup || !formData.drop) {
-      toast.error('Please enter pickup and drop locations');
+    // Validate pickup location
+    if (!formData.pickup) {
+      toast.error('Please enter pickup location');
       return;
     }
 
-    // Validate that locations are filled
-    if (!formData.pickup.includes(',') || !formData.drop.includes(',')) {
-      toast.error('Please select complete location from the suggestions');
+    // For Round Trip, drop location is not required
+    const isRoundTrip = formData.tripType === 'Round Trip';
+    
+    // Validate drop location only for One Way trips
+    if (!isRoundTrip && !formData.drop) {
+      toast.error('Please enter drop location');
+      return;
+    }
+
+    // Validate that pickup location is complete
+    if (!formData.pickup.includes(',')) {
+      toast.error('Please select complete pickup location from the suggestions');
+      return;
+    }
+    
+    // Validate drop location completeness only for One Way trips
+    if (!isRoundTrip && !formData.drop.includes(',')) {
+      toast.error('Please select complete drop location from the suggestions');
       return;
     }
 
@@ -699,41 +715,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         <button 
                             type="button"
                             onClick={() => {
-                                console.log('One Way clicked, clearing drop');
                                 setServiceType(BookingType.LOCAL_HOURLY);
                                 setFormData({...formData, tripType: 'One Way', estimatedUsage: '4 Hrs', pickup: oneWayData.pickup, drop: oneWayData.drop});
                                 setDropError('');
                                 setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
                             }}
                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
-                                serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way'
+                                serviceType === BookingType.LOCAL_HOURLY
                                     ? 'bg-black text-white' 
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                         >
-                            One Way
+                            Local
                         </button>
                         <button 
                             type="button"
                             onClick={() => {
-                                console.log('Round Trip clicked, clearing drop');
-                                setServiceType(BookingType.LOCAL_HOURLY);
-                                setFormData({...formData, tripType: 'Round Trip', estimatedUsage: '4 Hrs', pickup: roundTripData.pickup, drop: roundTripData.drop});
-                                setDropError('');
-                                setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
-                            }}
-                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
-                                serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip'
-                                    ? 'bg-black text-white' 
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Round Trip
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                console.log('Outstation clicked, clearing drop');
                                 setServiceType(BookingType.OUTSTATION);
                                 setFormData({...formData, tripType: 'One Way', estimatedUsage: '8 Hrs', pickup: outstationData.pickup, drop: outstationData.drop});
                                 setDropError('');
@@ -748,6 +745,40 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             Outstation
                         </button>
                     </div>
+
+                    {/* Local Sub-options: One Way and Round Trip */}
+                    {serviceType === BookingType.LOCAL_HOURLY && (
+                        <div className="flex gap-2 mb-4">
+                            <button 
+                                type="button"
+                                onClick={() => {
+                                    setFormData({...formData, tripType: 'One Way', pickup: oneWayData.pickup, drop: oneWayData.drop});
+                                    setDropError('');
+                                }}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
+                                    formData.tripType === 'One Way'
+                                        ? 'bg-gray-800 text-white' 
+                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                }`}
+                            >
+                                One Way
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => {
+                                    setFormData({...formData, tripType: 'Round Trip', pickup: roundTripData.pickup, drop: roundTripData.drop});
+                                    setDropError('');
+                                }}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
+                                    formData.tripType === 'Round Trip'
+                                        ? 'bg-gray-800 text-white' 
+                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                }`}
+                            >
+                                Round Trip
+                            </button>
+                        </div>
+                    )}
 
                     {/* Location Inputs */}
                     <div className="relative mb-4">
