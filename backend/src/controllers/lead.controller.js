@@ -66,7 +66,7 @@ export const getAllLeads = async (req, res) => {
       include: {
         leadSubscriptions: {
           include: { plan: true },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { startDate: 'desc' },
           take: 1
         }
       }
