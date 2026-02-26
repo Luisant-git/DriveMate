@@ -109,6 +109,9 @@ export const getCustomerBookings = async (req, res) => {
             email: true,
             licenseNo: true,
             alternateMobile1: true,
+            alternateMobile2: true,
+            alternateMobile3: true,
+            alternateMobile4: true,
             photo: true,
             dlPhoto: true
           }
