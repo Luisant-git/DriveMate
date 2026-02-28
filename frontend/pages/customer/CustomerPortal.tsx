@@ -12,7 +12,8 @@ import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
 import TermsAndConditions from '../../components/TermsAndConditions';
-import { calculateFare, parseDurationToHours, FareBreakdown } from '../../utils/fareCalculator';
+import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance } from '../../utils/fareCalculator';
+import { calculateDistance, getPackageByDistance } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
 
 interface CustomerPortalProps {
@@ -62,6 +63,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
+  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+  const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
   const [pickupError, setPickupError] = useState<string>('');
   const [dropError, setDropError] = useState<string>('');
   const [dropKey, setDropKey] = useState(0);
@@ -275,6 +278,24 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     // Check authentication first
     if (!isAuthenticated) {
       toast.error('Please log in to book a ride');
+      return;
+    }
+    
+    // Calculate distance for outstation if not already calculated
+    if (serviceType === BookingType.OUTSTATION && formData.pickup && formData.drop && !calculatedDistance) {
+      const distanceData = await calculateDistance(formData.pickup, formData.drop);
+      if (distanceData) {
+        setCalculatedDistance(distanceData.distance);
+        if (distanceData.distance < 60) {
+          toast.error(`Distance ${distanceData.distance}km is too short for outstation. Please use Local service.`);
+          return;
+        }
+      }
+    }
+    
+    // Check distance for outstation bookings
+    if (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60) {
+      toast.error(`Distance ${calculatedDistance}km is too short for outstation. Please use Local service.`);
       return;
     }
     
@@ -842,6 +863,38 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     } else if (serviceType === BookingType.OUTSTATION) {
                                         setOutstationData({...outstationData, pickup: value});
                                         setOutstationErrors({...outstationErrors, pickup: ''});
+                                        
+                                        // Reset distance and fare when pickup changes for outstation
+                                        setCalculatedDistance(null);
+                                        setCalculatedDuration(null);
+                                        setEstimate(null);
+                                        setFareBreakdown(null);
+                                        
+                                        // Recalculate if both pickup and drop are available
+                                        if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
+                                            const distanceData = await calculateDistance(value, formData.drop);
+                                            if (distanceData) {
+                                                // Check if distance is less than 60km for outstation
+                                                if (distanceData.distance < 60) {
+                                                    // Don't calculate fare for short distances
+                                                    return;
+                                                }
+                                                
+                                                setCalculatedDistance(distanceData.distance);
+                                                setCalculatedDuration(distanceData.duration);
+                                                
+                                                // Auto-select package based on distance
+                                                const packageInfo = getPackageByDistance(distanceData.distance);
+                                                setFormData(prev => ({...prev, pickup: value, estimatedUsage: `${packageInfo.hours} Hrs`}));
+                                                
+                                                // Calculate fare based on distance
+                                                const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
+                                                if (breakdown) {
+                                                    setFareBreakdown(breakdown);
+                                                    setEstimate(breakdown.totalFare);
+                                                }
+                                            }
+                                        }
                                     }
                                     
                                     if (!value) return;
@@ -890,7 +943,40 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 setOutstationErrors({...outstationErrors, drop: ''});
                                             }
                                             
-                                            if (!value) return;
+                                            if (!value) {
+                                                // Reset distance when drop location is cleared
+                                                setCalculatedDistance(null);
+                                                setCalculatedDuration(null);
+                                                setEstimate(null);
+                                                setFareBreakdown(null);
+                                                return;
+                                            }
+                                            
+                                            // For Outstation: Calculate distance and auto-select package
+                                            if (serviceType === BookingType.OUTSTATION && formData.pickup && value.includes(',')) {
+                                                const distanceData = await calculateDistance(formData.pickup, value);
+                                                if (distanceData) {
+                                                    // Check if distance is less than 60km for outstation
+                                                    if (distanceData.distance < 60) {
+                                                        // Don't calculate fare for short distances
+                                                        return;
+                                                    }
+                                                    
+                                                    setCalculatedDistance(distanceData.distance);
+                                                    setCalculatedDuration(distanceData.duration);
+                                                    
+                                                    // Auto-select package based on distance
+                                                    const packageInfo = getPackageByDistance(distanceData.distance);
+                                                    setFormData({...formData, drop: value, estimatedUsage: `${packageInfo.hours} Hrs`});
+                                                    
+                                                    // Calculate fare based on distance
+                                                    const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
+                                                    if (breakdown) {
+                                                        setFareBreakdown(breakdown);
+                                                        setEstimate(breakdown.totalFare);
+                                                    }
+                                                }
+                                            }
                                             
                                             // Check service availability only for Local One Way, not for Outstation
                                             if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && value.includes(',')) {
@@ -1560,39 +1646,117 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                     )}
 
-                    {/* Fare Estimate - Only show when estimate is available */}
-                    {bookingType !== BookingType.MONTHLY && (estimate || estimateLoading) && (
-                        <div className="mx-4 mb-4 bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fare Estimate</p>
-                            {estimateLoading ? (
-                                <p className="text-lg font-bold text-gray-500 mb-1">Calculating...</p>
-                            ) : (
-                                <>
-                                    <p className="text-3xl font-bold text-black mb-1">₹{estimate}</p>
-                                    {fareBreakdown && (
-                                        <div className="text-xs text-gray-600 mt-2 space-y-1">
-                                            <p className="font-medium">{fareBreakdown.description}</p>
-                                            {fareBreakdown.extraHours > 0 && (
-                                                <p className="text-[10px]">Base: ₹{fareBreakdown.baseFare} + Extra: ₹{fareBreakdown.extraHourCharge}</p>
-                                            )}
-                                        </div>
-                                    )}
-                                    <div className="mt-3 pt-3 border-t border-green-300">
-                                        <div className="flex items-center gap-1.5">
-                                            <p className="text-xs font-bold text-red-600 uppercase">Extra Per Hour: Rs. 100/-</p>
-                                            <svg 
-                                                onClick={() => setShowExtraChargesModal(true)}
-                                                className="w-3.5 h-3.5 text-red-600 cursor-pointer" 
-                                                fill="currentColor" 
-                                                viewBox="0 0 20 20"
-                                            >
-                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    {/* Fare Estimate - Uber-style */}
+                    {bookingType !== BookingType.MONTHLY && serviceType === BookingType.OUTSTATION && calculatedDistance && (
+                        <div className="mx-4 mb-4">
+                            {/* Distance - Compact */}
+                            <div className="bg-gray-50 rounded-2xl p-4 mb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                             </svg>
                                         </div>
+                                        <div>
+                                            <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
+                                            <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}</p>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-2">This is just an estimate</p>
-                                </>
+                                </div>
+                            </div>
+                            
+                            {/* Fare Card - Only show for distances >= 60km */}
+                            {calculatedDistance >= 60 && (estimate || estimateLoading) && (
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
+                                    {estimateLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="p-4">
+                                                <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
+                                                <p className="text-4xl font-bold text-gray-900 mb-2">₹{estimate}</p>
+                                                {fareBreakdown && (
+                                                    <p className="text-xs text-gray-600">{fareBreakdown.description}</p>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="border-t border-green-200">
+                                                <div className="px-4 py-3">
+                                                    <p className="text-xs font-bold text-gray-900 uppercase">Extra Per Hour: Rs. 100/-</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="border-t border-gray-100">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowExtraChargesModal(true)}
+                                                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                        </svg>
+                                                        <span className="text-xs font-medium text-gray-700">More charges apply</span>
+                                                    </div>
+                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             )}
+                        </div>
+                    )}
+                    
+                    {/* Fare Estimate for Local - Show normally */}
+                    {bookingType !== BookingType.MONTHLY && serviceType !== BookingType.OUTSTATION && (estimate || estimateLoading) && (
+                        <div className="mx-4 mb-4">
+                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
+                                {estimateLoading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="p-4">
+                                            <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
+                                            <p className="text-4xl font-bold text-gray-900 mb-2">₹{estimate}</p>
+                                            {fareBreakdown && (
+                                                <p className="text-xs text-gray-600">{fareBreakdown.description}</p>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="border-t border-green-200">
+                                            <div className="px-4 py-3">
+                                                <p className="text-xs font-bold text-gray-900 uppercase">Extra Per Hour: Rs. 100/-</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="border-t border-gray-100">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowExtraChargesModal(true)}
+                                                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <span className="text-xs font-medium text-gray-700">More charges apply</span>
+                                                </div>
+                                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )}
                     
@@ -1632,14 +1796,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
                     <button 
                         onClick={handleBookingSubmit}
-                        disabled={!isAuthenticated || authChecking || !termsAccepted}
+                        disabled={!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)}
                         className={`w-full py-3 rounded-lg font-bold text-base transition shadow-lg ${
-                            !isAuthenticated || authChecking || !termsAccepted 
+                            !isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                                 : 'bg-black text-white hover:bg-gray-900'
                         }`}
                     >
-                        {authChecking ? 'Checking...' : 'Request Driver'}
+                        {authChecking ? 'Checking...' : 
+                         serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60 ? 'Distance too short for outstation' :
+                         'Request Driver'}
                     </button>
                 </div>
               </>

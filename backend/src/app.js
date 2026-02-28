@@ -26,6 +26,7 @@ import monthlyPricingRoutes from "./routes/monthly.pricing.routes.js";
 import leadRoutes from "./routes/lead.routes.js";
 import leadSubscriptionRoutes from "./routes/leadSubscription.routes.js";
 import leadPackageRoutes from "./routes/leadPackage.routes.js";
+import distanceRoutes from "./routes/distance.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,5 +85,6 @@ app.use("/api/monthly-pricing", monthlyPricingRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/lead-subscriptions", leadSubscriptionRoutes);
 app.use("/api/lead-packages", leadPackageRoutes);
+app.use("/api/distance", distanceRoutes);
 
 export default app;

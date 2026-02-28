@@ -21,7 +21,7 @@ export async function calculateFare(
     const roundedHours = Math.ceil(hours);
     
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType, hours: roundedHours }
+      params: { packageType, hours: roundedHours, distance }
     });
     
     if (response.data.success && response.data.pricing) {
@@ -39,6 +39,41 @@ export async function calculateFare(
     return null;
   } catch (error) {
     console.error('Error fetching fare:', error);
+    return null;
+  }
+}
+
+export async function calculateOutstationFareByDistance(
+  distanceKm: number
+): Promise<FareBreakdown | null> {
+  try {
+    // Determine hours based on distance
+    let hours = 8;
+    if (distanceKm >= 151 && distanceKm <= 300) {
+      hours = 10;
+    } else if (distanceKm > 300) {
+      hours = 12;
+    }
+    
+    const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
+      params: { packageType: 'OUTSTATION', hours, distance: distanceKm }
+    });
+    
+    if (response.data.success && response.data.pricing) {
+      const pricing = response.data.pricing;
+      return {
+        baseFare: pricing.minimumCharge,
+        extraHours: 0,
+        extraHourCharge: 0,
+        totalFare: pricing.minimumCharge,
+        packageType: 'OUTSTATION',
+        description: `${pricing.hours} Hours Package (${distanceKm} KM)`
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching outstation fare:', error);
     return null;
   }
 }
