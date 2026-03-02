@@ -24,7 +24,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [myTrips, setMyTrips] = useState<any[]>([]);
-  const [bookingType, setBookingType] = useState<BookingType>(BookingType.ACTING);
+  const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
   const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
   const [showDriverProfile, setShowDriverProfile] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
@@ -379,8 +379,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       const bookingData = {
         pickupLocation: formData.pickup,
         dropLocation: formData.drop,
-        bookingType: bookingType,
         serviceType: serviceType,
+        tripType: formData.tripType,
+        driverType: driverType,
         startDateTime: formData.date && formData.time ? 
           `${formData.date}T${formData.time}` : new Date().toISOString(),
         duration: formData.duration || formData.estimatedUsage,
@@ -1019,7 +1020,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
                             className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                         >
-                            <span>{bookingType}</span>
+                            <span>{driverType}</span>
                             <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </div>
                         {openDropdown === 'service' && (
@@ -1035,8 +1036,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 ].map((type) => (
                                     <div 
                                         key={type}
-                                        onClick={() => { setBookingType(type); setOpenDropdown(null); }}
-                                        className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${bookingType === type ? 'bg-gray-100' : ''}`}
+                                        onClick={() => { setDriverType(type); setOpenDropdown(null); }}
+                                        className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${driverType === type ? 'bg-gray-100' : ''}`}
                                     >
                                         <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
                                             <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
@@ -1090,7 +1091,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div> */}
                     
                     {/* Monthly Driver Form */}
-                    {bookingType === BookingType.MONTHLY && (
+                    {driverType === BookingType.MONTHLY && (
                         <>
                             <div className="relative mb-3">
                                 <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Vehicle Type</label>
@@ -1187,7 +1188,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
 
                     {/* When Needed Dropdown - Show for LOCAL_HOURLY */}
-                    {bookingType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && (
+                    {driverType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && (
                         <div className="relative mb-3">
                             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
                             <div 
@@ -1213,7 +1214,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         </div>
                     )}
 
-                    {bookingType !== BookingType.MONTHLY && (
+                    {driverType !== BookingType.MONTHLY && (
                     <div className="mt-3 sm:mt-4 space-y-3 pb-4">
                         <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
                         {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
@@ -1640,7 +1641,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
 
                     {/* Fare Estimate - Uber-style */}
-                    {bookingType !== BookingType.MONTHLY && serviceType === BookingType.OUTSTATION && calculatedDistance && (
+                    {driverType !== BookingType.MONTHLY && serviceType === BookingType.OUTSTATION && calculatedDistance && (
                         <div className="mx-4 mb-4">
                             {/* Distance - Compact */}
                             <div className="bg-gray-50 rounded-2xl p-4 mb-3">
@@ -1707,7 +1708,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     )}
                     
                     {/* Fare Estimate for Local - Show normally */}
-                    {bookingType !== BookingType.MONTHLY && serviceType !== BookingType.OUTSTATION && (estimate || estimateLoading) && (
+                    {driverType !== BookingType.MONTHLY && serviceType !== BookingType.OUTSTATION && (estimate || estimateLoading) && (
                         <div className="mx-4 mb-4">
                             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
                                 {estimateLoading ? (

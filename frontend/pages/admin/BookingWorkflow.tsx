@@ -235,7 +235,7 @@ export default function BookingWorkflow() {
                 <option value="">All Booking Types</option>
                 <option value="One-way Trip">One-way Trip</option>
                 <option value="Round Trip">Round Trip</option>
-                <option value="Outstation">Outstation</option>
+                <option value="Hourly">Hourly</option>
               </select>
               
               <select 
