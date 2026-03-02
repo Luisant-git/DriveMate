@@ -70,13 +70,31 @@ export const deletePricingPackage = async (req, res) => {
 
 export const getEstimateByPackage = async (req, res) => {
   try {
-    const { packageType, hours } = req.query;
+    const { packageType, hours, distance } = req.query;
+    
+    // For OUTSTATION with distance, auto-determine hours based on KM
+    let queryHours = parseInt(hours);
+    
+    if (packageType === 'OUTSTATION' && distance) {
+      const distanceKm = parseInt(distance);
+      
+      // Determine hours based on distance ranges
+      if (distanceKm >= 60 && distanceKm <= 150) {
+        queryHours = 8;
+      } else if (distanceKm >= 151 && distanceKm <= 300) {
+        queryHours = 10;
+      } else if (distanceKm > 300) {
+        queryHours = 12;
+      } else {
+        queryHours = 8; // Default minimum
+      }
+    }
     
     const pricing = await prisma.pricingPackage.findUnique({
       where: { 
         packageType_hours: { 
           packageType, 
-          hours: parseInt(hours) 
+          hours: queryHours
         },
         isActive: true
       }
