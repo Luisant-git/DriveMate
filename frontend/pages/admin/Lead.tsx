@@ -148,7 +148,7 @@ export default function Lead() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedLead.photo}`, '_blank')}
+                              onClick={() => window.open(selectedLead.photo.startsWith('http') ? selectedLead.photo : `${API_BASE_URL}/uploads/${selectedLead.photo}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download Photo"
                             >
@@ -162,7 +162,7 @@ export default function Lead() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">DL Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedLead.dlPhoto}`, '_blank')}
+                              onClick={() => window.open(selectedLead.dlPhoto.startsWith('http') ? selectedLead.dlPhoto : `${API_BASE_URL}/uploads/${selectedLead.dlPhoto}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download DL Photo"
                             >
@@ -176,7 +176,7 @@ export default function Lead() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">PAN Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedLead.panPhoto}`, '_blank')}
+                              onClick={() => window.open(selectedLead.panPhoto.startsWith('http') ? selectedLead.panPhoto : `${API_BASE_URL}/uploads/${selectedLead.panPhoto}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download PAN Photo"
                             >
@@ -190,7 +190,7 @@ export default function Lead() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">Aadhar Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedLead.aadharPhoto}`, '_blank')}
+                              onClick={() => window.open(selectedLead.aadharPhoto.startsWith('http') ? selectedLead.aadharPhoto : `${API_BASE_URL}/uploads/${selectedLead.aadharPhoto}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download Aadhar Photo"
                             >
@@ -199,7 +199,7 @@ export default function Lead() {
                               </svg>
                             </button>
                           </div>
-                        )}
+                        )}}
                       </div>
                     </div>
                   </div>
