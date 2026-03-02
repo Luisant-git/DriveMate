@@ -358,6 +358,7 @@ model Booking {
   finalAmount     Float?
   advancePayment  Float       @default(0)
   paymentMethod   String?     // CASH, UPI
+  paymentStatus   String      @default("UNPAID") // PAID, UNPAID
   status          BookingStatus @default(PENDING)
   
   // Admin workflow fields

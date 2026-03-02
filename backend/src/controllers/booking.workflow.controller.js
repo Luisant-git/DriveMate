@@ -3,7 +3,7 @@ import prisma from '../config/database.js';
 // ADMIN: Get all pending bookings for review
 export const getAdminPendingBookings = async (req, res) => {
   try {
-    const { bookingType, serviceType } = req.query;
+    const { bookingType, serviceType, paymentStatus } = req.query;
     
     const whereClause = {
       OR: [
@@ -20,6 +20,10 @@ export const getAdminPendingBookings = async (req, res) => {
     
     if (serviceType) {
       whereClause.serviceType = serviceType;
+    }
+    
+    if (paymentStatus) {
+      whereClause.paymentStatus = paymentStatus;
     }
     
     const bookings = await prisma.booking.findMany({

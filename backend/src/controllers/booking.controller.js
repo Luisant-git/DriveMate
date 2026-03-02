@@ -26,6 +26,8 @@ export const createBooking = async (req, res) => {
       return res.status(401).json({ success: false, error: 'User not logged in' });
     }
 
+    const paymentStatus = paymentMethod === 'UPI' ? 'PAID' : 'UNPAID';
+
     const booking = await prisma.booking.create({
       data: {
         customerId: req.user.id,
@@ -39,6 +41,7 @@ export const createBooking = async (req, res) => {
         carType,
         estimateAmount,
         paymentMethod,
+        paymentStatus,
         status: 'PENDING'
       }
     });

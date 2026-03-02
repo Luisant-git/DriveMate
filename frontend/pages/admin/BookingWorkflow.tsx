@@ -77,6 +77,7 @@ export default function BookingWorkflow() {
       const params = new URLSearchParams();
       if (filters.bookingType) params.append('bookingType', filters.bookingType);
       if (filters.serviceType) params.append('serviceType', filters.serviceType);
+      if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
       
       const res = await axios.get(`${API_URL}/booking-workflow/admin/pending?${params}`, { withCredentials: true });
       setPendingBookings(res.data.bookings);
@@ -351,9 +352,9 @@ export default function BookingWorkflow() {
                           <td className="px-4 py-4">
                             <div className="space-y-1">
                               <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${
-                                booking.advancePayment > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                booking.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                               }`}>
-                                {booking.advancePayment > 0 ? 'PAID' : 'UNPAID'}
+                                {booking.paymentStatus || 'UNPAID'}
                               </span>
                               {booking.paymentMethod && (
                                 <div>

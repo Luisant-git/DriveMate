@@ -177,7 +177,7 @@ export default function Driver() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedDriver.photo}`, '_blank')}
+                              onClick={() => window.open(selectedDriver.photo.startsWith('http') ? selectedDriver.photo : `${API_BASE_URL}/uploads/${selectedDriver.photo}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download Photo"
                             >
@@ -191,7 +191,7 @@ export default function Driver() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">DL Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedDriver.dlPhoto}`, '_blank')}
+                              onClick={() => window.open(selectedDriver.dlPhoto.startsWith('http') ? selectedDriver.dlPhoto : `${API_BASE_URL}/uploads/${selectedDriver.dlPhoto}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download DL Photo"
                             >
@@ -205,7 +205,7 @@ export default function Driver() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">PAN Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedDriver.panPhoto}`, '_blank')}
+                              onClick={() => window.open(selectedDriver.panPhoto.startsWith('http') ? selectedDriver.panPhoto : `${API_BASE_URL}/uploads/${selectedDriver.panPhoto}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download PAN Photo"
                             >
@@ -219,7 +219,7 @@ export default function Driver() {
                           <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                             <span className="text-sm font-medium text-gray-900">Aadhar Photo</span>
                             <button 
-                              onClick={() => window.open(`${API_BASE_URL}/uploads/${selectedDriver.aadharPhoto}`, '_blank')}
+                              onClick={() => window.open(selectedDriver.aadharPhoto.startsWith('http') ? selectedDriver.aadharPhoto : `${API_BASE_URL}/uploads/${selectedDriver.aadharPhoto}`, '_blank')}
                               className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                               title="Download Aadhar Photo"
                             >
