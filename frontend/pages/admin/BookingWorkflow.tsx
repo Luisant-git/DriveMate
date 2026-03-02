@@ -13,7 +13,7 @@ export default function BookingWorkflow() {
   const [bookingDrivers, setBookingDrivers] = useState({});
   const [driverCounts, setDriverCounts] = useState({ LOCAL: 0, OUTSTATION: 0, ALL_PREMIUM: 0 });
   const [leadCounts, setLeadCounts] = useState({ LOCAL: 0, OUTSTATION: 0 });
-  const [filters, setFilters] = useState({ bookingType: '', serviceType: '', paymentStatus: '' });
+  const [filters, setFilters] = useState({ tripType: '', serviceType: '', paymentStatus: '' });
   const [packages, setPackages] = useState([]);
   const [leadPackages, setLeadPackages] = useState([]);
 
@@ -75,7 +75,7 @@ export default function BookingWorkflow() {
   const fetchPendingBookings = async () => {
     try {
       const params = new URLSearchParams();
-      if (filters.bookingType) params.append('bookingType', filters.bookingType);
+      if (filters.tripType) params.append('tripType', filters.tripType);
       if (filters.serviceType) params.append('serviceType', filters.serviceType);
       if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
       
@@ -228,14 +228,13 @@ export default function BookingWorkflow() {
               </select>
               
               <select 
-                value={filters.bookingType} 
-                onChange={(e) => handleFilterChange('bookingType', e.target.value)}
+                value={filters.tripType} 
+                onChange={(e) => handleFilterChange('tripType', e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Booking Types</option>
-                <option value="One-way Trip">One-way Trip</option>
+                <option value="">All Trip Types</option>
+                <option value="One Way">One Way</option>
                 <option value="Round Trip">Round Trip</option>
-                <option value="Hourly">Hourly</option>
               </select>
               
               <select 
@@ -244,7 +243,7 @@ export default function BookingWorkflow() {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Service Types</option>
-                <option value="Local - Hourly">Local - Hourly</option>
+                <option value="Local - Hourly">Local</option>
                 <option value="Outstation">Outstation</option>
               </select>
             </div>
@@ -388,10 +387,10 @@ export default function BookingWorkflow() {
                           </td>
                           <td className="px-4 py-4">
                             <div className="space-y-1">
-                              <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.bookingType}</span>
-                              {booking.serviceType && (
+                              <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.serviceType}</span>
+                              {booking.tripType && (
                                 <div>
-                                  <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.serviceType}</span>
+                                  <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.tripType}</span>
                                 </div>
                               )}
                             </div>
