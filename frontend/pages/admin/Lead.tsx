@@ -199,7 +199,7 @@ export default function Lead() {
                               </svg>
                             </button>
                           </div>
-                        )}}
+                        )}
                       </div>
                     </div>
                   </div>
