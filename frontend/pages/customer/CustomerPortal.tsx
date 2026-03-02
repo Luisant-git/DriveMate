@@ -36,6 +36,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [showTerms, setShowTerms] = useState<boolean>(false);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [showEstimateWarning, setShowEstimateWarning] = useState<boolean>(false);
   // AI & Booking States
   const [aiQuery, setAiQuery] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -284,22 +285,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     // Check if estimate is available
     if (!estimate || estimate <= 0) {
       toast.error('Please wait for fare estimation before booking or try any other near location');
-    }
-    // Calculate distance for outstation if not already calculated
-    if (serviceType === BookingType.OUTSTATION && formData.pickup && formData.drop && !calculatedDistance) {
-      const distanceData = await calculateDistance(formData.pickup, formData.drop);
-      if (distanceData) {
-        setCalculatedDistance(distanceData.distance);
-        if (distanceData.distance < 60) {
-          toast.error(`Distance ${distanceData.distance}km is too short for outstation. Please use Local service.`);
-          return;
-        }
-      }
-    }
-    
-    // Check distance for outstation bookings
-    if (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60) {
-      toast.error(`Distance ${calculatedDistance}km is too short for outstation. Please use Local service.`);
+      setShowEstimateWarning(true);
+      setTimeout(() => setShowEstimateWarning(false), 5000);
       return;
     }
     
@@ -857,6 +844,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <LocationAutocomplete
                                 value={formData.pickup}
                                 onChange={async (value) => {
+                                    setShowEstimateWarning(false);
                                     setFormData({...formData, pickup: value});
                                     if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                         setOneWayData({...oneWayData, pickup: value});
@@ -938,6 +926,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         key={`${serviceType}-${formData.tripType}`}
                                         value={formData.drop}
                                         onChange={async (value) => {
+                                            setShowEstimateWarning(false);
                                             setFormData({...formData, drop: value});
                                             if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                                 setOneWayData({...oneWayData, drop: value});
@@ -1784,12 +1773,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </button>
                             </span>
                         </label>
-                        <div className="flex items-start gap-2 mt-2 ml-5">
-                            <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                            <p className="text-xs text-red-600 font-medium">Please wait for fare estimation before booking or try any other near location</p>
-                        </div>
+                        {showEstimateWarning && (
+                            <div className="flex items-start gap-2 mt-2 ml-5">
+                                <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                <p className="text-xs text-red-600 font-medium">Please wait for fare estimation before booking or try any other near location</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
