@@ -204,10 +204,11 @@ export const getDriverBookings = async (req, res) => {
 
 export const getLeadBookings = async (req, res) => {
   try {
+    console.log('Fetching bookings for leadId:', req.user.id);
+    
     const bookings = await prisma.booking.findMany({
       where: {
-        leadId: req.user.id,
-        status: { notIn: ['COMPLETED', 'CANCELLED'] }
+        leadId: req.user.id
       },
       include: {
         customer: {
@@ -225,9 +226,15 @@ export const getLeadBookings = async (req, res) => {
       }
     });
 
+    console.log(`Found ${bookings.length} bookings for lead`);
+    console.log('Booking statuses:', bookings.map(b => ({ id: b.id, status: b.status })));
+
+    // Filter out completed and cancelled on frontend display
+    const activeBookings = bookings.filter(b => !['COMPLETED', 'CANCELLED'].includes(b.status));
+
     res.json({
       success: true,
-      bookings
+      bookings: activeBookings
     });
   } catch (error) {
     console.error('Error fetching lead bookings:', error);

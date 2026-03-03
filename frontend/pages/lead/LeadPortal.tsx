@@ -31,7 +31,7 @@ interface Lead {
 
 const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'REQUESTS' | 'TRIPS' | 'PACKAGES' | 'PROFILE'>('HOME');
-  const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'ALLOCATED' | 'HISTORY'>('PENDING');
+  const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY'>('PENDING');
   const [lead, setLead] = useState<Lead | null>(null);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
@@ -68,19 +68,13 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
       loadPackages();
     } else if (activeTab === 'REQUESTS') {
       loadPendingRequests();
-      if (requestsSubTab === 'ALLOCATED') {
-        loadAllocatedBookings();
-      }
     } else if (activeTab === 'TRIPS') {
       loadCompletedTrips();
+      loadAllocatedBookings();
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab === 'REQUESTS' && requestsSubTab === 'ALLOCATED') {
-      loadAllocatedBookings();
-    }
-  }, [requestsSubTab]);
+
 
   const loadSubscriptions = async () => {
     const result = await getLeadSubscriptions();
@@ -129,6 +123,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log('Lead allocated bookings response:', data);
       if (data.success) {
         setAllocatedBookings(data.bookings || []);
       }
@@ -358,7 +353,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
           <div className="space-y-4 animate-fade-in">
             {/* Sub-tabs for Requests */}
             <div className="bg-white border border-gray-200 rounded-lg p-1 flex">
-              {['PENDING', 'ALLOCATED', 'HISTORY'].map(subTab => (
+              {['PENDING', 'HISTORY'].map(subTab => (
                 <button 
                   key={subTab}
                   onClick={() => setRequestsSubTab(subTab as any)}
@@ -368,9 +363,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {subTab === 'PENDING' ? 'New Requests' : 
-                   subTab === 'ALLOCATED' ? 'My Bookings' : 
-                   'History'}
+                  {subTab === 'PENDING' ? 'New Requests' : 'History'}
                 </button>
               ))}
             </div>
@@ -461,82 +454,6 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                               Accept
                             </button>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* My Bookings */}
-            {requestsSubTab === 'ALLOCATED' && (
-            <div>
-              <h3 className="text-lg font-bold mb-3">My Bookings</h3>
-              {allocatedBookings.length === 0 ? (
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 text-sm">No allocated bookings</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {allocatedBookings.map((booking) => {
-                    const startDate = new Date(booking.startDateTime);
-                    const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-                    const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    return (
-                      <div key={booking.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="p-4 sm:p-5">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
-                              {booking.estimateAmount && (
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{booking.estimateAmount}</p>
-                              )}
-                              <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{booking.status}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-3 mb-4">
-                            <div className="flex gap-3">
-                              <div className="flex flex-col items-center pt-1">
-                                <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                                <div className="w-0.5 h-8 bg-gray-300"></div>
-                                <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                              </div>
-                              <div className="flex-1 space-y-3">
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-1">From</p>
-                                  <p className="text-sm font-medium text-gray-900">{booking.pickupLocation}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-1">To</p>
-                                  <p className="text-sm font-medium text-gray-900">{booking.dropLocation}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {booking.customer && (
-                            <div className="bg-gray-50 rounded-xl p-3">
-                              <p className="text-xs text-gray-500 mb-2 font-medium">Customer Details</p>
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                                  <span className="text-gray-700 font-semibold text-sm">{booking.customer?.name?.charAt(0) || 'C'}</span>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-semibold text-gray-900">{booking.customer?.name || 'N/A'}</p>
-                                  <p className="text-xs text-gray-600">{booking.customer?.phone || 'N/A'}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );

@@ -270,7 +270,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           <div className="space-y-4 animate-fade-in">
             {/* Sub-tabs for Requests */}
             <div className="bg-white border border-gray-200 rounded-lg p-1 flex">
-              {['PENDING', 'ALLOCATED', 'HISTORY'].map(subTab => (
+              {['PENDING', 'HISTORY'].map(subTab => (
                 <button 
                   key={subTab}
                   onClick={() => setRequestsSubTab(subTab as any)}
@@ -280,9 +280,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {subTab === 'PENDING' ? 'New Requests' : 
-                   subTab === 'ALLOCATED' ? 'My Bookings' : 
-                   'History'}
+                  {subTab === 'PENDING' ? 'New Requests' : 'History'}
                 </button>
               ))}
             </div>
