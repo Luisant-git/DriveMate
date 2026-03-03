@@ -263,18 +263,6 @@ enum TripStatus {
   CANCELLED
 }
 
-enum BookingType {
-  SPARE_DRIVER
-  MONTHLY_DRIVER
-  TEMPORARY_DRIVER
-  WEEKLY
-  DAILY
-  HOURLY
-  WALLET_PARKING
-  ONEWAY_DROP
-  TWOWAY_DROP
-}
-
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -304,9 +292,6 @@ model Package {
   description String?
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
-
-  // Relations
-  bookings    Booking[]
 
   @@map("packages")
 }
@@ -341,22 +326,19 @@ model Booking {
   customer        Customer    @relation(fields: [customerId], references: [id])
   driverId        String?
   driver          Driver?     @relation(fields: [driverId], references: [id])
-  packageId       String?
-  package         Package?    @relation(fields: [packageId], references: [id])
   
   pickupLocation  String
   dropLocation    String
-  bookingType     String      // Changed from BookingType enum to String
-  serviceType     String?     // LOCAL_HOURLY, OUTSTATION
+  driverType      String?     // Acting Driver, Spare Driver, etc.
+  serviceType     String?     // Local - Hourly, Outstation
+  tripType        String?     // One Way, Round Trip
   duration        String?
   startDateTime   DateTime
-  endDateTime     DateTime?
-  vehicleType     String?     // Only vehicle type needed
+  vehicleType     String?
   carType         String?     // Manual/Automatic
   
   estimateAmount  Float?
   finalAmount     Float?
-  advancePayment  Float       @default(0)
   paymentMethod   String?     // CASH, UPI
   paymentStatus   String      @default("UNPAID") // PAID, UNPAID
   status          BookingStatus @default(PENDING)
@@ -368,12 +350,10 @@ model Booking {
   
   // Driver responses
   driverResponses BookingResponse[]
-  allocatedDriverId String?
   allocatedAt     DateTime?
   
   // Lead responses
   leadResponses LeadBookingResponse[]
-  allocatedLeadId String?
   leadId          String?
   lead            Lead?       @relation(fields: [leadId], references: [id])
   

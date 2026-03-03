@@ -34,7 +34,7 @@ export const createBooking = async (req, res) => {
         customerId: req.user.id,
         pickupLocation,
         dropLocation,
-        bookingType: driverType || 'Acting Driver',
+        driverType,
         serviceType,
         tripType,
         startDateTime: new Date(startDateTime),
