@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../api/config.js';
 
 const API_URL = API_BASE_URL + '/api';
 
-export default function DriverBookingRequests({ onNavigateToPackages }: { onNavigateToPackages?: () => void }) {
+export default function DriverBookingRequests({ onNavigateToPackages, activeSubTab }: { onNavigateToPackages?: () => void; activeSubTab?: string }) {
   const [requests, setRequests] = useState([]);
   const [allRequests, setAllRequests] = useState([]);
   const [allocatedBookings, setAllocatedBookings] = useState([]);
@@ -118,6 +118,7 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
       </div>
 
       {/* Pending Requests */}
+      {(!activeSubTab || activeSubTab === 'PENDING') && (
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Pending Requests</h2>
         {requests.length === 0 ? (
@@ -148,7 +149,7 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                         {request.booking.paymentMethod && (
                           <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{request.booking.paymentMethod}</span></p>
                         )}
-                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.bookingType}</span>
+                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
                       </div>
                     </div>
                     
@@ -210,8 +211,10 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
           </div>
         )}
       </div>
+      )}
 
-      {/* My Bookings */}
+      {/* My Allocated Bookings */}
+      {activeSubTab === 'ALLOCATED' && (
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">My Allocated Bookings</h2>
         {allocatedBookings.length === 0 ? (
@@ -255,7 +258,7 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                       </div>
                     </div>
                     
-                    <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium mb-4">{booking.bookingType}</span>
+                    <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium mb-4">{booking.serviceType}</span>
                     
                     {/* Route */}
                     <div className="space-y-3 mb-4">
@@ -300,8 +303,10 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
           </div>
         )}
       </div>
+      )}
 
       {/* Request History */}
+      {activeSubTab === 'HISTORY' && (
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Request History</h2>
         {allRequests.filter(r => r.status !== 'PENDING').length === 0 ? (
@@ -324,7 +329,7 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
                         {request.booking.estimateAmount && (
                           <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
                         )}
-                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.bookingType}</span>
+                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
                       </div>
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                         request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -359,6 +364,7 @@ export default function DriverBookingRequests({ onNavigateToPackages }: { onNavi
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

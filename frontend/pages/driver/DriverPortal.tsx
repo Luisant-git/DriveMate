@@ -10,6 +10,7 @@ interface DriverPortalProps {
 
 const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'PROFILE' | 'PACKAGES' | 'REQUESTS'>('REQUESTS');
+  const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY' | 'ALLOCATED'>('PENDING');
   const [driver, setDriver] = useState<Driver>(initialDriver);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -266,7 +267,31 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
         {/* REQUESTS TAB: Booking Requests */}
         {activeTab === 'REQUESTS' && (
-            <DriverBookingRequests onNavigateToPackages={() => setActiveTab('PACKAGES')} />
+          <div className="space-y-4 animate-fade-in">
+            {/* Sub-tabs for Requests */}
+            <div className="bg-white border border-gray-200 rounded-lg p-1 flex">
+              {['PENDING', 'ALLOCATED', 'HISTORY'].map(subTab => (
+                <button 
+                  key={subTab}
+                  onClick={() => setRequestsSubTab(subTab as any)}
+                  className={`flex-1 py-2 px-3 text-xs font-bold rounded transition ${
+                    requestsSubTab === subTab 
+                      ? 'bg-black text-white' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {subTab === 'PENDING' ? 'New Requests' : 
+                   subTab === 'ALLOCATED' ? 'My Bookings' : 
+                   'History'}
+                </button>
+              ))}
+            </div>
+            
+            <DriverBookingRequests 
+              onNavigateToPackages={() => setActiveTab('PACKAGES')} 
+              activeSubTab={requestsSubTab}
+            />
+          </div>
         )}
 
         {/* HOME TAB: Active Trips Only */}
