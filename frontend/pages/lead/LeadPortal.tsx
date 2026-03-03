@@ -68,10 +68,19 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
       loadPackages();
     } else if (activeTab === 'REQUESTS') {
       loadPendingRequests();
+      if (requestsSubTab === 'ALLOCATED') {
+        loadAllocatedBookings();
+      }
     } else if (activeTab === 'TRIPS') {
       loadCompletedTrips();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'REQUESTS' && requestsSubTab === 'ALLOCATED') {
+      loadAllocatedBookings();
+    }
+  }, [requestsSubTab]);
 
   const loadSubscriptions = async () => {
     const result = await getLeadSubscriptions();
@@ -161,6 +170,9 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
       if (data.success) {
         toast.success(`Request ${action.toLowerCase()}!`);
         loadPendingRequests();
+        if (action === 'ACCEPTED') {
+          loadAllocatedBookings();
+        }
       } else {
         toast.error(data.message || 'Failed to respond');
       }
