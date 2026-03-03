@@ -850,9 +850,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                         setOneWayData({...oneWayData, pickup: value});
                                         setOneWayErrors({...oneWayErrors, pickup: ''});
+                                        // Recalculate fare for local
+                                        if (formData.estimatedUsage) {
+                                            setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                        }
                                     } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
                                         setRoundTripData({...roundTripData, pickup: value});
                                         setRoundTripErrors({...roundTripErrors, pickup: ''});
+                                        // Recalculate fare for local
+                                        if (formData.estimatedUsage) {
+                                            setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                        }
                                     } else if (serviceType === BookingType.OUTSTATION) {
                                         setOutstationData({...outstationData, pickup: value});
                                         setOutstationErrors({...outstationErrors, pickup: ''});
@@ -932,6 +940,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                                 setOneWayData({...oneWayData, drop: value});
                                                 setOneWayErrors({...oneWayErrors, drop: ''});
+                                                // Recalculate fare for local
+                                                if (formData.estimatedUsage) {
+                                                    setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                                }
                                             } else if (serviceType === BookingType.OUTSTATION) {
                                                 setOutstationData({...outstationData, drop: value});
                                                 setOutstationErrors({...outstationErrors, drop: ''});
