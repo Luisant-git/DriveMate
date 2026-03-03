@@ -10,8 +10,8 @@ export const getAdminPendingBookings = async (req, res) => {
         { status: 'PENDING' },
         { status: 'CONFIRMED' }
       ],
-      allocatedDriverId: null,
-      allocatedLeadId: null
+      driverId: null,
+      leadId: null
     };
     
     if (bookingType) {
@@ -269,7 +269,6 @@ export const allocateDriverToBooking = async (req, res) => {
       where: { id: bookingId },
       data: {
         driverId,
-        allocatedDriverId: driverId,
         allocatedAt: new Date(),
         status: 'CONFIRMED'
       },
@@ -547,7 +546,6 @@ export const allocateLeadToBooking = async (req, res) => {
       where: { id: bookingId },
       data: {
         leadId,
-        allocatedLeadId: leadId,
         allocatedAt: new Date(),
         status: 'CONFIRMED'
       },
