@@ -206,7 +206,7 @@ export const getLeadBookings = async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
       where: {
-        allocatedLeadId: req.user.id,
+        leadId: req.user.id,
         status: { in: ['CONFIRMED', 'ONGOING'] }
       },
       include: {
@@ -239,7 +239,7 @@ export const getLeadCompletedTrips = async (req, res) => {
   try {
     const bookings = await prisma.booking.findMany({
       where: {
-        allocatedLeadId: req.user.id,
+        leadId: req.user.id,
         status: 'COMPLETED'
       },
       include: {
