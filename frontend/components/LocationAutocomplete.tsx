@@ -27,6 +27,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const debounceRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +46,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     if (input.length < 1) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setSelectedIndex(-1);
       return;
     }
 
@@ -54,14 +56,17 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       if (response.success && response.suggestions) {
         setSuggestions(response.suggestions);
         setShowSuggestions(true);
+        setSelectedIndex(-1);
       } else {
         setSuggestions([]);
         setShowSuggestions(false);
+        setSelectedIndex(-1);
       }
     } catch (error) {
       console.error('Error fetching suggestions:', error);
       setSuggestions([]);
       setShowSuggestions(false);
+      setSelectedIndex(-1);
     } finally {
       setLoading(false);
     }
@@ -70,6 +75,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
+    setSelectedIndex(-1);
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -84,6 +90,27 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     onChange(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
+    setSelectedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => 
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionClick(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }
   };
 
   const handleMyLocation = () => {
@@ -126,6 +153,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         type="text"
         value={value}
         onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={`w-full ${className}`}
         autoComplete="off"
@@ -169,7 +197,9 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
               <button
                 key={suggestion.place_id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-sm transition-colors"
+                className={`w-full text-left p-3 border-b border-gray-100 last:border-b-0 text-sm transition-colors ${
+                  index === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
