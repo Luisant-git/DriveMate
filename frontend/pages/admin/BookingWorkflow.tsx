@@ -13,7 +13,7 @@ export default function BookingWorkflow() {
   const [bookingDrivers, setBookingDrivers] = useState({});
   const [driverCounts, setDriverCounts] = useState({ LOCAL: 0, OUTSTATION: 0, ALL_PREMIUM: 0 });
   const [leadCounts, setLeadCounts] = useState({ LOCAL: 0, OUTSTATION: 0 });
-  const [filters, setFilters] = useState({ tripType: '', serviceType: '', paymentStatus: '' });
+  const [filters, setFilters] = useState({ tripType: '', serviceType: '', paymentStatus: '', paymentMethod: '' });
   const [packages, setPackages] = useState([]);
   const [leadPackages, setLeadPackages] = useState([]);
 
@@ -78,6 +78,7 @@ export default function BookingWorkflow() {
       if (filters.tripType) params.append('tripType', filters.tripType);
       if (filters.serviceType) params.append('serviceType', filters.serviceType);
       if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
+      if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
       
       const res = await axios.get(`${API_URL}/booking-workflow/admin/pending?${params}`, { withCredentials: true });
       setPendingBookings(res.data.bookings);
@@ -228,13 +229,13 @@ export default function BookingWorkflow() {
               </select>
               
               <select 
-                value={filters.tripType} 
-                onChange={(e) => handleFilterChange('tripType', e.target.value)}
+                value={filters.paymentMethod} 
+                onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Trip Types</option>
-                <option value="One Way">One Way</option>
-                <option value="Round Trip">Round Trip</option>
+                <option value="">All Methods</option>
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
               </select>
               
               <select 
@@ -245,6 +246,16 @@ export default function BookingWorkflow() {
                 <option value="">All Service Types</option>
                 <option value="Local - Hourly">Local</option>
                 <option value="Outstation">Outstation</option>
+              </select>
+              
+              <select 
+                value={filters.tripType} 
+                onChange={(e) => handleFilterChange('tripType', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Trip Types</option>
+                <option value="One Way">One Way</option>
+                <option value="Round Trip">Round Trip</option>
               </select>
             </div>
           </div>
