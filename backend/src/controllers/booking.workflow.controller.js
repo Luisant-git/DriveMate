@@ -30,7 +30,6 @@ export const getAdminPendingBookings = async (req, res) => {
       where: whereClause,
       include: {
         customer: true,
-        package: true,
         driverResponses: {
           include: { driver: true }
         },
@@ -154,8 +153,7 @@ export const getDriverPendingRequests = async (req, res) => {
       include: {
         booking: {
           include: { 
-            customer: true,
-            package: true
+            customer: true
           }
         }
       },
@@ -457,7 +455,7 @@ export const getLeadPendingRequests = async (req, res) => {
       where: { leadId },
       include: {
         booking: {
-          include: { customer: true, package: true }
+          include: { customer: true }
         }
       },
       orderBy: { createdAt: 'desc' }
