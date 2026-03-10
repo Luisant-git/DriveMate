@@ -1,5 +1,5 @@
 import prisma from '../config/database.js';
-import { driverBookingAssignment, driverBookingConfirmation } from './whatsapp.controller.js';
+import { driverBookingAssignment, driverBookingConfirmation, customerDriverAssigned } from './whatsapp.controller.js';
 
 // ADMIN: Get all pending bookings for review
 export const getAdminPendingBookings = async (req, res) => {
@@ -417,6 +417,56 @@ export const allocateDriverToBooking = async (req, res) => {
         }
       } catch (error) {
         console.error(`[WhatsApp] Error sending confirmation:`, error.message);
+      }
+    }
+
+    // Send WhatsApp notification to customer
+    if (booking.customer?.phone) {
+      try {
+        const customerNotificationData = {
+          phone: booking.customer.phone,
+          templateName: 'customer_driver_assigned',
+          parameters: {
+            customerName: booking.customer.name || 'Customer',
+            pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'Asia/Kolkata'
+            }),
+            driverName: booking.driver?.name || 'Driver',
+            driverMobile: `+91 ${booking.driver?.phone || 'N/A'}`,
+            bookingType: `${booking.serviceType} - ${booking.tripType}`
+          }
+        };
+        
+        const mockReqCustomer = { body: customerNotificationData };
+        let customerWhatsappResult = { success: false };
+        let customerStatusCode = 200;
+        const mockResCustomer = {
+          json: (data) => {
+            customerWhatsappResult = data;
+            return data;
+          },
+          status: (code) => {
+            customerStatusCode = code;
+            return {
+              json: (data) => {
+                customerWhatsappResult = { ...data, statusCode: code };
+                return { status: code, ...data };
+              }
+            };
+          }
+        };
+        
+        await customerDriverAssigned(mockReqCustomer, mockResCustomer);
+        
+        if (customerWhatsappResult.success && customerStatusCode < 400) {
+          console.log(`[WhatsApp] Customer notification sent to ${booking.customer.phone}`);
+        } else {
+          console.error(`[WhatsApp] Failed to send customer notification to ${booking.customer.phone}:`, customerWhatsappResult.error);
+        }
+      } catch (error) {
+        console.error(`[WhatsApp] Error sending customer notification:`, error.message);
       }
     }
 
