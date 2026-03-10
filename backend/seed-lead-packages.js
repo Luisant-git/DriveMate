@@ -5,31 +5,46 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding lead subscription packages...');
 
-  // LOCAL Lead Packages
-  const localLeadPackages = [
-    { name: 'LOCAL LEAD - 5 Leads (7 Days)', type: 'LOCAL', duration: 7, price: 299, description: 'Get 5 local ride leads for 7 days' },
-    { name: 'LOCAL LEAD - 10 Leads (15 Days)', type: 'LOCAL', duration: 15, price: 499, description: 'Get 10 local ride leads for 15 days' },
-    { name: 'LOCAL LEAD - 20 Leads (1 Month)', type: 'LOCAL', duration: 30, price: 899, description: 'Get 20 local ride leads for 1 month' },
-    { name: 'LOCAL LEAD - 30 Leads (1 Month)', type: 'LOCAL', duration: 30, price: 1299, description: 'Get 30 local ride leads for 1 month' },
-    { name: 'LOCAL LEAD - 50 Leads (2 Months)', type: 'LOCAL', duration: 60, price: 1999, description: 'Get 50 local ride leads for 2 months' },
+  // Three-tier package system based on SNP model
+  const leadPackages = [
+    {
+      id: 'SILVER_PACKAGE',
+      name: 'SILVER PACKAGE',
+      type: 'LOCAL',
+      types: ['DRIVER_TAXI', 'LOCAL'],
+      duration: 30,
+      price: 3050,
+      description: 'Driver/Taxi: YES | Local: YES | Outstation: NO | Monthly: NO | Total Leads: UP TO 30 | Advance Payment: Rs. 6150/-',
+      maxLeads: 30,
+      advancePayment: 6150
+    },
+    {
+      id: 'GOLD_PACKAGE', 
+      name: 'GOLD PACKAGE',
+      type: 'OUTSTATION',
+      types: ['LOCAL', 'OUTSTATION', 'MONTHLY'],
+      duration: 30,
+      price: 5050,
+      description: 'Driver/Taxi: NO | Local: YES | Outstation: YES | Monthly: YES | Total Leads: UP TO 60 | Advance Payment: Rs. 10100/-',
+      maxLeads: 60,
+      advancePayment: 10100
+    },
+    {
+      id: 'DIAMOND_PACKAGE',
+      name: 'DIAMOND PACKAGE', 
+      type: 'OUTSTATION',
+      types: ['DRIVER_TAXI', 'LOCAL', 'OUTSTATION', 'MONTHLY'],
+      duration: 30,
+      price: 9050,
+      description: 'Driver/Taxi: YES | Local: YES | Outstation: YES | Monthly: YES | Total Leads: UP TO 90 | Advance Payment: Rs. 18100/-',
+      maxLeads: 90,
+      advancePayment: 18100
+    }
   ];
 
-  // OUTSTATION Lead Packages
-  const outstationLeadPackages = [
-    { name: 'OUTSTATION LEAD - 5 Leads (15 Days)', type: 'OUTSTATION', duration: 15, price: 599, description: 'Get 5 outstation ride leads for 15 days' },
-    { name: 'OUTSTATION LEAD - 10 Leads (1 Month)', type: 'OUTSTATION', duration: 30, price: 999, description: 'Get 10 outstation ride leads for 1 month' },
-    { name: 'OUTSTATION LEAD - 15 Leads (2 Months)', type: 'OUTSTATION', duration: 60, price: 1499, description: 'Get 15 outstation ride leads for 2 months' },
-    { name: 'OUTSTATION LEAD - 25 Leads (3 Months)', type: 'OUTSTATION', duration: 90, price: 2299, description: 'Get 25 outstation ride leads for 3 months' },
-    { name: 'OUTSTATION LEAD - 40 Leads (6 Months)', type: 'OUTSTATION', duration: 180, price: 3499, description: 'Get 40 outstation ride leads for 6 months' },
-  ];
-
-  const allLeadPackages = [...localLeadPackages, ...outstationLeadPackages];
-
-  for (const pkg of allLeadPackages) {
+  for (const pkg of leadPackages) {
     await prisma.leadSubscriptionPlan.upsert({
-      where: { 
-        id: `${pkg.type}-${pkg.duration}-${pkg.price}` 
-      },
+      where: { id: pkg.id },
       update: pkg,
       create: pkg,
     });

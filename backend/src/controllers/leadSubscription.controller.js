@@ -14,10 +14,19 @@ export const getAllLeadPlans = async (req, res) => {
 
 export const createLeadPlan = async (req, res) => {
   try {
-    const { name, duration, price, description, type } = req.body;
+    const { name, duration, price, description, type, types, maxLeads, advancePayment } = req.body;
     
     const plan = await prisma.leadSubscriptionPlan.create({
-      data: { name, duration: parseInt(duration), price: parseFloat(price), description, type }
+      data: { 
+        name, 
+        duration: parseInt(duration), 
+        price: parseFloat(price), 
+        description, 
+        type,
+        types: types || [],
+        maxLeads: maxLeads ? parseInt(maxLeads) : 0,
+        advancePayment: advancePayment ? parseFloat(advancePayment) : 0
+      }
     });
     
     res.status(201).json({ success: true, plan });
@@ -29,7 +38,7 @@ export const createLeadPlan = async (req, res) => {
 export const updateLeadPlan = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, duration, price, description, type, isActive } = req.body;
+    const { name, duration, price, description, type, types, maxLeads, advancePayment, isActive } = req.body;
     
     const updateData = {};
     if (name !== undefined) updateData.name = name;
@@ -37,6 +46,9 @@ export const updateLeadPlan = async (req, res) => {
     if (price !== undefined) updateData.price = parseFloat(price);
     if (description !== undefined) updateData.description = description;
     if (type !== undefined) updateData.type = type;
+    if (types !== undefined) updateData.types = types;
+    if (maxLeads !== undefined) updateData.maxLeads = parseInt(maxLeads);
+    if (advancePayment !== undefined) updateData.advancePayment = parseFloat(advancePayment);
     if (isActive !== undefined) updateData.isActive = isActive;
     
     const plan = await prisma.leadSubscriptionPlan.update({

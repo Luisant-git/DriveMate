@@ -145,8 +145,14 @@ model LeadSubscriptionPlan {
   duration    Int      // days
   price       Float
   description String?
-  type  PackageType 
+  type        PackageType 
+  types       String[] @default([])
   isActive    Boolean  @default(true)
+  
+  // Enhanced package features
+  maxLeads         Int?     @default(0)
+  advancePayment   Float?   @default(0)
+  
   createdAt   DateTime @default(now())
 
   // Relations
@@ -260,7 +266,8 @@ enum RideStatus {
 enum PackageType {
   LOCAL
   OUTSTATION
-  ALL_PREMIUM
+  MONTHLY
+  DRIVER_TAXI
 }
 
 enum TripStatus {
