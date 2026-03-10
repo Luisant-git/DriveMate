@@ -497,3 +497,11 @@ model MonthlyPricing {
   @@unique([vehicleType, hoursPerDay, daysPerWeek])
   @@map("monthly_pricing")
 }
+
+model Session {
+  sid    String   @id
+  sess   Json
+  expire DateTime
+
+  @@map("session")
+}
