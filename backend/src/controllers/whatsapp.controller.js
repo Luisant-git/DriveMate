@@ -57,14 +57,6 @@ export const driverBookingAssignment = async (req, res) => {
               { type: 'text', text: parameters.destination },
               { type: 'text', text: parameters.tripTime }
             ]
-          },
-          {
-            type: 'button',
-            sub_type: 'url',
-            index: 1,
-            parameters: [
-              { type: 'text', text: '' }
-            ]
           }
         ]
       }
