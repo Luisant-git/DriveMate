@@ -152,7 +152,11 @@ export const sendBookingToDrivers = async (req, res) => {
                 fareAmount: `₹${booking.estimateAmount || 0}`,
                 pickup: booking.pickupLocation,
                 destination: booking.dropLocation,
-                tripTime: new Date(booking.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                tripTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  timeZone: 'Asia/Kolkata'
+                })
               }
             };
             
