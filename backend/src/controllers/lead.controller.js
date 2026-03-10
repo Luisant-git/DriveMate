@@ -7,10 +7,15 @@ export const registerLead = async (req, res) => {
     const { 
       name, email, phone, password, aadharNo, licenseNo,
       alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4,
-      gpayNo, photo, dlPhoto, panPhoto, aadharPhoto
+      gpayNo, photo, dlPhoto, panPhoto, aadharPhoto,
+      msmePhoto, rationCardPhoto, policeVerificationPhoto,
+      electricityBillPhoto, rentalAgreementPhoto, creditCardPhoto, debitCardPhoto
     } = req.body;
     
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Clean data - convert empty strings to null
+    const cleanData = (value) => value === '' ? null : value;
     
     const lead = await prisma.lead.create({
       data: {
@@ -20,15 +25,22 @@ export const registerLead = async (req, res) => {
         password: hashedPassword,
         aadharNo,
         licenseNo,
-        alternateMobile1,
-        alternateMobile2,
-        alternateMobile3,
-        alternateMobile4,
-        gpayNo,
-        photo,
-        dlPhoto,
-        panPhoto,
-        aadharPhoto
+        alternateMobile1: cleanData(alternateMobile1),
+        alternateMobile2: cleanData(alternateMobile2),
+        alternateMobile3: cleanData(alternateMobile3),
+        alternateMobile4: cleanData(alternateMobile4),
+        gpayNo: cleanData(gpayNo),
+        photo: cleanData(photo),
+        dlPhoto: cleanData(dlPhoto),
+        panPhoto: cleanData(panPhoto),
+        aadharPhoto: cleanData(aadharPhoto),
+        msmePhoto: cleanData(msmePhoto),
+        rationCardPhoto: cleanData(rationCardPhoto),
+        policeVerificationPhoto: cleanData(policeVerificationPhoto),
+        electricityBillPhoto: cleanData(electricityBillPhoto),
+        rentalAgreementPhoto: cleanData(rentalAgreementPhoto),
+        creditCardPhoto: cleanData(creditCardPhoto),
+        debitCardPhoto: cleanData(debitCardPhoto)
       }
     });
     

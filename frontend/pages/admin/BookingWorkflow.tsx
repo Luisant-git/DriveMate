@@ -193,6 +193,33 @@ export default function BookingWorkflow() {
     }
   };
 
+  const sendWhatsAppTemplate = async (driverPhone, booking) => {
+    try {
+      const templateData = {
+        phone: driverPhone,
+        templateName: 'driver_booking_assignment_1',
+        parameters: {
+          bookingType: `${booking.serviceType} - ${booking.tripType}`,
+          fareAmount: `₹${booking.estimateAmount || 0}`,
+          pickup: booking.pickupLocation,
+          destination: booking.dropLocation,
+          tripTime: new Date(booking.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      };
+      
+      const response = await axios.post(`${API_URL}/whatsapp/driver-booking-assignment`, templateData, { withCredentials: true });
+      
+      if (response.data.success) {
+        alert('WhatsApp template sent successfully!');
+      } else {
+        alert('Failed to send WhatsApp template');
+      }
+    } catch (error) {
+      console.error('Error sending WhatsApp template:', error);
+      alert('Error sending WhatsApp template');
+    }
+  };
+
   const allocateDriver = async (personId, isLead = false) => {
     try {
       const endpoint = isLead 
@@ -512,7 +539,17 @@ export default function BookingWorkflow() {
                         </div>
                         <div className="flex-1">
                           <p className="text-base font-semibold text-gray-900">{person?.name || 'Driver'}</p>
-                          <p className="text-sm text-gray-600">{person?.phone || 'N/A'}</p>
+                          <button 
+                            onClick={() => {
+                              const currentBooking = pendingBookings.find(b => b.id === selectedBooking);
+                              if (currentBooking && person?.phone) {
+                                sendWhatsAppTemplate(person.phone, currentBooking);
+                              }
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            {person?.phone || 'N/A'}
+                          </button>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs px-3 py-1 rounded-full font-medium ${isAccepted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>

@@ -23,7 +23,14 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
     photo: '',
     dlPhoto: '',
     panPhoto: '',
-    aadharPhoto: ''
+    aadharPhoto: '',
+    msmePhoto: '',
+    rationCardPhoto: '',
+    policeVerificationPhoto: '',
+    electricityBillPhoto: '',
+    rentalAgreementPhoto: '',
+    creditCardPhoto: '',
+    debitCardPhoto: ''
   });
   const [loading, setLoading] = useState(false);
   const [imagePreviews, setImagePreviews] = useState<{[key: string]: string}>({});
@@ -32,7 +39,13 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
     e.preventDefault();
     setLoading(true);
     
-    const result = await registerLead(formData);
+    // Filter out empty string values and null values
+    const cleanedData = Object.fromEntries(
+      Object.entries(formData)
+        .filter(([key, value]) => value !== '' && value !== null)
+    );
+    
+    const result = await registerLead(cleanedData);
     
     if (result.success) {
       toast.success('Registration successful! Please wait for admin approval.');
@@ -175,7 +188,7 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
         <div className="pt-2">
           <p className="text-xs font-bold text-gray-700 mb-2">Document Uploads</p>
           <div className="grid grid-cols-2 gap-2">
-            {['photo', 'dlPhoto', 'panPhoto', 'aadharPhoto'].map((field) => (
+            {['photo', 'dlPhoto', 'panPhoto', 'aadharPhoto', 'msmePhoto', 'rationCardPhoto', 'policeVerificationPhoto', 'electricityBillPhoto', 'rentalAgreementPhoto', 'creditCardPhoto', 'debitCardPhoto'].map((field) => (
               <div key={field}>
                 <input 
                   type="file"
@@ -219,9 +232,19 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
                       <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
-                      <p className="text-xs text-gray-500 font-medium text-center px-1">
-                        {field === 'photo' ? 'Photo' : field === 'dlPhoto' ? 'DL' : field === 'panPhoto' ? 'PAN' : 'Aadhar'}
-                      </p>
+                      <span className="text-xs text-gray-400">
+                        {field === 'photo' ? 'Photo' : 
+                         field === 'dlPhoto' ? 'Driving License' : 
+                         field === 'panPhoto' ? 'PAN Card' : 
+                         field === 'aadharPhoto' ? 'Aadhaar' : 
+                         field === 'msmePhoto' ? 'MSME Certificate' : 
+                         field === 'rationCardPhoto' ? 'Ration Card' : 
+                         field === 'policeVerificationPhoto' ? 'Police Verification' : 
+                         field === 'electricityBillPhoto' ? 'Electricity Bill' : 
+                         field === 'rentalAgreementPhoto' ? 'Rental Agreement' : 
+                         field === 'creditCardPhoto' ? 'Credit Card' : 
+                         field === 'debitCardPhoto' ? 'Debit Card' : field}
+                      </span>
                     </div>
                   )}
                 </label>

@@ -79,6 +79,13 @@ model Lead {
   dlPhoto      String?
   panPhoto     String?
   aadharPhoto  String?
+  msmePhoto    String?
+  rationCardPhoto String?
+  policeVerificationPhoto String?
+  electricityBillPhoto String?
+  rentalAgreementPhoto String?
+  creditCardPhoto String?
+  debitCardPhoto String?
   alternateMobile1 String?
   alternateMobile2 String?
   alternateMobile3 String?

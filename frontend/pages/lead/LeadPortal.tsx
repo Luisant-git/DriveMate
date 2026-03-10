@@ -21,12 +21,21 @@ interface Lead {
   dlPhoto?: string;
   panPhoto?: string;
   aadharPhoto?: string;
+  msmePhoto?: string;
+  rationCardPhoto?: string;
+  policeVerificationPhoto?: string;
+  electricityBillPhoto?: string;
+  rentalAgreementPhoto?: string;
+  creditCardPhoto?: string;
+  debitCardPhoto?: string;
   alternateMobile1?: string;
   alternateMobile2?: string;
   alternateMobile3?: string;
   alternateMobile4?: string;
   gpayNo?: string;
   phonepeNo?: string;
+  vehicleNo?: string;
+  vehicleType?: string;
 }
 
 const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
@@ -206,11 +215,18 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
         alternateMobile2: profileData.alternateMobile2,
         alternateMobile3: profileData.alternateMobile3,
         alternateMobile4: profileData.alternateMobile4,
-        gpayNo: profileData.upiId,
+        gpayNo: profileData.gpayNo,
         photo: profileData.photo,
         dlPhoto: profileData.dlPhoto,
         panPhoto: profileData.panPhoto,
-        aadharPhoto: profileData.aadharPhoto
+        aadharPhoto: profileData.aadharPhoto,
+        msmePhoto: profileData.msmePhoto,
+        rationCardPhoto: profileData.rationCardPhoto,
+        policeVerificationPhoto: profileData.policeVerificationPhoto,
+        electricityBillPhoto: profileData.electricityBillPhoto,
+        rentalAgreementPhoto: profileData.rentalAgreementPhoto,
+        creditCardPhoto: profileData.creditCardPhoto,
+        debitCardPhoto: profileData.debitCardPhoto
       });
       
       console.log('Profile update result:', result);
@@ -805,7 +821,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                     <div className="space-y-2 text-sm">
                       <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-200 pb-2">
                         <span className="text-gray-500 mb-1 sm:mb-0">UPI ID:</span>
-                        <span className="font-medium break-all">{lead.gpayNo || lead.phonepeNo || 'Not set'}</span>
+                        <span className="font-medium break-all">{lead.gpayNo || 'Not set'}</span>
                       </div>
                       <div>
                         <span className="text-gray-500 mb-2 block">Alt Phones:</span>
@@ -859,6 +875,48 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                         <span className="text-gray-500">Aadhar Card:</span>
                         <span className={`font-medium text-xs px-2 py-1 rounded ${lead.aadharPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                           {lead.aadharPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">MSME Certificate:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.msmePhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.msmePhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">Ration Card:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.rationCardPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.rationCardPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">Police Verification:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.policeVerificationPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">Electricity Bill:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.electricityBillPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.electricityBillPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">Rental Agreement:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.rentalAgreementPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.rentalAgreementPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">Credit Card:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.creditCardPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.creditCardPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-gray-500">Debit Card:</span>
+                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.debitCardPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {lead.debitCardPhoto ? '✓ Uploaded' : 'Not uploaded'}
                         </span>
                       </div>
                     </div>
@@ -930,8 +988,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                     <input 
                       type="text" 
                       className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.upiId || ''}
-                      onChange={e => setProfileData({...profileData, upiId: e.target.value})}
+                      value={profileData.gpayNo || ''}
+                      onChange={e => setProfileData({...profileData, gpayNo: e.target.value})}
                     />
                   </div>
                 </div>
@@ -939,7 +997,19 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                 <div className="pt-4 border-t border-gray-100">
                   <p className="text-xs font-bold text-gray-500 mb-3 uppercase">Document Uploads</p>
                   <div className="grid grid-cols-2 gap-3">
-                    {['photo', 'dlPhoto', 'panPhoto', 'aadharPhoto'].map((field) => (
+                    {[
+                      { field: 'photo', label: 'Photo' },
+                      { field: 'dlPhoto', label: 'Driving License' },
+                      { field: 'panPhoto', label: 'PAN Card' },
+                      { field: 'aadharPhoto', label: 'Aadhar Card' },
+                      { field: 'msmePhoto', label: 'MSME Certificate' },
+                      { field: 'rationCardPhoto', label: 'Ration Card' },
+                      { field: 'policeVerificationPhoto', label: 'Police Verification' },
+                      { field: 'electricityBillPhoto', label: 'Electricity Bill' },
+                      { field: 'rentalAgreementPhoto', label: 'Rental Agreement' },
+                      { field: 'creditCardPhoto', label: 'Credit Card' },
+                      { field: 'debitCardPhoto', label: 'Debit Card' }
+                    ].map(({ field, label }) => (
                       <div key={field} className="relative">
                         <input 
                           type="file"
@@ -983,8 +1053,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                               <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                               </svg>
-                              <p className="text-xs text-gray-500 font-medium">
-                                {field === 'photo' ? 'Photo' : field === 'dlPhoto' ? 'Driving License' : field === 'panPhoto' ? 'PAN Card' : 'Aadhar Card'}
+                              <p className="text-xs text-gray-500 font-medium text-center px-1">
+                                {label}
                               </p>
                             </div>
                           )}
