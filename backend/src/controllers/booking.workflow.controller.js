@@ -156,16 +156,36 @@ export const sendBookingToDrivers = async (req, res) => {
               }
             };
             
-            // Create a mock request object for sendTemplate function
+            // Create a mock request object for driverBookingAssignment function
             const mockReq = { body: templateData };
+            let whatsappResult = { success: false };
+            let statusCode = 200;
             const mockRes = {
-              json: (data) => data,
-              status: (code) => ({ json: (data) => ({ status: code, ...data }) })
+              json: (data) => {
+                whatsappResult = data;
+                return data;
+              },
+              status: (code) => {
+                statusCode = code;
+                return {
+                  json: (data) => {
+                    whatsappResult = { ...data, statusCode: code };
+                    return { status: code, ...data };
+                  }
+                };
+              }
             };
             
             await driverBookingAssignment(mockReq, mockRes);
-            console.log(`[WhatsApp] Template sent to ${driver.phone}`);
-            return { success: true, phone: driver.phone };
+            
+            // Check both success flag and status code
+            if (whatsappResult.success && statusCode < 400) {
+              console.log(`[WhatsApp] Template sent to ${driver.phone}`);
+              return { success: true, phone: driver.phone };
+            } else {
+              console.error(`[WhatsApp] Failed to send to ${driver.phone}:`, whatsappResult.error || whatsappResult.details);
+              return { success: false, phone: driver.phone, error: whatsappResult.error || whatsappResult.details };
+            }
           } catch (error) {
             console.error(`[WhatsApp] Failed to send to ${driver.phone}:`, error.message);
             return { success: false, phone: driver.phone, error: error.message };
