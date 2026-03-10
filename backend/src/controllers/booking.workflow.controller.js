@@ -1,5 +1,5 @@
 import prisma from '../config/database.js';
-import { driverBookingAssignment } from './whatsapp.controller.js';
+import { driverBookingAssignment, driverBookingConfirmation } from './whatsapp.controller.js';
 
 // ADMIN: Get all pending bookings for review
 export const getAdminPendingBookings = async (req, res) => {
@@ -368,6 +368,57 @@ export const allocateDriverToBooking = async (req, res) => {
         }
       }
     });
+
+    // Send WhatsApp confirmation to allocated driver
+    if (booking.driver?.phone) {
+      try {
+        const confirmationData = {
+          phone: booking.driver.phone,
+          templateName: 'driver_booking_confirmation_2',
+          parameters: {
+            bookingType: `${booking.serviceType} - ${booking.tripType}`,
+            fareAmount: `₹${booking.estimateAmount || 0}`,
+            pickup: booking.pickupLocation,
+            destination: booking.dropLocation,
+            pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'Asia/Kolkata'
+            }),
+            customerContact: booking.customer?.phone || 'N/A'
+          }
+        };
+        
+        const mockReq = { body: confirmationData };
+        let whatsappResult = { success: false };
+        let statusCode = 200;
+        const mockRes = {
+          json: (data) => {
+            whatsappResult = data;
+            return data;
+          },
+          status: (code) => {
+            statusCode = code;
+            return {
+              json: (data) => {
+                whatsappResult = { ...data, statusCode: code };
+                return { status: code, ...data };
+              }
+            };
+          }
+        };
+        
+        await driverBookingConfirmation(mockReq, mockRes);
+        
+        if (whatsappResult.success && statusCode < 400) {
+          console.log(`[WhatsApp] Confirmation sent to driver ${booking.driver.phone}`);
+        } else {
+          console.error(`[WhatsApp] Failed to send confirmation to ${booking.driver.phone}:`, whatsappResult.error);
+        }
+      } catch (error) {
+        console.error(`[WhatsApp] Error sending confirmation:`, error.message);
+      }
+    }
 
     res.json({ 
       success: true, 
