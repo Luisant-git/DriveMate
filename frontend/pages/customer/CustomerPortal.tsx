@@ -13,7 +13,7 @@ import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
 import TermsAndConditions from '../../components/TermsAndConditions';
 import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance } from '../../utils/fareCalculator';
-import { calculateDistance, getPackageByDistance } from '../../utils/distanceCalculator';
+import { calculateDistance, getPackageByDistance, getFilteredDurationOptions } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
 
 interface CustomerPortalProps {
@@ -1344,7 +1344,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             {openDropdown === 'usage' && (
                                                 <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
+                                                    {getFilteredDurationOptions(calculatedDistance).map(option => (
                                                         <div 
                                                             key={option}
                                                             onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
