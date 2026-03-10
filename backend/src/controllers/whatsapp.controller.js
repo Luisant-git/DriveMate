@@ -1,10 +1,21 @@
 import axios from 'axios';
 
 export const sendTemplate = async (req, res) => {
+  const startTime = Date.now();
+  const logData = {
+    timestamp: new Date().toISOString(),
+    phone: req.body.phone,
+    templateName: req.body.templateName,
+    bookingDetails: req.body.parameters
+  };
+
   try {
     const { phone, templateName, parameters } = req.body;
 
+    console.log(`[WhatsApp] Starting template send:`, logData);
+
     if (!phone || !templateName) {
+      console.log(`[WhatsApp] ERROR - Missing required fields:`, { phone: !!phone, templateName: !!templateName });
       return res.status(400).json({ 
         success: false, 
         error: 'Phone number and template name are required' 
@@ -25,6 +36,8 @@ export const sendTemplate = async (req, res) => {
     } else {
       formattedPhone = '91' + formattedPhone;
     }
+
+    console.log(`[WhatsApp] Formatted phone: ${phone} -> ${formattedPhone}`);
 
     // Template message payload
     const messagePayload = {
@@ -57,6 +70,12 @@ export const sendTemplate = async (req, res) => {
       }
     };
 
+    console.log(`[WhatsApp] Sending to Meta API:`, {
+      url: whatsappConfig.apiUrl,
+      to: formattedPhone,
+      template: templateName
+    });
+
     // Send WhatsApp message
     const response = await axios.post(whatsappConfig.apiUrl, messagePayload, {
       headers: {
@@ -65,6 +84,17 @@ export const sendTemplate = async (req, res) => {
       }
     });
 
+    const duration = Date.now() - startTime;
+    const successLog = {
+      ...logData,
+      status: 'SUCCESS',
+      messageId: response.data.messages?.[0]?.id,
+      duration: `${duration}ms`,
+      formattedPhone
+    };
+
+    console.log(`[WhatsApp] SUCCESS:`, successLog);
+
     res.json({ 
       success: true, 
       message: 'WhatsApp template sent successfully',
@@ -72,7 +102,16 @@ export const sendTemplate = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('WhatsApp API Error:', error.response?.data || error.message);
+    const duration = Date.now() - startTime;
+    const errorLog = {
+      ...logData,
+      status: 'ERROR',
+      error: error.response?.data || error.message,
+      duration: `${duration}ms`
+    };
+
+    console.error(`[WhatsApp] ERROR:`, errorLog);
+    
     res.status(500).json({ 
       success: false, 
       error: 'Failed to send WhatsApp template',

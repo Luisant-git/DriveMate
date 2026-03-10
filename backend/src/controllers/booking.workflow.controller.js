@@ -141,6 +141,7 @@ export const sendBookingToDrivers = async (req, res) => {
       success: true, 
       message: `Booking sent to ${drivers.length} drivers`,
       driversCount: drivers.length,
+      drivers: drivers.map(d => ({ id: d.id, phone: d.phone, name: d.name })),
       responses
     });
   } catch (error) {
