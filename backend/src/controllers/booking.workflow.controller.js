@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import { driverBookingAssignment } from './whatsapp.controller.js';
 
 // ADMIN: Get all pending bookings for review
 export const getAdminPendingBookings = async (req, res) => {
@@ -137,11 +138,51 @@ export const sendBookingToDrivers = async (req, res) => {
       )
     );
 
+    // Send WhatsApp templates to all drivers
+    console.log(`[Booking] Sending WhatsApp templates to ${drivers.length} drivers`);
+    const whatsappResults = await Promise.allSettled(
+      drivers.map(async (driver) => {
+        if (driver.phone) {
+          try {
+            const templateData = {
+              phone: driver.phone,
+              templateName: 'driver_booking_assignment_1',
+              parameters: {
+                bookingType: `${booking.serviceType} - ${booking.tripType}`,
+                fareAmount: `₹${booking.estimateAmount || 0}`,
+                pickup: booking.pickupLocation,
+                destination: booking.dropLocation,
+                tripTime: new Date(booking.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+            };
+            
+            // Create a mock request object for sendTemplate function
+            const mockReq = { body: templateData };
+            const mockRes = {
+              json: (data) => data,
+              status: (code) => ({ json: (data) => ({ status: code, ...data }) })
+            };
+            
+            await driverBookingAssignment(mockReq, mockRes);
+            console.log(`[WhatsApp] Template sent to ${driver.phone}`);
+            return { success: true, phone: driver.phone };
+          } catch (error) {
+            console.error(`[WhatsApp] Failed to send to ${driver.phone}:`, error.message);
+            return { success: false, phone: driver.phone, error: error.message };
+          }
+        }
+        return { success: false, phone: 'N/A', error: 'No phone number' };
+      })
+    );
+
+    const whatsappSuccess = whatsappResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    console.log(`[WhatsApp] Successfully sent ${whatsappSuccess}/${drivers.length} templates`);
+
     res.json({ 
       success: true, 
       message: `Booking sent to ${drivers.length} drivers`,
       driversCount: drivers.length,
-      drivers: drivers.map(d => ({ id: d.id, phone: d.phone, name: d.name })),
+      whatsappSent: whatsappSuccess,
       responses
     });
   } catch (error) {

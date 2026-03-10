@@ -167,17 +167,8 @@ export default function BookingWorkflow() {
         const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-drivers`, {}, { withCredentials: true });
         
         if (sendResponse.data.success) {
-          // Send WhatsApp templates to all drivers
-          const currentBooking = pendingBookings.find(b => b.id === bookingId);
-          if (currentBooking && sendResponse.data.drivers) {
-            sendResponse.data.drivers.forEach(driver => {
-              if (driver.phone) {
-                sendWhatsAppTemplate(driver.phone, currentBooking);
-              }
-            });
-          }
-          
-          alert(`✓ Booking sent to ${sendResponse.data.driversCount} drivers!`);
+          const whatsappCount = sendResponse.data.whatsappSent || 0;
+          alert(`✓ Booking sent to ${sendResponse.data.driversCount} drivers! WhatsApp sent to ${whatsappCount} drivers.`);
           setBookingDrivers({});
           fetchPendingBookings();
         }

@@ -1,8 +1,8 @@
 import express from 'express';
-import { sendTemplate } from '../controllers/whatsapp.controller.js';
+import { driverBookingAssignment } from '../controllers/whatsapp.controller.js';
 
 const router = express.Router();
 
-router.post('/driver-booking-assignment', sendTemplate);
+router.post('/driver-booking-assignment', driverBookingAssignment);
 
 export default router;

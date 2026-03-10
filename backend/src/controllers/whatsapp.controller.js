@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const sendTemplate = async (req, res) => {
+export const driverBookingAssignment = async (req, res) => {
   const startTime = Date.now();
   const logData = {
     timestamp: new Date().toISOString(),
