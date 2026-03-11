@@ -143,35 +143,36 @@ export default function PricingManagement() {
   const outstation = packages.filter(p => p.packageType === 'OUTSTATION').sort((a, b) => a.hours - b.hours);
 
   return (
-    <div className="px-6 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Pricing Charges</h2>
+    <div className="px-4 md:px-6 py-4 md:py-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-900">Pricing Charges</h2>
         <button 
           onClick={() => activeTab === 'MONTHLY' ? openMonthlyModal() : openModal()} 
-          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition"
+          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition w-full md:w-auto"
         >
           {activeTab === 'MONTHLY' ? 'Add Monthly Pricing' : 'Add Pricing'}
         </button>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        <button onClick={() => setActiveTab('LOCAL')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'LOCAL' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+      <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
+        <button onClick={() => setActiveTab('LOCAL')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'LOCAL' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Local Hourly Pricing
         </button>
-        <button onClick={() => setActiveTab('OUTSTATION')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'OUTSTATION' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('OUTSTATION')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'OUTSTATION' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Outstation Pricing
         </button>
-        <button onClick={() => setActiveTab('MONTHLY')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'MONTHLY' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('MONTHLY')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'MONTHLY' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Monthly Driver Pricing
         </button>
       </div>
 
       {activeTab === 'MONTHLY' && (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
           <h3 className="text-sm font-bold text-blue-900 uppercase">Monthly Driver Pricing</h3>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1000px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
@@ -247,15 +248,17 @@ export default function PricingManagement() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
       )}
 
       {activeTab === 'LOCAL' && (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
           <h3 className="text-sm font-bold text-gray-900 uppercase">Local Hourly Pricing</h3>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
@@ -324,15 +327,17 @@ export default function PricingManagement() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
       )}
 
       {activeTab === 'OUTSTATION' && (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
           <h3 className="text-sm font-bold text-gray-900 uppercase">Outstation Pricing</h3>
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
@@ -405,19 +410,20 @@ export default function PricingManagement() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
       )}
 
       {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">{editingPkg ? 'Edit Pricing' : 'Add Pricing'}</h2>
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">{editingPkg ? 'Edit Pricing' : 'Add Pricing'}</h2>
                 <button 
                   onClick={closeModal}
-                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition"
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition flex-shrink-0"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -425,7 +431,7 @@ export default function PricingManagement() {
                 </button>
               </div>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Service Type</label>
                   <select value={formData.packageType} onChange={(e) => setFormData({...formData, packageType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required disabled={editingPkg}>
@@ -468,13 +474,13 @@ export default function PricingManagement() {
       {/* MONTHLY PRICING MODAL */}
       {showMonthlyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">{editingMonthly ? 'Edit Monthly Pricing' : 'Add Monthly Pricing'}</h2>
+          <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">{editingMonthly ? 'Edit Monthly Pricing' : 'Add Monthly Pricing'}</h2>
                 <button 
                   onClick={closeMonthlyModal}
-                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition"
+                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition flex-shrink-0"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -482,7 +488,7 @@ export default function PricingManagement() {
                 </button>
               </div>
               
-              <form onSubmit={handleMonthlySubmit} className="space-y-4">
+              <form onSubmit={handleMonthlySubmit} className="space-y-3 md:space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Vehicle Type</label>
                   <select value={monthlyFormData.vehicleType} onChange={(e) => setMonthlyFormData({...monthlyFormData, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required>

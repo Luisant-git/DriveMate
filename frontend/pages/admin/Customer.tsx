@@ -49,9 +49,10 @@ export default function Customer() {
           <p className="text-gray-500 text-sm">No customers found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px]">
+              <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
@@ -106,6 +107,7 @@ export default function Customer() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

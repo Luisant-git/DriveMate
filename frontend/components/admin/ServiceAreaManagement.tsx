@@ -90,41 +90,41 @@ export default function ServiceAreaManagement() {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Service Areas</h2>
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
+        <h2 className="text-xl md:text-2xl font-bold">Service Areas</h2>
         <button
           onClick={() => {
             setEditingArea(null);
             setFormData({ name: '', city: '', state: '', radius: '', latitude: '', longitude: '' });
             setShowModal(true);
           }}
-          className="bg-black text-white px-4 py-2 rounded-lg font-bold"
+          className="bg-black text-white px-4 py-2 rounded-lg font-bold text-sm w-full md:w-auto"
         >
           + Add Service Area
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">City</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">State</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Radius (km)</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Actions</th>
+              <th className="px-4 md:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
+              <th className="px-4 md:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">City</th>
+              <th className="px-4 md:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">State</th>
+              <th className="px-4 md:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Radius (km)</th>
+              <th className="px-4 md:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+              <th className="px-4 md:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {areas.map((area) => (
               <tr key={area.id}>
-                <td className="px-6 py-4 text-sm font-medium">{area.name}</td>
-                <td className="px-6 py-4 text-sm">{area.city}</td>
-                <td className="px-6 py-4 text-sm">{area.state}</td>
-                <td className="px-6 py-4 text-sm">{area.radius} km</td>
-                <td className="px-6 py-4 text-sm">
+                <td className="px-4 md:px-6 py-4 text-sm font-medium">{area.name}</td>
+                <td className="px-4 md:px-6 py-4 text-sm">{area.city}</td>
+                <td className="px-4 md:px-6 py-4 text-sm">{area.state}</td>
+                <td className="px-4 md:px-6 py-4 text-sm">{area.radius} km</td>
+                <td className="px-4 md:px-6 py-4 text-sm">
                   <button
                     onClick={() => toggleActive(area)}
                     className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -134,7 +134,7 @@ export default function ServiceAreaManagement() {
                     {area.isActive ? 'Active' : 'Inactive'}
                   </button>
                 </td>
-                <td className="px-6 py-4 text-sm">
+                <td className="px-4 md:px-6 py-4 text-sm">
                   <button
                     onClick={() => handleEdit(area)}
                     className="text-blue-600 hover:text-blue-800 mr-3"
@@ -155,95 +155,95 @@ export default function ServiceAreaManagement() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg md:text-xl font-bold mb-4">
               {editingArea ? 'Edit Service Area' : 'Add Service Area'}
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
               <div>
-                <label className="block text-sm font-bold mb-1">Area Name</label>
+                <label className="block text-xs md:text-sm font-bold mb-1">Area Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border rounded-lg p-2 text-sm"
                   placeholder="e.g., Bangalore Central"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">City</label>
+                <label className="block text-xs md:text-sm font-bold mb-1">City</label>
                 <input
                   type="text"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border rounded-lg p-2 text-sm"
                   placeholder="e.g., Bangalore"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">State</label>
+                <label className="block text-xs md:text-sm font-bold mb-1">State</label>
                 <input
                   type="text"
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border rounded-lg p-2 text-sm"
                   placeholder="e.g., Karnataka"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">Radius (km)</label>
+                <label className="block text-xs md:text-sm font-bold mb-1">Radius (km)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={formData.radius}
                   onChange={(e) => setFormData({ ...formData, radius: e.target.value })}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border rounded-lg p-2 text-sm"
                   placeholder="e.g., 50"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">Latitude</label>
+                <label className="block text-xs md:text-sm font-bold mb-1">Latitude</label>
                 <input
                   type="number"
                   step="any"
                   value={formData.latitude}
                   onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border rounded-lg p-2 text-sm"
                   placeholder="e.g., 12.9716"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold mb-1">Longitude</label>
+                <label className="block text-xs md:text-sm font-bold mb-1">Longitude</label>
                 <input
                   type="number"
                   step="any"
                   value={formData.longitude}
                   onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                  className="w-full border rounded-lg p-2"
+                  className="w-full border rounded-lg p-2 text-sm"
                   placeholder="e.g., 77.5946"
                   required
                 />
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-3 md:pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setShowModal(false);
                     setEditingArea(null);
                   }}
-                  className="flex-1 border border-gray-300 rounded-lg py-2 font-bold"
+                  className="flex-1 border border-gray-300 rounded-lg py-2 font-bold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-black text-white rounded-lg py-2 font-bold"
+                  className="flex-1 bg-black text-white rounded-lg py-2 font-bold text-sm"
                 >
                   {editingArea ? 'Update' : 'Create'}
                 </button>

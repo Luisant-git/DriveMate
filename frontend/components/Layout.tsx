@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-black">
       {/* Uber-style Minimal Navbar */}
-      <nav className="bg-black text-white h-16 sticky top-0 z-50">
+      <nav className={`bg-black text-white h-16 sticky top-0 z-50 ${currentUser?.role === UserRole.ADMIN ? 'hidden' : ''}`}>
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
             {/* Logo */}
             <div className="flex items-center gap-1 cursor-pointer">
@@ -43,7 +43,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
 
       {/* Main Content Area */}
       {/* For Customer, we want full width to show map background. For others, constrained. */}
-      <main className={`flex-grow w-full ${currentUser?.role === UserRole.CUSTOMER ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'}`}>
+      <main className={`flex-grow w-full ${currentUser?.role === UserRole.CUSTOMER || currentUser?.role === UserRole.ADMIN ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8'}`}>
         {children}
       </main>
 

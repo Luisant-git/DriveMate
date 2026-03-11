@@ -12,6 +12,7 @@ import PricingManagement from '../../components/admin/PricingManagement';
 import ServiceAreaManagement from '../../components/admin/ServiceAreaManagement';
 import Reports from './Reports';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
+import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar } from 'react-icons/fa';
 
 
 type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'ALL';
@@ -34,11 +35,16 @@ interface PackageFormState {
   description: string;
 }
 
-const AdminPortal: React.FC = () => {
+interface AdminPortalProps {
+  onLogout?: () => void;
+}
+
+const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<
     'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
   const [drivers, setDrivers] = useState<any[]>([]);
@@ -93,7 +99,7 @@ const AdminPortal: React.FC = () => {
       setPackagesLoading(true);
       const res = await getSubscriptionPlans();
 
-      console.log('getSubscriptionPlans response:', res); // debug
+      console.log('getSubscriptionPlans response:', res);
 
       if (!res.success) {
         console.error('Failed to fetch packages:', res.message || res.error);
@@ -101,7 +107,6 @@ const AdminPortal: React.FC = () => {
         return;
       }
 
-      // Handle both: array response and single-object response
       if (Array.isArray(res.data)) {
         setPackages(res.data as SubscriptionPlan[]);
       } else if (res.data && typeof res.data === 'object') {
@@ -120,6 +125,7 @@ const AdminPortal: React.FC = () => {
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
     setCurrentPage(1);
+    setSidebarOpen(false);
   };
 
   // Pagination Helper
@@ -232,7 +238,6 @@ const AdminPortal: React.FC = () => {
         description: packageForm.description,
       };
 
-      // Only include type if your backend supports it
       payload.type = packageForm.type;
 
       let res;
@@ -279,207 +284,269 @@ const AdminPortal: React.FC = () => {
     }
   };
 
+  const menuItems = [
+    { id: 'BOOKINGS', label: 'Bookings', icon: FaClipboardList },
+    { id: 'APPROVALS', label: 'Approvals', icon: FaCheckCircle },
+    { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
+    { id: 'CUSTOMERS', label: 'Customers', icon: FaUsers },
+    { id: 'LEADS', label: 'Leads', icon: FaBullseye },
+    { id: 'LEAD_PACKAGES', label: 'Lead Packages', icon: FaBox },
+    { id: 'LEAD_SUBSCRIPTIONS', label: 'Lead Subscriptions', icon: FaFileAlt },
+    { id: 'PACKAGES', label: 'Packages', icon: FaBox },
+    { id: 'SUBSCRIPTIONS', label: 'Subscriptions', icon: FaFileAlt },
+    { id: 'PRICING', label: 'Pricing', icon: FaMoneyBillWave },
+    { id: 'SERVICE_AREAS', label: 'Service Areas', icon: FaMapMarkerAlt },
+    { id: 'PAYMENTS', label: 'Payments', icon: FaCreditCard },
+    { id: 'REPORTS', label: 'Reports', icon: FaChartBar },
+  ];
+
   // --------------- RENDER ---------------
 
   return (
-    <div className="space-y-6 md:space-y-8 pb-20 md:pb-10">
-      {/* Responsive Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 border-b border-gray-200 pb-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
-        <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-          <div className="flex space-x-6">
-            {['BOOKINGS', 'APPROVALS', 'DRIVERS', 'CUSTOMERS', 'LEADS', 'LEAD_PACKAGES', 'LEAD_SUBSCRIPTIONS', 'PACKAGES', 'SUBSCRIPTIONS', 'PRICING', 'SERVICE_AREAS', 'PAYMENTS', 'REPORTS'].map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => handleTabChange(tab as any)}
-                  className={`text-sm font-bold transition-colors whitespace-nowrap ${
-                    activeTab === tab
-                      ? 'text-black underline underline-offset-8'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {tab.replace('_', ' ')}
-                </button>
-              ),
-            )}
+    <div className="flex flex-col h-screen bg-gray-50 w-full">
+      {/* Top Header with SNP and Logout */}
+      <div className="bg-black text-white h-16 flex items-center justify-between px-4 z-50 flex-shrink-0">
+        <h1 className="text-2xl font-bold tracking-tight">SNP</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Admin User</span>
+            <div className="h-8 w-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-sm">
+              A
+            </div>
           </div>
+          <button 
+            onClick={onLogout}
+            className="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full transition-colors"
+          >
+            Logout
+          </button>
         </div>
       </div>
-
-      <div className="bg-white rounded-3xl shadow-card overflow-visible border border-gray-100 w-full">
-        <div>
-          {activeTab === 'BOOKINGS' && <BookingWorkflow />}
-
-          {activeTab === 'APPROVALS' && <PendingDriverApproval />}
-
-          {activeTab === 'CUSTOMERS' && <Customer />}
-
-          {activeTab === 'DRIVERS' && <Driver />}
-
-          {activeTab === 'LEADS' && <Lead />}
-
-          {activeTab === 'LEAD_PACKAGES' && <LeadPackage />}
-
-          {activeTab === 'LEAD_SUBSCRIPTIONS' && <LeadSubscriptionList />}
-
-{activeTab === 'PACKAGES' && (
-  <div className="p-4 md:p-6">
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-      <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
-      <button
-        className="w-full md:w-auto bg-black text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
-        onClick={openAddPackageModal}
-      >
-        Add Package
-      </button>
-    </div>
-
-    {packagesLoading && (
-      <p className="text-sm text-gray-500 mb-4">Loading packages...</p>
-    )}
-
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-      {packages.map((pkg) => (
-        <div
-          key={pkg.id}
-          className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
-        >
-          <div className="flex justify-between items-start mb-2">
-            {/* LEFT: name + duration */}
-            <div>
-              <h4 className="font-bold text-lg">{pkg.name}</h4>
-              
-            </div>
-
-            {/* RIGHT: type badge */}
-            <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
-              {pkg.type || 'N/A'}
-            </span>
+      
+      <div className="flex flex-1 overflow-hidden">
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 top-16 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:z-auto lg:flex-shrink-0 lg:top-0`}>
+        <div className="flex flex-col h-full">
+          {/* Logo/Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <h1 className="text-xl font-bold text-gray-900">Admin Portal</h1>
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
 
-          <p className="text-2xl font-bold mb-2">₹{pkg.price}</p>
-          <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
-          <div className="flex justify-between items-center border-t border-gray-100 pt-3">
-  {/* Left: duration */}
-  <p className="text-xs text-gray-500">
-    Duration: {pkg.duration} days
-  </p>
-
-  {/* Right: action buttons */}
-  <div className="flex gap-2">
-    <button
-      className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${
-        pkg.isActive 
-          ? 'text-green-600 bg-green-50 hover:bg-green-100' 
-          : 'text-red-600 bg-red-50 hover:bg-red-100'
-      }`}
-      onClick={() => handleTogglePackageStatus(pkg)}
-    >
-      {pkg.isActive ? 'Active' : 'Inactive'}
-    </button>
-    <button
-      className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
-      onClick={() => openEditPackageModal(pkg)}
-    >
-      Edit
-    </button>
-  </div>
-</div>
+          {/* Menu Items */}
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+            {menuItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id as any)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
+                    activeTab === item.id
+                      ? 'bg-black text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <IconComponent className="text-lg" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      ))}
-    </div>
-  </div>
-)}
+      </aside>
 
-          {activeTab === 'SUBSCRIPTIONS' && (
-            <div className="p-4 md:p-6">
-              <SubscriptionList />
-            </div>
-          )}
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden top-16"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-          {activeTab === 'PRICING' && <PricingManagement />}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+        {/* Top Bar */}
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden text-gray-500 hover:text-gray-700"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h2 className="text-lg font-bold text-gray-900">
+            {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+          </h2>
+          <div className="w-6"></div>
+        </header>
 
-          {activeTab === 'SERVICE_AREAS' && <ServiceAreaManagement />}
+        {/* Content Area */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <div className="h-full">
+            {activeTab === 'BOOKINGS' && <BookingWorkflow />}
+            {activeTab === 'APPROVALS' && <PendingDriverApproval />}
+            {activeTab === 'CUSTOMERS' && <Customer />}
+            {activeTab === 'DRIVERS' && <Driver />}
+            {activeTab === 'LEADS' && <Lead />}
+            {activeTab === 'LEAD_PACKAGES' && <LeadPackage />}
+            {activeTab === 'LEAD_SUBSCRIPTIONS' && <LeadSubscriptionList />}
 
-          {activeTab === 'REPORTS' && <Reports />}
-
-          {activeTab === 'PAYMENTS' && (
-            <>
-              {/* Mobile View: Cards */}
-              <div className="md:hidden p-4 space-y-4">
-                {paymentData.data.map((pay: any) => (
-                  <div
-                    key={pay.id}
-                    className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
+            {activeTab === 'PACKAGES' && (
+              <div className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                  <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
+                  <button
+                    className="w-full md:w-auto bg-black text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
+                    onClick={openAddPackageModal}
                   >
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm font-bold text-gray-900">{pay.type}</span>
-                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                        {pay.status}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                      <div className="text-xs text-gray-500 space-y-1">
-                        <p className="font-medium text-gray-900">{pay.date}</p>
-                        <p>
-                          User: <span className="font-mono">{pay.userId}</span>
-                        </p>
+                    Add Package
+                  </button>
+                </div>
+
+                {packagesLoading && (
+                  <p className="text-sm text-gray-500 mb-4">Loading packages...</p>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {packages.map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-lg">{pkg.name}</h4>
+                        </div>
+                        <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
+                          {pkg.type || 'N/A'}
+                        </span>
                       </div>
-                      <p className="font-bold text-xl">₹{pay.amount}</p>
+
+                      <p className="text-2xl font-bold mb-2">₹{pkg.price}</p>
+                      <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
+                      <div className="flex justify-between items-center border-t border-gray-100 pt-3">
+                        <p className="text-xs text-gray-500">
+                          Duration: {pkg.duration} days
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${
+                              pkg.isActive 
+                                ? 'text-green-600 bg-green-50 hover:bg-green-100' 
+                                : 'text-red-600 bg-red-50 hover:bg-red-100'
+                            }`}
+                            onClick={() => handleTogglePackageStatus(pkg)}
+                          >
+                            {pkg.isActive ? 'Active' : 'Inactive'}
+                          </button>
+                          <button
+                            className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
+                            onClick={() => openEditPackageModal(pkg)}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'SUBSCRIPTIONS' && (
+              <div className="p-4 md:p-6">
+                <SubscriptionList />
+              </div>
+            )}
+
+            {activeTab === 'PRICING' && <PricingManagement />}
+            {activeTab === 'SERVICE_AREAS' && <ServiceAreaManagement />}
+            {activeTab === 'REPORTS' && <Reports />}
+
+            {activeTab === 'PAYMENTS' && (
+              <>
+                <div className="md:hidden p-4 space-y-4">
+                  {paymentData.data.map((pay: any) => (
+                    <div
+                      key={pay.id}
+                      className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-bold text-gray-900">{pay.type}</span>
+                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                          {pay.status}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <div className="text-xs text-gray-500 space-y-1">
+                          <p className="font-medium text-gray-900">{pay.date}</p>
+                          <p>
+                            User: <span className="font-mono">{pay.userId}</span>
+                          </p>
+                        </div>
+                        <p className="font-bold text-xl">₹{pay.amount}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
+                  <div className="min-w-full inline-block align-middle">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left">
+                        <thead className="bg-gray-50 border-b border-gray-100">
+                          <tr>
+                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                              User ID
+                            </th>
+                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                              Type
+                            </th>
+                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                              Amount
+                            </th>
+                            <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {paymentData.data.map((pay: any) => (
+                            <tr key={pay.id} className="hover:bg-gray-50/50">
+                              <td className="px-8 py-5 text-sm font-medium">{pay.date}</td>
+                              <td className="px-8 py-5 text-sm text-gray-500">{pay.userId}</td>
+                              <td className="px-8 py-5 text-sm font-bold">{pay.type}</td>
+                              <td className="px-8 py-5 text-sm">₹{pay.amount}</td>
+                              <td className="px-8 py-5 text-right">
+                                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  {pay.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Desktop View: Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full text-left">
-                  <thead className="bg-gray-50 border-b border-gray-100">
-                    <tr>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        User ID
-                      </th>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {paymentData.data.map((pay: any) => (
-                      <tr key={pay.id} className="hover:bg-gray-50/50">
-                        <td className="px-8 py-5 text-sm font-medium">{pay.date}</td>
-                        <td className="px-8 py-5 text-sm text-gray-500">{pay.userId}</td>
-                        <td className="px-8 py-5 text-sm font-bold">{pay.type}</td>
-                        <td className="px-8 py-5 text-sm">₹{pay.amount}</td>
-                        <td className="px-8 py-5 text-right">
-                          <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                            {pay.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <PaginationControls
-                total={paymentData.total}
-                totalPages={paymentData.totalPages}
-              />
-            </>
-          )}
-
-        
-        </div>
+                </div>
+                <PaginationControls
+                  total={paymentData.total}
+                  totalPages={paymentData.totalPages}
+                />
+              </>
+            )}
+          </div>
+        </main>
+      </div>
       </div>
 
       {/* ADD / EDIT PACKAGE MODAL */}

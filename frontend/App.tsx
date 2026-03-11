@@ -157,7 +157,7 @@ const App: React.FC = () => {
             {currentUser.role === UserRole.CUSTOMER && <CustomerPortal customer={currentUser as any} />}
             {currentUser.role === UserRole.DRIVER && <DriverPortal driver={currentUser as any} />}
             {currentUser.role === UserRole.LEAD && <LeadPortal onLogout={handleLogout} />}
-            {currentUser.role === UserRole.ADMIN && <AdminPortal />}
+            {currentUser.role === UserRole.ADMIN && <AdminPortal onLogout={handleLogout} />}
             <Toast />
           </Layout>
         ) : (
