@@ -43,7 +43,15 @@ export const customerLoginOtp = async (req, res) => {
       type: 'template',
       template: {
         name: 'customer_login_otp_1',
-        language: { code: 'en' }
+        language: { code: 'en' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: otp }
+            ]
+          }
+        ]
       }
     };
 
