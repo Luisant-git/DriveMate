@@ -43,22 +43,15 @@ export const customerLoginOtp = async (req, res) => {
       type: 'template',
       template: {
         name: 'customer_login_otp_1',
-        language: { code: 'en' },
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              { type: 'text', text: otp }
-            ]
-          }
-        ]
+        language: { code: 'en' }
       }
     };
 
     console.log(`[WhatsApp] Sending customer OTP to Meta API:`, {
       url: whatsappConfig.apiUrl,
       to: formattedPhone,
-      template: 'customer_login_otp_1'
+      template: 'customer_login_otp_1',
+      payload: JSON.stringify(messagePayload, null, 2)
     });
 
     // Send WhatsApp message
