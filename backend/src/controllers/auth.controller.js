@@ -1,9 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
+import axios from 'axios';
 
-// Hardcoded OTP for demo
-const DEMO_OTP = '1234';
+// Store OTPs temporarily (in production, use Redis)
+const otpStore = new Map();
 
 // Helper function to convert file ID to full URL
 const getFileUrl = (fileId) => {
@@ -199,10 +200,64 @@ export const sendOTP = async (req, res) => {
       return res.status(400).json({ error: 'Valid phone number required' });
     }
 
-    // In production, send actual OTP via SMS service
-    console.log(`OTP for ${phone}: ${DEMO_OTP}`);
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    res.json({ message: 'OTP sent successfully', phone });
+    // Store OTP with 10 minute expiry
+    otpStore.set(phone, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+    });
+
+    console.log(`OTP for ${phone}: ${otp}`);
+
+    // Send OTP via WhatsApp
+    try {
+      const whatsappConfig = {
+        accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+        phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+        apiUrl: `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`
+      };
+
+      // Format phone number
+      let formattedPhone = phone.replace(/\D/g, '');
+      if (!formattedPhone.startsWith('91')) {
+        formattedPhone = '91' + formattedPhone;
+      }
+
+      // WhatsApp template payload for OTP
+      const messagePayload = {
+        messaging_product: 'whatsapp',
+        to: formattedPhone,
+        type: 'template',
+        template: {
+          name: 'customer_login_otp',
+          language: { code: 'en' },
+          components: [
+            {
+              type: 'body',
+              parameters: [
+                { type: 'text', text: otp }
+              ]
+            }
+          ]
+        }
+      };
+
+      await axios.post(whatsappConfig.apiUrl, messagePayload, {
+        headers: {
+          'Authorization': `Bearer ${whatsappConfig.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log(`[Auth] WhatsApp OTP sent to ${formattedPhone}`);
+    } catch (whatsappError) {
+      console.error('[Auth] WhatsApp OTP Error:', whatsappError.response?.data || whatsappError.message);
+      // Continue even if WhatsApp fails, OTP is logged
+    }
+    
+    res.json({ success: true, message: 'OTP sent successfully', phone });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -216,9 +271,24 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ error: 'Phone and OTP required' });
     }
 
-    if (otp !== DEMO_OTP) {
+    // Check if OTP exists and is valid
+    const storedOtpData = otpStore.get(phone);
+    
+    if (!storedOtpData) {
+      return res.status(401).json({ error: 'OTP expired or not found. Please request a new OTP.' });
+    }
+
+    if (Date.now() > storedOtpData.expiresAt) {
+      otpStore.delete(phone);
+      return res.status(401).json({ error: 'OTP expired. Please request a new OTP.' });
+    }
+
+    if (otp !== storedOtpData.otp) {
       return res.status(401).json({ error: 'Invalid OTP' });
     }
+
+    // OTP is valid, delete it
+    otpStore.delete(phone);
 
     // Find or create customer
     let user = await prisma.customer.findUnique({ where: { phone } });

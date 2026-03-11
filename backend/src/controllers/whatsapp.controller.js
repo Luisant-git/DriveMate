@@ -1,5 +1,110 @@
 import axios from 'axios';
 
+export const customerLoginOtp = async (req, res) => {
+  const startTime = Date.now();
+  const logData = {
+    timestamp: new Date().toISOString(),
+    phone: req.body.phone,
+    templateName: 'customer_login_otp'
+  };
+
+  try {
+    const { phone, otp } = req.body;
+
+    console.log(`[WhatsApp] Starting customer OTP send:`, logData);
+
+    if (!phone || !otp) {
+      console.log(`[WhatsApp] ERROR - Missing required fields:`, { phone: !!phone, otp: !!otp });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Phone number and OTP are required' 
+      });
+    }
+
+    // WhatsApp Business API configuration
+    const whatsappConfig = {
+      accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+      apiUrl: `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`
+    };
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (!formattedPhone.startsWith('91')) {
+      formattedPhone = '91' + formattedPhone;
+    }
+
+    console.log(`[WhatsApp] Formatted phone: ${phone} -> ${formattedPhone}`);
+
+    // Template message payload for customer OTP (1 parameter)
+    const messagePayload = {
+      messaging_product: 'whatsapp',
+      to: formattedPhone,
+      type: 'template',
+      template: {
+        name: 'customer_login_otp',
+        language: { code: 'en' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: otp }
+            ]
+          }
+        ]
+      }
+    };
+
+    console.log(`[WhatsApp] Sending customer OTP to Meta API:`, {
+      url: whatsappConfig.apiUrl,
+      to: formattedPhone,
+      template: 'customer_login_otp'
+    });
+
+    // Send WhatsApp message
+    const response = await axios.post(whatsappConfig.apiUrl, messagePayload, {
+      headers: {
+        'Authorization': `Bearer ${whatsappConfig.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const duration = Date.now() - startTime;
+    const successLog = {
+      ...logData,
+      status: 'SUCCESS',
+      messageId: response.data.messages?.[0]?.id,
+      duration: `${duration}ms`,
+      formattedPhone
+    };
+
+    console.log(`[WhatsApp] CUSTOMER OTP SUCCESS:`, successLog);
+
+    res.json({ 
+      success: true, 
+      message: 'WhatsApp OTP sent successfully',
+      messageId: response.data.messages?.[0]?.id 
+    });
+
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorLog = {
+      ...logData,
+      status: 'ERROR',
+      error: error.response?.data || error.message,
+      duration: `${duration}ms`
+    };
+
+    console.error(`[WhatsApp] CUSTOMER OTP ERROR:`, errorLog);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send WhatsApp OTP',
+      details: error.response?.data?.error?.message || error.message
+    });
+  }
+};
+
 export const customerDriverAssigned = async (req, res) => {
   const startTime = Date.now();
   const logData = {

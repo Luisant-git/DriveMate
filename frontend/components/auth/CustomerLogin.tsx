@@ -26,7 +26,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
       const response = await sendOTP(phoneNumber);
       if (response.success) {
         setStep('OTP');
-        alert(`OTP sent to ${phoneNumber}. Use 1234 to login.`);
+        toast.success(`OTP sent to ${phoneNumber} via WhatsApp`);
       } else {
         alert(response.error || response.message || 'Failed to send OTP');
       }
@@ -39,8 +39,8 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length !== 4) {
-      alert("Please enter a valid 4-digit OTP");
+    if (otp.length !== 6) {
+      alert("Please enter a valid 6-digit OTP");
       return;
     }
     
@@ -110,16 +110,16 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
         ← Edit Number
       </button>
       <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Verify account</h2>
-      <p className="text-gray-500 text-sm mb-6 sm:mb-8">Enter the 4-digit code sent to <span className="font-bold text-black">+91 {phoneNumber}</span></p>
+      <p className="text-gray-500 text-sm mb-6 sm:mb-8">Enter the 6-digit code sent to <span className="font-bold text-black">+91 {phoneNumber}</span> via WhatsApp</p>
       
       <div className="flex-grow">
         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">One Time Password</label>
         <input 
           type="text" 
           autoFocus
-          maxLength={4}
+          maxLength={6}
           className="w-full bg-gray-100 border-none rounded-lg p-4 font-bold text-2xl tracking-[0.5em] text-center focus:ring-2 focus:ring-black outline-none"
-          placeholder="••••"
+          placeholder="••••••"
           value={otp}
           onChange={(e) => {
             const val = e.target.value.replace(/\D/g, '');
@@ -135,7 +135,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
 
       <button 
         type="submit" 
-        disabled={otp.length < 4 || isLoading}
+        disabled={otp.length < 6 || isLoading}
         className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
       >
         {isLoading ? (
