@@ -36,7 +36,7 @@ export const customerLoginOtp = async (req, res) => {
 
     console.log(`[WhatsApp] Formatted phone: ${phone} -> ${formattedPhone}`);
 
-    // Template message payload for customer OTP (1 parameter)
+    // Template message payload for customer OTP (authentication template with copy code)
     const messagePayload = {
       messaging_product: 'whatsapp',
       to: formattedPhone,
@@ -46,11 +46,9 @@ export const customerLoginOtp = async (req, res) => {
         language: { code: 'en' },
         components: [
           {
-            type: 'button',
-            sub_type: 'url',
-            index: '0',
+            type: 'body',
             parameters: [
-              { type: 'coupon_code', coupon_code: otp }
+              { type: 'text', text: otp }
             ]
           }
         ]
