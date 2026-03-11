@@ -5,7 +5,7 @@ export const customerLoginOtp = async (req, res) => {
   const logData = {
     timestamp: new Date().toISOString(),
     phone: req.body.phone,
-    templateName: 'customer_login_otp_1'
+    templateName: 'customer_login_otp'
   };
 
   try {
