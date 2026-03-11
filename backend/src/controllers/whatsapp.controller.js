@@ -53,7 +53,7 @@ export const customerLoginOtp = async (req, res) => {
           },
           {
             type: 'button',
-            sub_type: 'copy_code',
+            sub_type: 'url',
             index: '0',
             parameters: [
               { type: 'text', text: otp }
