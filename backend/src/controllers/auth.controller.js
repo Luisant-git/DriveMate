@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
-import axios from 'axios';
+import { customerLoginOtp } from './whatsapp.controller.js';
 
 // Store OTPs temporarily (in production, use Redis)
 const otpStore = new Map();
@@ -211,49 +211,18 @@ export const sendOTP = async (req, res) => {
 
     console.log(`OTP for ${phone}: ${otp}`);
 
-    // Send OTP via WhatsApp
+    // Send OTP via WhatsApp using the controller function
     try {
-      const whatsappConfig = {
-        accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
-        phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
-        apiUrl: `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`
+      const mockReq = { body: { phone, otp } };
+      const mockRes = {
+        json: (data) => console.log('[WhatsApp] Success:', data.message),
+        status: (code) => ({ json: (data) => console.error('[WhatsApp] Error:', data.error) })
       };
-
-      // Format phone number
-      let formattedPhone = phone.replace(/\D/g, '');
-      if (!formattedPhone.startsWith('91')) {
-        formattedPhone = '91' + formattedPhone;
-      }
-
-      // WhatsApp template payload for OTP
-      const messagePayload = {
-        messaging_product: 'whatsapp',
-        to: formattedPhone,
-        type: 'template',
-        template: {
-          name: 'customer_login_otp',
-          language: { code: 'en' },
-          components: [
-            {
-              type: 'body',
-              parameters: [
-                { type: 'text', text: otp }
-              ]
-            }
-          ]
-        }
-      };
-
-      await axios.post(whatsappConfig.apiUrl, messagePayload, {
-        headers: {
-          'Authorization': `Bearer ${whatsappConfig.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log(`[Auth] WhatsApp OTP sent to ${formattedPhone}`);
+      
+      await customerLoginOtp(mockReq, mockRes);
+      console.log(`[Auth] WhatsApp OTP sent successfully to ${phone}`);
     } catch (whatsappError) {
-      console.error('[Auth] WhatsApp OTP Error:', whatsappError.response?.data || whatsappError.message);
+      console.error('[Auth] WhatsApp OTP Error:', whatsappError.message);
       // Continue even if WhatsApp fails, OTP is logged
     }
     

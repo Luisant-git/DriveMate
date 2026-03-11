@@ -5,7 +5,7 @@ export const customerLoginOtp = async (req, res) => {
   const logData = {
     timestamp: new Date().toISOString(),
     phone: req.body.phone,
-    templateName: 'customer_login_otp'
+    templateName: 'customer_login_otp_1'
   };
 
   try {
@@ -42,11 +42,19 @@ export const customerLoginOtp = async (req, res) => {
       to: formattedPhone,
       type: 'template',
       template: {
-        name: 'customer_login_otp',
+        name: 'customer_login_otp_1',
         language: { code: 'en' },
         components: [
           {
             type: 'body',
+            parameters: [
+              { type: 'text', text: otp }
+            ]
+          },
+          {
+            type: 'button',
+            sub_type: 'COPY_CODE',
+            index: '0',
             parameters: [
               { type: 'text', text: otp }
             ]
@@ -58,7 +66,7 @@ export const customerLoginOtp = async (req, res) => {
     console.log(`[WhatsApp] Sending customer OTP to Meta API:`, {
       url: whatsappConfig.apiUrl,
       to: formattedPhone,
-      template: 'customer_login_otp'
+      template: 'customer_login_otp_1'
     });
 
     // Send WhatsApp message
