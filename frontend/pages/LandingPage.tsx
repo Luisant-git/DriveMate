@@ -33,7 +33,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-black text-white w-full border-b border-gray-900 relative">
                 <div className="flex justify-between items-center px-3 md:px-12 py-3">
-                    <div className="text-lg md:text-xl font-bold tracking-tighter">DriveMate</div>
+                    <div className="text-lg md:text-xl font-bold tracking-tighter">SNP</div>
                     <nav className="hidden md:flex gap-6">
                         <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors" onClick={onGetStarted}>Hire a Driver</button>
                         <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors" onClick={onGetStarted}>Outstation Cabs</button>
@@ -108,7 +108,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                                 <div className="absolute -inset-1 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                                 <img
                                     src="/assets/images/hero-main.png"
-                                    alt="DriveMate Service Illustration"
+                                    alt="SNP Service Illustration"
                                     className="relative w-full rounded-xl object-contain drop-shadow-xl transition-all duration-500 h-[280px] md:h-[420px]"
                                 />
                             </div>
@@ -119,7 +119,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 {/* Features Section */}
                 <section className="bg-gray-50 px-6 md:px-12 py-16 md:py-20 border-y border-gray-100">
                     <div className="max-w-6xl mx-auto">
-                        <h2 className="text-3xl md:text-4xl font-semibold mb-12 tracking-tighter text-center md:text-left">Why DriveMate?</h2>
+                        <h2 className="text-3xl md:text-4xl font-semibold mb-12 tracking-tighter text-center md:text-left">Why SNP?</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div className="group">
                                 <div className="w-10 h-10 bg-black text-white flex items-center justify-center rounded-lg mb-4 group-hover:scale-110 transition-transform">
@@ -335,7 +335,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <div className="max-w-6xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 md:gap-16 mb-20">
                         <div className="col-span-1">
-                            <div className="text-xl font-bold tracking-tighter mb-6">DriveMate</div>
+                            <div className="text-xl font-bold tracking-tighter mb-6">SNP</div>
                             <p className="text-[11px] text-gray-300 leading-relaxed uppercase tracking-wider">
                                 Redefining professional driving services across India.
                             </p>
@@ -368,7 +368,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                         </div>
                     </div>
                     <div className="pt-8 border-t border-gray-900 text-[10px] text-gray-300 font-bold uppercase tracking-widest flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p>© 2026 DriveMate Technologies Inc.</p>
+                        <p>© 2026 SNP Technologies Inc.</p>
                         <div className="flex gap-4">
                             <a href="https://www.facebook.com/share/18P8cPUbxU/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>

@@ -62,7 +62,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
           <input 
             type="email"
             className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-black outline-none"
-            placeholder="admin@drivemate.com"
+            placeholder="admin@snp.com"
             value={loginData.email}
             onChange={(e) => setLoginData({...loginData, email: e.target.value})}
             autoFocus

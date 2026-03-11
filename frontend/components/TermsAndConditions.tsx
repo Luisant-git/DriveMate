@@ -24,12 +24,12 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ isOpen, onClose
         <div className="p-4 overflow-y-auto max-h-[60vh] space-y-4 text-sm">
           <section>
             <h3 className="font-bold mb-2">1. Acceptance of Terms</h3>
-            <p>By using DriveMate services, you agree to these terms and conditions.</p>
+            <p>By using SNP services, you agree to these terms and conditions.</p>
           </section>
 
           <section>
             <h3 className="font-bold mb-2">2. Service Description</h3>
-            <p>DriveMate provides ride booking and transportation services through our platform.</p>
+            <p>SNP provides ride booking and transportation services through our platform.</p>
           </section>
 
           <section>
@@ -57,7 +57,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ isOpen, onClose
 
           <section>
             <h3 className="font-bold mb-2">6. Limitation of Liability</h3>
-            <p>DriveMate's liability is limited to the extent permitted by law.</p>
+            <p>SNP's liability is limited to the extent permitted by law.</p>
           </section>
 
           <section>
