@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
-
-const API_URL = API_BASE_URL + '/api';
 
 export default function BookingWorkflow() {
   const [pendingBookings, setPendingBookings] = useState([]);
@@ -27,7 +25,7 @@ export default function BookingWorkflow() {
 
   const fetchPackages = async () => {
     try {
-      const res = await axios.get(`${API_URL}/subscriptions/plans`, { withCredentials: true });
+      const res = await apiClient.get('/subscriptions/plans');
       setPackages(Array.isArray(res.data) ? res.data.filter(p => p.isActive) : []);
     } catch (error) {
       console.error('Error fetching packages:', error);
@@ -36,7 +34,7 @@ export default function BookingWorkflow() {
 
   const fetchLeadPackages = async () => {
     try {
-      const res = await axios.get(`${API_URL}/lead-subscriptions/plans`, { withCredentials: true });
+      const res = await apiClient.get('/lead-subscriptions/plans');
       setLeadPackages(res.data?.plans ? res.data.plans.filter(p => p.isActive) : []);
     } catch (error) {
       console.error('Error fetching lead packages:', error);
@@ -45,8 +43,8 @@ export default function BookingWorkflow() {
 
   const fetchDriverCounts = async () => {
     try {
-      const localDrivers = await axios.get(`${API_URL}/drivers/count-by-type/LOCAL`, { withCredentials: true });
-      const outstationDrivers = await axios.get(`${API_URL}/drivers/count-by-type/OUTSTATION`, { withCredentials: true });
+      const localDrivers = await apiClient.get('/drivers/count-by-type/LOCAL');
+      const outstationDrivers = await apiClient.get('/drivers/count-by-type/OUTSTATION');
       
       setDriverCounts({
         LOCAL: localDrivers.data.count || 0,
@@ -60,8 +58,8 @@ export default function BookingWorkflow() {
 
   const fetchLeadCounts = async () => {
     try {
-      const localLeads = await axios.get(`${API_URL}/leads/count-by-type/LOCAL`, { withCredentials: true });
-      const outstationLeads = await axios.get(`${API_URL}/leads/count-by-type/OUTSTATION`, { withCredentials: true });
+      const localLeads = await apiClient.get('/leads/count-by-type/LOCAL');
+      const outstationLeads = await apiClient.get('/leads/count-by-type/OUTSTATION');
       
       setLeadCounts({
         LOCAL: localLeads.data.count || 0,
@@ -80,7 +78,7 @@ export default function BookingWorkflow() {
       if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
       if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
       
-      const res = await axios.get(`${API_URL}/booking-workflow/admin/pending?${params}`, { withCredentials: true });
+      const res = await apiClient.get(`/booking-workflow/admin/pending?${params}`);
       setPendingBookings(res.data.bookings);
       setFilteredBookings(res.data.bookings);
     } catch (error) {
@@ -101,7 +99,7 @@ export default function BookingWorkflow() {
         const selectedPackage = leadPackages.find(p => p.id === actualPackageId);
         if (!selectedPackage) return;
         
-        const res = await axios.get(`${API_URL}/leads/count-by-type/${selectedPackage.type}`, { withCredentials: true });
+        const res = await apiClient.get(`/leads/count-by-type/${selectedPackage.type}`);
         setBookingDrivers({
           ...bookingDrivers,
           [bookingId]: {
@@ -117,7 +115,7 @@ export default function BookingWorkflow() {
         const selectedPackage = packages.find(p => p.id === packageId);
         if (!selectedPackage) return;
         
-        const res = await axios.get(`${API_URL}/drivers/available/${packageId}`, { withCredentials: true });
+        const res = await apiClient.get(`/drivers/available/${packageId}`);
         setBookingDrivers({
           ...bookingDrivers,
           [bookingId]: {
@@ -149,9 +147,8 @@ export default function BookingWorkflow() {
       setLoading(true);
       
       if (isLeadPackage) {
-        const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-leads`, 
-          { leadPackageId: packageId }, 
-          { withCredentials: true }
+        const sendResponse = await apiClient.post(`/booking-workflow/admin/${bookingId}/send-to-leads`, 
+          { leadPackageId: packageId }
         );
         
         if (sendResponse.data.success) {
@@ -160,11 +157,10 @@ export default function BookingWorkflow() {
           fetchPendingBookings();
         }
       } else {
-        await axios.put(`${API_URL}/booking-workflow/admin/${bookingId}/review`, 
-          { selectedPackageType: packageType, selectedPackageId: packageId }, 
-          { withCredentials: true }
+        await apiClient.put(`/booking-workflow/admin/${bookingId}/review`, 
+          { selectedPackageType: packageType, selectedPackageId: packageId }
         );
-        const sendResponse = await axios.post(`${API_URL}/booking-workflow/admin/${bookingId}/send-to-drivers`, {}, { withCredentials: true });
+        const sendResponse = await apiClient.post(`/booking-workflow/admin/${bookingId}/send-to-drivers`, {});
         
         if (sendResponse.data.success) {
           const whatsappCount = sendResponse.data.whatsappSent || 0;
@@ -184,9 +180,9 @@ export default function BookingWorkflow() {
   const viewResponses = async (bookingId, isLeadBooking = false) => {
     try {
       const endpoint = isLeadBooking 
-        ? `${API_URL}/booking-workflow/admin/${bookingId}/lead-responses`
-        : `${API_URL}/booking-workflow/admin/${bookingId}/responses`;
-      const res = await axios.get(endpoint, { withCredentials: true });
+        ? `/booking-workflow/admin/${bookingId}/lead-responses`
+        : `/booking-workflow/admin/${bookingId}/responses`;
+      const res = await apiClient.get(endpoint);
       setResponses(isLeadBooking ? res.data.responses : res.data.responses);
       setSelectedBooking(bookingId);
     } catch (error) {
@@ -208,7 +204,7 @@ export default function BookingWorkflow() {
         }
       };
       
-      const response = await axios.post(`${API_URL}/whatsapp/driver-booking-assignment`, templateData, { withCredentials: true });
+      const response = await apiClient.post('/whatsapp/driver-booking-assignment', templateData);
       
       if (response.data.success) {
         alert('WhatsApp template sent successfully!');
@@ -224,11 +220,11 @@ export default function BookingWorkflow() {
   const allocateDriver = async (personId, isLead = false) => {
     try {
       const endpoint = isLead 
-        ? `${API_URL}/booking-workflow/admin/${selectedBooking}/allocate-lead`
-        : `${API_URL}/booking-workflow/admin/${selectedBooking}/allocate-driver`;
+        ? `/booking-workflow/admin/${selectedBooking}/allocate-lead`
+        : `/booking-workflow/admin/${selectedBooking}/allocate-driver`;
       const payload = isLead ? { leadId: personId } : { driverId: personId };
       
-      await axios.post(endpoint, payload, { withCredentials: true });
+      await apiClient.post(endpoint, payload);
       alert(`${isLead ? 'Lead' : 'Driver'} allocated!`);
       setSelectedBooking(null);
       fetchPendingBookings();

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
-
-const API_URL = API_BASE_URL + '/api';
 
 export default function PendingDriverApproval() {
   const [bookingsWithAcceptedDrivers, setBookingsWithAcceptedDrivers] = useState([]);
@@ -16,7 +14,7 @@ export default function PendingDriverApproval() {
 
   const fetchBookingsWithAcceptedDrivers = async () => {
     try {
-      const res = await axios.get(`${API_URL}/booking-workflow/admin/pending`, { withCredentials: true });
+      const res = await apiClient.get('/booking-workflow/admin/pending');
       const bookings = res.data.bookings || [];
       
       // Show ALL bookings that are not allocated yet
@@ -33,9 +31,9 @@ export default function PendingDriverApproval() {
       setLoading(true);
       const isLeadBooking = !!booking.selectedLeadPackageId;
       const endpoint = isLeadBooking 
-        ? `${API_URL}/booking-workflow/admin/${booking.id}/lead-responses`
-        : `${API_URL}/booking-workflow/admin/${booking.id}/responses`;
-      const res = await axios.get(endpoint, { withCredentials: true });
+        ? `/booking-workflow/admin/${booking.id}/lead-responses`
+        : `/booking-workflow/admin/${booking.id}/responses`;
+      const res = await apiClient.get(endpoint);
       setAcceptedDrivers(res.data.acceptedDrivers || res.data.acceptedLeads || []);
       setSelectedBooking(booking);
     } catch (error) {
@@ -48,11 +46,11 @@ export default function PendingDriverApproval() {
   const approveDriver = async (personId, isLead = false) => {
     try {
       const endpoint = isLead
-        ? `${API_URL}/booking-workflow/admin/${selectedBooking.id}/allocate-lead`
-        : `${API_URL}/booking-workflow/admin/${selectedBooking.id}/allocate-driver`;
+        ? `/booking-workflow/admin/${selectedBooking.id}/allocate-lead`
+        : `/booking-workflow/admin/${selectedBooking.id}/allocate-driver`;
       const payload = isLead ? { leadId: personId } : { driverId: personId };
       
-      await axios.post(endpoint, payload, { withCredentials: true });
+      await apiClient.post(endpoint, payload);
       alert(`✓ ${isLead ? 'Lead' : 'Driver'} approved and allocated!`);
       setSelectedBooking(null);
       fetchBookingsWithAcceptedDrivers();
