@@ -1,5 +1,13 @@
 import { API_BASE_URL } from './config';
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth-token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
 export const getDriverReports = async (filters = {}) => {
   try {
     const params = new URLSearchParams();
@@ -8,6 +16,7 @@ export const getDriverReports = async (filters = {}) => {
     if (filters.status) params.append('status', filters.status);
 
     const response = await fetch(`${API_BASE_URL}/api/reports/drivers?${params}`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     return await response.json();
@@ -24,6 +33,7 @@ export const getCustomerReports = async (filters = {}) => {
     if (filters.endDate) params.append('endDate', filters.endDate);
 
     const response = await fetch(`${API_BASE_URL}/api/reports/customers?${params}`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     return await response.json();
@@ -40,6 +50,7 @@ export const getRevenueReport = async (filters = {}) => {
     if (filters.endDate) params.append('endDate', filters.endDate);
 
     const response = await fetch(`${API_BASE_URL}/api/reports/revenue?${params}`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     return await response.json();
@@ -56,6 +67,7 @@ export const getDriverTrips = async (driverId, filters = {}) => {
     if (filters.endDate) params.append('endDate', filters.endDate);
 
     const response = await fetch(`${API_BASE_URL}/api/reports/drivers/${driverId}/trips?${params}`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     return await response.json();
@@ -72,6 +84,7 @@ export const getCustomerTrips = async (customerId, filters = {}) => {
     if (filters.endDate) params.append('endDate', filters.endDate);
 
     const response = await fetch(`${API_BASE_URL}/api/reports/customers/${customerId}/trips?${params}`, {
+      headers: getAuthHeaders(),
       credentials: 'include',
     });
     return await response.json();

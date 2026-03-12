@@ -1,8 +1,10 @@
 import { API_BASE_URL } from './config.js';
 
 const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth-token');
   return {
     'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 

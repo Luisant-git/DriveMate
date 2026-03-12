@@ -6,8 +6,11 @@ export const authenticateToken = (req, res, next) => {
 
   console.log('Auth header:', authHeader);
   console.log('Token:', token);
+  console.log('Request URL:', req.url);
+  console.log('Request Method:', req.method);
 
   if (!token) {
+    console.log('No token provided');
     return res.status(401).json({ error: 'Access token required' });
   }
 
