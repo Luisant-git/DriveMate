@@ -337,7 +337,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                         <div className="col-span-1">
                             <div className="text-xl font-bold tracking-tighter mb-6">SNPNBC Consultant and Manpower Services</div>
                             <p className="text-[11px] text-gray-300 leading-relaxed uppercase tracking-wider">
-                                Redefining professional driving services across India.
+                                No.21/A, Kengeri Main Road, <br /> Near Manthri Alpine Apartment, <br /> Channasandra, Bengaluru - 560098
                             </p>
                         </div>
                         <div className="space-y-4">
