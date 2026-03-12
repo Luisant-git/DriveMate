@@ -1,11 +1,18 @@
+import { getValidAuthHeaders, checkAuthStatus } from '../utils/auth.js';
+
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('auth-token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
-  };
+  try {
+    return getValidAuthHeaders();
+  } catch (error) {
+    // Fallback to basic headers if auth validation fails
+    const token = localStorage.getItem('auth-token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  }
 };
 
 // Get fare estimate
@@ -62,6 +69,11 @@ export const createBooking = async (bookingData) => {
 // Get customer bookings
 export const getCustomerBookings = async () => {
   try {
+    // Check auth status before making request
+    if (!checkAuthStatus()) {
+      return { success: false, error: 'Authentication required. Please login again.' };
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
       method: 'GET',
       headers: getAuthHeaders(),
@@ -70,6 +82,13 @@ export const getCustomerBookings = async () => {
     
     if (!response.ok) {
       const errorData = await response.json();
+      
+      // Handle authentication errors specifically
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('auth-token');
+        return { success: false, error: 'Session expired. Please login again.', requiresAuth: true };
+      }
+      
       return { success: false, error: errorData.error || 'Failed to fetch bookings' };
     }
     
