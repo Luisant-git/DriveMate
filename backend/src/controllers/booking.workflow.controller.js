@@ -665,7 +665,22 @@ export const sendBookingToLeads = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Lead package not found' });
     }
 
-    console.log(`[Lead Booking] Found lead package:`, { id: leadPackage.id, name: leadPackage.name, type: leadPackage.type });
+    console.log(`[Lead Booking] Found lead package:`, { id: leadPackage.id, name: leadPackage.name, type: leadPackage.type, types: leadPackage.types });
+    console.log(`[Lead Booking] Booking service type: ${booking.serviceType}`);
+
+    // Map booking service type to package type
+    let requiredPackageType;
+    if (booking.serviceType === 'Local - Hourly') {
+      requiredPackageType = 'LOCAL';
+    } else if (booking.serviceType === 'Outstation') {
+      requiredPackageType = 'OUTSTATION';
+    } else if (booking.serviceType === 'Monthly') {
+      requiredPackageType = 'MONTHLY';
+    } else {
+      requiredPackageType = 'LOCAL'; // Default fallback
+    }
+
+    console.log(`[Lead Booking] Required package type for booking: ${requiredPackageType}`);
 
     const leads = await prisma.lead.findMany({
       where: {
@@ -673,13 +688,29 @@ export const sendBookingToLeads = async (req, res) => {
           some: {
             status: 'ACTIVE',
             planId: leadPackageId,
-            endDate: { gte: new Date() }
+            endDate: { gte: new Date() },
+            plan: {
+              OR: [
+                { type: requiredPackageType }, // Main type matches
+                { types: { has: requiredPackageType } } // Or types array contains required type
+              ]
+            }
           }
+        }
+      },
+      include: {
+        leadSubscriptions: {
+          where: {
+            status: 'ACTIVE',
+            planId: leadPackageId,
+            endDate: { gte: new Date() }
+          },
+          include: { plan: true }
         }
       }
     });
 
-    console.log(`[Lead Booking] Found ${leads.length} leads with active subscriptions for package ${leadPackageId}`);
+    console.log(`[Lead Booking] Found ${leads.length} leads with active subscriptions for package ${leadPackageId} supporting ${requiredPackageType}`);
     console.log(`[Lead Booking] Lead IDs:`, leads.map(l => l.id));
 
     if (leads.length === 0) {
@@ -696,11 +727,14 @@ export const sendBookingToLeads = async (req, res) => {
       allLeads.forEach(lead => {
         console.log(`[Lead Booking] Lead ${lead.id}: ${lead.leadSubscriptions.length} subscriptions`);
         lead.leadSubscriptions.forEach(sub => {
-          console.log(`  - Plan: ${sub.plan.name} (${sub.plan.type}), Status: ${sub.status}, End: ${sub.endDate}`);
+          console.log(`  - Plan: ${sub.plan.name} (${sub.plan.type}), Types: [${sub.plan.types?.join(', ') || 'none'}], Status: ${sub.status}, End: ${sub.endDate}`);
         });
       });
       
-      return res.status(400).json({ success: false, error: 'No leads available with this package' });
+      return res.status(400).json({ 
+        success: false, 
+        error: `No leads available with this package that support ${booking.serviceType} bookings` 
+      });
     }
 
     // Get existing lead responses before creating new ones

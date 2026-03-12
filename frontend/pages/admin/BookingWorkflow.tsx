@@ -93,6 +93,8 @@ export default function BookingWorkflow() {
 
   const fetchAvailableDrivers = async (bookingId, packageId) => {
     try {
+      const booking = pendingBookings.find(b => b.id === bookingId);
+      const serviceType = booking?.serviceType || 'Local - Hourly';
       const isLeadPackage = packageId.startsWith('lead-');
       const actualPackageId = isLeadPackage ? packageId.replace('lead-', '') : packageId;
       
@@ -100,7 +102,7 @@ export default function BookingWorkflow() {
         const selectedPackage = leadPackages.find(p => p.id === actualPackageId);
         if (!selectedPackage) return;
         
-        const res = await apiClient.get(`/leads/count-by-type/${selectedPackage.type}`);
+        const res = await apiClient.get(`/leads/count-by-package/${actualPackageId}?serviceType=${encodeURIComponent(serviceType)}`);
         setBookingDrivers({
           ...bookingDrivers,
           [bookingId]: {

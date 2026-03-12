@@ -147,3 +147,53 @@ export const getLeadCountByType = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const getLeadCountByPackage = async (req, res) => {
+  try {
+    const { packageId } = req.params;
+    const { serviceType } = req.query; // Get service type from query params
+    
+    console.log(`[Lead Count] Counting leads with active subscriptions to package ${packageId} for service type ${serviceType}`);
+    
+    // Map booking service type to package type
+    let requiredPackageType;
+    if (serviceType === 'Local - Hourly') {
+      requiredPackageType = 'LOCAL';
+    } else if (serviceType === 'Outstation') {
+      requiredPackageType = 'OUTSTATION';
+    } else if (serviceType === 'Monthly') {
+      requiredPackageType = 'MONTHLY';
+    } else {
+      requiredPackageType = 'LOCAL'; // Default fallback
+    }
+
+    console.log(`[Lead Count] Required package type: ${requiredPackageType}`);
+    
+    const count = await prisma.lead.count({
+      where: {
+        leadSubscriptions: {
+          some: {
+            status: 'ACTIVE',
+            planId: packageId,
+            endDate: {
+              gte: new Date()
+            },
+            plan: {
+              OR: [
+                { type: requiredPackageType }, // Main type matches
+                { types: { has: requiredPackageType } } // Or types array contains required type
+              ]
+            }
+          }
+        }
+      }
+    });
+    
+    console.log(`[Lead Count] Found ${count} leads with active subscriptions to package ${packageId} supporting ${requiredPackageType}`);
+    
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('[Lead Count] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
