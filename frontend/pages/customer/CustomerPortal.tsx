@@ -149,7 +149,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       const authStatus = await checkAuth();
       setIsAuthenticated(authStatus.authenticated);
       if (!authStatus.authenticated) {
-        toast.warning('Please log in to access all features');
+        console.log('Authentication check failed');
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -160,15 +160,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   };
 
   const fetchBookings = async () => {
-    if (!isAuthenticated) return;
-    
     try {
       const response = await getCustomerBookings();
       if (response.success) {
         setMyTrips(response.bookings);
-      } else if (response.error === 'User not logged in') {
-        setIsAuthenticated(false);
-        toast.warning('Please log in to view your trips');
+      } else {
+        console.log('Failed to fetch bookings:', response.error);
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -185,8 +182,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         address: initialCustomer.address || ''
       });
       
-      // Check authentication status
-      checkAuthStatus();
+      // Since user is already authenticated at app level, set to true
+      setIsAuthenticated(true);
       
       // Fetch real bookings
       fetchBookings();
@@ -275,12 +272,6 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check authentication first
-    if (!isAuthenticated) {
-      toast.error('Please log in to book a ride');
-      return;
-    }
     
     // Check if estimate is available
     if (!estimate || estimate <= 0) {
@@ -414,12 +405,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         fetchBookings();
         setActiveTab('TRIPS');
       } else {
-        if (response.error === 'User not logged in') {
-          setIsAuthenticated(false);
-          toast.error('Please log in to book a ride');
-        } else {
-          // toast.error(response.error || 'Failed to send request');
-        }
+        toast.error(response.error || 'Failed to send request');
       }
     } catch (error) {
       console.error('Booking error:', error);
