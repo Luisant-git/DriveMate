@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
-
-const API_URL = API_BASE_URL + '/api';
 
 export default function Driver() {
   const [drivers, setDrivers] = useState([]);
@@ -18,7 +16,7 @@ export default function Driver() {
 
   const fetchPackages = async () => {
     try {
-      const res = await axios.get(`${API_URL}/subscriptions/active-packages`, { withCredentials: true });
+      const res = await apiClient.get('/subscriptions/active-packages');
       if (res.data.success) {
         setPackages(res.data.packages);
         const map = {};
@@ -35,7 +33,7 @@ export default function Driver() {
   const fetchDrivers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/admin/drivers`, { withCredentials: true });
+      const res = await apiClient.get('/admin/drivers');
       const driversWithActiveSubscription = (res.data || []).map(driver => {
         const activeSubscription = driver.subscriptions?.find(sub => sub.status === 'ACTIVE');
         return { ...driver, activeSubscription };

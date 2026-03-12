@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
-
-const API_URL = API_BASE_URL + '/api';
 
 export default function Lead() {
   const [leads, setLeads] = useState([]);
@@ -16,7 +14,7 @@ export default function Lead() {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/admin/leads`, { withCredentials: true });
+      const res = await apiClient.get('/admin/leads');
       const leadsWithActiveSubscription = (res.data?.leads || []).map(lead => {
         const activeSubscription = lead.leadSubscriptions?.find(sub => sub.status === 'ACTIVE');
         return { ...lead, activeSubscription };

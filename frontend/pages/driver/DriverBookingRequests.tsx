@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
-
-const API_URL = API_BASE_URL + '/api';
 
 export default function DriverBookingRequests({ onNavigateToPackages, activeSubTab }: { onNavigateToPackages?: () => void; activeSubTab?: string }) {
   const [requests, setRequests] = useState([]);
@@ -19,11 +17,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   const fetchCurrentSubscription = async () => {
     try {
-      const token = localStorage.getItem('auth-token');
-      const res = await axios.get(`${API_URL}/subscriptions/driver`, { 
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true 
-      });
+      const res = await apiClient.get('/subscriptions/driver');
       console.log('Subscription response:', res.data);
       if (res.data && res.data.plan) {
         setCurrentSubscription(res.data);
@@ -37,7 +31,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${API_URL}/booking-workflow/driver/pending-requests`, { withCredentials: true });
+      const res = await apiClient.get('/booking-workflow/driver/pending-requests');
       const allReqs = res.data.requests || [];
       setAllRequests(allReqs);
       setRequests(allReqs.filter(r => r.status === 'PENDING'));
@@ -48,7 +42,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   const fetchAllocatedBookings = async () => {
     try {
-      const res = await axios.get(`${API_URL}/bookings/driver-bookings`, { withCredentials: true });
+      const res = await apiClient.get('/bookings/driver-bookings');
       setAllocatedBookings(res.data.bookings || []);
     } catch (error) {
       console.error('Error:', error);
@@ -57,9 +51,8 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   const respondToRequest = async (responseId, action) => {
     try {
-      await axios.put(`${API_URL}/booking-workflow/driver/respond/${responseId}`, 
-        { action }, 
-        { withCredentials: true }
+      await apiClient.put(`/booking-workflow/driver/respond/${responseId}`, 
+        { action }
       );
       alert(`Booking ${action.toLowerCase()}!`);
       fetchRequests();

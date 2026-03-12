@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
-
-const API_URL = API_BASE_URL + '/api';
 
 export default function Customer() {
   const [customers, setCustomers] = useState([]);
@@ -15,7 +13,7 @@ export default function Customer() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/admin/customers`, { withCredentials: true });
+      const res = await apiClient.get('/admin/customers');
       setCustomers(res.data.customers || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
