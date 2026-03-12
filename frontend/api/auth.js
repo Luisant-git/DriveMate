@@ -68,6 +68,7 @@ export const sendOTP = async (phoneNumber) => {
 // Verify OTP function
 export const verifyOTP = async (phoneNumber, otp) => {
   try {
+    console.log('[Auth API] Verifying OTP for:', phoneNumber);
     const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -75,11 +76,17 @@ export const verifyOTP = async (phoneNumber, otp) => {
       credentials: 'include',
     });
     const data = await response.json();
+    console.log('[Auth API] OTP verification response:', data);
+    
     if (data.token) {
+      console.log('[Auth API] Storing token in localStorage:', data.token.substring(0, 20) + '...');
       localStorage.setItem('auth-token', data.token);
+    } else {
+      console.log('[Auth API] No token received in response');
     }
     return { success: response.ok, ...data };
   } catch (error) {
+    console.error('[Auth API] Error verifying OTP:', error);
     return { success: false, message: 'Network error' };
   }
 };

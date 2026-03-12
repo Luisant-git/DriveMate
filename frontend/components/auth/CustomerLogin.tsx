@@ -46,16 +46,27 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
     
     setIsLoading(true);
     try {
+      console.log('[CustomerLogin] Verifying OTP...');
       const response = await verifyOTP(phoneNumber, otp);
+      console.log('[CustomerLogin] OTP verification response:', response);
+      
       if (response.success) {
+        console.log('[CustomerLogin] OTP verified successfully, user:', response.user);
+        
+        // Check if token is stored
+        const storedToken = localStorage.getItem('auth-token');
+        console.log('[CustomerLogin] Token stored in localStorage:', storedToken ? 'Yes' : 'No');
+        
         toast.success('Successfully logged in!');
         setTimeout(() => {
           onLogin(response.user);
         }, 1000);
       } else {
+        console.log('[CustomerLogin] OTP verification failed:', response.error || response.message);
         toast.error(response.error || response.message || 'Invalid OTP');
       }
     } catch (error) {
+      console.error('[CustomerLogin] Error during OTP verification:', error);
       toast.error('Error verifying OTP. Please try again.');
     } finally {
       setIsLoading(false);

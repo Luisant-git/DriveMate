@@ -3,24 +3,21 @@ import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
 import { customerLoginOtp } from './whatsapp.controller.js';
 
-// Store OTPs temporarily (in production, use Redis)
+// In-memory OTP store (in production, use Redis)
 const otpStore = new Map();
 
-// Helper function to convert file ID to full URL
-const getFileUrl = (fileId) => {
-  if (!fileId) return null;
-  if (fileId.startsWith('http')) return fileId;
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
-  return `${baseUrl}/uploads/${fileId}`;
+const getFileUrl = (filename) => {
+  if (!filename) return null;
+  return `${process.env.FRONTEND_URL}/uploads/${filename}`;
 };
 
 export const register = async (req, res) => {
   try {
-    const { email, phone, password, name, role = 'CUSTOMER', ...otherFields } = req.body;
-    
+    const { email, phone, password, name, role, aadharNo, licenseNo, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, gpayNo, phonepeNo, address, idProof, dlPhoto, panPhoto, aadharPhoto } = req.body;
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    let user;
+
+    let user = null;
     if (role === 'CUSTOMER') {
       user = await prisma.customer.create({
         data: {
@@ -28,37 +25,25 @@ export const register = async (req, res) => {
           phone,
           password: hashedPassword,
           name,
+          address,
+          idProof,
         },
       });
     } else if (role === 'DRIVER') {
-      // Check if driver already exists
-      const existingDriver = await prisma.driver.findFirst({
-        where: {
-          OR: [
-            { email },
-            { phone }
-          ]
-        }
-      });
-
-      if (existingDriver) {
-        return res.status(400).json({ error: 'Driver with this email or phone already exists' });
-      }
-
-      const { altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto, ...validDriverFields } = otherFields;
       user = await prisma.driver.create({
         data: {
           email,
           phone,
           password: hashedPassword,
           name,
-          ...validDriverFields,
-          ...(altPhone?.[0] && { alternateMobile1: altPhone[0] }),
-          ...(altPhone?.[1] && { alternateMobile2: altPhone[1] }),
-          ...(altPhone?.[2] && { alternateMobile3: altPhone[2] }),
-          ...(altPhone?.[3] && { alternateMobile4: altPhone[3] }),
-          ...(upiId && { gpayNo: upiId, phonepeNo: upiId }),
-          ...(photo && { photo }),
+          aadharNo,
+          licenseNo,
+          alternateMobile1,
+          alternateMobile2,
+          alternateMobile3,
+          alternateMobile4,
+          gpayNo,
+          phonepeNo,
           ...(dlPhoto && { dlPhoto }),
           ...(panPhoto && { panPhoto }),
           ...(aadharPhoto && { aadharPhoto })
@@ -305,11 +290,11 @@ export const getProfile = async (req, res) => {
     let user = null;
     
     if (req.user.role === 'CUSTOMER') {
-      user = await prisma.customer.findUnique({ where: { id: req.user.id } });
+      user = await prisma.customer.findUnique({ where: { id: req.user.userId } });
     } else if (req.user.role === 'DRIVER') {
-      user = await prisma.driver.findUnique({ where: { id: req.user.id } });
+      user = await prisma.driver.findUnique({ where: { id: req.user.userId } });
     } else if (req.user.role === 'ADMIN') {
-      user = await prisma.admin.findUnique({ where: { id: req.user.id } });
+      user = await prisma.admin.findUnique({ where: { id: req.user.userId } });
     }
 
     if (!user) {
@@ -337,7 +322,7 @@ export const updateProfile = async (req, res) => {
     
     if (req.user.role === 'CUSTOMER') {
       user = await prisma.customer.update({
-        where: { id: req.user.id },
+        where: { id: req.user.userId },
         data: {
           name,
           email,
@@ -347,7 +332,7 @@ export const updateProfile = async (req, res) => {
       });
     } else if (req.user.role === 'DRIVER') {
       user = await prisma.driver.update({
-        where: { id: req.user.id },
+        where: { id: req.user.userId },
         data: {
           name,
           email,
@@ -365,7 +350,7 @@ export const updateProfile = async (req, res) => {
       });
     } else if (req.user.role === 'ADMIN') {
       user = await prisma.admin.update({
-        where: { id: req.user.id },
+        where: { id: req.user.userId },
         data: {
           name,
           email
@@ -374,10 +359,10 @@ export const updateProfile = async (req, res) => {
     }
 
     res.json({ 
-      success: true,
+      success: true, 
       user: { 
-        ...user,
-        role: req.user.role
+        ...user, 
+        role: req.user.role 
       } 
     });
   } catch (error) {
