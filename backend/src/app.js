@@ -70,6 +70,19 @@ app.use(session({
 }));
 
 app.get("/api", (req, res) => res.json({ status: "ok", message: "DriveMate API is running" }));
+app.get("/api/debug", (req, res) => {
+  res.json({
+    origin: req.headers.origin,
+    host: req.headers.host,
+    userAgent: req.headers['user-agent'],
+    secure: req.secure,
+    protocol: req.protocol,
+    ip: req.ip,
+    ips: req.ips,
+    session: !!req.session,
+    sessionId: req.sessionID
+  });
+});
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: "DriveMate API Documentation"

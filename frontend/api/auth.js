@@ -1,5 +1,8 @@
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
+// Debug: Log the API URL being used
+console.log('API_BASE_URL:', API_BASE_URL);
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
   return {
