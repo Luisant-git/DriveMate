@@ -652,6 +652,8 @@ export const sendBookingToLeads = async (req, res) => {
     const { bookingId } = req.params;
     const { leadPackageId } = req.body;
 
+    console.log(`[Lead Booking] Sending booking ${bookingId} to leads with package ${leadPackageId}`);
+
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) {
       return res.status(404).json({ success: false, error: 'Booking not found' });
@@ -659,8 +661,11 @@ export const sendBookingToLeads = async (req, res) => {
 
     const leadPackage = await prisma.leadSubscriptionPlan.findUnique({ where: { id: leadPackageId } });
     if (!leadPackage) {
+      console.log(`[Lead Booking] Lead package ${leadPackageId} not found`);
       return res.status(404).json({ success: false, error: 'Lead package not found' });
     }
+
+    console.log(`[Lead Booking] Found lead package:`, { id: leadPackage.id, name: leadPackage.name, type: leadPackage.type });
 
     const leads = await prisma.lead.findMany({
       where: {
@@ -674,7 +679,27 @@ export const sendBookingToLeads = async (req, res) => {
       }
     });
 
+    console.log(`[Lead Booking] Found ${leads.length} leads with active subscriptions for package ${leadPackageId}`);
+    console.log(`[Lead Booking] Lead IDs:`, leads.map(l => l.id));
+
     if (leads.length === 0) {
+      // Let's also check what leads exist and their subscriptions
+      const allLeads = await prisma.lead.findMany({
+        include: {
+          leadSubscriptions: {
+            include: { plan: true }
+          }
+        }
+      });
+      
+      console.log(`[Lead Booking] DEBUG: Total leads in system: ${allLeads.length}`);
+      allLeads.forEach(lead => {
+        console.log(`[Lead Booking] Lead ${lead.id}: ${lead.leadSubscriptions.length} subscriptions`);
+        lead.leadSubscriptions.forEach(sub => {
+          console.log(`  - Plan: ${sub.plan.name} (${sub.plan.type}), Status: ${sub.status}, End: ${sub.endDate}`);
+        });
+      });
+      
       return res.status(400).json({ success: false, error: 'No leads available with this package' });
     }
 
@@ -690,7 +715,7 @@ export const sendBookingToLeads = async (req, res) => {
     const existingLeadIds = new Set(existingLeadResponses.map(r => r.leadId));
     const newLeads = leads.filter(lead => !existingLeadIds.has(lead.id));
     
-    console.log(`[Booking] Found ${existingLeadResponses.length} existing lead responses, creating ${newLeads.length} new ones`);
+    console.log(`[Lead Booking] Found ${existingLeadResponses.length} existing lead responses, creating ${newLeads.length} new ones`);
     
     if (newLeads.length === 0) {
       return res.status(400).json({ 
@@ -716,6 +741,8 @@ export const sendBookingToLeads = async (req, res) => {
       where: { id: bookingId },
       data: { selectedLeadPackageId: leadPackageId }
     });
+
+    console.log(`[Lead Booking] Successfully created ${responses.length} lead responses`);
 
     res.json({ 
       success: true, 
