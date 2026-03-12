@@ -1,5 +1,12 @@
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth-token');
+  return {
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
 // Upload file function
 export const uploadFile = async (file) => {
   try {
@@ -8,6 +15,7 @@ export const uploadFile = async (file) => {
 
     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData,
       credentials: 'include',
     });
