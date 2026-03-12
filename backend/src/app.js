@@ -49,6 +49,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
+  next();
+});
+
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
