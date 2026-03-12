@@ -23,15 +23,20 @@ export const createBooking = async (req, res) => {
       paymentMethod
     } = req.body;
 
-    if (!req.user || !req.user.id) {
+    console.log('[Booking] User from token:', req.user);
+    
+    if (!req.user || (!req.user.id && !req.user.userId)) {
       return res.status(401).json({ success: false, error: 'User not logged in' });
     }
+
+    const userId = req.user.userId || req.user.id;
+    console.log('[Booking] Using userId:', userId);
 
     const paymentStatus = paymentMethod === 'UPI' ? 'PAID' : 'UNPAID';
 
     const booking = await prisma.booking.create({
       data: {
-        customerId: req.user.id,
+        customerId: userId,
         pickupLocation,
         dropLocation,
         driverType,
@@ -101,9 +106,12 @@ export const getEstimate = async (req, res) => {
 
 export const getCustomerBookings = async (req, res) => {
   try {
+    const userId = req.user.userId || req.user.id;
+    console.log('[Booking] Fetching bookings for userId:', userId);
+    
     const bookings = await prisma.booking.findMany({
       where: {
-        customerId: req.user.id
+        customerId: userId
       },
       include: {
         driver: {
@@ -172,9 +180,11 @@ export const getCustomerBookings = async (req, res) => {
 
 export const getDriverBookings = async (req, res) => {
   try {
+    const userId = req.user.userId || req.user.id;
+    
     const bookings = await prisma.booking.findMany({
       where: {
-        driverId: req.user.id
+        driverId: userId
       },
       include: {
         customer: {
@@ -204,11 +214,12 @@ export const getDriverBookings = async (req, res) => {
 
 export const getLeadBookings = async (req, res) => {
   try {
-    console.log('Fetching bookings for leadId:', req.user.id);
+    const userId = req.user.userId || req.user.id;
+    console.log('Fetching bookings for leadId:', userId);
     
     const bookings = await prisma.booking.findMany({
       where: {
-        leadId: req.user.id
+        leadId: userId
       },
       include: {
         customer: {
@@ -244,9 +255,11 @@ export const getLeadBookings = async (req, res) => {
 
 export const getLeadCompletedTrips = async (req, res) => {
   try {
+    const userId = req.user.userId || req.user.id;
+    
     const bookings = await prisma.booking.findMany({
       where: {
-        leadId: req.user.id,
+        leadId: userId,
         status: 'COMPLETED'
       },
       include: {

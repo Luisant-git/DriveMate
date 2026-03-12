@@ -8,6 +8,26 @@ const router = express.Router();
 /**
  * @swagger
  * /api/bookings:
+ *   get:
+ *     summary: Get all bookings for the authenticated user
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of user bookings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Booking'
+ */
+router.get('/', authenticateToken, getCustomerBookings);
+
+/**
+ * @swagger
+ * /api/bookings:
  *   post:
  *     summary: Create a new booking
  *     tags: [Booking]
