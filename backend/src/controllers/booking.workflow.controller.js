@@ -125,9 +125,28 @@ export const sendBookingToDrivers = async (req, res) => {
       });
     }
 
-    // Create booking responses for each driver
+    // Create booking responses for each driver (only if not already exists)
+    const existingResponses = await prisma.bookingResponse.findMany({
+      where: {
+        bookingId,
+        driverId: { in: drivers.map(d => d.id) }
+      }
+    });
+    
+    const existingDriverIds = new Set(existingResponses.map(r => r.driverId));
+    const newDrivers = drivers.filter(driver => !existingDriverIds.has(driver.id));
+    
+    console.log(`[Booking] Found ${existingResponses.length} existing responses, creating ${newDrivers.length} new ones`);
+    
+    if (newDrivers.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Booking already sent to all available drivers' 
+      });
+    }
+    
     const responses = await Promise.all(
-      drivers.map(driver =>
+      newDrivers.map(driver =>
         prisma.bookingResponse.create({
           data: {
             bookingId,
@@ -138,10 +157,10 @@ export const sendBookingToDrivers = async (req, res) => {
       )
     );
 
-    // Send WhatsApp templates to all drivers
-    console.log(`[Booking] Sending WhatsApp templates to ${drivers.length} drivers`);
+    // Send WhatsApp templates to new drivers only
+    console.log(`[Booking] Sending WhatsApp templates to ${newDrivers.length} new drivers`);
     const whatsappResults = await Promise.allSettled(
-      drivers.map(async (driver) => {
+      newDrivers.map(async (driver) => {
         if (driver.phone) {
           try {
             const templateData = {
@@ -200,12 +219,14 @@ export const sendBookingToDrivers = async (req, res) => {
     );
 
     const whatsappSuccess = whatsappResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
-    console.log(`[WhatsApp] Successfully sent ${whatsappSuccess}/${drivers.length} templates`);
+    console.log(`[WhatsApp] Successfully sent ${whatsappSuccess}/${newDrivers.length} templates`);
 
     res.json({ 
       success: true, 
-      message: `Booking sent to ${drivers.length} drivers`,
-      driversCount: drivers.length,
+      message: `Booking sent to ${newDrivers.length} new drivers (${drivers.length} total available)`,
+      newDriversCount: newDrivers.length,
+      totalDriversCount: drivers.length,
+      existingResponsesCount: existingResponses.length,
       whatsappSent: whatsappSuccess,
       responses
     });
@@ -597,8 +618,28 @@ export const sendBookingToLeads = async (req, res) => {
       return res.status(400).json({ success: false, error: 'No leads available with this package' });
     }
 
+    // Create booking responses for each lead (only if not already exists)
+    const existingLeadResponses = await prisma.leadBookingResponse.findMany({
+      where: {
+        bookingId,
+        leadId: { in: leads.map(l => l.id) }
+      }
+    });
+    
+    const existingLeadIds = new Set(existingLeadResponses.map(r => r.leadId));
+    const newLeads = leads.filter(lead => !existingLeadIds.has(lead.id));
+    
+    console.log(`[Booking] Found ${existingLeadResponses.length} existing lead responses, creating ${newLeads.length} new ones`);
+    
+    if (newLeads.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Booking already sent to all available leads' 
+      });
+    }
+    
     const responses = await Promise.all(
-      leads.map(lead =>
+      newLeads.map(lead =>
         prisma.leadBookingResponse.create({
           data: {
             bookingId,
@@ -614,7 +655,13 @@ export const sendBookingToLeads = async (req, res) => {
       data: { selectedLeadPackageId: leadPackageId }
     });
 
-    res.json({ success: true, message: `Booking sent to ${leads.length} leads`, leadsCount: leads.length });
+    res.json({ 
+      success: true, 
+      message: `Booking sent to ${newLeads.length} new leads (${leads.length} total available)`, 
+      newLeadsCount: newLeads.length,
+      totalLeadsCount: leads.length,
+      existingResponsesCount: existingLeadResponses.length
+    });
   } catch (error) {
     console.error('Error sending booking to leads:', error);
     res.status(500).json({ success: false, error: error.message });
