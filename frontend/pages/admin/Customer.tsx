@@ -87,7 +87,12 @@ export default function Customer() {
                   <td className="px-4 py-4">
                     {customer.idProof ? (
                       <button 
-                        onClick={() => window.open(`${API_BASE_URL}/uploads/${customer.idProof}`, '_blank')}
+                        onClick={() => {
+                          const imageUrl = customer.idProof.startsWith('http') 
+                            ? customer.idProof 
+                            : `${API_BASE_URL}/uploads/${customer.idProof}`;
+                          window.open(imageUrl, '_blank');
+                        }}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                       >
                         Download
