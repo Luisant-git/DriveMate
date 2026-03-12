@@ -14,6 +14,7 @@ export default function BookingWorkflow() {
   const [filters, setFilters] = useState({ tripType: '', serviceType: '', paymentStatus: '', paymentMethod: '' });
   const [packages, setPackages] = useState([]);
   const [leadPackages, setLeadPackages] = useState([]);
+  const [processingBookings, setProcessingBookings] = useState(new Set()); // Track which bookings are being processed
 
   useEffect(() => {
     fetchPendingBookings();
@@ -143,8 +144,15 @@ export default function BookingWorkflow() {
   };
 
   const reviewBooking = async (bookingId, packageType, packageId, isLeadPackage) => {
+    // Prevent duplicate requests for the same booking
+    if (processingBookings.has(bookingId)) {
+      console.log('Booking already being processed:', bookingId);
+      return;
+    }
+    
     try {
       setLoading(true);
+      setProcessingBookings(prev => new Set([...prev, bookingId]));
       
       if (isLeadPackage) {
         const sendResponse = await apiClient.post(`/booking-workflow/admin/${bookingId}/send-to-leads`, 
@@ -152,7 +160,10 @@ export default function BookingWorkflow() {
         );
         
         if (sendResponse.data.success) {
-          alert(`✓ Booking sent to ${sendResponse.data.leadsCount} leads!`);
+          const message = sendResponse.data.newLeadsCount > 0 
+            ? `✓ Booking sent to ${sendResponse.data.newLeadsCount} new leads! (${sendResponse.data.totalLeadsCount} total available)`
+            : `⚠️ ${sendResponse.data.error || 'Booking already sent to all available leads'}`;
+          alert(message);
           setBookingDrivers({});
           fetchPendingBookings();
         }
@@ -164,7 +175,10 @@ export default function BookingWorkflow() {
         
         if (sendResponse.data.success) {
           const whatsappCount = sendResponse.data.whatsappSent || 0;
-          alert(`✓ Booking sent to ${sendResponse.data.driversCount} drivers! WhatsApp sent to ${whatsappCount} drivers.`);
+          const message = sendResponse.data.newDriversCount > 0
+            ? `✓ Booking sent to ${sendResponse.data.newDriversCount} new drivers! WhatsApp sent to ${whatsappCount} drivers. (${sendResponse.data.totalDriversCount} total available)`
+            : `⚠️ ${sendResponse.data.error || 'Booking already sent to all available drivers'}`;
+          alert(message);
           setBookingDrivers({});
           fetchPendingBookings();
         }
@@ -174,6 +188,11 @@ export default function BookingWorkflow() {
       alert(`⚠️ ${errorMsg}`);
     } finally {
       setLoading(false);
+      setProcessingBookings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bookingId);
+        return newSet;
+      });
     }
   };
 
@@ -465,10 +484,10 @@ export default function BookingWorkflow() {
                                     {(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads > 0 : bookingDrivers[booking.id].drivers.length > 0) ? (
                                       <button 
                                         onClick={() => reviewBooking(booking.id, bookingDrivers[booking.id].packageType, bookingDrivers[booking.id].packageId, bookingDrivers[booking.id].isLeadPackage)} 
-                                        disabled={loading}
-                                        className="w-full bg-green-600 text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-green-700 disabled:opacity-50 transition"
+                                        disabled={loading || processingBookings.has(booking.id)}
+                                        className="w-full bg-green-600 text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                                       >
-                                        Send to {bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length} {bookingDrivers[booking.id].isLeadPackage ? 'Lead' : 'Driver'}{(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length) !== 1 ? 's' : ''}
+                                        {processingBookings.has(booking.id) ? 'Sending...' : `Send to ${bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length} ${bookingDrivers[booking.id].isLeadPackage ? 'Lead' : 'Driver'}${(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length) !== 1 ? 's' : ''}`}
                                       </button>
                                     ) : (
                                       <p className="text-xs text-red-600">No {bookingDrivers[booking.id].isLeadPackage ? 'leads' : 'drivers'} available</p>

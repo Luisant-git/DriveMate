@@ -125,30 +125,20 @@ export const sendBookingToDrivers = async (req, res) => {
       });
     }
 
-    // Create booking responses for each driver (only if not already exists)
-    const existingResponses = await prisma.bookingResponse.findMany({
-      where: {
-        bookingId,
-        driverId: { in: drivers.map(d => d.id) }
-      }
-    });
+    // Create booking responses for each driver using upsert to prevent duplicates
+    console.log(`[Booking] Creating responses for ${drivers.length} drivers using upsert`);
     
-    const existingDriverIds = new Set(existingResponses.map(r => r.driverId));
-    const newDrivers = drivers.filter(driver => !existingDriverIds.has(driver.id));
-    
-    console.log(`[Booking] Found ${existingResponses.length} existing responses, creating ${newDrivers.length} new ones`);
-    
-    if (newDrivers.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Booking already sent to all available drivers' 
-      });
-    }
-    
-    const responses = await Promise.all(
-      newDrivers.map(driver =>
-        prisma.bookingResponse.create({
-          data: {
+    const responses = await Promise.allSettled(
+      drivers.map(driver =>
+        prisma.bookingResponse.upsert({
+          where: {
+            bookingId_driverId: {
+              bookingId,
+              driverId: driver.id
+            }
+          },
+          update: {}, // Don't update if exists
+          create: {
             bookingId,
             driverId: driver.id,
             status: 'PENDING'
@@ -156,11 +146,34 @@ export const sendBookingToDrivers = async (req, res) => {
         })
       )
     );
+    
+    const successfulResponses = responses.filter(r => r.status === 'fulfilled').map(r => r.value);
+    const newResponses = responses.filter((r, index) => {
+      if (r.status === 'fulfilled') {
+        // Check if this was a new creation (createdAt is very recent)
+        const response = r.value;
+        const isNew = new Date() - new Date(response.createdAt) < 5000; // Created within last 5 seconds
+        return isNew;
+      }
+      return false;
+    });
+    
+    console.log(`[Booking] Total responses: ${successfulResponses.length}, New responses: ${newResponses.length}`);
+    
+    if (newResponses.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Booking already sent to all available drivers' 
+      });
+    }
 
-    // Send WhatsApp templates to new drivers only
-    console.log(`[Booking] Sending WhatsApp templates to ${newDrivers.length} new drivers`);
+    // Send WhatsApp templates only to drivers with new responses
+    const newDriverIds = newResponses.map(r => r.value.driverId);
+    const driversToNotify = drivers.filter(d => newDriverIds.includes(d.id));
+    
+    console.log(`[Booking] Sending WhatsApp templates to ${driversToNotify.length} drivers with new responses`);
     const whatsappResults = await Promise.allSettled(
-      newDrivers.map(async (driver) => {
+      driversToNotify.map(async (driver) => {
         if (driver.phone) {
           try {
             const templateData = {
@@ -219,16 +232,16 @@ export const sendBookingToDrivers = async (req, res) => {
     );
 
     const whatsappSuccess = whatsappResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
-    console.log(`[WhatsApp] Successfully sent ${whatsappSuccess}/${newDrivers.length} templates`);
+    console.log(`[WhatsApp] Successfully sent ${whatsappSuccess}/${driversToNotify.length} templates`);
 
     res.json({ 
       success: true, 
-      message: `Booking sent to ${newDrivers.length} new drivers (${drivers.length} total available)`,
-      newDriversCount: newDrivers.length,
+      message: `Booking sent to ${newResponses.length} new drivers (${drivers.length} total available)`,
+      newDriversCount: newResponses.length,
       totalDriversCount: drivers.length,
-      existingResponsesCount: existingResponses.length,
+      existingResponsesCount: successfulResponses.length - newResponses.length,
       whatsappSent: whatsappSuccess,
-      responses
+      responses: successfulResponses
     });
   } catch (error) {
     console.error('Error sending booking to drivers:', error);
@@ -618,30 +631,20 @@ export const sendBookingToLeads = async (req, res) => {
       return res.status(400).json({ success: false, error: 'No leads available with this package' });
     }
 
-    // Create booking responses for each lead (only if not already exists)
-    const existingLeadResponses = await prisma.leadBookingResponse.findMany({
-      where: {
-        bookingId,
-        leadId: { in: leads.map(l => l.id) }
-      }
-    });
+    // Create booking responses for each lead using upsert to prevent duplicates
+    console.log(`[Booking] Creating lead responses for ${leads.length} leads using upsert`);
     
-    const existingLeadIds = new Set(existingLeadResponses.map(r => r.leadId));
-    const newLeads = leads.filter(lead => !existingLeadIds.has(lead.id));
-    
-    console.log(`[Booking] Found ${existingLeadResponses.length} existing lead responses, creating ${newLeads.length} new ones`);
-    
-    if (newLeads.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Booking already sent to all available leads' 
-      });
-    }
-    
-    const responses = await Promise.all(
-      newLeads.map(lead =>
-        prisma.leadBookingResponse.create({
-          data: {
+    const responses = await Promise.allSettled(
+      leads.map(lead =>
+        prisma.leadBookingResponse.upsert({
+          where: {
+            bookingId_leadId: {
+              bookingId,
+              leadId: lead.id
+            }
+          },
+          update: {}, // Don't update if exists
+          create: {
             bookingId,
             leadId: lead.id,
             status: 'PENDING'
@@ -649,6 +652,26 @@ export const sendBookingToLeads = async (req, res) => {
         })
       )
     );
+    
+    const successfulResponses = responses.filter(r => r.status === 'fulfilled').map(r => r.value);
+    const newResponses = responses.filter((r, index) => {
+      if (r.status === 'fulfilled') {
+        // Check if this was a new creation (createdAt is very recent)
+        const response = r.value;
+        const isNew = new Date() - new Date(response.createdAt) < 5000; // Created within last 5 seconds
+        return isNew;
+      }
+      return false;
+    });
+    
+    console.log(`[Booking] Total lead responses: ${successfulResponses.length}, New responses: ${newResponses.length}`);
+    
+    if (newResponses.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Booking already sent to all available leads' 
+      });
+    }
 
     await prisma.booking.update({
       where: { id: bookingId },
@@ -657,10 +680,10 @@ export const sendBookingToLeads = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: `Booking sent to ${newLeads.length} new leads (${leads.length} total available)`, 
-      newLeadsCount: newLeads.length,
+      message: `Booking sent to ${newResponses.length} new leads (${leads.length} total available)`, 
+      newLeadsCount: newResponses.length,
       totalLeadsCount: leads.length,
-      existingResponsesCount: existingLeadResponses.length
+      existingResponsesCount: successfulResponses.length - newResponses.length
     });
   } catch (error) {
     console.error('Error sending booking to leads:', error);
