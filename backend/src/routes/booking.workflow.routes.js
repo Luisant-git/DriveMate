@@ -13,7 +13,8 @@ import {
   getLeadPendingRequests,
   respondToLeadBookingRequest,
   getLeadBookingResponses,
-  allocateLeadToBooking
+  allocateLeadToBooking,
+  cleanupDuplicateResponses
 } from '../controllers/booking.workflow.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
@@ -223,5 +224,8 @@ router.get('/admin/:bookingId/lead-responses', authenticateToken, getLeadBooking
 router.post('/admin/:bookingId/allocate-lead', authenticateToken, allocateLeadToBooking);
 router.get('/lead/pending-requests', authenticateLead, getLeadPendingRequests);
 router.put('/lead/respond/:responseId', authenticateLead, respondToLeadBookingRequest);
+
+// Cleanup route
+router.post('/admin/cleanup-duplicates', authenticateToken, cleanupDuplicateResponses);
 
 export default router;

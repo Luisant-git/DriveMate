@@ -125,8 +125,42 @@ export const sendBookingToDrivers = async (req, res) => {
       });
     }
 
-    // Get existing responses before creating new ones
+    console.log(`[Booking] Found ${drivers.length} drivers with ${booking.selectedPackageType} subscription`);
+    console.log(`[Booking] Driver IDs:`, drivers.map(d => d.id));
+
+    // CLEANUP: Remove any existing duplicates for this booking first
     const existingResponses = await prisma.bookingResponse.findMany({
+      where: { bookingId },
+      select: { id: true, driverId: true }
+    });
+    
+    // Group by driverId to find duplicates
+    const driverResponseGroups = existingResponses.reduce((acc, response) => {
+      if (!acc[response.driverId]) {
+        acc[response.driverId] = [];
+      }
+      acc[response.driverId].push(response);
+      return acc;
+    }, {});
+    
+    // Delete duplicate responses (keep only the first one for each driver)
+    const duplicateIds = [];
+    Object.values(driverResponseGroups).forEach(responses => {
+      if (responses.length > 1) {
+        // Keep the first response, delete the rest
+        duplicateIds.push(...responses.slice(1).map(r => r.id));
+      }
+    });
+    
+    if (duplicateIds.length > 0) {
+      console.log(`[Booking] Cleaning up ${duplicateIds.length} duplicate responses`);
+      await prisma.bookingResponse.deleteMany({
+        where: { id: { in: duplicateIds } }
+      });
+    }
+
+    // Get remaining existing responses after cleanup
+    const cleanExistingResponses = await prisma.bookingResponse.findMany({
       where: {
         bookingId,
         driverId: { in: drivers.map(d => d.id) }
@@ -134,10 +168,11 @@ export const sendBookingToDrivers = async (req, res) => {
       select: { driverId: true }
     });
     
-    const existingDriverIds = new Set(existingResponses.map(r => r.driverId));
+    const existingDriverIds = new Set(cleanExistingResponses.map(r => r.driverId));
     const newDrivers = drivers.filter(driver => !existingDriverIds.has(driver.id));
     
-    console.log(`[Booking] Found ${existingResponses.length} existing responses, creating ${newDrivers.length} new ones`);
+    console.log(`[Booking] After cleanup: ${cleanExistingResponses.length} existing responses, creating ${newDrivers.length} new ones`);
+    console.log(`[Booking] New driver IDs:`, newDrivers.map(d => d.id));
     
     if (newDrivers.length === 0) {
       return res.status(400).json({ 
@@ -158,6 +193,9 @@ export const sendBookingToDrivers = async (req, res) => {
         })
       )
     );
+
+    console.log(`[Booking] Created ${responses.length} new responses`);
+    console.log(`[Booking] Response IDs:`, responses.map(r => r.id));
 
     // Send WhatsApp templates to new drivers only
     console.log(`[Booking] Sending WhatsApp templates to ${newDrivers.length} new drivers`);
@@ -241,11 +279,12 @@ export const sendBookingToDrivers = async (req, res) => {
 // DRIVER: Get pending booking requests
 export const getDriverPendingRequests = async (req, res) => {
   try {
-    const driverId = req.user.id;
+    const userId = req.user.userId || req.user.id;
+    console.log('[Driver Requests] Fetching requests for driverId:', userId);
 
     const responses = await prisma.bookingResponse.findMany({
       where: {
-        driverId
+        driverId: userId
       },
       include: {
         booking: {
@@ -255,6 +294,25 @@ export const getDriverPendingRequests = async (req, res) => {
         }
       },
       orderBy: { createdAt: 'desc' }
+    });
+
+    console.log(`[Driver Requests] Found ${responses.length} total responses for driver ${userId}`);
+    
+    // Group by booking ID to check for duplicates
+    const bookingGroups = responses.reduce((acc, response) => {
+      const bookingId = response.bookingId;
+      if (!acc[bookingId]) {
+        acc[bookingId] = [];
+      }
+      acc[bookingId].push(response);
+      return acc;
+    }, {});
+    
+    // Log any duplicates found
+    Object.entries(bookingGroups).forEach(([bookingId, responses]) => {
+      if (responses.length > 1) {
+        console.log(`[Driver Requests] WARNING: Found ${responses.length} duplicate responses for booking ${bookingId}`);
+      }
     });
 
     res.json({ success: true, requests: responses });
@@ -791,6 +849,59 @@ export const allocateLeadToBooking = async (req, res) => {
     res.json({ success: true, booking, message: 'Lead allocated successfully' });
   } catch (error) {
     console.error('Error allocating lead:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ADMIN: Cleanup duplicate booking responses
+export const cleanupDuplicateResponses = async (req, res) => {
+  try {
+    console.log('[Cleanup] Starting duplicate response cleanup...');
+    
+    // Find all booking responses grouped by booking and driver
+    const allResponses = await prisma.bookingResponse.findMany({
+      select: { id: true, bookingId: true, driverId: true, createdAt: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    
+    // Group by bookingId + driverId combination
+    const responseGroups = allResponses.reduce((acc, response) => {
+      const key = `${response.bookingId}-${response.driverId}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(response);
+      return acc;
+    }, {});
+    
+    // Find duplicates (groups with more than 1 response)
+    const duplicateIds = [];
+    let duplicateCount = 0;
+    
+    Object.entries(responseGroups).forEach(([key, responses]) => {
+      if (responses.length > 1) {
+        console.log(`[Cleanup] Found ${responses.length} duplicates for ${key}`);
+        // Keep the first (oldest) response, delete the rest
+        duplicateIds.push(...responses.slice(1).map(r => r.id));
+        duplicateCount += responses.length - 1;
+      }
+    });
+    
+    if (duplicateIds.length > 0) {
+      console.log(`[Cleanup] Deleting ${duplicateIds.length} duplicate responses`);
+      await prisma.bookingResponse.deleteMany({
+        where: { id: { in: duplicateIds } }
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: `Cleanup completed. Removed ${duplicateCount} duplicate responses.`,
+      duplicatesRemoved: duplicateCount,
+      totalGroups: Object.keys(responseGroups).length
+    });
+  } catch (error) {
+    console.error('Error during cleanup:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
