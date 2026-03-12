@@ -60,7 +60,7 @@ export const register = async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     req.session.userId = user.id;
     req.session.role = role;
     
@@ -127,7 +127,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     req.session.userId = user.id;
     req.session.role = role;
     
@@ -255,7 +255,7 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ userId: user.id, role: 'CUSTOMER' }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user.id, role: 'CUSTOMER' }, process.env.JWT_SECRET, { expiresIn: '7d' });
     if (req.session) {
       req.session.userId = user.id;
       req.session.role = 'CUSTOMER';
