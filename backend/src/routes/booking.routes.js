@@ -1,6 +1,6 @@
 import express from 'express';
 import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips } from '../controllers/booking.controller.js';
-import { requireAuth } from '../middleware/sessionAuth.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -54,7 +54,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Booking'
  */
-router.post('/', requireAuth, createBooking);
+router.post('/', authenticateToken, createBooking);
 
 /**
  * @swagger
@@ -85,7 +85,7 @@ router.post('/', requireAuth, createBooking);
  *                 estimateAmount:
  *                   type: number
  */
-router.get('/estimate', requireAuth, getEstimate);
+router.get('/estimate', authenticateToken, getEstimate);
 
 /**
  * @swagger
@@ -105,7 +105,7 @@ router.get('/estimate', requireAuth, getEstimate);
  *               items:
  *                 $ref: '#/components/schemas/Booking'
  */
-router.get('/my-bookings', requireAuth, getCustomerBookings);
+router.get('/my-bookings', authenticateToken, getCustomerBookings);
 
 /**
  * @swagger
@@ -125,7 +125,7 @@ router.get('/my-bookings', requireAuth, getCustomerBookings);
  *               items:
  *                 $ref: '#/components/schemas/Booking'
  */
-router.get('/driver-bookings', requireAuth, getDriverBookings);
+router.get('/driver-bookings', authenticateToken, getDriverBookings);
 
 router.get('/lead/allocated', authenticateLead, getLeadBookings);
 router.get('/lead/completed', authenticateLead, getLeadCompletedTrips);

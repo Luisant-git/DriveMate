@@ -15,7 +15,7 @@ import {
   getLeadBookingResponses,
   allocateLeadToBooking
 } from '../controllers/booking.workflow.controller.js';
-import { requireAuth } from '../middleware/sessionAuth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -32,7 +32,7 @@ const router = express.Router();
  *       200:
  *         description: List of pending bookings
  */
-router.get('/admin/pending', requireAuth, getAdminPendingBookings);
+router.get('/admin/pending', authenticateToken, getAdminPendingBookings);
 
 /**
  * @swagger
@@ -62,7 +62,7 @@ router.get('/admin/pending', requireAuth, getAdminPendingBookings);
  *       200:
  *         description: Booking reviewed successfully
  */
-router.put('/admin/:bookingId/review', requireAuth, adminReviewBooking);
+router.put('/admin/:bookingId/review', authenticateToken, adminReviewBooking);
 
 /**
  * @swagger
@@ -82,7 +82,7 @@ router.put('/admin/:bookingId/review', requireAuth, adminReviewBooking);
  *       200:
  *         description: Booking sent to drivers
  */
-router.post('/admin/:bookingId/send-to-drivers', requireAuth, sendBookingToDrivers);
+router.post('/admin/:bookingId/send-to-drivers', authenticateToken, sendBookingToDrivers);
 
 /**
  * @swagger
@@ -102,7 +102,7 @@ router.post('/admin/:bookingId/send-to-drivers', requireAuth, sendBookingToDrive
  *       200:
  *         description: List of driver responses
  */
-router.get('/admin/:bookingId/responses', requireAuth, getBookingResponses);
+router.get('/admin/:bookingId/responses', authenticateToken, getBookingResponses);
 
 /**
  * @swagger
@@ -131,7 +131,7 @@ router.get('/admin/:bookingId/responses', requireAuth, getBookingResponses);
  *       200:
  *         description: Driver allocated successfully
  */
-router.post('/admin/:bookingId/allocate-driver', requireAuth, allocateDriverToBooking);
+router.post('/admin/:bookingId/allocate-driver', authenticateToken, allocateDriverToBooking);
 
 /**
  * @swagger
@@ -145,7 +145,7 @@ router.post('/admin/:bookingId/allocate-driver', requireAuth, allocateDriverToBo
  *       200:
  *         description: List of pending requests
  */
-router.get('/driver/pending-requests', requireAuth, getDriverPendingRequests);
+router.get('/driver/pending-requests', authenticateToken, getDriverPendingRequests);
 
 /**
  * @swagger
@@ -175,7 +175,7 @@ router.get('/driver/pending-requests', requireAuth, getDriverPendingRequests);
  *       200:
  *         description: Response recorded
  */
-router.put('/driver/respond/:responseId', requireAuth, respondToBookingRequest);
+router.put('/driver/respond/:responseId', authenticateToken, respondToBookingRequest);
 
 /**
  * @swagger
@@ -195,7 +195,7 @@ router.put('/driver/respond/:responseId', requireAuth, respondToBookingRequest);
  *       200:
  *         description: Booking details
  */
-router.get('/driver/:bookingId', requireAuth, getDriverAllocatedBooking);
+router.get('/driver/:bookingId', authenticateToken, getDriverAllocatedBooking);
 
 /**
  * @swagger
@@ -215,12 +215,12 @@ router.get('/driver/:bookingId', requireAuth, getDriverAllocatedBooking);
  *       200:
  *         description: Booking with driver details
  */
-router.get('/customer/:bookingId', requireAuth, getCustomerBookingWithDriver);
+router.get('/customer/:bookingId', authenticateToken, getCustomerBookingWithDriver);
 
 // Lead workflow routes
-router.post('/admin/:bookingId/send-to-leads', requireAuth, sendBookingToLeads);
-router.get('/admin/:bookingId/lead-responses', requireAuth, getLeadBookingResponses);
-router.post('/admin/:bookingId/allocate-lead', requireAuth, allocateLeadToBooking);
+router.post('/admin/:bookingId/send-to-leads', authenticateToken, sendBookingToLeads);
+router.get('/admin/:bookingId/lead-responses', authenticateToken, getLeadBookingResponses);
+router.post('/admin/:bookingId/allocate-lead', authenticateToken, allocateLeadToBooking);
 router.get('/lead/pending-requests', authenticateLead, getLeadPendingRequests);
 router.put('/lead/respond/:responseId', authenticateLead, respondToLeadBookingRequest);
 

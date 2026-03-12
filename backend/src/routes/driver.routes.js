@@ -10,7 +10,6 @@ import {
   getDriverCountByType,
 } from '../controllers/driver.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
-import { requireAuth } from '../middleware/sessionAuth.js';
 
 const router = express.Router();
 
@@ -118,7 +117,7 @@ router.get('/profile', authenticateToken, requireRole(['DRIVER']), getDriverProf
  *       200:
  *         description: Package updated
  */
-router.put('/package', requireAuth, updateDriverPackage);
+router.put('/package', authenticateToken, updateDriverPackage);
 
 /**
  * @swagger
@@ -144,9 +143,9 @@ router.put('/package', requireAuth, updateDriverPackage);
  *               items:
  *                 $ref: '#/components/schemas/Driver'
  */
-router.get('/available/:packageId', requireAuth, getAvailableDriversByPackage);
+router.get('/available/:packageId', authenticateToken, getAvailableDriversByPackage);
 
-router.get('/count-by-type/:packageType', requireAuth, getDriverCountByType);
+router.get('/count-by-type/:packageType', authenticateToken, getDriverCountByType);
 
 /**
  * @swagger

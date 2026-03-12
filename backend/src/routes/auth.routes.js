@@ -1,6 +1,6 @@
 import express from 'express';
 import { register, login, sendOTP, verifyOTP, logout, getProfile, updateProfile } from '../controllers/auth.controller.js';
-import { requireAuth } from '../middleware/sessionAuth.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -220,8 +220,8 @@ router.post('/logout', logout);
  *                 user:
  *                   type: object
  */
-router.get('/profile', requireAuth, getProfile);
-router.get('/me', requireAuth, getProfile);
+router.get('/profile', authenticateToken, getProfile);
+router.get('/me', authenticateToken, getProfile);
 
 /**
  * @swagger
@@ -248,6 +248,6 @@ router.get('/me', requireAuth, getProfile);
  *       200:
  *         description: Profile updated successfully
  */
-router.put('/profile', requireAuth, updateProfile);
+router.put('/profile', authenticateToken, updateProfile);
 
 export default router;
