@@ -273,6 +273,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check if customer profile is complete
+    const hasName = customer.name && customer.name.trim() !== '';
+    const hasEmail = customer.email && customer.email.trim() !== '';
+    const hasPhone = customer.phone && customer.phone.trim() !== '';
+    const hasAddress = customer.address && customer.address.trim() !== '';
+    const hasIdProof = customer.idProof && customer.idProof.trim() !== '';
+    
+    if (!hasName || !hasEmail || !hasPhone || !hasAddress || !hasIdProof) {
+      toast.error('Please complete your profile before booking');
+      setActiveTab('PROFILE');
+      return;
+    }
+    
     // Check if estimate is available
     if (!estimate || estimate <= 0) {
       toast.error('Please wait for fare estimation before booking or try any other near location');
