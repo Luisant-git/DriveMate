@@ -7,6 +7,8 @@ interface LandingPageProps {
 const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
     const [activeTab, setActiveTab] = useState<'local' | 'outstation'>('local');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [showTerms, setShowTerms] = useState(false);
+    const [showPrivacy, setShowPrivacy] = useState(false);
     return (
         <div className="flex flex-col min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
             {/* Fixed Social Media Sidebar */}
@@ -361,8 +363,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                         <div className="space-y-4">
                             <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Legal</h4>
                             <ul className="space-y-3 text-[12px]">
-                                <li><a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a></li>
-                                <li><a href="#" className="hover:text-gray-400 transition-colors">Terms of Use</a></li>
+                                <li><button onClick={() => setShowPrivacy(true)} className="hover:text-gray-400 transition-colors">Privacy Policy</button></li>
+                                <li><button onClick={() => setShowTerms(true)} className="hover:text-gray-400 transition-colors">Terms & Conditions</button></li>
                                 <li><a href="#" className="hover:text-gray-400 transition-colors">Refund Policy</a></li>
                             </ul>
                         </div>
@@ -393,6 +395,144 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                     </div>
                 </div>
             </footer>
+
+            {/* Terms Modal */}
+            {showTerms && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTerms(false)}>
+                    <div className="bg-white rounded-2xl max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Terms and Conditions</h2>
+                            <button onClick={() => setShowTerms(false)} className="text-gray-500 hover:text-black">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6 text-sm">
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">1. Introduction</h3>
+                                <p className="text-gray-700">By interacting with SNPNBC CONSULTANT AND MANPOWER SERVICES ("the Company," "We," "Us") via WhatsApp or our official channels, you agree to these Terms and Conditions. These terms govern our consultancy and manpower recruitment services.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">2. WhatsApp Communication & Consent (API Compliance)</h3>
+                                <p className="text-gray-700 mb-2"><strong>Opt-In:</strong> By messaging us or submitting your number, you provide explicit consent to receive service updates, job alerts, and transactional messages via WhatsApp.</p>
+                                <p className="text-gray-700 mb-2"><strong>Opt-Out:</strong> You may stop receiving messages at any time by replying with the keyword "STOP".</p>
+                                <p className="text-gray-700"><strong>Frequency:</strong> Message frequency varies based on your requirements and job availability.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">3. Scope of Services</h3>
+                                <p className="text-gray-700 mb-2">We provide manpower consultancy, including but not limited to:</p>
+                                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                                    <li>Sourcing and screening candidates.</li>
+                                    <li>Deployment of personnel for office, domestic, and professional roles.</li>
+                                    <li>Consultancy regarding labor law compliance and HR management.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">4. No Recruitment Fee Policy (Ethical Hiring)</h3>
+                                <p className="text-gray-700">In compliance with international labor standards, SNPNBC maintains a "Free Recruitment" policy. We do not charge candidates any fees for placement, processing, or interviews. Any person claiming to represent us and asking for money should be reported immediately to our official support.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">5. Candidate & Client Obligations</h3>
+                                <p className="text-gray-700 mb-2"><strong>Accuracy:</strong> Users must provide truthful information regarding qualifications, experience, and identity.</p>
+                                <p className="text-gray-700 mb-2"><strong>Deployment:</strong> Staff provided by the Company are subject to the specific service level agreements (SLA) signed between the Client and SNPNBC.</p>
+                                <p className="text-gray-700"><strong>Conduct:</strong> We maintain a zero-tolerance policy for harassment or illegal activity during the recruitment or deployment process.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">6. Data Privacy & Security</h3>
+                                <p className="text-gray-700 mb-2">We collect personal data (Name, Resume, ID proof) solely for recruitment and verification.</p>
+                                <p className="text-gray-700 mb-2">Your data is handled according to our Privacy Policy and is never sold to third parties.</p>
+                                <p className="text-gray-700">Messages via the WhatsApp Cloud API are end-to-end encrypted; however, the Company is responsible for the storage of chat logs on our secure CRM.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">7. Limitation of Liability</h3>
+                                <p className="text-gray-700">SNPNBC acts as a consultant and intermediary. While we conduct rigorous background checks, we are not liable for any incidental damages or personal disputes arising after the deployment of personnel, unless specified in the service contract.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">8. Governing Law</h3>
+                                <p className="text-gray-700">These terms are governed by the laws of India.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Privacy Policy Modal */}
+            {showPrivacy && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPrivacy(false)}>
+                    <div className="bg-white rounded-2xl max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">Privacy Policy</h2>
+                            <button onClick={() => setShowPrivacy(false)} className="text-gray-500 hover:text-black">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6 text-sm">
+                            <div className="text-gray-600">
+                                <p><strong>Effective Date:</strong> March 17, 2026</p>
+                                <p><strong>Last Updated:</strong> March 17, 2026</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">1. Introduction</h3>
+                                <p className="text-gray-700">SNPNBC CONSULTANT AND MANPOWER SERVICES ("we," "us," or "our") is committed to protecting the privacy of our candidates and clients. This Privacy Policy explains how we collect, use, and safeguard your digital personal data when you interact with us via our website, WhatsApp Cloud API, or other digital platforms.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">2. Information We Collect</h3>
+                                <p className="text-gray-700 mb-2">To provide recruitment and consultancy services, we collect:</p>
+                                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                                    <li><strong>Identity Data:</strong> Name, date of birth, gender, and government-issued IDs (Aadhaar, PAN, Passport) for verification.</li>
+                                    <li><strong>Contact Data:</strong> Phone number (WhatsApp), email address, and physical address.</li>
+                                    <li><strong>Professional Data:</strong> Resumes, employment history, educational qualifications, and skills.</li>
+                                    <li><strong>Technical Data:</strong> IP addresses and interaction logs via the WhatsApp API (stored for up to 30 days by Meta and indefinitely by our secure CRM for service history).</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">3. How We Use Your Data</h3>
+                                <p className="text-gray-700 mb-2">We process your data only for "Lawful Purposes" as defined under the DPDP Act:</p>
+                                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                                    <li><strong>Recruitment:</strong> To match candidates with job opportunities and verify credentials.</li>
+                                    <li><strong>Communication:</strong> To send job alerts, interview schedules, and service updates via WhatsApp.</li>
+                                    <li><strong>Compliance:</strong> To meet legal and regulatory obligations for manpower agencies in India.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">4. Consent and Opt-Out</h3>
+                                <p className="text-gray-700 mb-2"><strong>Explicit Consent:</strong> By messaging us on WhatsApp, you provide affirmative consent for us to process your data for recruitment.</p>
+                                <p className="text-gray-700"><strong>Withdrawal:</strong> You have the right to withdraw consent at any time. To stop WhatsApp communications, reply with "STOP". To request total data deletion, contact our Grievance Officer.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">5. Data Security & Retention</h3>
+                                <p className="text-gray-700 mb-2"><strong>Security:</strong> We implement "Reasonable Security Safeguards," including encryption and role-based access controls, to prevent data breaches.</p>
+                                <p className="text-gray-700"><strong>Retention:</strong> We retain candidate data only as long as necessary for recruitment cycles or as required by Indian labor laws. Once the purpose is served, data is securely erased.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">6. Your Rights (Data Principal Rights)</h3>
+                                <p className="text-gray-700 mb-2">Under the DPDP Act 2023, you have the right to:</p>
+                                <ul className="list-disc pl-6 text-gray-700 space-y-1">
+                                    <li><strong>Access:</strong> Request a summary of the personal data we hold about you.</li>
+                                    <li><strong>Correction:</strong> Request updates to inaccurate or incomplete information.</li>
+                                    <li><strong>Erasure:</strong> Request that we delete your data when it is no longer needed.</li>
+                                    <li><strong>Grievance Redressal:</strong> Contact our Grievance Officer for any privacy concerns.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">7. Third-Party Sharing</h3>
+                                <p className="text-gray-700">We share your professional profile with potential employers (Clients) only after your verbal or written interest in a specific role. We never sell your data to third-party marketing firms.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg mb-2">8. Grievance Officer</h3>
+                                <p className="text-gray-700 mb-2">In accordance with the DPDP Act, for any queries or grievances, please contact:</p>
+                                <p className="text-gray-700"><strong>Officer Name:</strong> SNPNBC CONSULTANT AND MANPOWER SERVICES</p>
+                                <p className="text-gray-700"><strong>Phone:</strong> +91 88845 47768</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
