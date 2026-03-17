@@ -14,6 +14,8 @@ import Toast from './components/Toast';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { logout, getProfile } from './api/auth';
 import LandingPage from './pages/LandingPage';
+import TermsPage from './pages/terms';
+import PrivacyPage from './pages/privacy';
 
 type LoginStep = 'SELECT_ROLE' | 'CUSTOMER_LOGIN' | 'DRIVER_LOGIN' | 'LEAD_LOGIN' | 'LEAD_REGISTER' | 'ADMIN_LOGIN';
 
@@ -88,6 +90,8 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<LandingPage onGetStarted={() => navigate('/login')} />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/login" element={
         !currentUser ? (
           <div
