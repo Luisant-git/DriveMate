@@ -15,6 +15,8 @@ import Toast from './components/Toast';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { logout, getProfile } from './api/auth';
 import LandingPage from './pages/LandingPage';
+import PrivacyPage from './pages/privacy';
+import TermsPage from './pages/terms';
 
 const AuthLayout: React.FC<{ children: React.ReactNode, wide?: boolean }> = ({ children, wide }) => (
   <div
@@ -97,6 +99,8 @@ const App: React.FC = () => {
       <Route path="/lead/login" element={!currentUser ? <AuthLayout><LeadLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/app" />} />
       <Route path="/lead/register" element={!currentUser ? <AuthLayout wide><LeadRegister /></AuthLayout> : <Navigate to="/app" />} />
       <Route path="/admin/login" element={!currentUser ? <AuthLayout><AdminLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/app" />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
 
       <Route path="/app/*" element={
         currentUser ? (

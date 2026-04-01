@@ -361,8 +361,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                         <div className="space-y-4">
                             <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Legal</h4>
                             <ul className="space-y-3 text-[12px]">
-                                <li><a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a></li>
-                                <li><a href="#" className="hover:text-gray-400 transition-colors">Terms of Use</a></li>
+                                <li><a href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</a></li>
+                                <li><a href="/terms" className="hover:text-gray-400 transition-colors">Terms & Conditions</a></li>
                                 <li><a href="#" className="hover:text-gray-400 transition-colors">Refund Policy</a></li>
                             </ul>
                         </div>
