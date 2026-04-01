@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { sendOTP, verifyOTP } from '../../api/auth';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface CustomerLoginProps {
   onLogin: (user: any) => void;
-  onBack: () => void;
 }
 
-const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
+const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -76,13 +77,13 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
   if (step === 'PHONE') {
     return (
       <form onSubmit={handleSendOtp} className="animate-fade-in flex-grow flex flex-col">
-        <button type="button" onClick={onBack} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
+        <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
           ← Back
         </button>
         <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">What's your number?</h2>
         <p className="text-gray-500 text-sm mb-6 sm:mb-8">We'll send you a code to verify your account.</p>
         
-        <div className="flex-grow">
+        <div className="mb-8">
           <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Mobile Number</label>
           <div className="flex gap-3">
             <div className="bg-gray-100 rounded-lg px-3 py-3 flex items-center justify-center font-bold text-gray-500 text-sm">
@@ -123,7 +124,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin, onBack }) => {
       <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Verify account</h2>
       <p className="text-gray-500 text-sm mb-6 sm:mb-8">Enter the 6-digit code sent to <span className="font-bold text-black">+91 {phoneNumber}</span> via WhatsApp</p>
       
-      <div className="flex-grow">
+      <div className="mb-8">
         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">One Time Password</label>
         <input 
           type="text" 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { login } from '../../api/auth';
+import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
+import { API_BASE_URL } from '../../api/config.js';
 
 const adminLogin = async (credentials: { email: string; password: string }) => {
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -17,10 +17,10 @@ const adminLogin = async (credentials: { email: string; password: string }) => {
 
 interface AdminLoginProps {
   onLogin: (user: any) => void;
-  onBack: () => void;
 }
 
-const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
+const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,7 +50,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
 
   return (
     <form onSubmit={handleLogin} className="animate-fade-in flex-grow flex flex-col">
-      <button type="button" onClick={onBack} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
+      <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
         ← Back
       </button>
       <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Admin Portal</h2>

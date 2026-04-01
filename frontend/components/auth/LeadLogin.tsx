@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { loginLead } from '../../api/lead';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface LeadLoginProps {
   onLogin: (lead: any) => void;
-  onBack: () => void;
-  onRegister: () => void;
 }
 
-const LeadLogin: React.FC<LeadLoginProps> = ({ onLogin, onBack, onRegister }) => {
+const LeadLogin: React.FC<LeadLoginProps> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,9 +21,9 @@ const LeadLogin: React.FC<LeadLoginProps> = ({ onLogin, onBack, onRegister }) =>
     
     if (result.success) {
       toast.success('Login successful!');
-      onLogin({ ...result.lead, role: 'LEAD' });
+      onLogin({ ... (result as any).data.lead, role: 'LEAD' });
     } else {
-      toast.error(result.error || 'Login failed');
+      toast.error((result as any).message || 'Login failed');
     }
     
     setLoading(false);
@@ -31,7 +31,7 @@ const LeadLogin: React.FC<LeadLoginProps> = ({ onLogin, onBack, onRegister }) =>
 
   return (
     <div className="animate-fade-in flex-grow flex flex-col">
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-black mb-4">
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-600 hover:text-black mb-4">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
@@ -77,7 +77,7 @@ const LeadLogin: React.FC<LeadLoginProps> = ({ onLogin, onBack, onRegister }) =>
         
         <p className="text-center text-sm text-gray-600 mt-4">
           Don't have an account?{' '}
-          <button type="button" onClick={onRegister} className="text-black font-bold hover:underline">
+          <button type="button" onClick={() => navigate('/lead/register')} className="text-black font-bold hover:underline">
             Register here
           </button>
         </p>

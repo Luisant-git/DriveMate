@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { registerLead } from '../../api/lead';
 import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../../api/config.js';
+import { useNavigate } from 'react-router-dom';
 
-interface LeadRegisterProps {
-  onBack: () => void;
-}
-
-const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
+const LeadRegister: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,17 +47,17 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
     
     if (result.success) {
       toast.success('Registration successful! Please wait for admin approval.');
-      onBack();
+      navigate('/lead/login');
     } else {
-      toast.error(result.error || 'Registration failed');
+      toast.error((result as any).message || 'Registration failed');
     }
     
     setLoading(false);
   };
 
   return (
-    <div className="animate-fade-in flex-grow flex flex-col overflow-y-auto">
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-black mb-4">
+    <div className="animate-fade-in flex-grow flex flex-col overflow-y-auto w-full">
+      <button onClick={() => navigate('/lead/login')} className="flex items-center gap-2 text-gray-600 hover:text-black mb-4">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
@@ -68,7 +66,7 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
 
       <h2 className="text-xl font-bold mb-4">Lead Registration</h2>
       
-      <form onSubmit={handleSubmit} className="space-y-3 flex-grow flex flex-col">
+      <form onSubmit={handleSubmit} className="space-y-3 flex-grow flex flex-col w-full">
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">Full Name</label>
           <input
@@ -135,6 +133,7 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
           />
         </div>
         
+        {/* Alternate Phones */}
         <div>
           <label className="block text-xs font-bold text-gray-700 mb-1">Alternate Phone 1</label>
           <input
@@ -221,9 +220,9 @@ const LeadRegister: React.FC<LeadRegisterProps> = ({ onBack }) => {
                   htmlFor={field}
                   className="block w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
                 >
-                  {imagePreviews[field] || formData[field] ? (
+                  {imagePreviews[field] || formData[field as keyof typeof formData] ? (
                     <img 
-                      src={imagePreviews[field] || (formData[field]?.startsWith('http') ? formData[field] : `${API_BASE_URL}${formData[field]}`)} 
+                      src={imagePreviews[field] || (String(formData[field as keyof typeof formData]).startsWith('http') ? String(formData[field as keyof typeof formData]) : `${API_BASE_URL}${formData[field as keyof typeof formData]}`)} 
                       alt={field} 
                       className="w-full h-full object-contain"
                     />
