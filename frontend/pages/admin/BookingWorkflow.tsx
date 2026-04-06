@@ -215,7 +215,7 @@ export default function BookingWorkflow() {
     try {
       const templateData = {
         phone: driverPhone,
-        templateName: 'driver_booking_assignment_1',
+        templateName: 'driver_booking_assignment1',
         parameters: {
           bookingType: `${booking.serviceType} - ${booking.tripType}`,
           fareAmount: `₹${booking.estimateAmount || 0}`,

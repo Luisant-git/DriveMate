@@ -205,7 +205,7 @@ export const sendBookingToDrivers = async (req, res) => {
           try {
             const templateData = {
               phone: driver.phone,
-              templateName: 'driver_booking_assignment_1',
+              templateName: 'driver_booking_assignment1',
               parameters: {
                 bookingType: `${booking.serviceType} - ${booking.tripType}`,
                 fareAmount: `₹${booking.estimateAmount || 0}`,
@@ -455,7 +455,7 @@ export const allocateDriverToBooking = async (req, res) => {
       try {
         const confirmationData = {
           phone: booking.driver.phone,
-          templateName: 'driver_booking_confirmation_2',
+          templateName: 'driver_booking_confirmation2',
           parameters: {
             bookingType: `${booking.serviceType} - ${booking.tripType}`,
             fareAmount: `₹${booking.estimateAmount || 0}`,
@@ -506,7 +506,7 @@ export const allocateDriverToBooking = async (req, res) => {
       try {
         const customerNotificationData = {
           phone: booking.customer.phone,
-          templateName: 'customer_driver_assigned',
+          templateName: 'customer_driver_assigned1',
           parameters: {
             customerName: booking.customer.name || 'Customer',
             pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
