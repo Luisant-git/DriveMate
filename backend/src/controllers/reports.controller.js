@@ -103,7 +103,7 @@ export const getRevenueReport = async (req, res) => {
 
     const bookings = await prisma.booking.findMany({ where });
     const totalRevenue = bookings.reduce((sum, b) => sum + (b.finalAmount || 0), 0);
-    const totalAdvance = bookings.reduce((sum, b) => sum + b.advancePayment, 0);
+    const totalAdvance = bookings.reduce((sum, b) => sum + (b.advancePayment || 0), 0);
 
     res.json({
       success: true,

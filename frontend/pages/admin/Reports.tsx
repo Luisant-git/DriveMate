@@ -180,7 +180,7 @@ const Reports: React.FC = () => {
                         <td className="px-6 py-4 text-sm">{driver.packageType}</td>
                         <td className="px-6 py-4 text-sm">{driver.totalRides}</td>
                         <td className="px-6 py-4 text-sm">{driver.completedBookings}</td>
-                        <td className="px-6 py-4 text-sm font-bold">₹{driver.totalRevenue.toFixed(2)}</td>
+                        <td className="px-6 py-4 text-sm font-bold">₹{driver.totalRevenue?.toFixed(2) || '0.00'}</td>
                         <td className="px-6 py-4">
                           <button
                             onClick={() => viewTrips(driver, 'driver')}
@@ -222,8 +222,8 @@ const Reports: React.FC = () => {
                         <td className="px-6 py-4 text-sm">{customer.email}</td>
                         <td className="px-6 py-4 text-sm">{customer.totalBookings}</td>
                         <td className="px-6 py-4 text-sm">{customer.completedBookings}</td>
-                        <td className="px-6 py-4 text-sm font-bold">₹{customer.totalSpent.toFixed(2)}</td>
-                        <td className="px-6 py-4 text-sm">₹{customer.advancePayment.toFixed(2)}</td>
+                        <td className="px-6 py-4 text-sm font-bold">₹{customer.totalSpent?.toFixed(2) || '0.00'}</td>
+                        <td className="px-6 py-4 text-sm">₹{customer.advancePayment?.toFixed(2) || '0.00'}</td>
                         <td className="px-6 py-4 text-sm">{new Date(customer.joinedDate).toLocaleDateString()}</td>
                         <td className="px-6 py-4">
                           <button
@@ -249,15 +249,15 @@ const Reports: React.FC = () => {
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-2">Total Revenue</p>
-                <p className="text-3xl font-bold text-green-600">₹{revenueData.totalRevenue.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-green-600">₹{revenueData.totalRevenue?.toFixed(2) || '0.00'}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-2">Total Advance</p>
-                <p className="text-3xl font-bold text-blue-600">₹{revenueData.totalAdvance.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-blue-600">₹{revenueData.totalAdvance?.toFixed(2) || '0.00'}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-2">Avg Booking Value</p>
-                <p className="text-3xl font-bold">₹{revenueData.averageBookingValue.toFixed(2)}</p>
+                <p className="text-3xl font-bold">₹{revenueData.averageBookingValue?.toFixed(2) || '0.00'}</p>
               </div>
             </div>
           )}
