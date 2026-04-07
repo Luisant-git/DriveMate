@@ -26,8 +26,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const isLead = !!localStorage.getItem('leadToken');
       localStorage.removeItem('auth-token');
-      window.location.href = '/login';
+      localStorage.removeItem('leadToken');
+      localStorage.removeItem('leadData');
+      
+      if (isLead) {
+        window.location.href = '/lead/login';
+      } else {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

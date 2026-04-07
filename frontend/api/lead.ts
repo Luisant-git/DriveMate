@@ -9,6 +9,13 @@ const getAuthHeaders = () => {
 };
 
 const handleResponse = async (response) => {
+  if (response.status === 401) {
+    localStorage.removeItem('leadToken');
+    localStorage.removeItem('leadData');
+    window.location.href = '/lead/login';
+    return { success: false, status: 401, message: 'Account deactivated. Logging out...' };
+  }
+
   let body = null;
   try {
     body = await response.json();
