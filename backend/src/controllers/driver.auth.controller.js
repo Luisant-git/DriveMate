@@ -85,6 +85,10 @@ export const driverLogin = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (!driver.isActive) {
+      return res.status(403).json({ error: 'Your account is not active. Please contact admin.' });
+    }
+
     const token = jwt.sign({ userId: driver.id, role: 'DRIVER' }, process.env.JWT_SECRET);
     req.session.userId = driver.id;
     req.session.role = 'DRIVER';

@@ -8,7 +8,8 @@ import {
   getAnalytics,
   findNearestDrivers,
   getAllLeads,
-  approveLeadStatus,
+  toggleLeadActiveStatus,
+  toggleDriverActiveStatus,
   getAllLeadSubscriptions,
 } from '../controllers/admin.controller.js';
 import { updateDriverStatus } from '../controllers/driver.controller.js';
@@ -22,8 +23,9 @@ router.get('/leads', authenticateToken, getAllLeads);
 router.get('/lead-subscriptions', authenticateToken, getAllLeadSubscriptions);
 router.put('/drivers/:driverId/approve', authenticateToken, approveDriver);
 router.put('/drivers/:driverId/reject', authenticateToken, rejectDriver);
+router.put('/drivers/:driverId/active', authenticateToken, toggleDriverActiveStatus);
 router.put('/drivers/:driverId/status', authenticateToken, updateDriverStatus);
-router.put('/leads/:leadId/status', authenticateToken, approveLeadStatus);
+router.put('/leads/:leadId/active', authenticateToken, toggleLeadActiveStatus);
 router.get('/rides', authenticateToken, getAllRides);
 router.get('/analytics', authenticateToken, getAnalytics);
 router.get('/drivers/nearby', authenticateToken, findNearestDrivers);

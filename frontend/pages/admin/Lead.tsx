@@ -32,6 +32,17 @@ export default function Lead() {
     setSelectedLead(lead);
   };
 
+  const toggleActiveStatus = async (leadId, currentStatus) => {
+    try {
+      const res = await apiClient.put(`/admin/leads/${leadId}/active`, { isActive: !currentStatus });
+      if (res.data.success) {
+        fetchLeads();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="px-6 py-6">
@@ -66,6 +77,7 @@ export default function Lead() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">License No</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Active</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
               </tr>
             </thead>
@@ -95,6 +107,16 @@ export default function Lead() {
                     </span>
                   </td>
                   <td className="px-4 py-4">
+                    <button 
+                      onClick={() => toggleActiveStatus(lead.id, lead.isActive)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                        lead.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'
+                      }`}
+                    >
+                      {lead.isActive ? 'Active' : 'Deactive'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-4 flex gap-2">
                     <button 
                       onClick={() => viewLeadDetails(lead)}
                       className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"

@@ -51,6 +51,17 @@ export default function Driver() {
     setSelectedDriver(driver);
   };
 
+  const toggleActiveStatus = async (driverId, currentStatus) => {
+    try {
+      const res = await apiClient.put(`/admin/drivers/${driverId}/active`, { isActive: !currentStatus });
+      if (res.data.success) {
+        fetchDrivers();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="px-6 py-6">
@@ -85,7 +96,7 @@ export default function Driver() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">License No</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
-                {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th> */}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Active</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
               </tr>
             </thead>
@@ -124,6 +135,16 @@ export default function Driver() {
                     </span>
                   </td> */}
                   <td className="px-4 py-4">
+                    <button 
+                      onClick={() => toggleActiveStatus(driver.id, driver.isActive)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition ${
+                        driver.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'
+                      }`}
+                    >
+                      {driver.isActive ? 'Active' : 'Deactive'}
+                    </button>
+                  </td>
+                  <td className="px-4 py-4 flex gap-2">
                     <button 
                       onClick={() => viewDriverDetails(driver)}
                       className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"

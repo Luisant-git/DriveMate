@@ -242,6 +242,7 @@ export const getAllDrivers = async (req, res) => {
         packageType: true,
         status: true,
         isOnline: true,
+        isActive: true,
         photo: true
       },
       orderBy: {

@@ -160,17 +160,41 @@ export const getAllLeads = async (req, res) => {
   }
 };
 
-export const approveLeadStatus = async (req, res) => {
+export const toggleLeadActiveStatus = async (req, res) => {
   try {
     const { leadId } = req.params;
-    const { status } = req.body;
+    const { isActive } = req.body;
     
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'isActive must be a boolean' });
+    }
+
     const lead = await prisma.lead.update({
       where: { id: leadId },
-      data: { status }
+      data: { isActive }
     });
     
     res.json({ success: true, lead });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const toggleDriverActiveStatus = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const { isActive } = req.body;
+    
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'isActive must be a boolean' });
+    }
+
+    const driver = await prisma.driver.update({
+      where: { id: driverId },
+      data: { isActive }
+    });
+    
+    res.json({ success: true, driver });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
