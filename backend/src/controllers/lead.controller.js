@@ -85,7 +85,8 @@ export const getAllLeads = async (req, res) => {
           orderBy: { startDate: 'desc' },
           take: 1
         }
-      }
+      },
+      orderBy: { createdAt: 'desc' }
     });
     res.json({ success: true, leads });
   } catch (error) {

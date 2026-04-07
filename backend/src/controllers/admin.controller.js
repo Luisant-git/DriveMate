@@ -18,6 +18,7 @@ export const getAllDrivers = async (req, res) => {
       include: {
         subscriptions: { include: { plan: true } },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     res.json(drivers);
