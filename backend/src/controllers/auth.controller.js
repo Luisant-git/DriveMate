@@ -261,10 +261,11 @@ export const verifyOTP = async (req, res) => {
       req.session.role = 'CUSTOMER';
     }
     
+    const { password: _, ...userWithoutPassword } = user;
     res.json({
       success: true,
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: 'CUSTOMER', phone: user.phone, address: user.address, idProof: user.idProof }
+      user: { ...userWithoutPassword, role: 'CUSTOMER' }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -316,9 +317,13 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, idProof, phone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto } = req.body;
+    const { name, email, address, idProof, phone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, password } = req.body;
     
     let user = null;
+    let hashedPassword = null;
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
     
     if (req.user.role === 'CUSTOMER') {
       user = await prisma.customer.update({
@@ -327,7 +332,8 @@ export const updateProfile = async (req, res) => {
           name,
           email,
           address,
-          idProof
+          idProof,
+          ...(hashedPassword && { password: hashedPassword })
         }
       });
     } else if (req.user.role === 'DRIVER') {
@@ -345,7 +351,8 @@ export const updateProfile = async (req, res) => {
           ...(photo !== undefined && { photo }),
           ...(dlPhoto !== undefined && { dlPhoto }),
           ...(panPhoto !== undefined && { panPhoto }),
-          ...(aadharPhoto !== undefined && { aadharPhoto })
+          ...(aadharPhoto !== undefined && { aadharPhoto }),
+          ...(hashedPassword && { password: hashedPassword })
         }
       });
     } else if (req.user.role === 'ADMIN') {
@@ -353,7 +360,8 @@ export const updateProfile = async (req, res) => {
         where: { id: req.user.userId },
         data: {
           name,
-          email
+          email,
+          ...(hashedPassword && { password: hashedPassword })
         }
       });
     }

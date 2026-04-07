@@ -58,19 +58,48 @@ const App: React.FC = () => {
     checkSession();
   }, []);
 
-  const handleLogin = (user: any) => {
-    setCurrentUser(user);
-    navigate('/app'); // Navigate to the app after successful login
+  const handleLogin = async (user: any) => {
+    try {
+      // After login, fetch the full profile to ensure all data is loaded
+      const response = await getProfile();
+      if (response.success && response.user) {
+        setCurrentUser(response.user);
+      } else {
+        // Fallback to minimal user if profile fetch fails
+        setCurrentUser(user);
+      }
+    } catch (error) {
+      setCurrentUser(user);
+    } finally {
+      navigate('/app'); // Navigate to the app after profile is ready
+    }
   };
 
   const handleLogout = async () => {
+    const role = currentUser?.role;
     try {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       setCurrentUser(null);
-      navigate('/customer/login'); // Navigate to login page after logout
+      
+      // Navigate to respective login page after logout
+      switch (role) {
+        case UserRole.DRIVER:
+          navigate('/driver/login');
+          break;
+        case UserRole.ADMIN:
+          navigate('/admin/login');
+          break;
+        case UserRole.LEAD:
+          navigate('/lead/login');
+          break;
+        case UserRole.CUSTOMER:
+        default:
+          navigate('/customer/login');
+          break;
+      }
     }
   };
 

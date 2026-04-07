@@ -200,7 +200,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   photo: profileData.photo,
                   dlPhoto: profileData.dlPhoto,
                   panPhoto: profileData.panPhoto,
-                  aadharPhoto: profileData.aadharPhoto
+                  aadharPhoto: profileData.aadharPhoto,
+                  password: password // New password
               })
           });
           
@@ -221,7 +222,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
               });
               
               setIsEditingProfile(false);
-              alert("Profile Updated Successfully");
+              const message = password ? "Profile and Password Updated Successfully" : "Profile Updated Successfully";
+              setPassword(''); // Clear password field after success
+              alert(message);
           } else {
               alert(data.error || "Profile update failed");
           }

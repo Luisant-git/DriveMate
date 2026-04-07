@@ -89,15 +89,12 @@ export const driverLogin = async (req, res) => {
     req.session.userId = driver.id;
     req.session.role = 'DRIVER';
     
+    const { password: _, ...driverWithoutPassword } = driver;
     res.json({
       token,
       driver: { 
-        id: driver.id, 
-        email: driver.email, 
-        name: driver.name, 
-        phone: driver.phone,
-        status: driver.status,
-        isOnline: driver.isOnline
+        ...driverWithoutPassword,
+        role: 'DRIVER'
       }
     });
   } catch (error) {
