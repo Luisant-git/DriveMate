@@ -110,6 +110,30 @@ export const updateLeadStatus = async (req, res) => {
   }
 };
 
+export const getLeadProfile = async (req, res) => {
+  try {
+    const leadId = req.user.id;
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      include: {
+        leadSubscriptions: {
+          include: { plan: true },
+          orderBy: { startDate: 'desc' },
+          take: 1
+        }
+      }
+    });
+
+    if (!lead) {
+      return res.status(404).json({ success: false, error: 'Lead not found' });
+    }
+
+    res.json({ success: true, user: { ...lead, role: 'LEAD' } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const updateLeadProfile = async (req, res) => {
   try {
     const leadId = req.user.id;

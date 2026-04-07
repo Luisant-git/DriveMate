@@ -93,3 +93,16 @@ export const getLeadData = () => {
 export const isLeadAuthenticated = () => {
   return !!localStorage.getItem('leadToken');
 };
+
+export const getLeadProfile = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/leads/profile`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    return await handleResponse(res);
+  } catch {
+    return { success: false, message: 'Network error' };
+  }
+};

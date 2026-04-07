@@ -14,6 +14,7 @@ import LeadRegister from './components/auth/LeadRegister';
 import Toast from './components/Toast';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { logout, getProfile } from './api/auth';
+import { getLeadProfile } from './api/lead';
 import LandingPage from './pages/LandingPage';
 import PrivacyPage from './pages/privacy';
 import TermsPage from './pages/terms';
@@ -45,9 +46,19 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await getProfile();
-        if (response.success && response.user) {
-          setCurrentUser(response.user);
+        const hasAuthToken = !!localStorage.getItem('auth-token');
+        const hasLeadToken = !!localStorage.getItem('leadToken');
+
+        if (hasAuthToken) {
+          const response = await getProfile();
+          if (response.success && (response as any).user) {
+            setCurrentUser((response as any).user);
+          }
+        } else if (hasLeadToken) {
+          const response = await getLeadProfile();
+          if (response.success && (response as any).user) {
+            setCurrentUser((response as any).user);
+          }
         }
       } catch (error) {
         console.log('No active session');
@@ -61,9 +72,9 @@ const App: React.FC = () => {
   const handleLogin = async (user: any) => {
     try {
       // After login, fetch the full profile to ensure all data is loaded
-      const response = await getProfile();
-      if (response.success && response.user) {
-        setCurrentUser(response.user);
+      const response = user.role === UserRole.LEAD ? await getLeadProfile() : await getProfile();
+      if (response.success && (response as any).user) {
+        setCurrentUser((response as any).user);
       } else {
         // Fallback to minimal user if profile fetch fails
         setCurrentUser(user);
