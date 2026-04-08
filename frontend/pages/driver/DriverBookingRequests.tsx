@@ -237,6 +237,8 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                           request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 
                           request.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                          request.status === 'EXPIRED' ? 'bg-orange-100 text-orange-700' :
+                          request.status === 'ALLOCATED TO ANOTHER' ? 'bg-purple-100 text-purple-700' :
                           'bg-gray-100 text-gray-700'
                         }`}>
                           {request.status}
