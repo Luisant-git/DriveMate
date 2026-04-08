@@ -280,7 +280,9 @@ export const sendBookingToDrivers = async (req, res) => {
 export const getDriverPendingRequests = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    console.log('[Driver Requests] Fetching requests for driverId:', userId);
+    const { type } = req.query; // 'PENDING' or 'HISTORY'
+    
+    console.log(`[Driver Requests] Fetching ${type || 'ALL'} requests for driverId:`, userId);
 
     const responses = await prisma.bookingResponse.findMany({
       where: {
@@ -296,26 +298,36 @@ export const getDriverPendingRequests = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    console.log(`[Driver Requests] Found ${responses.length} total responses for driver ${userId}`);
-    
-    // Group by booking ID to check for duplicates
-    const bookingGroups = responses.reduce((acc, response) => {
-      const bookingId = response.bookingId;
-      if (!acc[bookingId]) {
-        acc[bookingId] = [];
+    const now = new Date();
+    const expiryTime = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    const processedRequests = responses.map(response => {
+      const isExpired = (now - new Date(response.createdAt)) > expiryTime;
+      const isAllocatedToOther = response.status === 'PENDING' && 
+                                 response.booking.driverId && 
+                                 response.booking.driverId !== userId;
+      
+      let finalStatus = response.status;
+      if (response.status === 'PENDING') {
+        if (isAllocatedToOther) finalStatus = 'ALLOCATED TO ANOTHER';
+        else if (isExpired) finalStatus = 'EXPIRED';
       }
-      acc[bookingId].push(response);
-      return acc;
-    }, {});
-    
-    // Log any duplicates found
-    Object.entries(bookingGroups).forEach(([bookingId, responses]) => {
-      if (responses.length > 1) {
-        console.log(`[Driver Requests] WARNING: Found ${responses.length} duplicate responses for booking ${bookingId}`);
-      }
+
+      return {
+        ...response,
+        status: finalStatus
+      };
     });
 
-    res.json({ success: true, requests: responses });
+    // Filter based on type if provided
+    let filteredRequests = processedRequests;
+    if (type === 'PENDING') {
+      filteredRequests = processedRequests.filter(r => r.status === 'PENDING');
+    } else if (type === 'HISTORY') {
+      filteredRequests = processedRequests.filter(r => r.status !== 'PENDING');
+    }
+
+    res.json({ success: true, requests: filteredRequests });
   } catch (error) {
     console.error('Error fetching driver requests:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -795,6 +807,9 @@ export const sendBookingToLeads = async (req, res) => {
 export const getLeadPendingRequests = async (req, res) => {
   try {
     const leadId = req.user.id;
+    const { type } = req.query; // 'PENDING' or 'HISTORY'
+
+    console.log(`[Lead Requests] Fetching ${type || 'ALL'} requests for leadId:`, leadId);
 
     const responses = await prisma.leadBookingResponse.findMany({
       where: { leadId },
@@ -806,7 +821,36 @@ export const getLeadPendingRequests = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json({ success: true, requests: responses });
+    const now = new Date();
+    const expiryTime = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+    const processedRequests = responses.map(response => {
+      const isExpired = (now - new Date(response.createdAt)) > expiryTime;
+      const isAllocatedToOther = response.status === 'PENDING' && 
+                                 response.booking.leadId && 
+                                 response.booking.leadId !== leadId;
+      
+      let finalStatus = response.status;
+      if (response.status === 'PENDING') {
+        if (isAllocatedToOther) finalStatus = 'ALLOCATED TO ANOTHER';
+        else if (isExpired) finalStatus = 'EXPIRED';
+      }
+
+      return {
+        ...response,
+        status: finalStatus
+      };
+    });
+
+    // Filter based on type if provided
+    let filteredRequests = processedRequests;
+    if (type === 'PENDING') {
+      filteredRequests = processedRequests.filter(r => r.status === 'PENDING');
+    } else if (type === 'HISTORY') {
+      filteredRequests = processedRequests.filter(r => r.status !== 'PENDING');
+    }
+
+    res.json({ success: true, requests: filteredRequests });
   } catch (error) {
     console.error('Error fetching lead requests:', error);
     res.status(500).json({ success: false, error: error.message });

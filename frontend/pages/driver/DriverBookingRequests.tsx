@@ -11,9 +11,9 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   useEffect(() => {
     fetchCurrentSubscription();
-    fetchRequests();
+    fetchRequests(activeSubTab || 'PENDING');
     fetchAllocatedBookings();
-  }, []);
+  }, [activeSubTab]);
 
   const fetchCurrentSubscription = async () => {
     try {
@@ -29,12 +29,15 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
     }
   };
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (type = 'PENDING') => {
     try {
-      const res = await apiClient.get('/booking-workflow/driver/pending-requests');
-      const allReqs = res.data.requests || [];
-      setAllRequests(allReqs);
-      setRequests(allReqs.filter(r => r.status === 'PENDING'));
+      const res = await apiClient.get(`/booking-workflow/driver/pending-requests?type=${type}`);
+      const reqs = res.data.requests || [];
+      if (type === 'PENDING') {
+        setRequests(reqs);
+      } else {
+        setAllRequests(reqs);
+      }
     } catch (error) {
       console.error('Error:', error);
     }
@@ -206,17 +209,16 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
       </div>
       )}
 
-      {/* Request History */}
       {activeSubTab === 'HISTORY' && (
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Request History</h2>
-        {allRequests.filter(r => r.status !== 'PENDING').length === 0 ? (
+        {allRequests.length === 0 ? (
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
             <p className="text-gray-500 text-sm">No request history</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {allRequests.filter(r => r.status !== 'PENDING').map(request => {
+            {allRequests.map(request => {
               const startDate = new Date(request.booking.startDateTime);
               const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
               const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -232,11 +234,13 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                         )}
                         <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                        request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {request.status}
-                      </span>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                          request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 
+                          request.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {request.status}
+                        </span>
                     </div>
                     
                     <div className="space-y-3">

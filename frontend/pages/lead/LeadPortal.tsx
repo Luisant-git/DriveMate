@@ -76,12 +76,12 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
     if (activeTab === 'PACKAGES') {
       loadPackages();
     } else if (activeTab === 'REQUESTS') {
-      loadPendingRequests();
+      loadPendingRequests(requestsSubTab);
     } else if (activeTab === 'TRIPS') {
       loadCompletedTrips();
       loadAllocatedBookings();
     }
-  }, [activeTab]);
+  }, [activeTab, requestsSubTab]);
 
 
 
@@ -105,18 +105,21 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
     setLoadingPackages(false);
   };
 
-  const loadPendingRequests = async () => {
+  const loadPendingRequests = async (type = 'PENDING') => {
     setLoadingRequests(true);
     try {
       const token = localStorage.getItem('leadToken');
-      const response = await fetch(`${API_BASE_URL}/api/booking-workflow/lead/pending-requests`, {
+      const response = await fetch(`${API_BASE_URL}/api/booking-workflow/lead/pending-requests?type=${type}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (data.success) {
-        const allReqs = data.requests || [];
-        setAllRequests(allReqs);
-        setPendingRequests(allReqs.filter(r => r.status === 'PENDING'));
+        const reqs = data.requests || [];
+        if (type === 'PENDING') {
+          setPendingRequests(reqs);
+        } else {
+          setAllRequests(reqs);
+        }
       }
     } catch (error) {
       console.error('Error loading requests:', error);
@@ -483,13 +486,13 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
             {requestsSubTab === 'HISTORY' && (
             <div>
               <h3 className="text-lg font-bold mb-3">Request History</h3>
-              {allRequests.filter(r => r.status !== 'PENDING').length === 0 ? (
+              {allRequests.length === 0 ? (
                 <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
                   <p className="text-gray-500 text-sm">No request history</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {allRequests.filter(r => r.status !== 'PENDING').map((request) => {
+                  {allRequests.map((request) => {
                     const booking = request.booking;
                     const startDate = new Date(booking.startDateTime);
                     const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
@@ -507,7 +510,9 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                               <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{booking.bookingType}</span>
                             </div>
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                              request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 
+                              request.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
                             }`}>
                               {request.status}
                             </span>
