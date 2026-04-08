@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import { sendTripCompletedInternal } from './whatsapp.controller.js';
 
 // Customer creates a trip
 export const createTrip = async (req, res) => {
@@ -185,6 +186,23 @@ export const completeTrip = async (req, res) => {
     };
 
     res.json({ success: true, trip });
+
+    // Send WhatsApp notification in the background
+    try {
+      if (booking.customer && booking.customer.phone) {
+        const whatsappParams = {
+          customerName: booking.customer.name,
+          pickup: booking.pickupLocation,
+          destination: booking.dropLocation,
+          amount: (booking.finalAmount || booking.estimateAmount || 0).toString()
+        };
+        
+        console.log('[TripController] Sending WhatsApp completion notification for booking:', booking.id);
+        await sendTripCompletedInternal(booking.customer.phone, whatsappParams);
+      }
+    } catch (whatsappError) {
+      console.error('[TripController] Failed to send WhatsApp completion notification:', whatsappError.message);
+    }
   } catch (error) {
     console.error('Complete trip error:', error);
     res.status(400).json({ success: false, error: error.message });

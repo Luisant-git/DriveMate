@@ -450,3 +450,65 @@ export const driverBookingAssignment = async (req, res) => {
     });
   }
 };
+
+export const sendTripCompletedInternal = async (phone, parameters) => {
+  try {
+    const whatsappConfig = {
+      accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+      apiUrl: `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`
+    };
+
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (!formattedPhone.startsWith('91')) {
+      formattedPhone = '91' + formattedPhone;
+    }
+
+    const messagePayload = {
+      messaging_product: 'whatsapp',
+      to: formattedPhone,
+      type: 'template',
+      template: {
+        name: 'trip_completed',
+        language: { code: 'en' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: parameters.customerName },
+              { type: 'text', text: parameters.pickup },
+              { type: 'text', text: parameters.destination },
+              { type: 'text', text: parameters.amount }
+            ]
+          }
+        ]
+      }
+    };
+
+    const response = await axios.post(whatsappConfig.apiUrl, messagePayload, {
+      headers: {
+        'Authorization': `Bearer ${whatsappConfig.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return { success: true, messageId: response.data.messages?.[0]?.id };
+  } catch (error) {
+    console.error(`[WhatsApp Internal] ERROR:`, error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const tripCompletedNotification = async (req, res) => {
+  const { phone, parameters } = req.body;
+  try {
+    const result = await sendTripCompletedInternal(phone, parameters);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send notification',
+      details: error.response?.data?.error?.message || error.message
+    });
+  }
+};
