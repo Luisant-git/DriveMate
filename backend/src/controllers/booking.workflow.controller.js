@@ -798,7 +798,7 @@ export const sendBookingToLeads = async (req, res) => {
           try {
             const templateData = {
               phone: lead.phone,
-              templateName: 'lead_booking_assignment1',
+              templateName: 'driver_booking_assignment1',
               parameters: {
                 bookingType: `${booking.serviceType} - ${booking.tripType}`,
                 fareAmount: `₹${booking.estimateAmount || 0}`,
@@ -1020,7 +1020,7 @@ export const allocateLeadToBooking = async (req, res) => {
       try {
         const confirmationData = {
           phone: booking.lead.phone,
-          templateName: 'lead_booking_confirmation1',
+          templateName: 'driver_booking_confirmation2',
           parameters: {
             bookingType: `${booking.serviceType} - ${booking.tripType}`,
             fareAmount: `₹${booking.estimateAmount || 0}`,
