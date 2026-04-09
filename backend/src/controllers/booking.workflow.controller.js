@@ -1,5 +1,5 @@
 import prisma from '../config/database.js';
-import { driverBookingAssignment, driverBookingConfirmation, customerDriverAssigned } from './whatsapp.controller.js';
+import { driverBookingAssignment, driverBookingConfirmation, customerDriverAssigned, leadBookingAssignment, leadBookingConfirmation } from './whatsapp.controller.js';
 
 // ADMIN: Get all pending bookings for review
 export const getAdminPendingBookings = async (req, res) => {
@@ -790,12 +790,76 @@ export const sendBookingToLeads = async (req, res) => {
 
     console.log(`[Lead Booking] Successfully created ${responses.length} lead responses`);
 
+    // Send WhatsApp templates to new leads only
+    console.log(`[Lead Booking] Sending WhatsApp templates to ${newLeads.length} new leads`);
+    const whatsappResults = await Promise.allSettled(
+      newLeads.map(async (lead) => {
+        if (lead.phone) {
+          try {
+            const templateData = {
+              phone: lead.phone,
+              templateName: 'lead_booking_assignment1',
+              parameters: {
+                bookingType: `${booking.serviceType} - ${booking.tripType}`,
+                fareAmount: `₹${booking.estimateAmount || 0}`,
+                pickup: booking.pickupLocation,
+                destination: booking.dropLocation,
+                tripTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
+                  hour: '2-digit', 
+                  minute: '2-digit',
+                  timeZone: 'Asia/Kolkata'
+                })
+              }
+            };
+            
+            // Create a mock request object
+            const mockReq = { body: templateData };
+            let whatsappResult = { success: false };
+            let statusCode = 200;
+            const mockRes = {
+              json: (data) => {
+                whatsappResult = data;
+                return data;
+              },
+              status: (code) => {
+                statusCode = code;
+                return {
+                  json: (data) => {
+                    whatsappResult = { ...data, statusCode: code };
+                    return { status: code, ...data };
+                  }
+                };
+              }
+            };
+            
+            await leadBookingAssignment(mockReq, mockRes);
+            
+            if (whatsappResult.success && statusCode < 400) {
+              console.log(`[Lead WhatsApp] Template sent to ${lead.phone}`);
+              return { success: true, phone: lead.phone };
+            } else {
+              console.error(`[Lead WhatsApp] Failed to send to ${lead.phone}:`, whatsappResult.error || whatsappResult.details);
+              return { success: false, phone: lead.phone, error: whatsappResult.error || whatsappResult.details };
+            }
+          } catch (error) {
+            console.error(`[Lead WhatsApp] Failed to send to ${lead.phone}:`, error.message);
+            return { success: false, phone: lead.phone, error: error.message };
+          }
+        }
+        return { success: false, phone: 'N/A', error: 'No phone number' };
+      })
+    );
+
+    const whatsappSuccess = whatsappResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    console.log(`[Lead WhatsApp] Successfully sent ${whatsappSuccess}/${newLeads.length} templates`);
+
     res.json({ 
       success: true, 
       message: `Booking sent to ${newLeads.length} new leads (${leads.length} total available)`, 
       newLeadsCount: newLeads.length,
       totalLeadsCount: leads.length,
-      existingResponsesCount: existingLeadResponses.length
+      existingResponsesCount: existingLeadResponses.length,
+      whatsappSent: whatsappSuccess
     });
   } catch (error) {
     console.error('Error sending booking to leads:', error);
@@ -950,6 +1014,107 @@ export const allocateLeadToBooking = async (req, res) => {
         }
       }
     });
+
+    // Send WhatsApp confirmation to allocated lead
+    if (booking.lead?.phone) {
+      try {
+        const confirmationData = {
+          phone: booking.lead.phone,
+          templateName: 'lead_booking_confirmation1',
+          parameters: {
+            bookingType: `${booking.serviceType} - ${booking.tripType}`,
+            fareAmount: `₹${booking.estimateAmount || 0}`,
+            pickup: booking.pickupLocation,
+            destination: booking.dropLocation,
+            pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'Asia/Kolkata'
+            }),
+            customerContact: booking.customer?.phone || 'N/A'
+          }
+        };
+        
+        const mockReq = { body: confirmationData };
+        let whatsappResult = { success: false };
+        let statusCode = 200;
+        const mockRes = {
+          json: (data) => {
+            whatsappResult = data;
+            return data;
+          },
+          status: (code) => {
+            statusCode = code;
+            return {
+              json: (data) => {
+                whatsappResult = { ...data, statusCode: code };
+                return { status: code, ...data };
+              }
+            };
+          }
+        };
+        
+        await leadBookingConfirmation(mockReq, mockRes);
+        
+        if (whatsappResult.success && statusCode < 400) {
+          console.log(`[Lead WhatsApp] Confirmation sent to lead ${booking.lead.phone}`);
+        } else {
+          console.error(`[Lead WhatsApp] Failed to send confirmation to ${booking.lead.phone}:`, whatsappResult.error);
+        }
+      } catch (error) {
+        console.error(`[Lead WhatsApp] Error sending confirmation:`, error.message);
+      }
+    }
+
+    // Send WhatsApp notification to customer
+    if (booking.customer?.phone) {
+      try {
+        const customerNotificationData = {
+          phone: booking.customer.phone,
+          templateName: 'customer_driver_assigned1', // Use existing customer template
+          parameters: {
+            customerName: booking.customer.name || 'Customer',
+            pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'Asia/Kolkata'
+            }),
+            driverName: booking.lead?.name || 'Service Partner', // Use lead name as driver name
+            driverMobile: `+91 ${booking.lead?.phone || 'N/A'}`,
+            bookingType: `${booking.serviceType} - ${booking.tripType}`
+          }
+        };
+        
+        const mockReqCustomer = { body: customerNotificationData };
+        let customerWhatsappResult = { success: false };
+        let customerStatusCode = 200;
+        const mockResCustomer = {
+          json: (data) => {
+            customerWhatsappResult = data;
+            return data;
+          },
+          status: (code) => {
+            customerStatusCode = code;
+            return {
+              json: (data) => {
+                customerWhatsappResult = { ...data, statusCode: code };
+                return { status: code, ...data };
+              }
+            };
+          }
+        };
+        
+        await customerDriverAssigned(mockReqCustomer, mockResCustomer);
+        
+        if (customerWhatsappResult.success && customerStatusCode < 400) {
+          console.log(`[WhatsApp] Customer notification sent to ${booking.customer.phone}`);
+        } else {
+          console.error(`[WhatsApp] Failed to send customer notification to ${booking.customer.phone}:`, customerWhatsappResult.error);
+        }
+      } catch (error) {
+        console.error(`[WhatsApp] Error sending customer notification:`, error.message);
+      }
+    }
 
     res.json({ success: true, booking, message: 'Lead allocated successfully' });
   } catch (error) {

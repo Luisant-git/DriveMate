@@ -512,3 +512,228 @@ export const tripCompletedNotification = async (req, res) => {
     });
   }
 };
+
+export const leadBookingAssignment = async (req, res) => {
+  const startTime = Date.now();
+  const logData = {
+    timestamp: new Date().toISOString(),
+    phone: req.body.phone,
+    templateName: req.body.templateName,
+    bookingDetails: req.body.parameters
+  };
+
+  try {
+    const { phone, templateName, parameters } = req.body;
+
+    console.log(`[WhatsApp] Starting lead assignment template send:`, logData);
+
+    if (!phone || !templateName) {
+      console.log(`[WhatsApp] ERROR - Missing required fields:`, { phone: !!phone, templateName: !!templateName });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Phone number and template name are required' 
+      });
+    }
+
+    // WhatsApp Business API configuration
+    const whatsappConfig = {
+      accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+      apiUrl: `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`
+    };
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (formattedPhone.startsWith('91')) {
+      formattedPhone = formattedPhone;
+    } else {
+      formattedPhone = '91' + formattedPhone;
+    }
+
+    console.log(`[WhatsApp] Formatted phone: ${phone} -> ${formattedPhone}`);
+
+    // Template message payload (5 parameters matching driver_booking_assignment1 structure)
+    const messagePayload = {
+      messaging_product: 'whatsapp',
+      to: formattedPhone,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: { code: 'en' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: parameters.bookingType },
+              { type: 'text', text: parameters.fareAmount },
+              { type: 'text', text: parameters.pickup },
+              { type: 'text', text: parameters.destination },
+              { type: 'text', text: parameters.tripTime }
+            ]
+          }
+        ]
+      }
+    };
+
+    console.log(`[WhatsApp] Sending lead assignment to Meta API:`, {
+      url: whatsappConfig.apiUrl,
+      to: formattedPhone,
+      template: templateName
+    });
+
+    // Send WhatsApp message
+    const response = await axios.post(whatsappConfig.apiUrl, messagePayload, {
+      headers: {
+        'Authorization': `Bearer ${whatsappConfig.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const duration = Date.now() - startTime;
+    const successLog = {
+      ...logData,
+      status: 'SUCCESS',
+      messageId: response.data.messages?.[0]?.id,
+      duration: `${duration}ms`,
+      formattedPhone
+    };
+
+    console.log(`[WhatsApp] LEAD ASSIGNMENT SUCCESS:`, successLog);
+
+    res.json({ 
+      success: true, 
+      message: 'WhatsApp lead assignment template sent successfully',
+      messageId: response.data.messages?.[0]?.id 
+    });
+
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorLog = {
+      ...logData,
+      status: 'ERROR',
+      error: error.response?.data || error.message,
+      duration: `${duration}ms`
+    };
+
+    console.error(`[WhatsApp] LEAD ASSIGNMENT ERROR:`, errorLog);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send WhatsApp lead assignment template',
+      details: error.response?.data?.error?.message || error.message
+    });
+  }
+};
+
+export const leadBookingConfirmation = async (req, res) => {
+  const startTime = Date.now();
+  const logData = {
+    timestamp: new Date().toISOString(),
+    phone: req.body.phone,
+    templateName: req.body.templateName,
+    bookingDetails: req.body.parameters
+  };
+
+  try {
+    const { phone, templateName, parameters } = req.body;
+
+    console.log(`[WhatsApp] Starting lead confirmation template send:`, logData);
+
+    if (!phone || !templateName) {
+      console.log(`[WhatsApp] ERROR - Missing required fields:`, { phone: !!phone, templateName: !!templateName });
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Phone number and template name are required' 
+      });
+    }
+
+    // WhatsApp Business API configuration
+    const whatsappConfig = {
+      accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+      apiUrl: `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`
+    };
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (formattedPhone.startsWith('91')) {
+      formattedPhone = formattedPhone;
+    } else {
+      formattedPhone = '91' + formattedPhone;
+    }
+
+    console.log(`[WhatsApp] Formatted phone: ${phone} -> ${formattedPhone}`);
+
+    // Template message payload (6 parameters matching driver_booking_confirmation2 structure)
+    const messagePayload = {
+      messaging_product: 'whatsapp',
+      to: formattedPhone,
+      type: 'template',
+      template: {
+        name: templateName,
+        language: { code: 'en' },
+        components: [
+          {
+            type: 'body',
+            parameters: [
+              { type: 'text', text: parameters.bookingType },
+              { type: 'text', text: parameters.fareAmount },
+              { type: 'text', text: parameters.pickup },
+              { type: 'text', text: parameters.destination },
+              { type: 'text', text: parameters.pickupTime },
+              { type: 'text', text: parameters.customerContact }
+            ]
+          }
+        ]
+      }
+    };
+
+    console.log(`[WhatsApp] Sending lead confirmation to Meta API:`, {
+      url: whatsappConfig.apiUrl,
+      to: formattedPhone,
+      template: templateName
+    });
+
+    // Send WhatsApp message
+    const response = await axios.post(whatsappConfig.apiUrl, messagePayload, {
+      headers: {
+        'Authorization': `Bearer ${whatsappConfig.accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const duration = Date.now() - startTime;
+    const successLog = {
+      ...logData,
+      status: 'SUCCESS',
+      messageId: response.data.messages?.[0]?.id,
+      duration: `${duration}ms`,
+      formattedPhone
+    };
+
+    console.log(`[WhatsApp] LEAD CONFIRMATION SUCCESS:`, successLog);
+
+    res.json({ 
+      success: true, 
+      message: 'WhatsApp lead confirmation template sent successfully',
+      messageId: response.data.messages?.[0]?.id 
+    });
+
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    const errorLog = {
+      ...logData,
+      status: 'ERROR',
+      error: error.response?.data || error.message,
+      duration: `${duration}ms`
+    };
+
+    console.error(`[WhatsApp] LEAD CONFIRMATION ERROR:`, errorLog);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send WhatsApp lead confirmation template',
+      details: error.response?.data?.error?.message || error.message
+    });
+  }
+};
