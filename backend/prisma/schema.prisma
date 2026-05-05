@@ -55,6 +55,8 @@ model Driver {
   totalRides   Int           @default(0)
   packageType  PackageType   @default(LOCAL)
   isActive     Boolean       @default(false)
+  lastVerifiedAt    DateTime?
+  nextVerificationDue DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -101,6 +103,8 @@ model Lead {
   rating       Float         @default(0)
   totalRides   Int           @default(0)
   isActive     Boolean       @default(false)
+  lastVerifiedAt    DateTime?
+  nextVerificationDue DateTime?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -513,4 +517,15 @@ model Session {
   expire DateTime
 
   @@map("session")
+}
+
+model VerificationRecord {
+  id         String   @id @default(cuid())
+  entityId   String   // driverId or leadId
+  entityType String   // "DRIVER" or "LEAD"
+  status     String   // "PASSED" or "FAILED"
+  notes      String?
+  verifiedAt DateTime @default(now())
+
+  @@map("verification_records")
 }

@@ -11,6 +11,8 @@ import {
   toggleLeadActiveStatus,
   toggleDriverActiveStatus,
   getAllLeadSubscriptions,
+  submitVerification,
+  getVerificationHistory,
 } from '../controllers/admin.controller.js';
 import { updateDriverStatus } from '../controllers/driver.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -29,5 +31,7 @@ router.put('/leads/:leadId/active', authenticateToken, toggleLeadActiveStatus);
 router.get('/rides', authenticateToken, getAllRides);
 router.get('/analytics', authenticateToken, getAnalytics);
 router.get('/drivers/nearby', authenticateToken, findNearestDrivers);
+router.post('/verification', authenticateToken, submitVerification);
+router.get('/verification/:entityId/history', authenticateToken, getVerificationHistory);
 
 export default router;

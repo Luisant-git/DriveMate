@@ -217,7 +217,7 @@ export const getAllLeadSubscriptions = async (req, res) => {
 };
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -226,3 +226,51 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
 }
+
+// ---- Quarterly Verification ----
+
+export const submitVerification = async (req, res) => {
+  try {
+    const { entityId, entityType, status, notes } = req.body;
+    if (!entityId || !entityType || !status) {
+      return res.status(400).json({ success: false, error: 'entityId, entityType and status are required' });
+    }
+
+    const verifiedAt = new Date();
+    const nextVerificationDue = new Date(verifiedAt);
+    nextVerificationDue.setMonth(nextVerificationDue.getMonth() + 3);
+
+    const record = await prisma.verificationRecord.create({
+      data: { entityId, entityType, status, notes, verifiedAt }
+    });
+
+    if (entityType === 'DRIVER') {
+      await prisma.driver.update({
+        where: { id: entityId },
+        data: { lastVerifiedAt: verifiedAt, nextVerificationDue }
+      });
+    } else if (entityType === 'LEAD') {
+      await prisma.lead.update({
+        where: { id: entityId },
+        data: { lastVerifiedAt: verifiedAt, nextVerificationDue }
+      });
+    }
+
+    res.json({ success: true, record });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getVerificationHistory = async (req, res) => {
+  try {
+    const { entityId } = req.params;
+    const records = await prisma.verificationRecord.findMany({
+      where: { entityId },
+      orderBy: { verifiedAt: 'desc' }
+    });
+    res.json({ success: true, records });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
