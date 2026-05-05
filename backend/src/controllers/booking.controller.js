@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import { autoRouteBooking } from './bookingRouting.controller.js';
 
 const getFileUrl = (fileId) => {
   if (!fileId) return null;
@@ -57,6 +58,13 @@ export const createBooking = async (req, res) => {
       success: true,
       booking,
       message: 'Booking request sent to drivers!'
+    });
+
+    // Auto-route booking to drivers/leads based on routing config (fire and forget)
+    autoRouteBooking(booking.id).then(result => {
+      console.log(`[AutoRoute] Result for booking ${booking.id}:`, result);
+    }).catch(err => {
+      console.error(`[AutoRoute] Failed for booking ${booking.id}:`, err.message);
     });
   } catch (error) {
     console.error('Booking creation error:', error);

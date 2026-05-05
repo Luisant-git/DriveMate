@@ -521,11 +521,25 @@ model Session {
 
 model VerificationRecord {
   id         String   @id @default(cuid())
-  entityId   String   // driverId or leadId
-  entityType String   // "DRIVER" or "LEAD"
-  status     String   // "PASSED" or "FAILED"
+  entityId   String
+  entityType String
+  status     String
   notes      String?
   verifiedAt DateTime @default(now())
 
   @@map("verification_records")
+}
+
+model BookingRoutingConfig {
+  id          String   @id @default(cuid())
+  serviceType String   // "Local - Hourly" or "Outstation"
+  tripType    String   // "One Way" or "Round Trip"
+  driverPlanIds String[] @default([])  // SubscriptionPlan IDs
+  leadPlanIds   String[] @default([])  // LeadSubscriptionPlan IDs
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([serviceType, tripType])
+  @@map("booking_routing_configs")
 }

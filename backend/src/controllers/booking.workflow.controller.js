@@ -338,7 +338,7 @@ export const getDriverPendingRequests = async (req, res) => {
 export const respondToBookingRequest = async (req, res) => {
   try {
     const { responseId } = req.params;
-    const { action } = req.body; // 'ACCEPTED' or 'REJECTED'
+    const { action } = req.body;
 
     if (!['ACCEPTED', 'REJECTED'].includes(action)) {
       return res.status(400).json({ success: false, error: 'Invalid action' });
@@ -355,6 +355,64 @@ export const respondToBookingRequest = async (req, res) => {
         driver: true
       }
     });
+
+    // Auto-allocate if accepted and booking not yet allocated
+    if (action === 'ACCEPTED') {
+      const booking = await prisma.booking.findUnique({
+        where: { id: response.bookingId },
+        include: { customer: true, driver: true }
+      });
+
+      if (booking && !booking.driverId && !booking.leadId) {
+        // Allocate this driver
+        const updatedBooking = await prisma.booking.update({
+          where: { id: booking.id },
+          data: { driverId: response.driverId, allocatedAt: new Date(), status: 'CONFIRMED' },
+          include: { customer: true, driver: true }
+        });
+
+        console.log(`[AutoAllocate] Driver ${response.driverId} allocated to booking ${booking.id}`);
+
+        // Send WhatsApp confirmation to driver
+        if (updatedBooking.driver?.phone) {
+          try {
+            const mockReq = { body: {
+              phone: updatedBooking.driver.phone,
+              templateName: 'driver_booking_confirmation2',
+              parameters: {
+                bookingType: `${booking.serviceType} - ${booking.tripType}`,
+                fareAmount: `₹${booking.estimateAmount || 0}`,
+                pickup: booking.pickupLocation,
+                destination: booking.dropLocation,
+                pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+                customerContact: updatedBooking.customer?.phone || 'N/A'
+              }
+            }};
+            const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
+            await driverBookingConfirmation(mockReq, mockRes);
+          } catch (e) { console.error('[AutoAllocate] WhatsApp error:', e.message); }
+        }
+
+        // Send WhatsApp notification to customer
+        if (updatedBooking.customer?.phone) {
+          try {
+            const mockReq = { body: {
+              phone: updatedBooking.customer.phone,
+              templateName: 'customer_driver_assigned1',
+              parameters: {
+                customerName: updatedBooking.customer.name || 'Customer',
+                pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+                driverName: updatedBooking.driver?.name || 'Driver',
+                driverMobile: `+91 ${updatedBooking.driver?.phone || 'N/A'}`,
+                bookingType: `${booking.serviceType} - ${booking.tripType}`
+              }
+            }};
+            const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
+            await customerDriverAssigned(mockReq, mockRes);
+          } catch (e) { console.error('[AutoAllocate] Customer WhatsApp error:', e.message); }
+        }
+      }
+    }
 
     res.json({ 
       success: true, 
@@ -936,6 +994,63 @@ export const respondToLeadBookingRequest = async (req, res) => {
       data: { status: action, respondedAt: new Date() },
       include: { booking: true, lead: true }
     });
+
+    // Auto-allocate if accepted and booking not yet allocated
+    if (action === 'ACCEPTED') {
+      const booking = await prisma.booking.findUnique({
+        where: { id: response.bookingId },
+        include: { customer: true, lead: true }
+      });
+
+      if (booking && !booking.driverId && !booking.leadId) {
+        const updatedBooking = await prisma.booking.update({
+          where: { id: booking.id },
+          data: { leadId: response.leadId, allocatedAt: new Date(), status: 'CONFIRMED' },
+          include: { customer: true, lead: true }
+        });
+
+        console.log(`[AutoAllocate] Lead ${response.leadId} allocated to booking ${booking.id}`);
+
+        // Send WhatsApp confirmation to lead
+        if (updatedBooking.lead?.phone) {
+          try {
+            const mockReq = { body: {
+              phone: updatedBooking.lead.phone,
+              templateName: 'driver_booking_confirmation2',
+              parameters: {
+                bookingType: `${booking.serviceType} - ${booking.tripType}`,
+                fareAmount: `₹${booking.estimateAmount || 0}`,
+                pickup: booking.pickupLocation,
+                destination: booking.dropLocation,
+                pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+                customerContact: updatedBooking.customer?.phone || 'N/A'
+              }
+            }};
+            const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
+            await leadBookingConfirmation(mockReq, mockRes);
+          } catch (e) { console.error('[AutoAllocate] Lead WhatsApp error:', e.message); }
+        }
+
+        // Send WhatsApp notification to customer
+        if (updatedBooking.customer?.phone) {
+          try {
+            const mockReq = { body: {
+              phone: updatedBooking.customer.phone,
+              templateName: 'customer_driver_assigned1',
+              parameters: {
+                customerName: updatedBooking.customer.name || 'Customer',
+                pickupTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+                driverName: updatedBooking.lead?.name || 'Service Partner',
+                driverMobile: `+91 ${updatedBooking.lead?.phone || 'N/A'}`,
+                bookingType: `${booking.serviceType} - ${booking.tripType}`
+              }
+            }};
+            const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
+            await customerDriverAssigned(mockReq, mockRes);
+          } catch (e) { console.error('[AutoAllocate] Customer WhatsApp error:', e.message); }
+        }
+      }
+    }
 
     res.json({ success: true, response, message: `Booking request ${action.toLowerCase()}` });
   } catch (error) {

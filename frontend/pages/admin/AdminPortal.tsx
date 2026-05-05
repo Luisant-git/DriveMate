@@ -11,6 +11,7 @@ import SubscriptionList from './SubscriptionList';
 import PricingManagement from '../../components/admin/PricingManagement';
 import ServiceAreaManagement from '../../components/admin/ServiceAreaManagement';
 import Reports from './Reports';
+import BookingRoutingConfig from './BookingRoutingConfig';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
 import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar } from 'react-icons/fa';
 
@@ -41,7 +42,7 @@ interface AdminPortalProps {
 
 const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS'
+    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -286,6 +287,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
   const menuItems = [
     { id: 'BOOKINGS', label: 'Bookings', icon: FaClipboardList },
+    { id: 'ROUTING_CONFIG', label: 'Routing Config', icon: FaClipboardList },
     { id: 'APPROVALS', label: 'Approvals', icon: FaCheckCircle },
     { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
     { id: 'CUSTOMERS', label: 'Customers', icon: FaUsers },
@@ -468,6 +470,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             {activeTab === 'PRICING' && <PricingManagement />}
             {activeTab === 'SERVICE_AREAS' && <ServiceAreaManagement />}
             {activeTab === 'REPORTS' && <Reports />}
+            {activeTab === 'ROUTING_CONFIG' && <BookingRoutingConfig />}
 
             {activeTab === 'PAYMENTS' && (
               <>
