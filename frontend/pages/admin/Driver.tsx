@@ -12,22 +12,23 @@ const getVerificationStatus = (driver) => {
   return 'OK';
 };
 
-const VerificationBadge = ({ driver }) => {
+const VerificationBadge = ({ driver, onClick }) => {
   const s = getVerificationStatus(driver);
-  if (s === 'NEVER') return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-bold">Never</span>;
-  if (s === 'OVERDUE') return <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">Overdue</span>;
-  if (s === 'DUE_SOON') return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-bold">Due Soon</span>;
-  return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Verified</span>;
+  const base = 'text-xs px-2 py-0.5 rounded-full font-bold cursor-pointer hover:opacity-80 transition';
+  if (s === 'NEVER') return <span onClick={onClick} className={`${base} bg-gray-100 text-gray-600`}>Never</span>;
+  if (s === 'OVERDUE') return <span onClick={onClick} className={`${base} bg-red-100 text-red-700`}>Overdue</span>;
+  if (s === 'DUE_SOON') return <span onClick={onClick} className={`${base} bg-yellow-100 text-yellow-700`}>Due Soon</span>;
+  return <span onClick={onClick} className={`${base} bg-green-100 text-green-700`}>Verified</span>;
 };
 
 export default function Driver() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const [modalTab, setModalTab] = useState('details');
   const [verifyFilter, setVerifyFilter] = useState('ALL');
 
-  // Verification state
+  // Verification modal state
+  const [verifyDriver, setVerifyDriver] = useState(null);
   const [verifyHistory, setVerifyHistory] = useState([]);
   const [verifyHistoryLoading, setVerifyHistoryLoading] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
@@ -53,17 +54,13 @@ export default function Driver() {
     }
   };
 
-  const openDriver = async (driver) => {
-    setSelectedDriver(driver);
-    setModalTab('details');
+  const openVerifyModal = async (driver) => {
+    setVerifyDriver(driver);
     setShowVerifyForm(false);
     setVerifyNotes('');
-  };
-
-  const loadVerifyHistory = async (driverId) => {
     setVerifyHistoryLoading(true);
     try {
-      const res = await apiClient.get(`/admin/verification/${driverId}/history`);
+      const res = await apiClient.get(`/admin/verification/${driver.id}/history`);
       setVerifyHistory(res.data?.records || []);
     } catch {
       setVerifyHistory([]);
@@ -72,29 +69,22 @@ export default function Driver() {
     }
   };
 
-  const handleModalTabChange = (tab) => {
-    setModalTab(tab);
-    if (tab === 'verification' && selectedDriver) {
-      loadVerifyHistory(selectedDriver.id);
-    }
-  };
-
   const submitVerification = async (status) => {
-    if (!selectedDriver) return;
+    if (!verifyDriver) return;
     setVerifySubmitting(true);
     try {
       await apiClient.post('/admin/verification', {
-        entityId: selectedDriver.id,
+        entityId: verifyDriver.id,
         entityType: 'DRIVER',
         status,
         notes: verifyNotes,
       });
       await fetchDrivers();
-      await loadVerifyHistory(selectedDriver.id);
-      // update selected driver with fresh data
-      const res = await apiClient.get('/admin/drivers');
-      const updated = (res.data || []).find(d => d.id === selectedDriver.id);
-      if (updated) setSelectedDriver({ ...updated, activeSubscription: updated.subscriptions?.find(s => s.status === 'ACTIVE') });
+      const res = await apiClient.get(`/admin/verification/${verifyDriver.id}/history`);
+      setVerifyHistory(res.data?.records || []);
+      const driversRes = await apiClient.get('/admin/drivers');
+      const updated = (driversRes.data || []).find(d => d.id === verifyDriver.id);
+      if (updated) setVerifyDriver({ ...updated, activeSubscription: updated.subscriptions?.find(s => s.status === 'ACTIVE') });
       setShowVerifyForm(false);
       setVerifyNotes('');
     } catch (e) {
@@ -131,9 +121,7 @@ export default function Driver() {
     OK: drivers.filter(d => getVerificationStatus(d) === 'OK').length,
   };
 
-  if (loading) {
-    return <div className="px-6 py-6 flex items-center justify-center py-12"><div className="text-gray-500">Loading drivers...</div></div>;
-  }
+  if (loading) return <div className="px-6 py-6 flex items-center justify-center"><div className="text-gray-500">Loading drivers...</div></div>;
 
   return (
     <div className="px-6 py-6">
@@ -181,8 +169,11 @@ export default function Driver() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredDrivers.map((driver, index) => (
-                  <tr key={driver.id} className="hover:bg-gray-50 transition">
+                {filteredDrivers.map((driver, index) => {
+                  const vs = getVerificationStatus(driver);
+                  const rowBg = vs === 'OVERDUE' ? 'bg-red-50 hover:bg-red-100' : vs === 'DUE_SOON' ? 'bg-yellow-50 hover:bg-yellow-100' : vs === 'NEVER' ? 'bg-gray-50 hover:bg-gray-100' : 'bg-green-50 hover:bg-green-100';
+                  return (
+                  <tr key={driver.id} className={`${rowBg} transition`}>
                     <td className="px-4 py-4"><p className="text-sm font-semibold text-gray-900">{index + 1}</p></td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
@@ -199,7 +190,9 @@ export default function Driver() {
                         {driver.activeSubscription?.plan?.name || 'No Active Package'}
                       </span>
                     </td>
-                    <td className="px-4 py-4"><VerificationBadge driver={driver} /></td>
+                    <td className="px-4 py-4">
+                      <VerificationBadge driver={driver} onClick={() => openVerifyModal(driver)} />
+                    </td>
                     <td className="px-4 py-4">
                       <button
                         onClick={() => toggleActiveStatus(driver.id, driver.isActive)}
@@ -210,7 +203,7 @@ export default function Driver() {
                     </td>
                     <td className="px-4 py-4">
                       <button
-                        onClick={() => openDriver(driver)}
+                        onClick={() => setSelectedDriver(driver)}
                         className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +213,8 @@ export default function Driver() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -240,135 +234,134 @@ export default function Driver() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            <div className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Personal Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Name:</span> {selectedDriver.name}</div>
+                    <div><span className="font-medium">Email:</span> {selectedDriver.email}</div>
+                    <div><span className="font-medium">Phone:</span> {selectedDriver.phone}</div>
+                    <div><span className="font-medium">Aadhar No:</span> {selectedDriver.aadharNo}</div>
+                    <div><span className="font-medium">License No:</span> {selectedDriver.licenseNo}</div>
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 mt-4 mb-3">Documents</h3>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Photo', path: selectedDriver.photo },
+                      { label: 'DL Photo', path: selectedDriver.dlPhoto },
+                      { label: 'PAN Photo', path: selectedDriver.panPhoto },
+                      { label: 'Aadhar Photo', path: selectedDriver.aadharPhoto },
+                    ].filter(d => d.path).map(doc => (
+                      <div key={doc.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-900">{doc.label}</span>
+                        <button onClick={() => window.open(docUrl(doc.path), '_blank')} className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Contact & Vehicle</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Alt Mobile 1:</span> {selectedDriver.alternateMobile1 || 'N/A'}</div>
+                    <div><span className="font-medium">Alt Mobile 2:</span> {selectedDriver.alternateMobile2 || 'N/A'}</div>
+                    <div><span className="font-medium">Alt Mobile 3:</span> {selectedDriver.alternateMobile3 || 'N/A'}</div>
+                    <div><span className="font-medium">Alt Mobile 4:</span> {selectedDriver.alternateMobile4 || 'N/A'}</div>
+                    <div><span className="font-medium">GPay:</span> {selectedDriver.gpayNo || 'N/A'}</div>
+                    <div><span className="font-medium">PhonePe:</span> {selectedDriver.phonepeNo || 'N/A'}</div>
+                    <div><span className="font-medium">Package:</span> {selectedDriver.activeSubscription?.plan?.name || 'No Active Package'}</div>
+                    <div><span className="font-medium">Total Rides:</span> {selectedDriver.totalRides}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Modal Tabs */}
-            <div className="flex gap-1 px-5 pt-4">
-              {['details', 'verification'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => handleModalTabChange(t)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition capitalize ${modalTab === t ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {t === 'verification' ? 'Quarterly Verification' : 'Details'}
-                </button>
-              ))}
+      {/* Verification Modal */}
+      {verifyDriver && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Quarterly Verification</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{verifyDriver.name} · {verifyDriver.phone}</p>
+              </div>
+              <button onClick={() => setVerifyDriver(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
-            <div className="p-5">
-              {/* Details Tab */}
-              {modalTab === 'details' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-3">Personal Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Name:</span> {selectedDriver.name}</div>
-                      <div><span className="font-medium">Email:</span> {selectedDriver.email}</div>
-                      <div><span className="font-medium">Phone:</span> {selectedDriver.phone}</div>
-                      <div><span className="font-medium">Aadhar No:</span> {selectedDriver.aadharNo}</div>
-                      <div><span className="font-medium">License No:</span> {selectedDriver.licenseNo}</div>
-                    </div>
-                    <h3 className="text-sm font-bold text-gray-900 mt-4 mb-3">Documents</h3>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Photo', path: selectedDriver.photo },
-                        { label: 'DL Photo', path: selectedDriver.dlPhoto },
-                        { label: 'PAN Photo', path: selectedDriver.panPhoto },
-                        { label: 'Aadhar Photo', path: selectedDriver.aadharPhoto },
-                      ].filter(d => d.path).map(doc => (
-                        <div key={doc.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                          <span className="text-sm font-medium text-gray-900">{doc.label}</span>
-                          <button onClick={() => window.open(docUrl(doc.path), '_blank')} className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-3">Contact & Vehicle</h3>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Alt Mobile 1:</span> {selectedDriver.alternateMobile1 || 'N/A'}</div>
-                      <div><span className="font-medium">Alt Mobile 2:</span> {selectedDriver.alternateMobile2 || 'N/A'}</div>
-                      <div><span className="font-medium">Alt Mobile 3:</span> {selectedDriver.alternateMobile3 || 'N/A'}</div>
-                      <div><span className="font-medium">Alt Mobile 4:</span> {selectedDriver.alternateMobile4 || 'N/A'}</div>
-                      <div><span className="font-medium">GPay:</span> {selectedDriver.gpayNo || 'N/A'}</div>
-                      <div><span className="font-medium">PhonePe:</span> {selectedDriver.phonepeNo || 'N/A'}</div>
-                      <div><span className="font-medium">Package:</span> {selectedDriver.activeSubscription?.plan?.name || 'No Active Package'}</div>
-                      <div><span className="font-medium">Total Rides:</span> {selectedDriver.totalRides}</div>
-                    </div>
-                  </div>
+            <div className="p-5 space-y-5">
+              {/* Status bar */}
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-xs text-gray-500">Last Verified</p>
+                  <p className="text-sm font-bold">{verifyDriver.lastVerifiedAt ? new Date(verifyDriver.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never'}</p>
                 </div>
-              )}
+                <div className="w-px h-8 bg-gray-200" />
+                <div>
+                  <p className="text-xs text-gray-500">Next Due</p>
+                  <p className="text-sm font-bold">{verifyDriver.nextVerificationDue ? new Date(verifyDriver.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
+                </div>
+                <div className="ml-auto">
+                  <VerificationBadge driver={verifyDriver} onClick={() => {}} />
+                </div>
+              </div>
 
-              {/* Verification Tab */}
-              {modalTab === 'verification' && (
-                <div className="space-y-5">
-                  {/* Status bar */}
-                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-xs text-gray-500">Last Verified</p>
-                      <p className="text-sm font-bold">{selectedDriver.lastVerifiedAt ? new Date(selectedDriver.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never'}</p>
-                    </div>
-                    <div className="w-px h-8 bg-gray-200" />
-                    <div>
-                      <p className="text-xs text-gray-500">Next Due</p>
-                      <p className="text-sm font-bold">{selectedDriver.nextVerificationDue ? new Date(selectedDriver.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
-                    </div>
-                    <div className="ml-auto"><VerificationBadge driver={selectedDriver} /></div>
-                  </div>
-
-                  {/* Verify form */}
-                  {showVerifyForm ? (
-                    <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-                      <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification Result</p>
-                      <textarea
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-black focus:outline-none"
-                        rows={3}
-                        placeholder="Notes (optional)"
-                        value={verifyNotes}
-                        onChange={e => setVerifyNotes(e.target.value)}
-                      />
-                      <div className="flex gap-2">
-                        <button onClick={() => submitVerification('PASSED')} disabled={verifySubmitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50 transition">
-                          {verifySubmitting ? 'Saving...' : '✓ Mark as Passed'}
-                        </button>
-                        <button onClick={() => submitVerification('FAILED')} disabled={verifySubmitting} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition">
-                          {verifySubmitting ? 'Saving...' : '✗ Mark as Failed'}
-                        </button>
-                        <button onClick={() => setShowVerifyForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => setShowVerifyForm(true)} className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
-                      Start Verification
+              {/* Verify form */}
+              {showVerifyForm ? (
+                <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification Result</p>
+                  <textarea
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                    rows={3}
+                    placeholder="Notes (optional)"
+                    value={verifyNotes}
+                    onChange={e => setVerifyNotes(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={() => submitVerification('PASSED')} disabled={verifySubmitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50 transition">
+                      {verifySubmitting ? 'Saving...' : '✓ Mark as Passed'}
                     </button>
-                  )}
-
-                  {/* History */}
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">Verification History</p>
-                    {verifyHistoryLoading ? (
-                      <p className="text-xs text-gray-400">Loading...</p>
-                    ) : verifyHistory.length === 0 ? (
-                      <p className="text-xs text-gray-400">No verification history yet</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {verifyHistory.map(r => (
-                          <div key={r.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${r.status === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {r.status}
-                            </span>
-                            <div>
-                              <p className="text-xs text-gray-500">{new Date(r.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                              {r.notes && <p className="text-xs text-gray-700 mt-0.5">{r.notes}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <button onClick={() => submitVerification('FAILED')} disabled={verifySubmitting} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition">
+                      {verifySubmitting ? 'Saving...' : '✗ Mark as Failed'}
+                    </button>
+                    <button onClick={() => setShowVerifyForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
                   </div>
                 </div>
+              ) : (
+                <button onClick={() => setShowVerifyForm(true)} className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+                  Start Verification
+                </button>
               )}
+
+              {/* History */}
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Verification History</p>
+                {verifyHistoryLoading ? (
+                  <p className="text-xs text-gray-400">Loading...</p>
+                ) : verifyHistory.length === 0 ? (
+                  <p className="text-xs text-gray-400">No verification history yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {verifyHistory.map(r => (
+                      <div key={r.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${r.status === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {r.status}
+                        </span>
+                        <div>
+                          <p className="text-xs text-gray-500">{new Date(r.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          {r.notes && <p className="text-xs text-gray-700 mt-0.5">{r.notes}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

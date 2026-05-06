@@ -11,9 +11,11 @@ import SubscriptionList from './SubscriptionList';
 import PricingManagement from '../../components/admin/PricingManagement';
 import ServiceAreaManagement from '../../components/admin/ServiceAreaManagement';
 import Reports from './Reports';
+import OverdueReport from './OverdueReport';
 import BookingRoutingConfig from './BookingRoutingConfig';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
-import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar } from 'react-icons/fa';
+import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar, FaChartArea } from 'react-icons/fa';
+import { BiAnalyse, BiError } from 'react-icons/bi';
 
 
 type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'ALL';
@@ -42,7 +44,7 @@ interface AdminPortalProps {
 
 const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG'
+    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG' | 'OVERDUE_REPORT'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -289,9 +291,10 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'BOOKINGS', label: 'Bookings', icon: FaClipboardList },
     { id: 'ROUTING_CONFIG', label: 'Routing Config', icon: FaClipboardList },
     { id: 'APPROVALS', label: 'Approvals', icon: FaCheckCircle },
-    { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
     { id: 'CUSTOMERS', label: 'Customers', icon: FaUsers },
+    { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
     { id: 'LEADS', label: 'Leads', icon: FaBullseye },
+    { id: 'OVERDUE_REPORT', label: 'Overdue Report', icon: BiError },
     { id: 'LEAD_PACKAGES', label: 'Lead Packages', icon: FaBox },
     { id: 'LEAD_SUBSCRIPTIONS', label: 'Lead Subscriptions', icon: FaFileAlt },
     { id: 'PACKAGES', label: 'Packages', icon: FaBox },
@@ -299,7 +302,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'PRICING', label: 'Pricing', icon: FaMoneyBillWave },
     { id: 'SERVICE_AREAS', label: 'Service Areas', icon: FaMapMarkerAlt },
     { id: 'PAYMENTS', label: 'Payments', icon: FaCreditCard },
-    { id: 'REPORTS', label: 'Reports', icon: FaChartBar },
+    { id: 'REPORTS', label: 'Reports', icon: FaChartBar }
   ];
 
   // --------------- RENDER ---------------
@@ -471,6 +474,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             {activeTab === 'SERVICE_AREAS' && <ServiceAreaManagement />}
             {activeTab === 'REPORTS' && <Reports />}
             {activeTab === 'ROUTING_CONFIG' && <BookingRoutingConfig />}
+            {activeTab === 'OVERDUE_REPORT' && <OverdueReport />}
 
             {activeTab === 'PAYMENTS' && (
               <>

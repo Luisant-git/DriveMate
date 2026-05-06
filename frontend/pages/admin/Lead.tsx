@@ -12,22 +12,23 @@ const getVerificationStatus = (lead) => {
   return 'OK';
 };
 
-const VerificationBadge = ({ lead }) => {
+const VerificationBadge = ({ lead, onClick }) => {
   const s = getVerificationStatus(lead);
-  if (s === 'NEVER') return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-bold">Never</span>;
-  if (s === 'OVERDUE') return <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">Overdue</span>;
-  if (s === 'DUE_SOON') return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-bold">Due Soon</span>;
-  return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Verified</span>;
+  const base = 'text-xs px-2 py-0.5 rounded-full font-bold cursor-pointer hover:opacity-80 transition';
+  if (s === 'NEVER') return <span onClick={onClick} className={`${base} bg-gray-100 text-gray-600`}>Never</span>;
+  if (s === 'OVERDUE') return <span onClick={onClick} className={`${base} bg-red-100 text-red-700`}>Overdue</span>;
+  if (s === 'DUE_SOON') return <span onClick={onClick} className={`${base} bg-yellow-100 text-yellow-700`}>Due Soon</span>;
+  return <span onClick={onClick} className={`${base} bg-green-100 text-green-700`}>Verified</span>;
 };
 
 export default function Lead() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [modalTab, setModalTab] = useState('details');
   const [verifyFilter, setVerifyFilter] = useState('ALL');
 
-  // Verification state
+  // Verification modal state
+  const [verifyLead, setVerifyLead] = useState(null);
   const [verifyHistory, setVerifyHistory] = useState([]);
   const [verifyHistoryLoading, setVerifyHistoryLoading] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
@@ -53,17 +54,13 @@ export default function Lead() {
     }
   };
 
-  const openLead = (lead) => {
-    setSelectedLead(lead);
-    setModalTab('details');
+  const openVerifyModal = async (lead) => {
+    setVerifyLead(lead);
     setShowVerifyForm(false);
     setVerifyNotes('');
-  };
-
-  const loadVerifyHistory = async (leadId) => {
     setVerifyHistoryLoading(true);
     try {
-      const res = await apiClient.get(`/admin/verification/${leadId}/history`);
+      const res = await apiClient.get(`/admin/verification/${lead.id}/history`);
       setVerifyHistory(res.data?.records || []);
     } catch {
       setVerifyHistory([]);
@@ -72,28 +69,22 @@ export default function Lead() {
     }
   };
 
-  const handleModalTabChange = (tab) => {
-    setModalTab(tab);
-    if (tab === 'verification' && selectedLead) {
-      loadVerifyHistory(selectedLead.id);
-    }
-  };
-
   const submitVerification = async (status) => {
-    if (!selectedLead) return;
+    if (!verifyLead) return;
     setVerifySubmitting(true);
     try {
       await apiClient.post('/admin/verification', {
-        entityId: selectedLead.id,
+        entityId: verifyLead.id,
         entityType: 'LEAD',
         status,
         notes: verifyNotes,
       });
       await fetchLeads();
-      await loadVerifyHistory(selectedLead.id);
-      const res = await apiClient.get('/admin/leads');
-      const updated = (res.data?.leads || []).find(l => l.id === selectedLead.id);
-      if (updated) setSelectedLead({ ...updated, activeSubscription: updated.leadSubscriptions?.find(s => s.status === 'ACTIVE') });
+      const res = await apiClient.get(`/admin/verification/${verifyLead.id}/history`);
+      setVerifyHistory(res.data?.records || []);
+      const leadsRes = await apiClient.get('/admin/leads');
+      const updated = (leadsRes.data?.leads || []).find(l => l.id === verifyLead.id);
+      if (updated) setVerifyLead({ ...updated, activeSubscription: updated.leadSubscriptions?.find(s => s.status === 'ACTIVE') });
       setShowVerifyForm(false);
       setVerifyNotes('');
     } catch (e) {
@@ -130,9 +121,7 @@ export default function Lead() {
     OK: leads.filter(l => getVerificationStatus(l) === 'OK').length,
   };
 
-  if (loading) {
-    return <div className="px-6 py-6 flex items-center justify-center py-12"><div className="text-gray-500">Loading leads...</div></div>;
-  }
+  if (loading) return <div className="px-6 py-6 flex items-center justify-center"><div className="text-gray-500">Loading leads...</div></div>;
 
   return (
     <div className="px-6 py-6">
@@ -180,8 +169,11 @@ export default function Lead() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredLeads.map((lead, index) => (
-                  <tr key={lead.id} className="hover:bg-gray-50 transition">
+                {filteredLeads.map((lead, index) => {
+                  const vs = getVerificationStatus(lead);
+                  const rowBg = vs === 'OVERDUE' ? 'bg-red-50 hover:bg-red-100' : vs === 'DUE_SOON' ? 'bg-yellow-50 hover:bg-yellow-100' : vs === 'NEVER' ? 'bg-gray-50 hover:bg-gray-100' : 'bg-green-50 hover:bg-green-100';
+                  return (
+                  <tr key={lead.id} className={`${rowBg} transition`}>
                     <td className="px-4 py-4"><p className="text-sm font-semibold text-gray-900">{index + 1}</p></td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
@@ -198,7 +190,9 @@ export default function Lead() {
                         {lead.activeSubscription?.plan?.name || 'No Active Package'}
                       </span>
                     </td>
-                    <td className="px-4 py-4"><VerificationBadge lead={lead} /></td>
+                    <td className="px-4 py-4">
+                      <VerificationBadge lead={lead} onClick={() => openVerifyModal(lead)} />
+                    </td>
                     <td className="px-4 py-4">
                       <button
                         onClick={() => toggleActiveStatus(lead.id, lead.isActive)}
@@ -209,7 +203,7 @@ export default function Lead() {
                     </td>
                     <td className="px-4 py-4">
                       <button
-                        onClick={() => openLead(lead)}
+                        onClick={() => setSelectedLead(lead)}
                         className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,7 +213,8 @@ export default function Lead() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -239,142 +234,138 @@ export default function Lead() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
+            <div className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Personal Information</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Name:</span> {selectedLead.name}</div>
+                    <div><span className="font-medium">Email:</span> {selectedLead.email}</div>
+                    <div><span className="font-medium">Phone:</span> {selectedLead.phone}</div>
+                    <div><span className="font-medium">Aadhar No:</span> {selectedLead.aadharNo}</div>
+                    <div><span className="font-medium">License No:</span> {selectedLead.licenseNo}</div>
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 mt-4 mb-3">Documents</h3>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Photo', path: selectedLead.photo },
+                      { label: 'DL Photo', path: selectedLead.dlPhoto },
+                      { label: 'PAN Photo', path: selectedLead.panPhoto },
+                      { label: 'Aadhar Photo', path: selectedLead.aadharPhoto },
+                      { label: 'MSME', path: selectedLead.msmePhoto },
+                      { label: 'Ration Card', path: selectedLead.rationCardPhoto },
+                      { label: 'Police Verification', path: selectedLead.policeVerificationPhoto },
+                      { label: 'Electricity Bill', path: selectedLead.electricityBillPhoto },
+                      { label: 'Rental Agreement', path: selectedLead.rentalAgreementPhoto },
+                      { label: 'Credit Card', path: selectedLead.creditCardPhoto },
+                      { label: 'Debit Card', path: selectedLead.debitCardPhoto },
+                    ].filter(d => d.path).map(doc => (
+                      <div key={doc.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-900">{doc.label}</span>
+                        <button onClick={() => window.open(docUrl(doc.path), '_blank')} className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Contact & Package</h3>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="font-medium">Alt Mobile 1:</span> {selectedLead.alternateMobile1 || 'N/A'}</div>
+                    <div><span className="font-medium">Alt Mobile 2:</span> {selectedLead.alternateMobile2 || 'N/A'}</div>
+                    <div><span className="font-medium">Alt Mobile 3:</span> {selectedLead.alternateMobile3 || 'N/A'}</div>
+                    <div><span className="font-medium">Alt Mobile 4:</span> {selectedLead.alternateMobile4 || 'N/A'}</div>
+                    <div><span className="font-medium">GPay:</span> {selectedLead.gpayNo || 'N/A'}</div>
+                    <div><span className="font-medium">PhonePe:</span> {selectedLead.phonepeNo || 'N/A'}</div>
+                    <div><span className="font-medium">Package:</span> {selectedLead.activeSubscription?.plan?.name || 'No Active Package'}</div>
+                    <div><span className="font-medium">Total Rides:</span> {selectedLead.totalRides}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Modal Tabs */}
-            <div className="flex gap-1 px-5 pt-4">
-              {['details', 'verification'].map(t => (
-                <button
-                  key={t}
-                  onClick={() => handleModalTabChange(t)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition capitalize ${modalTab === t ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {t === 'verification' ? 'Quarterly Verification' : 'Details'}
-                </button>
-              ))}
+      {/* Verification Modal */}
+      {verifyLead && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Quarterly Verification</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{verifyLead.name} · {verifyLead.phone}</p>
+              </div>
+              <button onClick={() => setVerifyLead(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
-            <div className="p-5">
-              {/* Details Tab */}
-              {modalTab === 'details' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-3">Personal Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Name:</span> {selectedLead.name}</div>
-                      <div><span className="font-medium">Email:</span> {selectedLead.email}</div>
-                      <div><span className="font-medium">Phone:</span> {selectedLead.phone}</div>
-                      <div><span className="font-medium">Aadhar No:</span> {selectedLead.aadharNo}</div>
-                      <div><span className="font-medium">License No:</span> {selectedLead.licenseNo}</div>
-                    </div>
-                    <h3 className="text-sm font-bold text-gray-900 mt-4 mb-3">Documents</h3>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Photo', path: selectedLead.photo },
-                        { label: 'DL Photo', path: selectedLead.dlPhoto },
-                        { label: 'PAN Photo', path: selectedLead.panPhoto },
-                        { label: 'Aadhar Photo', path: selectedLead.aadharPhoto },
-                        { label: 'MSME', path: selectedLead.msmePhoto },
-                        { label: 'Ration Card', path: selectedLead.rationCardPhoto },
-                        { label: 'Police Verification', path: selectedLead.policeVerificationPhoto },
-                        { label: 'Electricity Bill', path: selectedLead.electricityBillPhoto },
-                        { label: 'Rental Agreement', path: selectedLead.rentalAgreementPhoto },
-                        { label: 'Credit Card', path: selectedLead.creditCardPhoto },
-                        { label: 'Debit Card', path: selectedLead.debitCardPhoto },
-                      ].filter(d => d.path).map(doc => (
-                        <div key={doc.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                          <span className="text-sm font-medium text-gray-900">{doc.label}</span>
-                          <button onClick={() => window.open(docUrl(doc.path), '_blank')} className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-3">Contact & Package</h3>
-                    <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Alt Mobile 1:</span> {selectedLead.alternateMobile1 || 'N/A'}</div>
-                      <div><span className="font-medium">Alt Mobile 2:</span> {selectedLead.alternateMobile2 || 'N/A'}</div>
-                      <div><span className="font-medium">Alt Mobile 3:</span> {selectedLead.alternateMobile3 || 'N/A'}</div>
-                      <div><span className="font-medium">Alt Mobile 4:</span> {selectedLead.alternateMobile4 || 'N/A'}</div>
-                      <div><span className="font-medium">GPay:</span> {selectedLead.gpayNo || 'N/A'}</div>
-                      <div><span className="font-medium">PhonePe:</span> {selectedLead.phonepeNo || 'N/A'}</div>
-                      <div><span className="font-medium">Package:</span> {selectedLead.activeSubscription?.plan?.name || 'No Active Package'}</div>
-                      <div><span className="font-medium">Total Rides:</span> {selectedLead.totalRides}</div>
-                    </div>
-                  </div>
+            <div className="p-5 space-y-5">
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-xs text-gray-500">Last Verified</p>
+                  <p className="text-sm font-bold">{verifyLead.lastVerifiedAt ? new Date(verifyLead.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never'}</p>
                 </div>
-              )}
+                <div className="w-px h-8 bg-gray-200" />
+                <div>
+                  <p className="text-xs text-gray-500">Next Due</p>
+                  <p className="text-sm font-bold">{verifyLead.nextVerificationDue ? new Date(verifyLead.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
+                </div>
+                <div className="ml-auto">
+                  <VerificationBadge lead={verifyLead} onClick={() => {}} />
+                </div>
+              </div>
 
-              {/* Verification Tab */}
-              {modalTab === 'verification' && (
-                <div className="space-y-5">
-                  {/* Status bar */}
-                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-xs text-gray-500">Last Verified</p>
-                      <p className="text-sm font-bold">{selectedLead.lastVerifiedAt ? new Date(selectedLead.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never'}</p>
-                    </div>
-                    <div className="w-px h-8 bg-gray-200" />
-                    <div>
-                      <p className="text-xs text-gray-500">Next Due</p>
-                      <p className="text-sm font-bold">{selectedLead.nextVerificationDue ? new Date(selectedLead.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
-                    </div>
-                    <div className="ml-auto"><VerificationBadge lead={selectedLead} /></div>
-                  </div>
-
-                  {/* Verify form */}
-                  {showVerifyForm ? (
-                    <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-                      <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification Result</p>
-                      <textarea
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-black focus:outline-none"
-                        rows={3}
-                        placeholder="Notes (optional)"
-                        value={verifyNotes}
-                        onChange={e => setVerifyNotes(e.target.value)}
-                      />
-                      <div className="flex gap-2">
-                        <button onClick={() => submitVerification('PASSED')} disabled={verifySubmitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50 transition">
-                          {verifySubmitting ? 'Saving...' : '✓ Mark as Passed'}
-                        </button>
-                        <button onClick={() => submitVerification('FAILED')} disabled={verifySubmitting} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition">
-                          {verifySubmitting ? 'Saving...' : '✗ Mark as Failed'}
-                        </button>
-                        <button onClick={() => setShowVerifyForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => setShowVerifyForm(true)} className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
-                      Start Verification
+              {showVerifyForm ? (
+                <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification Result</p>
+                  <textarea
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                    rows={3}
+                    placeholder="Notes (optional)"
+                    value={verifyNotes}
+                    onChange={e => setVerifyNotes(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={() => submitVerification('PASSED')} disabled={verifySubmitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50 transition">
+                      {verifySubmitting ? 'Saving...' : '✓ Mark as Passed'}
                     </button>
-                  )}
-
-                  {/* History */}
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">Verification History</p>
-                    {verifyHistoryLoading ? (
-                      <p className="text-xs text-gray-400">Loading...</p>
-                    ) : verifyHistory.length === 0 ? (
-                      <p className="text-xs text-gray-400">No verification history yet</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {verifyHistory.map(r => (
-                          <div key={r.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${r.status === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {r.status}
-                            </span>
-                            <div>
-                              <p className="text-xs text-gray-500">{new Date(r.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                              {r.notes && <p className="text-xs text-gray-700 mt-0.5">{r.notes}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <button onClick={() => submitVerification('FAILED')} disabled={verifySubmitting} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition">
+                      {verifySubmitting ? 'Saving...' : '✗ Mark as Failed'}
+                    </button>
+                    <button onClick={() => setShowVerifyForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
                   </div>
                 </div>
+              ) : (
+                <button onClick={() => setShowVerifyForm(true)} className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+                  Start Verification
+                </button>
               )}
+
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Verification History</p>
+                {verifyHistoryLoading ? (
+                  <p className="text-xs text-gray-400">Loading...</p>
+                ) : verifyHistory.length === 0 ? (
+                  <p className="text-xs text-gray-400">No verification history yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {verifyHistory.map(r => (
+                      <div key={r.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${r.status === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {r.status}
+                        </span>
+                        <div>
+                          <p className="text-xs text-gray-500">{new Date(r.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          {r.notes && <p className="text-xs text-gray-700 mt-0.5">{r.notes}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
