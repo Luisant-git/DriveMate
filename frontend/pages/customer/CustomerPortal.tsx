@@ -287,12 +287,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     }
     
     // Check if estimate is available
-    // if (!estimate || estimate <= 0) {
-    //   toast.error('Please wait for fare estimation before booking or try any other near location');
-    //   setShowEstimateWarning(true);
-    //   setTimeout(() => setShowEstimateWarning(false), 5000);
-    //   return;
-    // }
+    if (!estimate || estimate <= 0) {
+      toast.error('Please wait for fare estimation before booking or try any other near location');
+      setShowEstimateWarning(true);
+      setTimeout(() => setShowEstimateWarning(false), 5000);
+      return;
+    }
     
     // Validate pickup location
     if (!formData.pickup) {
