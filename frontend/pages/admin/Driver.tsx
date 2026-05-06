@@ -14,11 +14,11 @@ const getVerificationStatus = (driver) => {
 
 const VerificationBadge = ({ driver, onClick }) => {
   const s = getVerificationStatus(driver);
-  const base = 'text-xs px-2 py-0.5 rounded-full font-bold cursor-pointer hover:opacity-80 transition';
-  if (s === 'NEVER') return <span onClick={onClick} className={`${base} bg-gray-100 text-gray-600`}>Never</span>;
-  if (s === 'OVERDUE') return <span onClick={onClick} className={`${base} bg-red-100 text-red-700`}>Overdue</span>;
-  if (s === 'DUE_SOON') return <span onClick={onClick} className={`${base} bg-yellow-100 text-yellow-700`}>Due Soon</span>;
-  return <span onClick={onClick} className={`${base} bg-green-100 text-green-700`}>Verified</span>;
+  const base = 'text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition border shadow-sm active:scale-95';
+  if (s === 'NEVER') return <button onClick={onClick} className={`${base} bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200`}>Never Verified</button>;
+  if (s === 'OVERDUE') return <button onClick={onClick} className={`${base} bg-red-100 text-red-700 border-red-200 hover:bg-red-200`}>Overdue ▸</button>;
+  if (s === 'DUE_SOON') return <button onClick={onClick} className={`${base} bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200`}>Due Soon ▸</button>;
+  return <button onClick={onClick} className={`${base} bg-green-100 text-green-700 border-green-200 hover:bg-green-200`}>Verified ▸</button>;
 };
 
 export default function Driver() {
