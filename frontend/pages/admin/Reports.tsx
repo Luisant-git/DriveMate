@@ -180,7 +180,7 @@ const Reports: React.FC = () => {
                         <td className="px-6 py-4 text-sm">{driver.packageType}</td>
                         <td className="px-6 py-4 text-sm">{driver.totalRides}</td>
                         <td className="px-6 py-4 text-sm">{driver.completedBookings}</td>
-                        <td className="px-6 py-4 text-sm font-bold">₹{driver.totalRevenue?.toFixed(2) || '0.00'}</td>
+                        <td className="px-6 py-4 text-sm font-bold">₹{Number(driver.totalRevenue || 0).toFixed(2)}</td>
                         <td className="px-6 py-4">
                           <button
                             onClick={() => viewTrips(driver, 'driver')}
@@ -222,8 +222,8 @@ const Reports: React.FC = () => {
                         <td className="px-6 py-4 text-sm">{customer.email}</td>
                         <td className="px-6 py-4 text-sm">{customer.totalBookings}</td>
                         <td className="px-6 py-4 text-sm">{customer.completedBookings}</td>
-                        <td className="px-6 py-4 text-sm font-bold">₹{customer.totalSpent?.toFixed(2) || '0.00'}</td>
-                        <td className="px-6 py-4 text-sm">₹{customer.advancePayment?.toFixed(2) || '0.00'}</td>
+                        <td className="px-6 py-4 text-sm font-bold">₹{Number(customer.totalSpent || 0).toFixed(2)}</td>
+                        <td className="px-6 py-4 text-sm">₹{Number(customer.advancePayment || 0).toFixed(2)}</td>
                         <td className="px-6 py-4 text-sm">{new Date(customer.joinedDate).toLocaleDateString()}</td>
                         <td className="px-6 py-4">
                           <button
@@ -236,6 +236,13 @@ const Reports: React.FC = () => {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-200">
+                    <tr>
+                      <td colSpan={5} className="px-6 py-4 text-right text-sm">Grand Total:</td>
+                      <td className="px-6 py-4 text-sm text-green-700">₹{driverReports.reduce((acc, curr) => acc + Number(curr.totalRevenue || 0), 0).toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -249,15 +256,15 @@ const Reports: React.FC = () => {
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-2">Total Revenue</p>
-                <p className="text-3xl font-bold text-green-600">₹{revenueData.totalRevenue?.toFixed(2) || '0.00'}</p>
+                <p className="text-3xl font-bold text-green-600">₹{Number(revenueData.totalRevenue || 0).toFixed(2)}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-2">Total Advance</p>
-                <p className="text-3xl font-bold text-blue-600">₹{revenueData.totalAdvance?.toFixed(2) || '0.00'}</p>
+                <p className="text-3xl font-bold text-blue-600">₹{Number(revenueData.totalAdvance || 0).toFixed(2)}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-2">Avg Booking Value</p>
-                <p className="text-3xl font-bold">₹{revenueData.averageBookingValue?.toFixed(2) || '0.00'}</p>
+                <p className="text-3xl font-bold">₹{Number(revenueData.averageBookingValue || 0).toFixed(2)}</p>
               </div>
             </div>
           )}
@@ -265,38 +272,44 @@ const Reports: React.FC = () => {
       )}
 
       {selectedEntity && tripDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center p-4 md:p-6 border-b">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex justify-between items-center p-4 md:p-6 border-b flex-shrink-0">
               <h3 className="text-lg md:text-xl font-bold truncate pr-4">
                 {selectedEntity.type === 'driver' ? 'Driver' : 'Customer'} Report - {selectedEntity.name}
               </h3>
-              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl flex-shrink-0">&times;</button>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-900 text-3xl leading-none flex-shrink-0">&times;</button>
             </div>
-            <div className="p-4 md:p-6 border-b">
-              <div className="flex flex-col md:flex-row gap-3">
-                <input
-                  type="text"
-                  placeholder="Search by location, customer, driver..."
-                  value={modalFilters.search}
-                  onChange={(e) => setModalFilters({ ...modalFilters, search: e.target.value })}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <select
-                  value={modalFilters.status}
-                  onChange={(e) => setModalFilters({ ...modalFilters, status: e.target.value })}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-auto"
-                >
-                  <option value="">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="ONGOING">Ongoing</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
+            <div className="p-4 md:p-6 border-b bg-gray-50 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Search Bookings</label>
+                  <input
+                    type="text"
+                    placeholder="Location, name, phone..."
+                    value={modalFilters.search}
+                    onChange={(e) => setModalFilters({ ...modalFilters, search: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+                <div className="w-full sm:w-48">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Filter Status</label>
+                  <select
+                    value={modalFilters.status}
+                    onChange={(e) => setModalFilters({ ...modalFilters, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                  >
+                    <option value="">All Status</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="ONGOING">Ongoing</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1">
               {selectedEntity.type === 'driver' ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
                   <div className="bg-blue-50 rounded-lg p-3 md:p-4">
@@ -309,7 +322,7 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-purple-50 rounded-lg p-3 md:p-4">
                     <p className="text-xs md:text-sm text-gray-600">Total Revenue</p>
-                    <p className="text-2xl md:text-3xl font-bold text-purple-600">₹{selectedEntity.totalRevenue?.toFixed(2) || '0.00'}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-purple-600">₹{Number(tripDetails.bookings?.filter((b: any) => b.status === 'COMPLETED').reduce((acc: number, curr: any) => acc + Number(curr.finalAmount || curr.estimateAmount || 0), 0) || 0).toFixed(2)}</p>
                   </div>
                 </div>
               ) : (
@@ -324,7 +337,7 @@ const Reports: React.FC = () => {
                   </div>
                   <div className="bg-purple-50 rounded-lg p-3 md:p-4">
                     <p className="text-xs md:text-sm text-gray-600">Total Spent</p>
-                    <p className="text-2xl md:text-3xl font-bold text-purple-600">₹{selectedEntity.totalSpent?.toFixed(2) || '0.00'}</p>
+                    <p className="text-2xl md:text-3xl font-bold text-purple-600">₹{Number(tripDetails.bookings?.filter((b: any) => b.status === 'COMPLETED').reduce((acc: number, curr: any) => acc + Number(curr.finalAmount || curr.estimateAmount || 0), 0) || 0).toFixed(2)}</p>
                   </div>
                 </div>
               )}
