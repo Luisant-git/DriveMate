@@ -576,6 +576,137 @@ export const allocateDriverToBooking = async (req, res) => {
   }
 };
 
+// ADMIN: Offer booking to available driver (sends request to driver)
+export const offerBookingToDriver = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { driverId } = req.body;
+
+    if (!driverId) {
+      return res.status(400).json({ success: false, error: 'Driver ID required' });
+    }
+
+    // Get booking details
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { customer: true }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    // Check if driver response already exists
+    let response = await prisma.bookingResponse.findUnique({
+      where: {
+        bookingId_driverId: { bookingId, driverId }
+      }
+    });
+
+    if (response && response.status === 'ACCEPTED') {
+      return res.status(400).json({ success: false, error: 'Driver has already accepted this booking' });
+    }
+
+    // If pending response exists, delete it and create new one (fresh offer)
+    if (response && response.status === 'PENDING') {
+      await prisma.bookingResponse.delete({
+        where: { id: response.id }
+      });
+    }
+
+    // Create new booking response with PENDING status
+    response = await prisma.bookingResponse.create({
+      data: {
+        bookingId,
+        driverId,
+        status: 'PENDING'
+      },
+      include: {
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    // Get driver details for WhatsApp
+    const driver = await prisma.driver.findUnique({
+      where: { id: driverId },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        rating: true,
+        vehicleNo: true,
+        vehicleType: true,
+        photo: true
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      response,
+      message: 'Booking offer sent to driver'
+    });
+  } catch (error) {
+    console.error('Error offering booking to driver:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ADMIN: Deallocate driver from booking
+export const deallocateDriver = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { driverId } = req.body;
+
+    if (!driverId) {
+      return res.status(400).json({ success: false, error: 'Driver ID required' });
+    }
+
+    // Get booking details
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { customer: true, driver: true }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    // Remove driver allocation
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        driverId: null,
+        allocatedAt: null
+      },
+      include: { customer: true }
+    });
+
+    // Delete the booking response for this driver
+    await prisma.bookingResponse.deleteMany({
+      where: {
+        bookingId,
+        driverId
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      booking: updatedBooking,
+      message: 'Driver deallocated successfully'
+    });
+  } catch (error) {
+    console.error('Error deallocating driver:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // CUSTOMER: Get booking with driver details
 export const getCustomerBookingWithDriver = async (req, res) => {
   try {
