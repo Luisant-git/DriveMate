@@ -77,6 +77,8 @@ export const getDriverTrips = async (req, res) => {
       status: booking.status,
       rating: booking.rating,
       feedback: booking.feedback,
+      actualStartTime: booking.actualStartTime,
+      finalAmount: booking.finalAmount,
     }));
 
     res.json({ success: true, trips });
@@ -132,6 +134,21 @@ export const completeTrip = async (req, res) => {
       return res.status(401).json({ success: false, error: 'User ID not found in request' });
     }
 
+    const { finalAmount } = req.body;
+
+    // Get the current booking to check actualStartTime
+    const currentBooking = await prisma.booking.findUnique({ where: { id: tripId } });
+    let calculatedDuration = currentBooking?.duration;
+    
+    if (currentBooking?.actualStartTime) {
+      const start = new Date(currentBooking.actualStartTime);
+      const end = new Date();
+      const diffMs = end.getTime() - start.getTime();
+      const hours = Math.floor(diffMs / 3600000);
+      const minutes = Math.floor((diffMs % 3600000) / 60000);
+      calculatedDuration = `${hours}h ${minutes}m`;
+    }
+
     // Update booking status to completed
     const booking = await prisma.booking.update({
       where: {
@@ -140,6 +157,8 @@ export const completeTrip = async (req, res) => {
       data: {
         status: 'COMPLETED',
         ...(isLead ? { leadId: userId } : { driverId: userId }),
+        ...(finalAmount !== undefined && { finalAmount: parseFloat(finalAmount) }),
+        ...(calculatedDuration && { duration: calculatedDuration }),
       },
       include: {
         customer: true,
@@ -184,6 +203,7 @@ export const completeTrip = async (req, res) => {
       vehicleType: booking.vehicleType,
       estimateAmount: booking.estimateAmount,
       estimatedCost: booking.estimateAmount,
+      finalAmount: booking.finalAmount,
       status: 'COMPLETED',
     };
 
@@ -207,6 +227,39 @@ export const completeTrip = async (req, res) => {
     }
   } catch (error) {
     console.error('Complete trip error:', error);
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+// Driver/Lead starts a trip
+export const startTrip = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const { carFrontPhoto, carBackPhoto } = req.body;
+    const userId = req.user.userId || req.user.id;
+    const isLead = req.user.type === 'lead';
+
+    console.log('Start trip - userId:', userId, 'tripId:', tripId);
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User ID not found in request' });
+    }
+
+    const booking = await prisma.booking.update({
+      where: {
+        id: tripId,
+      },
+      data: {
+        status: 'ONGOING',
+        actualStartTime: new Date(),
+        ...(carFrontPhoto && { carFrontPhoto }),
+        ...(carBackPhoto && { carBackPhoto }),
+      },
+    });
+
+    res.status(200).json({ success: true, trip: booking });
+  } catch (error) {
+    console.error('startTrip error:', error);
     res.status(400).json({ success: false, error: error.message });
   }
 };

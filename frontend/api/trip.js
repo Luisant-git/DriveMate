@@ -50,11 +50,23 @@ export const tripAPI = {
   },
 
   // Complete trip
-  completeTrip: async (tripId) => {
+  completeTrip: async (tripId, data = {}) => {
     const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/complete`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  // Start trip
+  startTrip: async (tripId, data = {}) => {
+    const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/start`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(data),
     });
     return handleResponse(response);
   },

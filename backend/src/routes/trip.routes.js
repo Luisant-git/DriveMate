@@ -6,6 +6,7 @@ import {
   getCustomerTrips,
   acceptTrip,
   completeTrip,
+  startTrip,
   cancelTrip,
   updateTripStatus,
   getUpcomingTrips,
@@ -147,6 +148,37 @@ router.post('/:tripId/accept', authenticateToken, requireRole(['DRIVER']), accep
  *         description: Trip completed
  */
 router.post('/:tripId/complete', authenticateToken, requireRole(['DRIVER', 'LEAD']), completeTrip);
+
+/**
+ * @swagger
+ * /api/trips/{tripId}/start:
+ *   post:
+ *     summary: Driver starts trip
+ *     tags: [Trip]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Trip started
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               carFrontPhoto:
+ *                 type: string
+ *               carBackPhoto:
+ *                 type: string
+ */
+router.post('/:tripId/start', authenticateToken, requireRole(['DRIVER', 'LEAD']), startTrip);
 
 /**
  * @swagger

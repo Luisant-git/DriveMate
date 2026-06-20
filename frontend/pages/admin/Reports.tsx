@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDriverReports, getCustomerReports, getRevenueReport, getDriverTrips, getCustomerTrips } from '../../api/reports';
+import { API_BASE_URL } from '../../api/config.js';
 
 const Reports: React.FC = () => {
   const [activeReport, setActiveReport] = useState<'DRIVERS' | 'CUSTOMERS' | 'REVENUE'>('DRIVERS');
@@ -368,7 +369,32 @@ const Reports: React.FC = () => {
                             <p><span className="font-bold">Status:</span> <span className={`px-2 py-1 rounded text-xs ${booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{booking.status}</span></p>
                             <p><span className="font-bold">Amount:</span> ₹{booking.finalAmount || booking.estimateAmount || 0}</p>
                             <p><span className="font-bold">Date:</span> {new Date(booking.startDateTime).toLocaleDateString()}</p>
+                            <p><span className="font-bold">Duration:</span> {booking.duration || 'N/A'}</p>
                           </div>
+                          
+                          {(booking.carFrontPhoto || booking.carBackPhoto) && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="font-bold text-xs mb-2">Trip Photos</p>
+                              <div className="flex gap-4">
+                                {booking.carFrontPhoto && (
+                                  <div>
+                                    <p className="text-[10px] text-gray-500 uppercase mb-1">Front</p>
+                                    <a href={`${API_BASE_URL}/uploads/${booking.carFrontPhoto}`} target="_blank" rel="noreferrer">
+                                      <img src={`${API_BASE_URL}/uploads/${booking.carFrontPhoto}`} alt="Car Front" className="w-24 h-24 object-cover rounded-lg border shadow-sm hover:opacity-80 transition" />
+                                    </a>
+                                  </div>
+                                )}
+                                {booking.carBackPhoto && (
+                                  <div>
+                                    <p className="text-[10px] text-gray-500 uppercase mb-1">Back</p>
+                                    <a href={`${API_BASE_URL}/uploads/${booking.carBackPhoto}`} target="_blank" rel="noreferrer">
+                                      <img src={`${API_BASE_URL}/uploads/${booking.carBackPhoto}`} alt="Car Back" className="w-24 h-24 object-cover rounded-lg border shadow-sm hover:opacity-80 transition" />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
