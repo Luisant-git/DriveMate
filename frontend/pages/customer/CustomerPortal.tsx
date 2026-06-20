@@ -4,7 +4,7 @@ import { Customer, BookingType, Trip } from '../../types';
 import { getRecommendedPackage } from '../../services/geminiService';
 import { updateCustomerProfile } from '../../api/customer';
 import { uploadFile } from '../../api/upload';
-import { createBooking, getFareEstimate, getCustomerBookings } from '../../api/booking';
+import { createBooking, getFareEstimate, getCustomerBookings, rateBooking } from '../../api/booking';
 import { API_BASE_URL } from '../../api/config.js';
 import { checkAuth } from '../../api/auth';
 import { toast } from 'react-toastify';
@@ -72,6 +72,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [oneWayErrors, setOneWayErrors] = useState({ pickup: '', drop: '' });
   const [roundTripErrors, setRoundTripErrors] = useState({ pickup: '', drop: '' });
   const [outstationErrors, setOutstationErrors] = useState({ pickup: '', drop: '' });
+  const [ratingData, setRatingData] = useState<{ [key: string]: { rating: number, feedback: string } }>({});
 
   // Get minimum time (15 minutes from now)
   const getMinDateTime = () => {
@@ -427,8 +428,38 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   };
 
   const handleRating = (tripId: string, rating: number) => {
-      // Rating functionality removed - using real API
-      console.log('Rating:', tripId, rating);
+    setRatingData(prev => ({
+      ...prev,
+      [tripId]: { ...prev[tripId], rating, feedback: prev[tripId]?.feedback || '' }
+    }));
+  };
+
+  const handleFeedbackChange = (tripId: string, feedback: string) => {
+    setRatingData(prev => ({
+      ...prev,
+      [tripId]: { ...prev[tripId], rating: prev[tripId]?.rating || 0, feedback }
+    }));
+  };
+
+  const submitRating = async (tripId: string) => {
+    const data = ratingData[tripId];
+    if (!data || !data.rating) {
+      toast.error('Please select a rating');
+      return;
+    }
+    try {
+      const response = await rateBooking(tripId, data.rating, data.feedback);
+      if (response.success) {
+        toast.success('Rating submitted successfully!');
+        // Refresh bookings to show the new rating
+        fetchBookings();
+      } else {
+        toast.error(response.error || 'Failed to submit rating');
+      }
+    } catch (error) {
+      console.error('Rating error:', error);
+      toast.error('Error submitting rating');
+    }
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -1905,6 +1936,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                              <div className="flex-grow min-w-0">
                                                  <p className="font-bold text-sm truncate">{booking.lead.name || 'Driver'}</p>
                                                  <p className="text-xs text-gray-600">{booking.lead.phone || 'N/A'}</p>
+                                                 {booking.lead.rating > 0 && (
+                                                     <div className="flex items-center gap-1 mt-0.5">
+                                                         <span className="text-[11px] font-bold text-gray-700">{booking.lead.rating.toFixed(1)}</span>
+                                                         <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                         <span className="text-[10px] text-gray-500">({booking.lead.totalRides || 0} rides)</span>
+                                                     </div>
+                                                 )}
                                              </div>
                                              <a 
                                                  href={`tel:${booking.lead.phone}`}
@@ -1941,6 +1979,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                              <div className="flex-grow min-w-0">
                                                  <p className="font-bold text-sm truncate">{booking.driver.name || 'Driver'}</p>
                                                  <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
+                                                 {booking.driver.rating > 0 && (
+                                                     <div className="flex items-center gap-1 mt-0.5">
+                                                         <span className="text-[11px] font-bold text-gray-700">{booking.driver.rating.toFixed(1)}</span>
+                                                         <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                         <span className="text-[10px] text-gray-500">({booking.driver.totalRides || 0} rides)</span>
+                                                     </div>
+                                                 )}
                                              </div>
                                              <a 
                                                  href={`tel:${booking.driver.phone}`}
@@ -1962,6 +2007,61 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                              <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
                                          </button>
                                      </div>
+                                 </div>
+                             )}
+
+                             {/* Rating UI for Completed Trips */}
+                             {booking.status === 'COMPLETED' && (
+                                 <div className="mt-3 pt-3 border-t border-gray-100">
+                                     {booking.rating ? (
+                                         <div className="flex flex-col gap-2">
+                                             <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
+                                                 <span>Your Rating:</span>
+                                                 <span>{'★'.repeat(booking.rating)}</span>
+                                             </div>
+                                             {booking.feedback && (
+                                                <p className="text-xs text-gray-600 italic">"{booking.feedback}"</p>
+                                             )}
+                                         </div>
+                                     ) : (
+                                         <div>
+                                             <p className="text-xs font-bold mb-2">Rate your driver:</p>
+                                             <div className="flex flex-col gap-3">
+                                                 <div className="flex gap-2">
+                                                     {[1, 2, 3, 4, 5].map(star => (
+                                                         <button 
+                                                            key={star}
+                                                            onClick={() => handleRating(booking.id, star)}
+                                                            className={`w-8 h-8 rounded-full font-bold border flex items-center justify-center transition ${
+                                                                (ratingData[booking.id]?.rating || 0) >= star 
+                                                                    ? 'bg-yellow-50 text-yellow-500 border-yellow-200' 
+                                                                    : 'bg-gray-50 text-gray-300 hover:text-yellow-500 border-gray-200 hover:bg-yellow-50'
+                                                            }`}
+                                                         >
+                                                             ★
+                                                         </button>
+                                                     ))}
+                                                 </div>
+                                                 {(ratingData[booking.id]?.rating || 0) > 0 && (
+                                                     <div className="flex flex-col gap-2">
+                                                         <textarea
+                                                             value={ratingData[booking.id]?.feedback || ''}
+                                                             onChange={(e) => handleFeedbackChange(booking.id, e.target.value)}
+                                                             placeholder="How was your trip? (Optional)"
+                                                             className="w-full text-sm p-2 border border-gray-200 rounded-lg resize-none focus:ring-1 focus:ring-black outline-none"
+                                                             rows={2}
+                                                         />
+                                                         <button
+                                                             onClick={() => submitRating(booking.id)}
+                                                             className="bg-black text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition self-start"
+                                                         >
+                                                             Submit Rating
+                                                         </button>
+                                                     </div>
+                                                 )}
+                                             </div>
+                                         </div>
+                                     )}
                                  </div>
                              )}
                         </div>
@@ -2041,8 +2141,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                      </div>
                                  </div>
                              )}
-                             {/* Rating UI for Completed Trips - COMMENTED OUT */}
-                             {/* {trip.status === 'COMPLETED' && (
+                             {/* Rating UI for Completed Trips */}
+                             {trip.status === 'COMPLETED' && (
                                  <div className="mt-3 pt-3 border-t border-gray-100">
                                      {trip.rating ? (
                                          <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
@@ -2066,7 +2166,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          </div>
                                      )}
                                  </div>
-                             )} */}
+                             )}
                         </div>
                         );
                     })

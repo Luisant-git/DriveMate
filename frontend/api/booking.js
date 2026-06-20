@@ -99,3 +99,26 @@ export const getCustomerBookings = async () => {
     return { success: false, error: 'Failed to fetch bookings' };
   }
 };
+
+// Rate a completed booking
+export const rateBooking = async (bookingId, rating, feedback = '') => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/rate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ rating, feedback }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error || 'Failed to submit rating' };
+    }
+    
+    const data = await response.json();
+    return { success: true, ...data };
+  } catch (error) {
+    console.error('Error submitting rating:', error);
+    return { success: false, error: 'Network error' };
+  }
+};

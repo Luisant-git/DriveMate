@@ -75,6 +75,8 @@ export const getDriverTrips = async (req, res) => {
       estimateAmount: booking.estimateAmount,
       estimatedCost: booking.estimateAmount,
       status: booking.status,
+      rating: booking.rating,
+      feedback: booking.feedback,
     }));
 
     res.json({ success: true, trips });
