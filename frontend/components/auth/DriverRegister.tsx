@@ -11,6 +11,7 @@ const DriverRegister: React.FC = () => {
   const [altOtp, setAltOtp] = useState('');
   const [isPrimaryVerified, setIsPrimaryVerified] = useState(false);
   const [isAltVerified, setIsAltVerified] = useState(false);
+  const [uploadedUrls, setUploadedUrls] = useState<any>({});
   
   const [registerData, setRegisterData] = useState({
     name: '',
@@ -20,6 +21,7 @@ const DriverRegister: React.FC = () => {
     password: '',
     aadharNo: '',
     licenseNo: '',
+    licenseExpiryDate: '',
     alternateMobile1: '',
     alternateMobile2: '',
     alternateMobile3: '',
@@ -36,6 +38,13 @@ const DriverRegister: React.FC = () => {
   const isValidPhone = (phone: string) => /^\d{10}$/.test(phone);
   const isValidAadhar = (aadhar: string) => /^\d{12}$/.test(aadhar);
   const isValidDL = (dl: string) => dl.trim().length >= 10;
+  const isValidDLExpiry = (date: string) => {
+    if (!date) return false;
+    const expiry = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return expiry >= today;
+  };
   const isValidOptionalPhone = (phone: string) => !phone || /^\d{10}$/.test(phone);
 
   const isStep1Valid = Boolean(
@@ -49,6 +58,7 @@ const DriverRegister: React.FC = () => {
   const isStep2Valid = Boolean(
     isValidAadhar(registerData.aadharNo) && 
     isValidDL(registerData.licenseNo) &&
+    isValidDLExpiry((registerData as any).licenseExpiryDate) &&
     isValidOptionalPhone(registerData.gpayNo) &&
     isValidOptionalPhone(registerData.alternateMobile1) &&
     isValidOptionalPhone(registerData.alternateMobile2) &&
@@ -59,7 +69,7 @@ const DriverRegister: React.FC = () => {
   const nextStep = () => setStep(prev => Math.min(prev + 1, 3));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     // Mock OTP verification - wait for exactly 6 digits
     if (primaryOtp.length !== 6) {
       alert("Please enter a 6-digit OTP for the Primary Phone.");
@@ -70,12 +80,50 @@ const DriverRegister: React.FC = () => {
       return;
     }
 
-    // After "verification"
-    setIsPrimaryVerified(true);
-    if (registerData.alternateMobile1) setIsAltVerified(true);
+    setIsLoading(true);
     
-    alert('Registration and Verification successful! Please login with your credentials.');
-    navigate('/driver/login');
+    try {
+      // Prepare altPhone array
+      const altPhone = [
+        registerData.alternateMobile1,
+        registerData.alternateMobile2,
+        registerData.alternateMobile3,
+        registerData.alternateMobile4
+      ].filter(phone => phone && phone.trim() !== '');
+      
+      const response = await driverRegister({
+        name: registerData.name,
+        phone: registerData.phone,
+        currentAddress: registerData.currentAddress,
+        permanentAddress: registerData.permanentAddress,
+        password: registerData.password,
+        aadharNo: registerData.aadharNo,
+        licenseNo: registerData.licenseNo,
+        licenseExpiryDate: registerData.licenseExpiryDate,
+        altPhone: altPhone,
+        upiId: registerData.gpayNo,
+        photo: uploadedUrls.photo,
+        dlPhoto: uploadedUrls.dlPhoto,
+        panPhoto: uploadedUrls.panPhoto,
+        aadharPhoto: uploadedUrls.aadharPhoto,
+        policeVerificationPhoto: uploadedUrls.policeVerificationPhoto
+      });
+      
+      if (response.token) {
+        setIsPrimaryVerified(true);
+        if (registerData.alternateMobile1) setIsAltVerified(true);
+        
+        alert('Registration and Verification successful! Please login with your credentials.');
+        navigate('/driver/login');
+      } else {
+        alert(response.error || response.message || 'Registration failed');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      alert(error.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -114,42 +162,22 @@ const DriverRegister: React.FC = () => {
         uploadFile(registerData.dlPhoto as any, 'driving license'),
         uploadFile(registerData.panPhoto as any, 'PAN card'),
         uploadFile(registerData.aadharPhoto as any, 'Aadhar card'),
-        uploadFile(registerData.policeVerificationPhoto as any, 'police verification') // <-- ADD THIS
+        uploadFile(registerData.policeVerificationPhoto as any, 'police verification')
       ]);
       
-      // Prepare altPhone array
-      const altPhone = [
-        registerData.alternateMobile1,
-        registerData.alternateMobile2,
-        registerData.alternateMobile3,
-        registerData.alternateMobile4
-      ].filter(phone => phone && phone.trim() !== '');
-      
-      const response = await driverRegister({
-        name: registerData.name,
-        phone: registerData.phone,
-        currentAddress: registerData.currentAddress,
-        permanentAddress: registerData.permanentAddress,
-        password: registerData.password,
-        aadharNo: registerData.aadharNo,
-        licenseNo: registerData.licenseNo,
-        altPhone: altPhone,
-        upiId: registerData.gpayNo,
+      setUploadedUrls({
         photo: photoUrl,
         dlPhoto: dlPhotoUrl,
         panPhoto: panPhotoUrl,
         aadharPhoto: aadharPhotoUrl,
-        policeVerificationPhoto: policeVerificationPhotoUrl // <-- ADD THIS
+        policeVerificationPhoto: policeVerificationPhotoUrl
       });
       
-      if (response.token) {
-        setStep(4);
-      } else {
-        alert(response.error || response.message || 'Registration failed');
-      }
+      // Go to OTP step WITHOUT saving to database
+      setStep(4);
     } catch (error: any) {
-      console.error('Registration error:', error);
-      alert(error.message || 'Registration failed. Please try again.');
+      console.error('File upload error:', error);
+      alert(error.message || 'Failed to upload files. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -314,11 +342,26 @@ const DriverRegister: React.FC = () => {
                 <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Driving License *</label>
                 <input 
                   type="text"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm mb-2"
                   value={registerData.licenseNo}
                   onChange={(e) => setRegisterData({...registerData, licenseNo: e.target.value})}
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">License Expiry Date *</label>
+                <input 
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  className={`w-full bg-gray-50 border ${registerData.licenseExpiryDate && !isValidDLExpiry(registerData.licenseExpiryDate) ? 'border-red-500' : 'border-gray-200'} rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm`}
+                  value={registerData.licenseExpiryDate}
+                  onChange={(e) => setRegisterData({...registerData, licenseExpiryDate: e.target.value})}
+                  required
+                />
+                {registerData.licenseExpiryDate && !isValidDLExpiry(registerData.licenseExpiryDate) && (
+                  <p className="text-[10px] text-red-500 mt-1 font-bold">License must not be expired.</p>
+                )}
               </div>
 
             <div>
@@ -549,11 +592,23 @@ const DriverRegister: React.FC = () => {
           <button 
             type="button" 
             onClick={handleVerifyOTP}
-            disabled={primaryOtp.length !== 6 || (registerData.alternateMobile1 ? altOtp.length !== 6 : false)}
+            disabled={primaryOtp.length !== 6 || (registerData.alternateMobile1 ? altOtp.length !== 6 : false) || isLoading}
             className="w-full bg-black text-white py-2 rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
-            Verify & Login
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Verifying & Registering...
+              </span>
+            ) : (
+              <>
+                Verify & Login
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              </>
+            )}
           </button>
         )}
       </div>

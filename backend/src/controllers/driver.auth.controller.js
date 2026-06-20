@@ -5,7 +5,7 @@ import prisma from '../config/database.js';
 export const driverRegister = async (req, res) => {
   try {
     const { 
-      name, phone, password, aadharNo, licenseNo, 
+      name, phone, password, aadharNo, licenseNo, licenseExpiryDate,
       currentAddress, permanentAddress,
       altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto,
       policeVerificationPhoto
@@ -28,6 +28,7 @@ export const driverRegister = async (req, res) => {
       password: hashedPassword,
       aadharNo,
       licenseNo,
+      ...(licenseExpiryDate && { licenseExpiryDate }),
       ...(currentAddress && { currentAddress }),
       ...(permanentAddress && { permanentAddress }),
       ...(altPhone?.[0] && { alternateMobile1: altPhone[0] }),

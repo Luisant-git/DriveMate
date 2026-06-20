@@ -35,6 +35,7 @@ model Driver {
   password     String
   aadharNo     String        @unique
   licenseNo    String        @unique
+  licenseExpiryDate String?
   currentAddress String?
   permanentAddress String?
   photo        String?
