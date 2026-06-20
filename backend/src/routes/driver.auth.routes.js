@@ -61,6 +61,10 @@ const router = express.Router();
  *               aadharPhoto:
  *                 type: string
  *                 example: "https://example.com/aadhar.jpg"
+ *               policeVerificationPhoto:
+ *                 type: string
+ *                 example: "https://example.com/police_verification.jpg"
+ *                 description: URL or path to police verification document
  *     responses:
  *       201:
  *         description: Driver registered successfully

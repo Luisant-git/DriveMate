@@ -7,7 +7,8 @@ export const registerDriver = async (req, res) => {
       aadharNo, 
       photo, 
       dlPhoto, 
-      panPhoto, 
+      panPhoto,
+      policeVerificationPhoto,
       alternateMobile1,
       alternateMobile2, 
       alternateMobile3, 
@@ -26,6 +27,7 @@ export const registerDriver = async (req, res) => {
         photo,
         dlPhoto,
         panPhoto,
+        policeVerificationPhoto, 
         alternateMobile1,
         alternateMobile2,
         alternateMobile3,
@@ -174,6 +176,7 @@ export const getAvailableDriversByPackage = async (req, res) => {
         photo: true,
         status: true,
         isOnline: true,
+        policeVerificationPhoto: true,
         subscriptions: {
           where: {
             status: 'ACTIVE',
@@ -243,7 +246,8 @@ export const getAllDrivers = async (req, res) => {
         status: true,
         isOnline: true,
         isActive: true,
-        photo: true
+        photo: true,
+        policeVerificationPhoto: true 
       },
       orderBy: {
         createdAt: 'desc'

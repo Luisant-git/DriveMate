@@ -252,6 +252,7 @@ export default function Driver() {
                       { label: 'DL Photo', path: selectedDriver.dlPhoto },
                       { label: 'PAN Photo', path: selectedDriver.panPhoto },
                       { label: 'Aadhar Photo', path: selectedDriver.aadharPhoto },
+                      { label: 'Police Verification', path: selectedDriver.policeVerificationPhoto } // <-- ADDED HERE
                     ].filter(d => d.path).map(doc => (
                       <div key={doc.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                         <span className="text-sm font-medium text-gray-900">{doc.label}</span>
@@ -309,6 +310,24 @@ export default function Driver() {
                 </div>
                 <div className="ml-auto">
                   <VerificationBadge driver={verifyDriver} onClick={() => {}} />
+                </div>
+              </div>
+
+              {/* Police Verification Status in Verification Modal */}
+              <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <p className="text-xs font-bold text-gray-500 uppercase mb-1">Police Verification Document</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-900">
+                    {verifyDriver.policeVerificationPhoto ? '✅ Uploaded' : '❌ Not Uploaded'}
+                  </span>
+                  {verifyDriver.policeVerificationPhoto && (
+                    <button 
+                      onClick={() => window.open(docUrl(verifyDriver.policeVerificationPhoto), '_blank')}
+                      className="text-xs bg-black text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition"
+                    >
+                      View Document
+                    </button>
+                  )}
                 </div>
               </div>
 

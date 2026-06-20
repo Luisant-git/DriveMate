@@ -11,10 +11,29 @@ const getAuthHeaders = () => {
   };
 };
 
-// Register function
+// Register function (Admin)
 export const register = async (userData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData),
+      credentials: 'include',
+    });
+    const data = await response.json();
+    if (data.token) {
+      localStorage.setItem('auth-token', data.token);
+    }
+    return { success: response.ok, ...data };
+  } catch (error) {
+    return { success: false, message: 'Network error' };
+  }
+};
+
+// Driver Register function
+export const driverRegister = async (userData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/driver/auth/register`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(userData),

@@ -38,7 +38,8 @@ export const downloadDriverInfo = async (req, res) => {
         { field: 'photo', name: 'driver_photo.jpg' },
         { field: 'dlPhoto', name: 'driving_license.jpg' },
         { field: 'panPhoto', name: 'pan_card.jpg' },
-        { field: 'aadharPhoto', name: 'aadhar_card.jpg' }
+        { field: 'aadharPhoto', name: 'aadhar_card.jpg' },
+        { field: 'policeVerificationPhoto', name: 'police_verification.jpg' } // <-- ADD THIS
       ];
 
       documents.forEach(({ field, name }) => {
@@ -82,7 +83,8 @@ export const downloadDriverInfo = async (req, res) => {
       ['Rating', driver.rating?.toString() || '0'],
       ['Total Rides', driver.totalRides?.toString() || '0'],
       ['GPay Number', driver.gpayNo || 'N/A'],
-      ['PhonePe Number', driver.phonepeNo || 'N/A']
+      ['PhonePe Number', driver.phonepeNo || 'N/A'],
+      ['Police Verification', driver.policeVerificationPhoto ? 'Uploaded' : 'Not Uploaded'] // <-- ADD THIS
     ];
 
     let yPosition = 100;

@@ -6,7 +6,8 @@ export const driverRegister = async (req, res) => {
   try {
     const { 
       name, email, phone, password, aadharNo, licenseNo, 
-      altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto 
+      altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto,
+      policeVerificationPhoto
     } = req.body;
     
     // Check if driver already exists
@@ -40,7 +41,8 @@ export const driverRegister = async (req, res) => {
       ...(photo && { photo }),
       ...(dlPhoto && { dlPhoto }),
       ...(panPhoto && { panPhoto }),
-      ...(aadharPhoto && { aadharPhoto })
+      ...(aadharPhoto && { aadharPhoto }),
+      ...(policeVerificationPhoto && { policeVerificationPhoto }) 
     };
 
     const driver = await prisma.driver.create({
@@ -53,7 +55,13 @@ export const driverRegister = async (req, res) => {
     
     res.status(201).json({
       token,
-      driver: { id: driver.id, email, name, phone, status: driver.status }
+      driver: { 
+        id: driver.id, 
+        email,
+        name, 
+        phone, 
+        status: driver.status
+      }
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -105,3 +113,4 @@ export const driverLogin = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+

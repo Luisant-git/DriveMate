@@ -26,7 +26,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     photo: driver.photo || '',
     dlPhoto: driver.dlPhoto || '',
     panPhoto: driver.panPhoto || '',
-    aadharPhoto: driver.aadharPhoto || ''
+    aadharPhoto: driver.aadharPhoto || '',
+    policeVerificationPhoto: driver.policeVerificationPhoto || '' // New field
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [password, setPassword] = useState('');
@@ -42,7 +43,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       photo: initialDriver.photo || '',
       dlPhoto: initialDriver.dlPhoto || '',
       panPhoto: initialDriver.panPhoto || '',
-      aadharPhoto: initialDriver.aadharPhoto || ''
+      aadharPhoto: initialDriver.aadharPhoto || '',
+      policeVerificationPhoto: initialDriver.policeVerificationPhoto || '' // New field
     });
   }, [initialDriver]);
 
@@ -201,6 +203,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   dlPhoto: profileData.dlPhoto,
                   panPhoto: profileData.panPhoto,
                   aadharPhoto: profileData.aadharPhoto,
+                  policeVerificationPhoto: profileData.policeVerificationPhoto, // New field
                   password: password // New password
               })
           });
@@ -218,7 +221,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       data.user.alternateMobile3,
                       data.user.alternateMobile4
                   ].filter(phone => phone && phone.trim() !== ''),
-                  upiId: data.user.gpayNo
+                  upiId: data.user.gpayNo,
+                  policeVerificationPhoto: data.user.policeVerificationPhoto // New field
               });
               
               setIsEditingProfile(false);
@@ -715,6 +719,25 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                  {driver.aadharPhoto ? '✓ Uploaded' : 'Not uploaded'}
                                              </span>
                                          </div>
+                                         
+                                         {/* Police Verification - Updated to show both upload and verification status */}
+                                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-1 space-y-1">
+                                             <div className="flex justify-between items-center">
+                                                 <span className="text-gray-500 font-medium">Police Verification:</span>
+                                                 <div className="flex items-center gap-2">
+                                                     {/* Upload Status */}
+                                                     <span className={`font-medium text-xs px-2 py-1 rounded ${driver.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                         {driver.policeVerificationPhoto ? '✓ Uploaded' : ' Not Uploaded'}
+                                                     </span>
+                                                    
+                                                    
+                                                 </div>
+                                             </div>
+                                            
+                                             <div className="text-[10px] text-gray-400 mt-1">
+                                                 Note: Document uploaded successfully. Admin will verify it shortly.
+                                             </div>
+                                         </div>
                                      </div>
                                  </div>
                              </div>
@@ -999,6 +1022,68 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                              </div>
                                          )}
                                      </label>
+                                 </div>
+
+                                 {/* Police Verification Upload - New Field */}
+                                 <div className="relative col-span-2">
+                                     <input 
+                                         type="file"
+                                         accept="image/*"
+                                         id="editPoliceVerificationPhoto"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, policeVerificationPhoto: previewUrl});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, policeVerificationPhoto: result.fileId});
+                                                         // Show immediate feedback
+                                                         alert('Police verification document uploaded successfully! Admin will verify it shortly.');
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                     alert('Failed to upload document. Please try again.');
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                     <label 
+                                         htmlFor="editPoliceVerificationPhoto"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
+                                     >
+                                         {imagePreviews.policeVerificationPhoto || profileData.policeVerificationPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.policeVerificationPhoto || (profileData.policeVerificationPhoto.startsWith('http') ? profileData.policeVerificationPhoto : `${API_BASE_URL}${profileData.policeVerificationPhoto}`)} 
+                                                 alt="Police Verification" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-6 h-6 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Police Verification</p>
+                                                 <p className="text-[10px] text-gray-400 mt-1">Click to upload verification document</p>
+                                                 {profileData.policeVerificationPhoto && (
+                                                     <p className="text-[10px] text-green-600 mt-1">✓ Document uploaded</p>
+                                                 )}
+                                             </div>
+                                         )}
+                                     </label>
+                                     {profileData.policeVerificationPhoto && (
+                                         <div className="absolute bottom-2 right-2 bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">
+                                             Uploaded
+                                         </div>
+                                     )}
                                  </div>
                              </div>
                         </div>

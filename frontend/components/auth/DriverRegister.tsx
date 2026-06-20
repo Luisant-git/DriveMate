@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
-import { register } from '../../api/auth';
+import { driverRegister } from '../../api/auth';
 import { useNavigate } from 'react-router-dom';
 
 const DriverRegister: React.FC = () => {
@@ -20,7 +20,8 @@ const DriverRegister: React.FC = () => {
     photo: null,
     dlPhoto: null,
     panPhoto: null,
-    aadharPhoto: null
+    aadharPhoto: null,
+    policeVerificationPhoto: null // <-- ADD THIS
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,30 +50,47 @@ const DriverRegister: React.FC = () => {
         }
       };
       
-      // Upload all files
-      const [photoUrl, dlPhotoUrl, panPhotoUrl, aadharPhotoUrl] = await Promise.all([
+      // Upload all files including police verification
+      const [photoUrl, dlPhotoUrl, panPhotoUrl, aadharPhotoUrl, policeVerificationPhotoUrl] = await Promise.all([
         uploadFile(registerData.photo as any, 'photo'),
         uploadFile(registerData.dlPhoto as any, 'driving license'),
         uploadFile(registerData.panPhoto as any, 'PAN card'),
-        uploadFile(registerData.aadharPhoto as any, 'Aadhar card')
+        uploadFile(registerData.aadharPhoto as any, 'Aadhar card'),
+        uploadFile(registerData.policeVerificationPhoto as any, 'police verification') // <-- ADD THIS
       ]);
       
-      const response = await register({
-        ...registerData,
-        role: 'DRIVER',
+      // Prepare altPhone array
+      const altPhone = [
+        registerData.alternateMobile1,
+        registerData.alternateMobile2,
+        registerData.alternateMobile3,
+        registerData.alternateMobile4
+      ].filter(phone => phone && phone.trim() !== '');
+      
+      const response = await driverRegister({
+        name: registerData.name,
+        email: registerData.email,
+        phone: registerData.phone,
+        password: registerData.password,
+        aadharNo: registerData.aadharNo,
+        licenseNo: registerData.licenseNo,
+        altPhone: altPhone,
+        upiId: registerData.gpayNo,
         photo: photoUrl,
         dlPhoto: dlPhotoUrl,
         panPhoto: panPhotoUrl,
-        aadharPhoto: aadharPhotoUrl
+        aadharPhoto: aadharPhotoUrl,
+        policeVerificationPhoto: policeVerificationPhotoUrl // <-- ADD THIS
       });
       
-      if (response.success) {
+      if (response.token) {
         alert('Registration successful! Please login with your credentials.');
         navigate('/driver/login');
       } else {
         alert(response.error || response.message || 'Registration failed');
       }
     } catch (error: any) {
+      console.error('Registration error:', error);
       alert(error.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -291,6 +309,30 @@ const DriverRegister: React.FC = () => {
                   </svg>
                   <p className="text-xs text-gray-500 font-medium">Aadhar Card</p>
                   {registerData.aadharPhoto && <p className="text-xs text-green-600 font-bold">✓ Selected</p>}
+                </div>
+              </label>
+            </div>
+
+            {/* Police Verification Upload - New Field */}
+            <div className="relative col-span-2">
+              <input 
+                type="file"
+                accept="image/*"
+                id="policeVerificationPhoto"
+                className="hidden"
+                onChange={(e) => setRegisterData({...registerData, policeVerificationPhoto: (e.target.files?.[0] as any) || null})}
+              />
+              <label 
+                htmlFor="policeVerificationPhoto"
+                className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition"
+              >
+                <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                  <svg className="w-6 h-6 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <p className="text-xs text-gray-500 font-medium">Police Verification</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Upload verification document</p>
+                  {registerData.policeVerificationPhoto && <p className="text-xs text-green-600 font-bold">✓ Selected</p>}
                 </div>
               </label>
             </div>
