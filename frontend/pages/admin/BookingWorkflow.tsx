@@ -15,6 +15,20 @@ export default function BookingWorkflow() {
   const [packages, setPackages] = useState([]);
   const [leadPackages, setLeadPackages] = useState([]);
   const [processingBookings, setProcessingBookings] = useState(new Set()); // Track which bookings are being processed
+  
+  // Create Booking State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    serviceType: 'Local - Hourly',
+    tripType: 'One Way',
+    pickupLocation: '',
+    dropLocation: '',
+    startDateTime: '',
+    estimateAmount: ''
+  });
+  const [creatingBooking, setCreatingBooking] = useState(false);
 
   useEffect(() => {
     fetchPendingBookings();
@@ -254,12 +268,33 @@ export default function BookingWorkflow() {
     }
   };
 
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+    setCreatingBooking(true);
+    try {
+      await apiClient.post('/bookings/admin/create-booking', createForm);
+      alert('✓ Booking created and routed successfully!');
+      setShowCreateModal(false);
+      setCreateForm({ customerName: '', customerPhone: '', serviceType: 'Local - Hourly', tripType: 'One Way', pickupLocation: '', dropLocation: '', startDateTime: '', estimateAmount: '' });
+      fetchPendingBookings();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to create booking');
+    } finally {
+      setCreatingBooking(false);
+    }
+  };
+
   return (
     <div className="w-full py-4">
       {!selectedBooking ? (
         <div className="space-y-4 w-full">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pending Bookings</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pending Bookings</h2>
+              <button onClick={() => setShowCreateModal(true)} className="bg-black text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+                + Book a Ride
+              </button>
+            </div>
             
             {/* Filters */}
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -607,6 +642,74 @@ export default function BookingWorkflow() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Create Booking Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-base font-bold text-gray-900">Create New Booking</h3>
+              <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={handleCreateBooking} className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Customer Name *</label>
+                  <input required type="text" value={createForm.customerName} onChange={e => setCreateForm({...createForm, customerName: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="John Doe" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Phone Number *</label>
+                  <input required type="tel" value={createForm.customerPhone} onChange={e => setCreateForm({...createForm, customerPhone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="9876543210" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Service Type</label>
+                  <select value={createForm.serviceType} onChange={e => setCreateForm({...createForm, serviceType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                    <option value="Local - Hourly">Local - Hourly</option>
+                    <option value="Outstation">Outstation</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Trip Type</label>
+                  <select value={createForm.tripType} onChange={e => setCreateForm({...createForm, tripType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                    <option value="One Way">One Way</option>
+                    <option value="Round Trip">Round Trip</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pickup Location *</label>
+                <input required type="text" value={createForm.pickupLocation} onChange={e => setCreateForm({...createForm, pickupLocation: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Enter pickup address" />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Drop Location</label>
+                <input type="text" value={createForm.dropLocation} onChange={e => setCreateForm({...createForm, dropLocation: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Enter drop address (optional for hourly)" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Date & Time *</label>
+                  <input required type="datetime-local" value={createForm.startDateTime} onChange={e => setCreateForm({...createForm, startDateTime: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Estimate Amount (₹) *</label>
+                  <input required type="number" min="0" value={createForm.estimateAmount} onChange={e => setCreateForm({...createForm, estimateAmount: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="500" />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                <button type="submit" disabled={creatingBooking} className="flex-1 py-2.5 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition">
+                  {creatingBooking ? 'Creating & Routing...' : 'Create Booking'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

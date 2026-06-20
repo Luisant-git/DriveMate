@@ -1,6 +1,6 @@
 import express from 'express';
-import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips, rateBooking } from '../controllers/booking.controller.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips, rateBooking, adminCreateBooking } from '../controllers/booking.controller.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -75,6 +75,15 @@ router.get('/', authenticateToken, getCustomerBookings);
  *               $ref: '#/components/schemas/Booking'
  */
 router.post('/', authenticateToken, createBooking);
+
+/**
+ * @swagger
+ * /api/bookings/admin/create-booking:
+ *   post:
+ *     summary: Admin creates a new booking
+ *     tags: [Booking]
+ */
+router.post('/admin/create-booking', authenticateToken, requireRole(['ADMIN']), adminCreateBooking);
 
 /**
  * @swagger

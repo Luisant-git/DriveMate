@@ -72,6 +72,72 @@ export const createBooking = async (req, res) => {
   }
 };
 
+export const adminCreateBooking = async (req, res) => {
+  try {
+    const { 
+      customerName,
+      customerPhone,
+      pickupLocation, 
+      dropLocation, 
+      serviceType,
+      tripType,
+      startDateTime, 
+      estimateAmount
+    } = req.body;
+
+    if (!customerName || !customerPhone || !pickupLocation || !serviceType || !startDateTime) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    // Find or create customer
+    let customer = await prisma.customer.findUnique({
+      where: { phone: customerPhone }
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          name: customerName,
+          phone: customerPhone,
+          email: `${customerPhone}@temp.com`, // temporary placeholder
+          password: 'admin_created',
+        }
+      });
+    }
+
+    const booking = await prisma.booking.create({
+      data: {
+        customerId: customer.id,
+        pickupLocation,
+        dropLocation,
+        serviceType,
+        tripType: tripType || 'One Way',
+        startDateTime: new Date(startDateTime),
+        estimateAmount: parseFloat(estimateAmount) || 0,
+        paymentMethod: 'CASH',
+        paymentStatus: 'UNPAID',
+        status: 'PENDING'
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      booking,
+      message: 'Booking request sent to drivers!'
+    });
+
+    // Auto-route booking
+    autoRouteBooking(booking.id).then(result => {
+      console.log(`[AutoRoute] Result for booking ${booking.id}:`, result);
+    }).catch(err => {
+      console.error(`[AutoRoute] Failed for booking ${booking.id}:`, err.message);
+    });
+  } catch (error) {
+    console.error('Admin Booking creation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const getEstimate = async (req, res) => {
   try {
     const { packageType, hours } = req.query;
