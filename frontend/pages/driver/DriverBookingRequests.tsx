@@ -98,18 +98,18 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Active Package Card */}
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div className="bg-white rounded-lg sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-5">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="flex-1">
-            <p className="text-xs text-gray-500 font-medium">Active Package</p>
-            <p className="text-sm sm:text-base font-semibold text-gray-900">{currentSubscription.plan.name}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wide mb-0.5">Active Package</p>
+            <p className="text-xs sm:text-base font-bold text-gray-900 truncate">{currentSubscription.plan.name}</p>
           </div>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
         </div>
       </div>
 
@@ -170,20 +170,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                       </div>
                     </div>
                     
-                    {/* Customer Info */}
-                    {request.booking.customer && (
-                    <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-gray-700 font-semibold text-sm">{request.booking.customer?.name?.charAt(0) || 'C'}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{request.booking.customer?.name || 'N/A'}</p>
-                          <p className="text-xs text-gray-600">{request.booking.customer?.phone || 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-                    )}
+                    {/* Customer Info hidden for pending requests */}
                     
                     {/* Action Buttons */}
                     <div className="flex gap-2 sm:gap-3">

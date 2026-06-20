@@ -161,7 +161,7 @@ export default function Driver() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">License No</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Driving License</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Verification</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Active</th>
@@ -240,10 +240,11 @@ export default function Driver() {
                   <h3 className="text-sm font-bold text-gray-900 mb-3">Personal Information</h3>
                   <div className="space-y-2 text-sm">
                     <div><span className="font-medium">Name:</span> {selectedDriver.name}</div>
-                    <div><span className="font-medium">Email:</span> {selectedDriver.email}</div>
                     <div><span className="font-medium">Phone:</span> {selectedDriver.phone}</div>
                     <div><span className="font-medium">Aadhar No:</span> {selectedDriver.aadharNo}</div>
-                    <div><span className="font-medium">License No:</span> {selectedDriver.licenseNo}</div>
+                    <div><span className="font-medium">Driving License:</span> {selectedDriver.licenseNo}</div>
+                    <div><span className="font-medium">Current Address:</span> {selectedDriver.currentAddress || 'N/A'}</div>
+                    <div><span className="font-medium">Permanent Address:</span> {selectedDriver.permanentAddress || 'N/A'}</div>
                   </div>
                   <h3 className="text-sm font-bold text-gray-900 mt-4 mb-3">Documents</h3>
                   <div className="space-y-2">
@@ -270,8 +271,7 @@ export default function Driver() {
                     <div><span className="font-medium">Alt Mobile 2:</span> {selectedDriver.alternateMobile2 || 'N/A'}</div>
                     <div><span className="font-medium">Alt Mobile 3:</span> {selectedDriver.alternateMobile3 || 'N/A'}</div>
                     <div><span className="font-medium">Alt Mobile 4:</span> {selectedDriver.alternateMobile4 || 'N/A'}</div>
-                    <div><span className="font-medium">GPay:</span> {selectedDriver.gpayNo || 'N/A'}</div>
-                    <div><span className="font-medium">PhonePe:</span> {selectedDriver.phonepeNo || 'N/A'}</div>
+                    <div><span className="font-medium">Gpay/PhonePe number:</span> {selectedDriver.gpayNo || selectedDriver.phonepeNo || 'N/A'}</div>
                     <div><span className="font-medium">Package:</span> {selectedDriver.activeSubscription?.plan?.name || 'No Active Package'}</div>
                     <div><span className="font-medium">Total Rides:</span> {selectedDriver.totalRides}</div>
                   </div>

@@ -30,11 +30,14 @@ model Customer {
 model Driver {
   id           String        @id @default(cuid())
   name         String
-  email        String        @unique
+  email        String?       @unique
   phone        String        @unique
   password     String
   aadharNo     String        @unique
   licenseNo    String        @unique
+  licenseExpiryDate String?
+  currentAddress String?
+  permanentAddress String?
   photo        String?
   dlPhoto      String?
   panPhoto     String?

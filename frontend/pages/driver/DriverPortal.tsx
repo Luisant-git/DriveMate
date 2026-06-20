@@ -221,7 +221,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
               credentials: 'include',
               body: JSON.stringify({
                   name: profileData.name,
-                  email: profileData.email,
+                  currentAddress: profileData.currentAddress,
+                  permanentAddress: profileData.permanentAddress,
                   phone: profileData.phone,
                   alternateMobile1: driver.alternateMobile1,
                   alternateMobile2: driver.alternateMobile2,
@@ -349,11 +350,52 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     </span>
                                     <span className="bg-white text-black text-[10px] sm:text-xs font-bold px-2 py-1 rounded">{trip.serviceType || trip.type}</span>
                                 </div>
-                                <div className="space-y-2 mb-3 sm:mb-4">
-                                    <p className="text-gray-400 text-xs uppercase">From</p>
-                                    <p className="font-bold">{trip.pickupLocation}</p>
-                                    <p className="text-gray-400 text-xs uppercase mt-2">To</p>
-                                    <p className="font-bold">{trip.dropLocation}</p>
+                                <div className="mb-5 mt-2">
+                                  <div className="flex gap-3 sm:gap-4 items-stretch">
+                                    <div className="flex flex-col items-center mt-1.5 mb-1.5">
+                                      <div className="w-2.5 h-2.5 bg-white rounded-full flex-shrink-0"></div>
+                                      <div className="w-0.5 flex-grow bg-gray-600 my-1"></div>
+                                      <div className="w-2.5 h-2.5 bg-white flex-shrink-0"></div>
+                                    </div>
+                                    <div className="flex-1 space-y-4 sm:space-y-5">
+                                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2.5 sm:gap-3">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Pickup</p>
+                                          <p className="font-bold text-sm text-white leading-tight break-words">{trip.pickupLocation}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 self-start">
+                                          <a 
+                                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(trip.pickupLocation || '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4285F4]/20 text-[#4285F4] rounded-full hover:bg-[#4285F4]/30 transition shadow-sm text-xs font-bold border border-[#4285F4]/10"
+                                            title="Navigate to Pickup"
+                                          >
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                                            To Pickup
+                                          </a>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2.5 sm:gap-3">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Drop-off</p>
+                                          <p className="font-bold text-sm text-white leading-tight break-words">{trip.dropLocation}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 self-start">
+                                          <a 
+                                            href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(trip.pickupLocation || '')}&destination=${encodeURIComponent(trip.dropLocation || '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 flex items-center gap-1.5 bg-gray-800 text-gray-300 rounded-full hover:bg-gray-700 transition shadow-sm text-xs font-bold border border-gray-700"
+                                            title="Navigate to Drop-off"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                                            To Drop-off
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                                 <div className="space-y-3">
                                     {trip.status === 'ONGOING' ? (
@@ -392,13 +434,66 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                       </>
                                     ) : startingTripId === trip.id ? (
                                       <div className="bg-gray-800 p-4 rounded-xl space-y-4">
-                                        <div>
-                                          <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
-                                          <input type="file" accept="image/*" onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))} className="w-full text-sm" />
-                                        </div>
-                                        <div>
-                                          <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
-                                          <input type="file" accept="image/*" onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))} className="w-full text-sm" />
+                                        <div className="space-y-4">
+                                          <div>
+                                            <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
+                                            <div className="relative">
+                                              <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                capture="environment"
+                                                id={`carFront-${trip.id}`}
+                                                className="hidden"
+                                                onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))} 
+                                              />
+                                              <label 
+                                                htmlFor={`carFront-${trip.id}`}
+                                                className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.front ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                              >
+                                                {tripPhotos.front ? (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                    Photo Captured
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                    Take Photo
+                                                  </>
+                                                )}
+                                              </label>
+                                            </div>
+                                          </div>
+
+                                          <div>
+                                            <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
+                                            <div className="relative">
+                                              <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                capture="environment"
+                                                id={`carBack-${trip.id}`}
+                                                className="hidden"
+                                                onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))} 
+                                              />
+                                              <label 
+                                                htmlFor={`carBack-${trip.id}`}
+                                                className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.back ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                              >
+                                                {tripPhotos.back ? (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                    Photo Captured
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                    Take Photo
+                                                  </>
+                                                )}
+                                              </label>
+                                            </div>
+                                          </div>
                                         </div>
                                         <div className="flex gap-2">
                                           <button 
@@ -621,6 +716,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             <h3 className="font-bold text-base sm:text-lg">{pkg.name}</h3>
                             <p className="text-2xl sm:text-3xl font-extrabold mt-2">₹{pkg.price}<span className="text-xs sm:text-sm font-normal text-gray-500">/{pkg.duration} days</span></p>
                             <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
+                            <p className="text-[10px] text-black font-extrabold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
                             
                             <button 
                                 onClick={() => handleSubscriptionBuy(pkg)}
@@ -673,32 +769,32 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                              </div>
                              
                              {/* Uber-style Stats */}
-                             <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                 <div className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm">
-                                     <div className="flex items-center gap-2 sm:gap-3">
-                                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
-                                             <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-4">
+                                 <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
+                                     <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
+                                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                                             <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                              </svg>
                                          </div>
-                                         <div className="flex-1 min-w-0">
-                                             <p className="text-xs sm:text-sm text-gray-500">Total trips completed</p>
-                                             <p className="text-xl sm:text-2xl font-bold text-black">{driver.completedTrips || 0}</p>
+                                         <div className="flex-1 min-w-0 mt-1 sm:mt-0">
+                                             <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Total trips</p>
+                                             <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{driver.completedTrips || 0}</p>
                                          </div>
                                      </div>
                                  </div>
-                                 <div className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm">
-                                     <div className="flex items-center gap-2 sm:gap-3">
-                                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                             <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
+                                     <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
+                                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                             <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 10.101c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                                              </svg>
                                          </div>
-                                         <div className="flex-1 min-w-0">
-                                             <p className="text-xs sm:text-sm text-gray-500">Average Rating</p>
-                                             <div className="flex items-baseline gap-2">
-                                                 <p className="text-xl sm:text-2xl font-bold text-black">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
-                                                 <span className="text-xs text-gray-500">({(driver as any).totalRides || 0} ratings)</span>
+                                         <div className="flex-1 min-w-0 mt-1 sm:mt-0">
+                                             <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Avg Rating</p>
+                                             <div className="flex items-baseline gap-1 mt-1">
+                                                 <p className="text-lg sm:text-2xl font-bold text-black leading-none">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
+                                                 <span className="text-[9px] sm:text-xs text-gray-500 truncate">({(driver as any).totalRides || 0} rides)</span>
                                              </div>
                                          </div>
                                      </div>
@@ -738,22 +834,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                  
                                  return (
                                  <div className="mb-6">
-                                     <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
-                                         <div className="flex items-center gap-2 sm:gap-3">
-                                             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
-                                                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <div className="bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm">
+                                         <div className="flex items-center gap-2.5 sm:gap-3">
+                                             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                                                 <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                                  </svg>
                                              </div>
                                              <div className="flex-1 min-w-0">
                                                  <div className="flex items-center justify-between gap-2">
-                                                     <p className="text-xs sm:text-sm text-gray-500">Current Plan</p>
-                                                     <p className="text-xs px-2 py-1 rounded border text-blue-600 border-blue-200 bg-blue-50">
+                                                     <p className="text-[10px] sm:text-sm text-gray-500 uppercase font-bold tracking-wide">Current Plan</p>
+                                                     <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-blue-600 border-blue-200 bg-blue-50 font-bold">
                                                          {currentSubscription.paymentMethod || 'N/A'}
                                                      </p>
                                                  </div>
-                                                 <p className="text-base sm:text-lg md:text-xl font-bold text-black truncate">{currentSubscription.plan.name}</p>
-                                                 <p className="text-xs px-2 py-1 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1">
+                                                 <p className="text-xs sm:text-lg md:text-xl font-bold text-black truncate mt-0.5">{currentSubscription.plan.name}</p>
+                                                 <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1 font-bold">
                                                      {daysLeft} days left
                                                  </p>
                                              </div>
@@ -787,7 +883,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
                              <div className="space-y-4">
                                  <div className="p-4 bg-gray-50 rounded-xl">
-                                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Documents</p>
+                                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Documents & Details</p>
                                      <div className="space-y-2 text-sm">
                                          <div className="flex justify-between items-center">
                                              <span className="text-gray-500">License:</span>
@@ -797,6 +893,14 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                              <span className="text-gray-500">Aadhar:</span>
                                              <span className="font-medium text-right break-all">{driver.aadharNo || profileData.aadharNo}</span>
                                          </div>
+                                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-2">
+                                             <span className="text-gray-500 text-xs mb-1">Current Address:</span>
+                                             <span className="font-medium">{driver.currentAddress || 'Not set'}</span>
+                                         </div>
+                                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-2">
+                                             <span className="text-gray-500 text-xs mb-1">Permanent Address:</span>
+                                             <span className="font-medium">{driver.permanentAddress || 'Not set'}</span>
+                                         </div>
                                      </div>
                                  </div>
 
@@ -804,7 +908,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      <p className="text-xs text-gray-400 font-bold uppercase mb-2">Payment & Contact</p>
                                      <div className="space-y-2 text-sm">
                                          <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-200 pb-2">
-                                             <span className="text-gray-500 mb-1 sm:mb-0">UPI ID:</span>
+                                             <span className="text-gray-500 mb-1 sm:mb-0">Gpay/PhonePe number:</span>
                                              <span className="font-medium break-all">{driver.upiId || driver.gpayNo || 'Not set'}</span>
                                          </div>
                                          <div>
@@ -908,6 +1012,24 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     onChange={e => setProfileData({...profileData, phone: e.target.value})}
                                 />
                             </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Current Address</label>
+                                <textarea 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm resize-none"
+                                    rows={2}
+                                    value={profileData.currentAddress || ''}
+                                    onChange={e => setProfileData({...profileData, currentAddress: e.target.value})}
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Permanent Address</label>
+                                <textarea 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm resize-none"
+                                    rows={2}
+                                    value={profileData.permanentAddress || ''}
+                                    onChange={e => setProfileData({...profileData, permanentAddress: e.target.value})}
+                                />
+                            </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 1</label>
                                 <input 
@@ -957,10 +1079,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1">UPI ID (GPay/PhonePe)</label>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Gpay/PhonePe number</label>
                                 <input 
                                     type="text" 
                                     className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    placeholder="Enter mobile number"
                                     value={profileData.upiId || ''}
                                     onChange={e => setProfileData({...profileData, upiId: e.target.value})}
                                 />

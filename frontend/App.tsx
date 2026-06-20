@@ -135,9 +135,9 @@ const App: React.FC = () => {
       <Route path="/login" element={<Navigate to="/customer/login" replace />} />
       <Route path="/customer/login" element={!currentUser ? <AuthLayout><CustomerLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
       <Route path="/driver/login" element={!currentUser ? <AuthLayout><DriverLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
-      <Route path="/driver/register" element={!currentUser ? <AuthLayout wide><DriverRegister /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/driver/register" element={!currentUser ? <AuthLayout><DriverRegister /></AuthLayout> : <Navigate to="/portal" />} />
       <Route path="/lead/login" element={!currentUser ? <AuthLayout><LeadLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
-      <Route path="/lead/register" element={!currentUser ? <AuthLayout wide><LeadRegister /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/lead/register" element={!currentUser ? <AuthLayout><LeadRegister /></AuthLayout> : <Navigate to="/portal" />} />
       <Route path="/admin/login" element={!currentUser ? <AuthLayout><AdminLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />

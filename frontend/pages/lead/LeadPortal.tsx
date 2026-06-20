@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../../api/config.js';
 
 interface LeadPortalProps {
-  onLogout?: () => void;
+  onLogout?: () => void;   
 }
 
 interface Lead {
