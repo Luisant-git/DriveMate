@@ -716,6 +716,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             <h3 className="font-bold text-base sm:text-lg">{pkg.name}</h3>
                             <p className="text-2xl sm:text-3xl font-extrabold mt-2">₹{pkg.price}<span className="text-xs sm:text-sm font-normal text-gray-500">/{pkg.duration} days</span></p>
                             <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
+                            <p className="text-[10px] text-black font-extrabold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
                             
                             <button 
                                 onClick={() => handleSubscriptionBuy(pkg)}
