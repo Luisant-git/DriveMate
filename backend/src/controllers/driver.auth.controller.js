@@ -5,34 +5,31 @@ import prisma from '../config/database.js';
 export const driverRegister = async (req, res) => {
   try {
     const { 
-      name, email, phone, password, aadharNo, licenseNo, 
+      name, phone, password, aadharNo, licenseNo, 
+      currentAddress, permanentAddress,
       altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto,
       policeVerificationPhoto
     } = req.body;
     
     // Check if driver already exists
     const existingDriver = await prisma.driver.findFirst({
-      where: {
-        OR: [
-          { email },
-          { phone }
-        ]
-      }
+      where: { phone }
     });
 
     if (existingDriver) {
-      return res.status(400).json({ error: 'Driver with this email or phone already exists' });
+      return res.status(400).json({ error: 'Driver with this phone already exists' });
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const driverData = {
       name,
-      email,
       phone,
       password: hashedPassword,
       aadharNo,
       licenseNo,
+      ...(currentAddress && { currentAddress }),
+      ...(permanentAddress && { permanentAddress }),
       ...(altPhone?.[0] && { alternateMobile1: altPhone[0] }),
       ...(altPhone?.[1] && { alternateMobile2: altPhone[1] }),
       ...(altPhone?.[2] && { alternateMobile3: altPhone[2] }),
@@ -57,7 +54,6 @@ export const driverRegister = async (req, res) => {
       token,
       driver: { 
         id: driver.id, 
-        email,
         name, 
         phone, 
         status: driver.status
