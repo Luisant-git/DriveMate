@@ -364,6 +364,11 @@ model Booking {
   paymentStatus   String      @default("UNPAID") // PAID, UNPAID
   status          BookingStatus @default(PENDING)
   
+  // Trip execution fields
+  actualStartTime DateTime?
+  carFrontPhoto   String?
+  carBackPhoto    String?
+  
   // Admin workflow fields
   adminReviewedAt DateTime?
   selectedPackageType PackageType?
@@ -380,6 +385,9 @@ model Booking {
   
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  
+  rating          Int?
+  feedback        String?
 
   @@map("bookings")
 }
@@ -405,6 +413,11 @@ model LeadBooking {
   advancePayment  Float       @default(0)
   paymentMethod   String?
   status          BookingStatus @default(PENDING)
+  
+  // Trip execution fields
+  actualStartTime DateTime?
+  carFrontPhoto   String?
+  carBackPhoto    String?
   
   adminReviewedAt DateTime?
   selectedPackageType PackageType?

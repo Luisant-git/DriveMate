@@ -82,7 +82,7 @@ const App: React.FC = () => {
     } catch (error) {
       setCurrentUser(user);
     } finally {
-      navigate('/app'); // Navigate to the app after profile is ready
+      navigate('/portal'); // Navigate to the portal after profile is ready
     }
   };
 
@@ -133,16 +133,16 @@ const App: React.FC = () => {
       
       {/* Auth Routes */}
       <Route path="/login" element={<Navigate to="/customer/login" replace />} />
-      <Route path="/customer/login" element={!currentUser ? <AuthLayout><CustomerLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/app" />} />
-      <Route path="/driver/login" element={!currentUser ? <AuthLayout><DriverLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/app" />} />
-      <Route path="/driver/register" element={!currentUser ? <AuthLayout wide><DriverRegister /></AuthLayout> : <Navigate to="/app" />} />
-      <Route path="/lead/login" element={!currentUser ? <AuthLayout><LeadLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/app" />} />
-      <Route path="/lead/register" element={!currentUser ? <AuthLayout wide><LeadRegister /></AuthLayout> : <Navigate to="/app" />} />
-      <Route path="/admin/login" element={!currentUser ? <AuthLayout><AdminLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/app" />} />
+      <Route path="/customer/login" element={!currentUser ? <AuthLayout><CustomerLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/driver/login" element={!currentUser ? <AuthLayout><DriverLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/driver/register" element={!currentUser ? <AuthLayout wide><DriverRegister /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/lead/login" element={!currentUser ? <AuthLayout><LeadLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/lead/register" element={!currentUser ? <AuthLayout wide><LeadRegister /></AuthLayout> : <Navigate to="/portal" />} />
+      <Route path="/admin/login" element={!currentUser ? <AuthLayout><AdminLogin onLogin={handleLogin} /></AuthLayout> : <Navigate to="/portal" />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
 
-      <Route path="/app/*" element={
+      <Route path="/portal/*" element={
         currentUser ? (
           <Layout currentUser={currentUser} onLogout={handleLogout} onSwitchRole={handleDevSwitch}>
             {currentUser.role === UserRole.CUSTOMER && <CustomerPortal customer={currentUser as any} />}

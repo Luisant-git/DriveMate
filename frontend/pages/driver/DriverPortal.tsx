@@ -3,6 +3,32 @@ import { Driver, Trip, Package } from '../../types';
 import { tripAPI } from '../../api/trip';
 import DriverBookingRequests from './DriverBookingRequests';
 import { API_BASE_URL } from '../../api/config.js';
+import { uploadFile } from '../../api/upload.js';
+
+const TripTimer = ({ startTime }: { startTime: string }) => {
+  const [elapsed, setElapsed] = useState('');
+
+  useEffect(() => {
+    if (!startTime) return;
+    const updateTimer = () => {
+      const now = new Date();
+      const start = new Date(startTime);
+      const diff = now.getTime() - start.getTime();
+      
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      
+      setElapsed(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <span className="font-mono bg-green-900 px-2 py-0.5 rounded text-sm">{elapsed}</span>;
+};
 
 interface DriverPortalProps {
   driver: Driver;
@@ -17,6 +43,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [startingTripId, setStartingTripId] = useState<string | null>(null);
+  const [tripPhotos, setTripPhotos] = useState<{ front: File | null, back: File | null }>({ front: null, back: null });
+  const [isStartingTrip, setIsStartingTrip] = useState(false);
 
   // Profile Edit States
   const [profileData, setProfileData] = useState({
@@ -312,7 +341,12 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                         {activeTrips.map(trip => (
                             <div key={trip.id} className="bg-black text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
                                 <div className="flex justify-between items-center mb-3 sm:mb-4 border-b border-gray-800 pb-2">
-                                    <span className="font-bold text-base sm:text-lg">On Trip</span>
+                                    <span className="font-bold text-base sm:text-lg flex items-center gap-2">
+                                      {trip.status === 'ONGOING' ? 'On Trip' : 'Upcoming'}
+                                      {trip.status === 'ONGOING' && trip.actualStartTime && (
+                                        <TripTimer startTime={trip.actualStartTime} />
+                                      )}
+                                    </span>
                                     <span className="bg-white text-black text-[10px] sm:text-xs font-bold px-2 py-1 rounded">{trip.serviceType || trip.type}</span>
                                 </div>
                                 <div className="space-y-2 mb-3 sm:mb-4">
@@ -322,11 +356,19 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     <p className="font-bold">{trip.dropLocation}</p>
                                 </div>
                                 <div className="space-y-3">
-                                    <button 
-                                        onClick={async () => {
-                                            if (window.confirm('Mark this trip as completed?\n\nCustomer: ' + (trip.customer?.name || 'N/A') + '\nFrom: ' + trip.pickupLocation + '\nTo: ' + trip.dropLocation)) {
+                                    {trip.status === 'ONGOING' ? (
+                                      <>
+                                        <button 
+                                            onClick={async () => {
+                                            const finalAmountInput = window.prompt(
+                                              `Mark this trip as completed?\n\nCustomer: ${trip.customer?.name || 'N/A'}\nFrom: ${trip.pickupLocation}\nTo: ${trip.dropLocation}\n\nEnter the final collected amount (₹):`, 
+                                              (trip.estimatedCost || trip.estimateAmount || 0).toString()
+                                            );
+                                            
+                                            if (finalAmountInput !== null) {
+                                                const finalAmount = parseFloat(finalAmountInput) || 0;
                                                 try {
-                                                  const result = await tripAPI.completeTrip(trip.id);
+                                                  const result = await tripAPI.completeTrip(trip.id, { finalAmount });
                                                   if (result.success) {
                                                     alert('✓ Trip completed successfully!');
                                                     const driverRes = await tripAPI.getDriverTrips();
@@ -340,13 +382,86 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                 }
                                             }
                                         }}
-                                        className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        Complete Trip
-                                    </button>
+                                            className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Complete Trip
+                                        </button>
+                                      </>
+                                    ) : startingTripId === trip.id ? (
+                                      <div className="bg-gray-800 p-4 rounded-xl space-y-4">
+                                        <div>
+                                          <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
+                                          <input type="file" accept="image/*" onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))} className="w-full text-sm" />
+                                        </div>
+                                        <div>
+                                          <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
+                                          <input type="file" accept="image/*" onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))} className="w-full text-sm" />
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <button 
+                                            disabled={isStartingTrip}
+                                            onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
+                                            className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button 
+                                            disabled={isStartingTrip}
+                                            onClick={async () => {
+                                              try {
+                                                setIsStartingTrip(true);
+                                                let frontUrl = null, backUrl = null;
+                                                
+                                                if (tripPhotos.front) {
+                                                  const frontRes = await uploadFile(tripPhotos.front);
+                                                  if (frontRes.success && frontRes.path) frontUrl = frontRes.path.split('/').pop();
+                                                }
+                                                if (tripPhotos.back) {
+                                                  const backRes = await uploadFile(tripPhotos.back);
+                                                  if (backRes.success && backRes.path) backUrl = backRes.path.split('/').pop();
+                                                }
+                                                
+                                                const result = await tripAPI.startTrip(trip.id, {
+                                                  carFrontPhoto: frontUrl,
+                                                  carBackPhoto: backUrl
+                                                });
+                                                
+                                                if (result.success) {
+                                                  setStartingTripId(null);
+                                                  setTripPhotos({ front: null, back: null });
+                                                  const driverRes = await tripAPI.getDriverTrips();
+                                                  if (driverRes.success) setTrips(driverRes.trips);
+                                                } else {
+                                                  alert('Failed to start trip: ' + result.error);
+                                                }
+                                              } catch (error) {
+                                                console.error('Start trip error:', error);
+                                                alert('Failed to start trip');
+                                              } finally {
+                                                setIsStartingTrip(false);
+                                              }
+                                            }}
+                                            className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
+                                          >
+                                            {isStartingTrip ? 'Starting...' : 'Confirm Start'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button 
+                                          onClick={() => setStartingTripId(trip.id)}
+                                          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                      >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
+                                          Start Trip
+                                      </button>
+                                    )}
                                     
                                     {/* Trip Details Summary */}
                                     {/* <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
@@ -434,7 +549,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                          <p className="text-gray-500 italic text-sm">No completed trips yet.</p>
                      ) : (
                          pastTrips.map(trip => (
-                             <div key={trip.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-3">
+                             <div key={trip.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 shadow-sm mb-4 hover:border-gray-300 transition-colors">
                                  <div className="flex justify-between items-center mb-2">
                                      <span className="text-xs font-bold text-gray-500">{trip.startDate} • {trip.startTime}</span>
                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${trip.status === 'CANCELLED' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
@@ -455,14 +570,25 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
                                  <div className="flex justify-between items-end border-t border-gray-100 pt-2 mt-2">
                                       <div>
-                                          <p className="text-xs text-gray-500">{trip.type}</p>
-                                          {trip.rating && (
-                                              <p className="text-xs font-bold text-yellow-500 mt-1">
-                                                  {'★'.repeat(trip.rating)}
-                                              </p>
+                                          <div className="flex gap-2 items-center">
+                                             <p className="text-xs text-gray-500">{trip.type}</p>
+                                             {trip.duration && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 rounded-full font-bold">⏱ {trip.duration}</span>}
+                                          </div>
+                                          {(trip as any).rating && (
+                                              <div className="mt-1">
+                                                  <p className="text-xs font-bold text-yellow-500">
+                                                      {'★'.repeat((trip as any).rating)}
+                                                  </p>
+                                                  {(trip as any).feedback && (
+                                                      <p className="text-xs text-gray-600 italic mt-0.5">"{(trip as any).feedback}"</p>
+                                                  )}
+                                              </div>
                                           )}
                                       </div>
-                                      <p className="font-bold text-lg">₹{trip.estimatedCost}</p>
+                                      <div className="text-right">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Final Amount</p>
+                                        <p className="font-bold text-lg text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
+                                      </div>
                                  </div>
                              </div>
                          ))
@@ -547,7 +673,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                              </div>
                              
                              {/* Uber-style Stats */}
-                             <div className="mb-6">
+                             <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                  <div className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm">
                                      <div className="flex items-center gap-2 sm:gap-3">
                                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
@@ -558,6 +684,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          <div className="flex-1 min-w-0">
                                              <p className="text-xs sm:text-sm text-gray-500">Total trips completed</p>
                                              <p className="text-xl sm:text-2xl font-bold text-black">{driver.completedTrips || 0}</p>
+                                         </div>
+                                     </div>
+                                 </div>
+                                 <div className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm">
+                                     <div className="flex items-center gap-2 sm:gap-3">
+                                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                             <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 10.101c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                             </svg>
+                                         </div>
+                                         <div className="flex-1 min-w-0">
+                                             <p className="text-xs sm:text-sm text-gray-500">Average Rating</p>
+                                             <div className="flex items-baseline gap-2">
+                                                 <p className="text-xl sm:text-2xl font-bold text-black">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
+                                                 <span className="text-xs text-gray-500">({(driver as any).totalRides || 0} ratings)</span>
+                                             </div>
                                          </div>
                                      </div>
                                  </div>

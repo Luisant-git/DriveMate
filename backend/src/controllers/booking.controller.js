@@ -72,6 +72,72 @@ export const createBooking = async (req, res) => {
   }
 };
 
+export const adminCreateBooking = async (req, res) => {
+  try {
+    const { 
+      customerName,
+      customerPhone,
+      pickupLocation, 
+      dropLocation, 
+      serviceType,
+      tripType,
+      startDateTime, 
+      estimateAmount
+    } = req.body;
+
+    if (!customerName || !customerPhone || !pickupLocation || !serviceType || !startDateTime) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    // Find or create customer
+    let customer = await prisma.customer.findUnique({
+      where: { phone: customerPhone }
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          name: customerName,
+          phone: customerPhone,
+          email: `${customerPhone}@temp.com`, // temporary placeholder
+          password: 'admin_created',
+        }
+      });
+    }
+
+    const booking = await prisma.booking.create({
+      data: {
+        customerId: customer.id,
+        pickupLocation,
+        dropLocation,
+        serviceType,
+        tripType: tripType || 'One Way',
+        startDateTime: new Date(startDateTime),
+        estimateAmount: parseFloat(estimateAmount) || 0,
+        paymentMethod: 'CASH',
+        paymentStatus: 'UNPAID',
+        status: 'PENDING'
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      booking,
+      message: 'Booking request sent to drivers!'
+    });
+
+    // Auto-route booking
+    autoRouteBooking(booking.id).then(result => {
+      console.log(`[AutoRoute] Result for booking ${booking.id}:`, result);
+    }).catch(err => {
+      console.error(`[AutoRoute] Failed for booking ${booking.id}:`, err.message);
+    });
+  } catch (error) {
+    console.error('Admin Booking creation error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const getEstimate = async (req, res) => {
   try {
     const { packageType, hours } = req.query;
@@ -134,7 +200,9 @@ export const getCustomerBookings = async (req, res) => {
             alternateMobile3: true,
             alternateMobile4: true,
             photo: true,
-            dlPhoto: true
+            dlPhoto: true,
+            rating: true,
+            totalRides: true
           }
         },
         lead: {
@@ -149,7 +217,9 @@ export const getCustomerBookings = async (req, res) => {
             alternateMobile3: true,
             alternateMobile4: true,
             photo: true,
-            dlPhoto: true
+            dlPhoto: true,
+            rating: true,
+            totalRides: true
           }
         },
       },
@@ -292,6 +362,78 @@ export const getLeadCompletedTrips = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching completed trips:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const rateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, feedback } = req.body;
+    const userId = req.user.userId || req.user.id;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, error: 'Valid rating between 1 and 5 is required' });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { driver: true }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    if (booking.customerId !== userId) {
+      return res.status(403).json({ success: false, error: 'Not authorized to rate this booking' });
+    }
+
+    if (booking.status !== 'COMPLETED') {
+      return res.status(400).json({ success: false, error: 'Can only rate completed bookings' });
+    }
+
+    if (booking.rating) {
+      return res.status(400).json({ success: false, error: 'Booking has already been rated' });
+    }
+
+    // Update booking with rating and feedback
+    const updatedBooking = await prisma.booking.update({
+      where: { id },
+      data: {
+        rating,
+        feedback
+      }
+    });
+
+    // Update driver's average rating
+    if (booking.driverId) {
+      const driverBookings = await prisma.booking.findMany({
+        where: { 
+          driverId: booking.driverId,
+          rating: { not: null }
+        }
+      });
+      
+      const totalRatings = driverBookings.length;
+      const sumRatings = driverBookings.reduce((sum, b) => sum + (b.rating || 0), 0);
+      const newAverageRating = totalRatings > 0 ? (sumRatings / totalRatings) : rating;
+
+      await prisma.driver.update({
+        where: { id: booking.driverId },
+        data: {
+          rating: newAverageRating
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      booking: updatedBooking,
+      message: 'Rating submitted successfully'
+    });
+  } catch (error) {
+    console.error('Error rating booking:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

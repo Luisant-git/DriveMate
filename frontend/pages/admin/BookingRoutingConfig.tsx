@@ -29,8 +29,10 @@ export default function BookingRoutingConfig() {
     try {
       const res = await apiClient.get('/booking-routing');
       setConfigs(res.data.configs || []);
-      setDriverPlans(res.data.driverPlans || []);
-      setLeadPlans(res.data.leadPlans || []);
+      const sortedDriverPlans = (res.data.driverPlans || []).sort((a, b) => b.price - a.price);
+      const sortedLeadPlans = (res.data.leadPlans || []).sort((a, b) => b.price - a.price);
+      setDriverPlans(sortedDriverPlans);
+      setLeadPlans(sortedLeadPlans);
     } catch (e) {
       console.error(e);
     } finally {
@@ -139,7 +141,7 @@ export default function BookingRoutingConfig() {
         </button>
       </div>
       <p className="text-xs text-gray-500 mb-5">
-        Map driver and lead subscription plans to service + trip type combinations. Bookings are automatically routed to mapped subscribers.
+        Map driver and lead subscription plans to service + trip type combinations. Bookings are automatically routed to mapped subscribers in <strong>Priority Tiers based on Plan Price</strong>. The highest priced plans receive the booking first. If no one accepts within 2 minutes, it cascades to the next highest price tier, and so on.
       </p>
 
       {configs.length === 0 ? (

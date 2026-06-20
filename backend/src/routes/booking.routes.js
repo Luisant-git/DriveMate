@@ -1,6 +1,6 @@
 import express from 'express';
-import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips } from '../controllers/booking.controller.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips, rateBooking, adminCreateBooking } from '../controllers/booking.controller.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -78,6 +78,15 @@ router.post('/', authenticateToken, createBooking);
 
 /**
  * @swagger
+ * /api/bookings/admin/create-booking:
+ *   post:
+ *     summary: Admin creates a new booking
+ *     tags: [Booking]
+ */
+router.post('/admin/create-booking', authenticateToken, requireRole(['ADMIN']), adminCreateBooking);
+
+/**
+ * @swagger
  * /api/bookings/estimate:
  *   get:
  *     summary: Get booking estimate
@@ -146,6 +155,41 @@ router.get('/my-bookings', authenticateToken, getCustomerBookings);
  *                 $ref: '#/components/schemas/Booking'
  */
 router.get('/driver-bookings', authenticateToken, getDriverBookings);
+
+/**
+ * @swagger
+ * /api/bookings/{id}/rate:
+ *   post:
+ *     summary: Rate a completed booking
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - rating
+ *             properties:
+ *               rating:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *               feedback:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rating submitted successfully
+ */
+router.post('/:id/rate', authenticateToken, rateBooking);
 
 router.get('/lead/allocated', authenticateLead, getLeadBookings);
 router.get('/lead/completed', authenticateLead, getLeadCompletedTrips);

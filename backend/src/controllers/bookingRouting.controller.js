@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import { driverBookingAssignment, leadBookingAssignment } from './whatsapp.controller.js';
 
 export const getAllRoutingConfigs = async (req, res) => {
   try {
@@ -88,29 +89,70 @@ export const autoRouteBooking = async (bookingId) => {
     }
 
     console.log(`[AutoRoute] Routing booking ${bookingId} for ${serviceType} - ${tripType}`);
-    console.log(`[AutoRoute] Driver plans: ${config.driverPlanIds}, Lead plans: ${config.leadPlanIds}`);
 
-    let totalDrivers = 0;
-    let totalLeads = 0;
+    // Fetch all plans to get their prices
+    const driverPlans = await prisma.subscriptionPlan.findMany({
+      where: { id: { in: config.driverPlanIds } }
+    });
+    const leadPlans = await prisma.leadSubscriptionPlan.findMany({
+      where: { id: { in: config.leadPlanIds } }
+    });
 
-    // Send to drivers for each mapped driver plan
-    for (const planId of config.driverPlanIds) {
+    // Group plans by price
+    const tiersMap = {};
+    for (const p of driverPlans) {
+      if (!tiersMap[p.price]) tiersMap[p.price] = { driverPlanIds: [], leadPlanIds: [] };
+      tiersMap[p.price].driverPlanIds.push(p.id);
+    }
+    for (const p of leadPlans) {
+      if (!tiersMap[p.price]) tiersMap[p.price] = { driverPlanIds: [], leadPlanIds: [] };
+      tiersMap[p.price].leadPlanIds.push(p.id);
+    }
+
+    // Sort prices descending
+    const sortedPrices = Object.keys(tiersMap).map(Number).sort((a, b) => b - a);
+    console.log(`[AutoRoute] Found ${sortedPrices.length} price tiers for routing.`);
+
+    // Start background processing
+    processTiersInBackground(bookingId, tiersMap, sortedPrices, booking);
+
+    return { success: true, message: 'Routing started in background', tiers: sortedPrices.length };
+  } catch (error) {
+    console.error('[AutoRoute] Error:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+const processTiersInBackground = async (bookingId, tiersMap, sortedPrices, booking) => {
+  for (let i = 0; i < sortedPrices.length; i++) {
+    const price = sortedPrices[i];
+    const tier = tiersMap[price];
+
+    // Check if booking is still available
+    const currentBooking = await prisma.booking.findUnique({
+      where: { id: bookingId }
+    });
+
+    if (!currentBooking || currentBooking.driverId || currentBooking.leadId) {
+      console.log(`[AutoRoute] Booking ${bookingId} is already allocated. Stopping routing.`);
+      break;
+    }
+
+    console.log(`[AutoRoute] Processing Tier ${i + 1}/${sortedPrices.length} (Price: ₹${price}) for booking ${bookingId}`);
+
+    let driversSent = 0;
+    let leadsSent = 0;
+
+    // Send to drivers
+    for (const planId of tier.driverPlanIds) {
       const drivers = await prisma.driver.findMany({
         where: {
           isActive: true,
-          subscriptions: {
-            some: {
-              status: 'ACTIVE',
-              planId,
-              endDate: { gte: new Date() }
-            }
-          }
+          subscriptions: { some: { status: 'ACTIVE', planId, endDate: { gte: new Date() } } }
         }
       });
-
       if (drivers.length === 0) continue;
 
-      // Get existing responses to avoid duplicates
       const existing = await prisma.bookingResponse.findMany({
         where: { bookingId, driverId: { in: drivers.map(d => d.id) } },
         select: { driverId: true }
@@ -123,26 +165,39 @@ export const autoRouteBooking = async (bookingId) => {
           data: newDrivers.map(d => ({ bookingId, driverId: d.id, status: 'PENDING' })),
           skipDuplicates: true
         });
-        totalDrivers += newDrivers.length;
-        console.log(`[AutoRoute] Sent to ${newDrivers.length} drivers for plan ${planId}`);
+        driversSent += newDrivers.length;
+
+        // Send WA
+        for (const driver of newDrivers) {
+          if (driver.phone) {
+            try {
+              const mockReq = { body: {
+                phone: driver.phone,
+                templateName: 'driver_booking_assignment1',
+                parameters: {
+                  bookingType: `${booking.serviceType} - ${booking.tripType || 'One Way'}`,
+                  fareAmount: `₹${booking.estimateAmount || 0}`,
+                  pickup: booking.pickupLocation,
+                  destination: booking.dropLocation,
+                  tripTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+                }
+              }};
+              const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
+              await driverBookingAssignment(mockReq, mockRes);
+            } catch (e) { console.error('[AutoRoute] WA Driver error:', e.message); }
+          }
+        }
       }
     }
 
-    // Send to leads for each mapped lead plan
-    for (const planId of config.leadPlanIds) {
+    // Send to leads
+    for (const planId of tier.leadPlanIds) {
       const leads = await prisma.lead.findMany({
         where: {
           isActive: true,
-          leadSubscriptions: {
-            some: {
-              status: 'ACTIVE',
-              planId,
-              endDate: { gte: new Date() }
-            }
-          }
+          leadSubscriptions: { some: { status: 'ACTIVE', planId, endDate: { gte: new Date() } } }
         }
       });
-
       if (leads.length === 0) continue;
 
       const existing = await prisma.leadBookingResponse.findMany({
@@ -157,34 +212,46 @@ export const autoRouteBooking = async (bookingId) => {
           data: newLeads.map(l => ({ bookingId, leadId: l.id, status: 'PENDING' })),
           skipDuplicates: true
         });
+        leadsSent += newLeads.length;
 
-        // Update booking with lead package reference (use first plan)
-        if (!booking.selectedLeadPackageId) {
-          await prisma.booking.update({
-            where: { id: bookingId },
-            data: { selectedLeadPackageId: planId }
-          });
+        // Send WA
+        for (const lead of newLeads) {
+          if (lead.phone) {
+            try {
+              const mockReq = { body: {
+                phone: lead.phone,
+                templateName: 'driver_booking_assignment1',
+                parameters: {
+                  bookingType: `${booking.serviceType} - ${booking.tripType || 'One Way'}`,
+                  fareAmount: `₹${booking.estimateAmount || 0}`,
+                  pickup: booking.pickupLocation,
+                  destination: booking.dropLocation,
+                  tripTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+                }
+              }};
+              const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
+              await leadBookingAssignment(mockReq, mockRes);
+            } catch (e) { console.error('[AutoRoute] WA Lead error:', e.message); }
+          }
         }
-
-        totalLeads += newLeads.length;
-        console.log(`[AutoRoute] Sent to ${newLeads.length} leads for plan ${planId}`);
       }
     }
 
-    // Mark booking as CONFIRMED and reviewed
+    console.log(`[AutoRoute] Tier ${i + 1} sent to ${driversSent} drivers and ${leadsSent} leads.`);
+
+    if ((driversSent > 0 || leadsSent > 0) && i < sortedPrices.length - 1) {
+      console.log(`[AutoRoute] Waiting 2 minutes for Tier ${i + 1} responses...`);
+      await new Promise(resolve => setTimeout(resolve, 2 * 60 * 1000));
+    }
+  }
+
+  // After all tiers, update status to CONFIRMED (meaning fully broadcasted) if not yet allocated
+  const finalCheck = await prisma.booking.findUnique({ where: { id: bookingId } });
+  if (finalCheck && !finalCheck.driverId && !finalCheck.leadId && finalCheck.status === 'PENDING') {
     await prisma.booking.update({
       where: { id: bookingId },
-      data: {
-        status: 'CONFIRMED',
-        adminReviewedAt: new Date(),
-        selectedPackageType: config.driverPlanIds.length > 0 ? 'LOCAL' : null
-      }
+      data: { status: 'CONFIRMED', adminReviewedAt: new Date() }
     });
-
-    console.log(`[AutoRoute] Done. Sent to ${totalDrivers} drivers and ${totalLeads} leads`);
-    return { success: true, totalDrivers, totalLeads };
-  } catch (error) {
-    console.error('[AutoRoute] Error:', error.message);
-    return { success: false, error: error.message };
+    console.log(`[AutoRoute] Routing finished. Booking ${bookingId} broadcasted to all tiers.`);
   }
 };
