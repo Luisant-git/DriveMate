@@ -11,6 +11,7 @@ export default function PendingDriverApproval() {
   const [showChooseDriver, setShowChooseDriver] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchBookingsWithAcceptedDrivers();
@@ -54,7 +55,7 @@ export default function PendingDriverApproval() {
       
       // Check if driver has any active or upcoming trips that might conflict
       const conflictingTrip = trips.find(trip => 
-        trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING'].includes(trip.status)
+        trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING', 'ONGOING'].includes(trip.status)
       );
       
       return !!conflictingTrip;
@@ -139,7 +140,7 @@ export default function PendingDriverApproval() {
         const trips = tripsRes.data?.trips || [];
         // Check if driver has any active or pending trips
         const activeTrip = trips.find(trip => 
-          trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING'].includes(trip.status)
+          trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING', 'ONGOING'].includes(trip.status)
         );
         busyStatus[driver.id] = !!activeTrip;
       }
@@ -276,7 +277,21 @@ export default function PendingDriverApproval() {
         {/* Choose Another Driver */}
         {showChooseDriver && (
           <>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Available Drivers</h2>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Available Drivers</h2>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Search name or phone..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition w-full sm:w-64 shadow-sm"
+                />
+                <svg className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
             {loadingDrivers ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                 <p className="text-gray-500 text-sm">Loading drivers...</p>
@@ -286,60 +301,81 @@ export default function PendingDriverApproval() {
                 <p className="text-gray-500 text-sm">No drivers available</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {allDrivers.filter(driver => {
-                  const allocatedDriverIds = acceptedDrivers.map(r => r.driver?.id).filter(Boolean);
-                  return !allocatedDriverIds.includes(driver.id) && driver.id !== selectedBooking.allocatedDriverId;
-                }).map(driver => {
-                  const isBusy = driverBusyStatus[driver.id];
-                  return (
-                    <div key={driver.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                          {driver?.name?.[0] || 'D'}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-base font-semibold text-gray-900">{driver?.name || 'Driver'}</p>
-                          <p className="text-sm text-gray-600">{driver?.phone || 'N/A'}</p>
-                        </div>
-                        {isBusy && (
-                          <span className="inline-block bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-semibold">
-                            Busy
-                          </span>
-                        )}
-                        {driver?.rating > 0 && !isBusy && (
-                          <div className="flex items-center gap-1">
-                            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            <span className="text-sm font-semibold text-gray-900">{driver.rating}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {(driver?.vehicleType || driver?.vehicleNo) && (
-                        <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                          <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {driver.vehicleType || 'N/A'} • {driver.vehicleNo || 'N/A'}
-                          </p>
-                        </div>
-                      )}
-                      
-                      <button 
-                        onClick={() => approveDriver(driver.id, false, true)} 
-                        disabled={isBusy}
-                        className={`w-full px-4 py-3 rounded-xl font-semibold text-sm transition ${
-                          isBusy 
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
-                      >
-                        {isBusy ? 'Driver Busy' : 'Allocate Driver'}
-                      </button>
-                    </div>
-                  );
-                })}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px]">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Driver</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {allDrivers.filter(driver => {
+                        const allocatedDriverIds = acceptedDrivers.map(r => r.driver?.id).filter(Boolean);
+                        const isNotAllocated = !allocatedDriverIds.includes(driver.id) && driver.id !== selectedBooking.allocatedDriverId;
+                        
+                        if (!isNotAllocated) return false;
+                        
+                        if (searchQuery.trim() === '') return true;
+                        const q = searchQuery.toLowerCase();
+                        return (driver.name?.toLowerCase().includes(q) || driver.phone?.includes(q) || driver.vehicleNo?.toLowerCase().includes(q));
+                      }).map((driver, index) => {
+                        const isBusy = driverBusyStatus[driver.id];
+                        return (
+                          <tr key={driver.id} className="hover:bg-gray-50 transition">
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-gray-700 font-semibold text-xs">{driver?.name?.[0] || 'D'}</span>
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-gray-900 truncate">{driver?.name || 'Driver'}</p>
+                                    {driver?.rating > 0 && (
+                                      <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100 flex-shrink-0">
+                                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                        <span className="text-[10px] font-bold text-yellow-700">{driver.rating}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-600 truncate">{driver?.phone || 'N/A'}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              {isBusy ? (
+                                <span className="inline-block bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-semibold border border-red-200">
+                                  Busy
+                                </span>
+                              ) : (
+                                <span className="inline-block bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-semibold border border-green-200">
+                                  Available
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-4">
+                              <button 
+                                onClick={() => approveDriver(driver.id, false, true)} 
+                                disabled={isBusy}
+                                className={`px-4 py-2 rounded-lg font-semibold text-xs transition ${
+                                  isBusy 
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+                                    : 'bg-black text-white hover:bg-gray-800'
+                                }`}
+                              >
+                                Allocate
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
+import LocationAutocomplete from '../../components/LocationAutocomplete';
 
 export default function BookingWorkflow() {
   const [pendingBookings, setPendingBookings] = useState([]);
@@ -26,7 +27,11 @@ export default function BookingWorkflow() {
     pickupLocation: '',
     dropLocation: '',
     startDateTime: '',
-    estimateAmount: ''
+    estimateAmount: '',
+    duration: '4 Hrs',
+    carType: 'Manual',
+    vehicleType: 'Hatchback',
+    driverType: 'Acting Driver'
   });
   const [creatingBooking, setCreatingBooking] = useState(false);
 
@@ -275,7 +280,7 @@ export default function BookingWorkflow() {
       await apiClient.post('/bookings/admin/create-booking', createForm);
       alert('✓ Booking created and routed successfully!');
       setShowCreateModal(false);
-      setCreateForm({ customerName: '', customerPhone: '', serviceType: 'Local - Hourly', tripType: 'One Way', pickupLocation: '', dropLocation: '', startDateTime: '', estimateAmount: '' });
+      setCreateForm({ customerName: '', customerPhone: '', serviceType: 'Local - Hourly', tripType: 'One Way', pickupLocation: '', dropLocation: '', startDateTime: '', estimateAmount: '', duration: '4 Hrs', carType: 'Manual', vehicleType: 'Hatchback', driverType: 'Acting Driver' });
       fetchPendingBookings();
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to create booking');
@@ -656,6 +661,52 @@ export default function BookingWorkflow() {
               </button>
             </div>
             <form onSubmit={handleCreateBooking} className="p-5 space-y-4">
+              {/* Service Type Buttons */}
+              <div className="flex gap-2 mb-2">
+                <button 
+                  type="button"
+                  onClick={() => setCreateForm({...createForm, serviceType: 'Local - Hourly', tripType: 'One Way'})}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
+                    createForm.serviceType === 'Local - Hourly' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  LOCAL
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setCreateForm({...createForm, serviceType: 'Outstation', tripType: 'Round Trip'})}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
+                    createForm.serviceType === 'Outstation' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  OUTSTATION
+                </button>
+              </div>
+
+              {/* Trip Type Buttons - Only show for Local */}
+              {createForm.serviceType === 'Local - Hourly' && (
+                <div className="flex gap-2 mb-4">
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, tripType: 'One Way'})}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                      createForm.tripType === 'One Way' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    One Way
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, tripType: 'Round Trip'})}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                      createForm.tripType === 'Round Trip' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Round Trip
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Customer Name *</label>
@@ -665,31 +716,31 @@ export default function BookingWorkflow() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Phone Number *</label>
                   <input required type="tel" value={createForm.customerPhone} onChange={e => setCreateForm({...createForm, customerPhone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="9876543210" />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Service Type</label>
-                  <select value={createForm.serviceType} onChange={e => setCreateForm({...createForm, serviceType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
-                    <option value="Local - Hourly">Local - Hourly</option>
-                    <option value="Outstation">Outstation</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Trip Type</label>
-                  <select value={createForm.tripType} onChange={e => setCreateForm({...createForm, tripType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
-                    <option value="One Way">One Way</option>
-                    <option value="Round Trip">Round Trip</option>
-                  </select>
-                </div>
               </div>
               
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pickup Location *</label>
-                <input required type="text" value={createForm.pickupLocation} onChange={e => setCreateForm({...createForm, pickupLocation: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Enter pickup address" />
+                <LocationAutocomplete 
+                  value={createForm.pickupLocation} 
+                  onChange={value => setCreateForm({...createForm, pickupLocation: value})} 
+                  placeholder="Enter pickup address" 
+                  className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-black outline-none" 
+                  showMyLocation={false} 
+                />
               </div>
               
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Drop Location</label>
-                <input type="text" value={createForm.dropLocation} onChange={e => setCreateForm({...createForm, dropLocation: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Enter drop address (optional for hourly)" />
-              </div>
+              {!(createForm.serviceType === 'Local - Hourly' && createForm.tripType === 'Round Trip') && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Drop Location</label>
+                  <LocationAutocomplete 
+                    value={createForm.dropLocation} 
+                    onChange={value => setCreateForm({...createForm, dropLocation: value})} 
+                    placeholder="Enter drop address" 
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-black outline-none" 
+                    showMyLocation={false} 
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -699,6 +750,52 @@ export default function BookingWorkflow() {
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Estimate Amount (₹) *</label>
                   <input required type="number" min="0" value={createForm.estimateAmount} onChange={e => setCreateForm({...createForm, estimateAmount: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Duration</label>
+                  <select value={createForm.duration} onChange={e => setCreateForm({...createForm, duration: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                    {createForm.serviceType === 'Local - Hourly' ? (
+                      <>
+                        {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Driver Type</label>
+                  <select value={createForm.driverType} onChange={e => setCreateForm({...createForm, driverType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                    <option value="Acting Driver">Acting Driver</option>
+                    <option value="Spare Driver">Spare Driver</option>
+                    <option value="Temporary Driver">Temporary Driver</option>
+                    <option value="Valet/Wallet Parking">Valet/Wallet Parking</option>
+                    <option value="Daily Driver">Daily Driver</option>
+                    <option value="Weekly Driver">Weekly Driver</option>
+                    <option value="Monthly Driver">Monthly Driver</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Car Type</label>
+                  <select value={createForm.carType} onChange={e => setCreateForm({...createForm, carType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                    <option value="Manual">Manual</option>
+                    <option value="Automatic">Automatic</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Vehicle Type</label>
+                  <select value={createForm.vehicleType} onChange={e => setCreateForm({...createForm, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Luxury">Luxury</option>
+                  </select>
                 </div>
               </div>
 

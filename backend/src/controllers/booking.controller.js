@@ -82,7 +82,11 @@ export const adminCreateBooking = async (req, res) => {
       serviceType,
       tripType,
       startDateTime, 
-      estimateAmount
+      estimateAmount,
+      duration,
+      carType,
+      vehicleType,
+      driverType
     } = req.body;
 
     if (!customerName || !customerPhone || !pickupLocation || !serviceType || !startDateTime) {
@@ -116,7 +120,11 @@ export const adminCreateBooking = async (req, res) => {
         estimateAmount: parseFloat(estimateAmount) || 0,
         paymentMethod: 'CASH',
         paymentStatus: 'UNPAID',
-        status: 'PENDING'
+        status: 'PENDING',
+        duration,
+        carType,
+        vehicleType,
+        driverType
       }
     });
 
