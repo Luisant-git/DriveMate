@@ -6,7 +6,11 @@ export default function PendingDriverApproval() {
   const [bookingsWithAcceptedDrivers, setBookingsWithAcceptedDrivers] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [acceptedDrivers, setAcceptedDrivers] = useState([]);
+  const [allDrivers, setAllDrivers] = useState([]);
+  const [driverBusyStatus, setDriverBusyStatus] = useState({});
+  const [showChooseDriver, setShowChooseDriver] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   useEffect(() => {
     fetchBookingsWithAcceptedDrivers();
@@ -43,27 +47,123 @@ export default function PendingDriverApproval() {
     }
   };
 
-  const approveDriver = async (personId, isLead = false) => {
+  const checkDriverTimeConflict = async (driverId) => {
     try {
-      const endpoint = isLead
-        ? `/booking-workflow/admin/${selectedBooking.id}/allocate-lead`
-        : `/booking-workflow/admin/${selectedBooking.id}/allocate-driver`;
-      const payload = isLead ? { leadId: personId } : { driverId: personId };
+      const tripsRes = await apiClient.get(`/reports/drivers/${driverId}/trips`);
+      const trips = tripsRes.data?.trips || [];
+      
+      // Check if driver has any active or upcoming trips that might conflict
+      const conflictingTrip = trips.find(trip => 
+        trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING'].includes(trip.status)
+      );
+      
+      return !!conflictingTrip;
+    } catch (error) {
+      console.error('Error checking driver conflicts:', error);
+      return false;
+    }
+  };
+
+  const deallocateCurrentDriver = async () => {
+    try {
+      if (selectedBooking.allocatedDriverId) {
+        await apiClient.post(
+          `/booking-workflow/admin/${selectedBooking.id}/deallocate-driver`,
+          { driverId: selectedBooking.allocatedDriverId }
+        );
+        console.log('Current driver deallocated');
+      }
+    } catch (error) {
+      console.error('Error deallocating current driver:', error);
+    }
+  };
+
+  const approveDriver = async (personId, isLead = false, forceAllocate = false) => {
+    try {
+      // Check for time conflicts on available drivers
+      if (forceAllocate) {
+        const hasConflict = await checkDriverTimeConflict(personId);
+        if (hasConflict) {
+          alert('⚠️ This driver is busy with another booking at the same time');
+          return;
+        }
+
+        // If replacing an existing driver, deallocate them first
+        if (selectedBooking.allocatedDriverId) {
+          await deallocateCurrentDriver();
+        }
+      }
+      
+      let endpoint;
+      let payload;
+      
+      if (isLead) {
+        endpoint = `/booking-workflow/admin/${selectedBooking.id}/allocate-lead`;
+        payload = { leadId: personId };
+      } else if (forceAllocate) {
+        // For available drivers - send as new request instead of direct allocation
+        endpoint = `/booking-workflow/admin/${selectedBooking.id}/offer-driver`;
+        payload = { driverId: personId };
+      } else {
+        // For drivers who accepted
+        endpoint = `/booking-workflow/admin/${selectedBooking.id}/allocate-driver`;
+        payload = { driverId: personId };
+      }
       
       await apiClient.post(endpoint, payload);
-      alert(`✓ ${isLead ? 'Lead' : 'Driver'} approved and allocated!`);
+      
+      if (forceAllocate) {
+        alert(`✓ Previous driver cancelled and new booking request sent!`);
+      } else {
+        alert(`✓ ${isLead ? 'Lead' : 'Driver'} approved and allocated!`);
+      }
+      
       setSelectedBooking(null);
+      setShowChooseDriver(false);
       fetchBookingsWithAcceptedDrivers();
     } catch (error) {
       alert(error.response?.data?.error || 'Error approving');
     }
   };
 
+  const fetchAllDrivers = async () => {
+    try {
+      setLoadingDrivers(true);
+      const res = await apiClient.get('/drivers');
+      setAllDrivers(res.data || []);
+      
+      // Check busy status for each driver (active trips + pending/conflict status)
+      const busyStatus = {};
+      for (const driver of (res.data || [])) {
+        const tripsRes = await apiClient.get(`/reports/drivers/${driver.id}/trips`);
+        const trips = tripsRes.data?.trips || [];
+        // Check if driver has any active or pending trips
+        const activeTrip = trips.find(trip => 
+          trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING'].includes(trip.status)
+        );
+        busyStatus[driver.id] = !!activeTrip;
+      }
+      setDriverBusyStatus(busyStatus);
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
+
+  const handleChooseAnotherDriver = async () => {
+    setShowChooseDriver(true);
+    await fetchAllDrivers();
+  };
+
   if (selectedBooking) {
     return (
       <div className="px-3 sm:px-6 py-4 sm:py-6">
         <button 
-          onClick={() => setSelectedBooking(null)} 
+          onClick={() => {
+            setSelectedBooking(null);
+            setShowChooseDriver(false);
+          }} 
           className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-black transition mb-4"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,8 +171,6 @@ export default function PendingDriverApproval() {
           </svg>
           Back
         </button>
-
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{selectedBooking.selectedLeadPackageId ? 'Leads' : 'Drivers'} Who Accepted</h2>
 
         {/* Booking Details */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
@@ -95,55 +193,156 @@ export default function PendingDriverApproval() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button 
+            onClick={() => setShowChooseDriver(false)}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+              !showChooseDriver 
+                ? 'bg-black text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Approve & Allocate
+          </button>
+          <button 
+            onClick={handleChooseAnotherDriver}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+              showChooseDriver 
+                ? 'bg-black text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Choose Another Driver
+          </button>
+        </div>
+
         {/* Accepted Drivers List */}
-        {acceptedDrivers.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-            <p className="text-gray-500 text-sm">No {selectedBooking.selectedLeadPackageId ? 'leads' : 'drivers'} have accepted yet</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {acceptedDrivers.map(response => {
-              const person = response.driver || response.lead;
-              const isLead = !!response.lead;
-              return (
-                <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                      {person?.name?.[0] || 'D'}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-base font-semibold text-gray-900">{person?.name || (isLead ? 'Lead' : 'Driver')}</p>
-                      <p className="text-sm text-gray-600">{person?.phone || 'N/A'}</p>
-                    </div>
-                    {person?.rating > 0 && (
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-sm font-semibold text-gray-900">{person.rating}</span>
+        {!showChooseDriver && (
+          <>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{selectedBooking.selectedLeadPackageId ? 'Leads' : 'Drivers'} Who Accepted</h2>
+            {acceptedDrivers.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                <p className="text-gray-500 text-sm">No {selectedBooking.selectedLeadPackageId ? 'leads' : 'drivers'} have accepted yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {acceptedDrivers.map(response => {
+                  const person = response.driver || response.lead;
+                  const isLead = !!response.lead;
+                  return (
+                    <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
+                          {person?.name?.[0] || 'D'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-base font-semibold text-gray-900">{person?.name || (isLead ? 'Lead' : 'Driver')}</p>
+                          <p className="text-sm text-gray-600">{person?.phone || 'N/A'}</p>
+                        </div>
+                        {person?.rating > 0 && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span className="text-sm font-semibold text-gray-900">{person.rating}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  {(person?.vehicleType || person?.vehicleNo) && (
-                    <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                      <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {person.vehicleType || 'N/A'} • {person.vehicleNo || 'N/A'}
-                      </p>
+                      
+                      {(person?.vehicleType || person?.vehicleNo) && (
+                        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                          <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {person.vehicleType || 'N/A'} • {person.vehicleNo || 'N/A'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <button 
+                        onClick={() => approveDriver(person.id, isLead)} 
+                        className="w-full bg-green-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
+                      >
+                        Approve & Allocate {isLead ? 'Lead' : 'Driver'}
+                      </button>
                     </div>
-                  )}
-                  
-                  <button 
-                    onClick={() => approveDriver(person.id, isLead)} 
-                    className="w-full bg-green-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
-                  >
-                    Approve & Allocate {isLead ? 'Lead' : 'Driver'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Choose Another Driver */}
+        {showChooseDriver && (
+          <>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Available Drivers</h2>
+            {loadingDrivers ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                <p className="text-gray-500 text-sm">Loading drivers...</p>
+              </div>
+            ) : allDrivers.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                <p className="text-gray-500 text-sm">No drivers available</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {allDrivers.filter(driver => {
+                  const allocatedDriverIds = acceptedDrivers.map(r => r.driver?.id).filter(Boolean);
+                  return !allocatedDriverIds.includes(driver.id) && driver.id !== selectedBooking.allocatedDriverId;
+                }).map(driver => {
+                  const isBusy = driverBusyStatus[driver.id];
+                  return (
+                    <div key={driver.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
+                          {driver?.name?.[0] || 'D'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-base font-semibold text-gray-900">{driver?.name || 'Driver'}</p>
+                          <p className="text-sm text-gray-600">{driver?.phone || 'N/A'}</p>
+                        </div>
+                        {isBusy && (
+                          <span className="inline-block bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-semibold">
+                            Busy
+                          </span>
+                        )}
+                        {driver?.rating > 0 && !isBusy && (
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span className="text-sm font-semibold text-gray-900">{driver.rating}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {(driver?.vehicleType || driver?.vehicleNo) && (
+                        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                          <p className="text-xs text-gray-500 mb-1 font-medium">Vehicle</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {driver.vehicleType || 'N/A'} • {driver.vehicleNo || 'N/A'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <button 
+                        onClick={() => approveDriver(driver.id, false, true)} 
+                        disabled={isBusy}
+                        className={`w-full px-4 py-3 rounded-xl font-semibold text-sm transition ${
+                          isBusy 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {isBusy ? 'Driver Busy' : 'Allocate Driver'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     );

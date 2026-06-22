@@ -7,6 +7,8 @@ import {
   respondToBookingRequest,
   getBookingResponses,
   allocateDriverToBooking,
+  offerBookingToDriver,
+  deallocateDriver,
   getCustomerBookingWithDriver,
   getDriverAllocatedBooking,
   sendBookingToLeads,
@@ -133,6 +135,64 @@ router.get('/admin/:bookingId/responses', authenticateToken, getBookingResponses
  *         description: Driver allocated successfully
  */
 router.post('/admin/:bookingId/allocate-driver', authenticateToken, allocateDriverToBooking);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/{bookingId}/offer-driver:
+ *   post:
+ *     summary: Offer booking to available driver (sends request to driver)
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               driverId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Booking offer sent to driver
+ */
+router.post('/admin/:bookingId/offer-driver', authenticateToken, offerBookingToDriver);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/{bookingId}/deallocate-driver:
+ *   post:
+ *     summary: Deallocate driver from booking
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               driverId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Driver deallocated successfully
+ */
+router.post('/admin/:bookingId/deallocate-driver', authenticateToken, deallocateDriver);
 
 /**
  * @swagger
