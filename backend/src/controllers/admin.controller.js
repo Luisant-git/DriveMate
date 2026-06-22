@@ -274,3 +274,35 @@ export const getVerificationHistory = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const updateDriverDocument = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const { documentType, documentUrl, expiryDate } = req.body;
+    
+    if (!documentType) {
+      return res.status(400).json({ success: false, error: 'documentType is required' });
+    }
+
+    const data = {};
+    if (documentType === 'policeVerificationPhoto') {
+      data.policeVerificationPhoto = documentUrl || null;
+      if (documentUrl) {
+        if (expiryDate) data.policeVerificationExpiryDate = expiryDate;
+      } else {
+        data.policeVerificationExpiryDate = null;
+      }
+    } else {
+      return res.status(400).json({ success: false, error: 'Unsupported document type' });
+    }
+
+    const driver = await prisma.driver.update({
+      where: { id: driverId },
+      data
+    });
+
+    res.json({ success: true, driver });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
