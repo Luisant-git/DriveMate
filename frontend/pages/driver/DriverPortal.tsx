@@ -4,6 +4,7 @@ import { tripAPI } from '../../api/trip';
 import DriverBookingRequests from './DriverBookingRequests';
 import { API_BASE_URL } from '../../api/config.js';
 import { uploadFile } from '../../api/upload.js';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 const TripTimer = ({ startTime }: { startTime: string }) => {
   const [elapsed, setElapsed] = useState('');
@@ -46,6 +47,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [startingTripId, setStartingTripId] = useState<string | null>(null);
   const [tripPhotos, setTripPhotos] = useState<{ front: File | null, back: File | null }>({ front: null, back: null });
   const [isStartingTrip, setIsStartingTrip] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string | React.ReactNode;
+    type: 'danger' | 'success' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
+
+  const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
   // Profile Edit States
   const [profileData, setProfileData] = useState({
@@ -134,13 +151,49 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     fetchTrips();
   }, [activeTab, driver.id]);
 
+  const calculateFinalAmount = (trip: any) => {
+    const baseAmount = parseFloat(trip.estimatedCost || trip.estimateAmount || 0);
+    if (!trip.actualStartTime || !trip.duration) return baseAmount;
+
+    const actualStart = new Date(trip.actualStartTime).getTime();
+    const actualEnd = new Date().getTime();
+    const actualHours = Math.ceil((actualEnd - actualStart) / (1000 * 60 * 60)); 
+    
+    let baseHours = 0;
+    const durationStr = trip.duration.toLowerCase();
+    const durationMatch = durationStr.match(/\d+/);
+    const num = durationMatch ? parseInt(durationMatch[0]) : 0;
+
+    if (durationStr.includes('hour') || durationStr.includes('hr')) {
+      baseHours = num;
+    } else if (durationStr.includes('day')) {
+      baseHours = num * 12; // 1 day = 12 hrs
+    } else if (durationStr.includes('month')) {
+      baseHours = num * 30 * 12; // Assuming 30 days, 12 hrs/day
+    }
+
+    if (baseHours > 0 && actualHours > baseHours) {
+      const extraHours = actualHours - baseHours;
+      return baseAmount + (extraHours * 100);
+    }
+    
+    return baseAmount;
+  };
+
   const handleAcceptTrip = async (tripId: string) => {
     // This function is no longer used - admin assigns bookings
     alert('Bookings are assigned by admin. Please wait for assignment.');
   };
 
-  const handleCancelTrip = async (tripId: string) => {
-    if (window.confirm("Are you sure you want to cancel this trip? This action cannot be undone.")) {
+  const handleCancelTrip = (tripId: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Cancel Trip',
+      message: 'Are you sure you want to cancel this trip? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Cancel Trip',
+      onConfirm: async () => {
+        closeConfirm();
         try {
           const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/cancel`, {
             method: 'POST',
@@ -158,7 +211,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
         } catch (error) {
           console.error('Error cancelling trip:', error);
         }
-    }
+      }
+    });
   };
 
   const handleSubscriptionBuy = async (pkg: Package) => {
@@ -397,33 +451,83 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     </div>
                                   </div>
                                 </div>
+                                <div className="flex justify-between items-center bg-gray-800 rounded-lg p-3 mb-4 border border-gray-700">
+                                    <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Base Amount</span>
+                                    <span className="text-green-400 font-bold text-lg">₹{trip.estimatedCost || trip.estimateAmount || 0}</span>
+                                </div>
                                 <div className="space-y-3">
                                     {trip.status === 'ONGOING' ? (
                                       <>
                                         <button 
-                                            onClick={async () => {
-                                            const finalAmountInput = window.prompt(
-                                              `Mark this trip as completed?\n\nCustomer: ${trip.customer?.name || 'N/A'}\nFrom: ${trip.pickupLocation}\nTo: ${trip.dropLocation}\n\nEnter the final collected amount (₹):`, 
-                                              (trip.estimatedCost || trip.estimateAmount || 0).toString()
-                                            );
-                                            
-                                            if (finalAmountInput !== null) {
-                                                const finalAmount = parseFloat(finalAmountInput) || 0;
-                                                try {
-                                                  const result = await tripAPI.completeTrip(trip.id, { finalAmount });
-                                                  if (result.success) {
-                                                    alert('✓ Trip completed successfully!');
-                                                    const driverRes = await tripAPI.getDriverTrips();
-                                                    if (driverRes.success) setTrips(driverRes.trips);
-                                                  } else {
-                                                    alert('Failed to complete trip: ' + (result.error || 'Unknown error'));
+                                            onClick={() => {
+                                              const autoCalculatedAmount = calculateFinalAmount(trip);
+                                              setConfirmConfig({
+                                                isOpen: true,
+                                                title: 'Complete Trip',
+                                                message: (
+                                                  <div className="flex flex-col items-center text-center mt-2">
+                                                    {/* Price Section */}
+                                                    <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 w-full rounded-2xl p-6 mb-5 shadow-sm relative overflow-hidden">
+                                                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-200 rounded-full opacity-50 blur-xl"></div>
+                                                      <p className="text-green-800 font-semibold text-xs uppercase tracking-widest mb-1">Final Amount</p>
+                                                      <p className="text-4xl font-black text-green-700 tracking-tight">₹{autoCalculatedAmount}</p>
+                                                      <p className="text-green-600/80 text-[10px] mt-2 font-medium bg-green-200/50 inline-block px-2 py-0.5 rounded-full">*Includes ₹100/hr extra charge if applicable</p>
+                                                    </div>
+                                                    
+                                                    {/* Route Section */}
+                                                    <div className="w-full text-left bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
+                                                      <div className="flex gap-4">
+                                                        <div className="flex flex-col items-center pt-1.5">
+                                                          <div className="w-2.5 h-2.5 bg-black rounded-full shadow-sm"></div>
+                                                          <div className="w-0.5 h-10 bg-gray-300 rounded-full my-1"></div>
+                                                          <div className="w-2.5 h-2.5 border-2 border-black rounded-full shadow-sm"></div>
+                                                        </div>
+                                                        <div className="flex-1 space-y-4">
+                                                          <div>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Pickup</p>
+                                                            <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.pickupLocation}</p>
+                                                          </div>
+                                                          <div>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Drop-off</p>
+                                                            <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.dropLocation}</p>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+
+                                                    {/* Customer Section */}
+                                                    <div className="flex items-center gap-3 w-full bg-white border border-gray-100 rounded-xl p-3">
+                                                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
+                                                        {(trip.customer?.name || 'C')[0].toUpperCase()}
+                                                      </div>
+                                                      <div className="text-left">
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Customer</p>
+                                                        <p className="font-bold text-sm text-gray-900">{trip.customer?.name || 'N/A'}</p>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                ),
+                                                type: 'success',
+                                                confirmText: 'Complete Trip',
+                                                onConfirm: async () => {
+                                                  closeConfirm();
+                                                  const finalAmount = autoCalculatedAmount;
+                                                  try {
+                                                    const result = await tripAPI.completeTrip(trip.id, { finalAmount });
+                                                    if (result.success) {
+                                                      alert('✓ Trip completed successfully!');
+                                                      const driverRes = await tripAPI.getDriverTrips();
+                                                      if (driverRes.success) setTrips(driverRes.trips);
+                                                    } else {
+                                                      alert('Failed to complete trip: ' + (result.error || 'Unknown error'));
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('Error completing trip:', error);
+                                                    alert('Error completing trip. Please try again.');
                                                   }
-                                                } catch (error) {
-                                                  console.error('Error completing trip:', error);
-                                                  alert('Error completing trip. Please try again.');
                                                 }
-                                            }
-                                        }}
+                                              });
+                                            }}
                                             className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
                                         >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -602,7 +706,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                          activeTrips.map(trip => (
                              <div key={trip.id} className="bg-gray-50 border-2 border-gray-300 rounded-xl p-4 sm:p-5 mb-3 shadow-md flex flex-col gap-2">
                                  <div className="flex justify-between items-start">
-                                     <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{trip.type}</span>
+                                     <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{trip.serviceType}</span>
                                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded uppercase">{trip.status}</span>
                                  </div>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
@@ -666,7 +770,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                  <div className="flex justify-between items-end border-t border-gray-100 pt-2 mt-2">
                                       <div>
                                           <div className="flex gap-2 items-center">
-                                             <p className="text-xs text-gray-500">{trip.type}</p>
+                                             <p className="text-xs text-gray-500">{trip.serviceType}</p>
                                              {trip.duration && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 rounded-full font-bold">⏱ {trip.duration}</span>}
                                           </div>
                                           {(trip as any).rating && (
@@ -683,6 +787,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                       <div className="text-right">
                                         <p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Final Amount</p>
                                         <p className="font-bold text-lg text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
+                                        {(trip as any).finalAmount > (trip.estimatedCost || 0) && (
+                                          <p className="text-[10px] text-red-500 font-bold mt-1">Includes ₹{(trip as any).finalAmount - (trip.estimatedCost || 0)} Extra</p>
+                                        )}
                                       </div>
                                  </div>
                              </div>
@@ -1415,6 +1522,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           </div>
         </div>
       )}
+
+      <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
 };

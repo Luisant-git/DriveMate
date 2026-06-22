@@ -365,9 +365,13 @@ const Reports: React.FC = () => {
                             )}
                             <p><span className="font-bold">From:</span> {booking.pickupLocation}</p>
                             <p><span className="font-bold">To:</span> {booking.dropLocation}</p>
-                            <p><span className="font-bold">Type:</span> {booking.bookingType}</p>
+                            <p><span className="font-bold">Type:</span> {booking.serviceType}</p>
                             <p><span className="font-bold">Status:</span> <span className={`px-2 py-1 rounded text-xs ${booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{booking.status}</span></p>
-                            <p><span className="font-bold">Amount:</span> ₹{booking.finalAmount || booking.estimateAmount || 0}</p>
+                            <p><span className="font-bold">Base Amount:</span> ₹{booking.estimateAmount || 0}</p>
+                            <p><span className="font-bold">Final Amount:</span> ₹{booking.finalAmount || booking.estimateAmount || 0}</p>
+                            {booking.finalAmount > booking.estimateAmount && (
+                              <p><span className="font-bold text-red-600">Extra Time Charge:</span> ₹{booking.finalAmount - booking.estimateAmount}</p>
+                            )}
                             <p><span className="font-bold">Date:</span> {new Date(booking.startDateTime).toLocaleDateString()}</p>
                             <p><span className="font-bold">Duration:</span> {booking.duration || 'N/A'}</p>
                           </div>

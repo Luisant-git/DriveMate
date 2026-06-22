@@ -317,7 +317,7 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, idProof, phone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, password } = req.body;
+    const { name, email, address, idProof, phone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, password } = req.body;
     
     let user = null;
     let hashedPassword = null;
@@ -353,6 +353,7 @@ export const updateProfile = async (req, res) => {
           ...(panPhoto !== undefined && { panPhoto }),
           ...(aadharPhoto !== undefined && { aadharPhoto }),
           ...(policeVerificationPhoto !== undefined && { policeVerificationPhoto }),
+          ...(policeVerificationExpiryDate !== undefined && { policeVerificationExpiryDate }),
           ...(hashedPassword && { password: hashedPassword })
         }
       });

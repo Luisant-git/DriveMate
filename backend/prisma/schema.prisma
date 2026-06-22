@@ -43,6 +43,7 @@ model Driver {
   panPhoto     String?
   aadharPhoto  String?
   policeVerificationPhoto String? 
+  policeVerificationExpiryDate String?
   alternateMobile1 String?
   alternateMobile2 String?
   alternateMobile3 String?

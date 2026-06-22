@@ -12,6 +12,7 @@ const DriverRegister: React.FC = () => {
   const [isPrimaryVerified, setIsPrimaryVerified] = useState(false);
   const [isAltVerified, setIsAltVerified] = useState(false);
   const [uploadedUrls, setUploadedUrls] = useState<any>({});
+  const [isSameAddress, setIsSameAddress] = useState(false);
   
   const [registerData, setRegisterData] = useState({
     name: '',
@@ -31,7 +32,8 @@ const DriverRegister: React.FC = () => {
     dlPhoto: null,
     panPhoto: null,
     aadharPhoto: null,
-    policeVerificationPhoto: null // <-- ADD THIS
+    policeVerificationPhoto: null, // <-- ADD THIS
+    policeVerificationExpiryDate: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -106,7 +108,8 @@ const DriverRegister: React.FC = () => {
         dlPhoto: uploadedUrls.dlPhoto,
         panPhoto: uploadedUrls.panPhoto,
         aadharPhoto: uploadedUrls.aadharPhoto,
-        policeVerificationPhoto: uploadedUrls.policeVerificationPhoto
+        policeVerificationPhoto: uploadedUrls.policeVerificationPhoto,
+        policeVerificationExpiryDate: registerData.policeVerificationExpiryDate
       });
       
       if (response.token) {
@@ -301,26 +304,55 @@ const DriverRegister: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Current Address *</label>
-              <textarea 
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all resize-none shadow-sm"
-                rows={2}
-                value={registerData.currentAddress}
-                onChange={(e) => setRegisterData({...registerData, currentAddress: e.target.value})}
-                required
-              />
-            </div>
-
-            <div>
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Permanent Address *</label>
               <textarea 
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all resize-none shadow-sm"
                 rows={2}
                 value={registerData.permanentAddress}
-                onChange={(e) => setRegisterData({...registerData, permanentAddress: e.target.value})}
+                onChange={(e) => {
+                  const newAddress = e.target.value;
+                  if (isSameAddress) {
+                    setRegisterData({...registerData, permanentAddress: newAddress, currentAddress: newAddress});
+                  } else {
+                    setRegisterData({...registerData, permanentAddress: newAddress});
+                  }
+                }}
                 required
               />
             </div>
+
+            <div className="flex items-center gap-2 py-1">
+              <input 
+                type="checkbox" 
+                id="sameAddress"
+                checked={isSameAddress}
+                onChange={(e) => {
+                  setIsSameAddress(e.target.checked);
+                  if (e.target.checked) {
+                    setRegisterData({...registerData, currentAddress: registerData.permanentAddress});
+                  } else {
+                    setRegisterData({...registerData, currentAddress: ''});
+                  }
+                }}
+                className="w-4 h-4 text-black bg-gray-50 border-gray-300 rounded focus:ring-black focus:ring-2 cursor-pointer"
+              />
+              <label htmlFor="sameAddress" className="text-xs font-bold text-gray-600 cursor-pointer">
+                Current Address is same as Permanent Address
+              </label>
+            </div>
+
+            {!isSameAddress && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Current Address *</label>
+                <textarea 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all resize-none shadow-sm"
+                  rows={2}
+                  value={registerData.currentAddress}
+                  onChange={(e) => setRegisterData({...registerData, currentAddress: e.target.value})}
+                  required
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -339,7 +371,7 @@ const DriverRegister: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Driving License *</label>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Driving License No*</label>
                 <input 
                   type="text"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm mb-2"
@@ -551,6 +583,19 @@ const DriverRegister: React.FC = () => {
                     {!registerData.policeVerificationPhoto && <p className="text-[10px] text-gray-400 mt-0.5">Upload verification document</p>}
                   </div>
                 </label>
+              </div>
+              
+              <div className="col-span-2 mt-2">
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Police Verification Expiry Date *</label>
+                <p className="text-[10px] text-gray-400 mb-1">Typically valid for 1 year from issue date.</p>
+                <input 
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                  value={registerData.policeVerificationExpiryDate}
+                  onChange={(e) => setRegisterData({...registerData, policeVerificationExpiryDate: e.target.value})}
+                  required
+                />
               </div>
             </div>
           </div>
