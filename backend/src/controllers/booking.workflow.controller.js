@@ -298,6 +298,39 @@ export const getDriverPendingRequests = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Fetch all active subscription plans to determine tiers
+    const allPlans = await prisma.subscriptionPlan.findMany({
+      where: { isActive: true }
+    });
+
+    // Group plans by type and determine their tier (0, 1, 2...)
+    const planTiers = {};
+    const plansByType = {};
+    allPlans.forEach(p => {
+      if (!plansByType[p.type]) plansByType[p.type] = [];
+      plansByType[p.type].push(p);
+    });
+
+    Object.keys(plansByType).forEach(type => {
+      planTiers[type] = {};
+      // Unique prices descending
+      const uniquePrices = [...new Set(plansByType[type].map(p => p.price))].sort((a,b) => b - a);
+      plansByType[type].forEach(p => {
+        planTiers[type][p.id] = uniquePrices.indexOf(p.price);
+      });
+    });
+
+    // Get current driver's active subscription
+    const driverSubscription = await prisma.subscription.findFirst({
+      where: {
+        driverId: userId,
+        status: 'ACTIVE',
+        endDate: { gte: new Date() }
+      },
+      include: { plan: true },
+      orderBy: { startDate: 'desc' }
+    });
+
     const now = new Date();
     const expiryTime = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
@@ -313,9 +346,26 @@ export const getDriverPendingRequests = async (req, res) => {
         else if (isExpired) finalStatus = 'EXPIRED';
       }
 
+      // Calculate Priority Delay
+      let driverTier = 999;
+      if (driverSubscription && driverSubscription.plan) {
+        const type = response.booking.selectedPackageType || driverSubscription.plan.type;
+        if (planTiers[type] && planTiers[type][driverSubscription.plan.id] !== undefined) {
+          driverTier = planTiers[type][driverSubscription.plan.id];
+        }
+      }
+      
+      const delayMinutes = driverTier === 999 ? 0 : (driverTier * 2);
+      const availableAt = new Date(new Date(response.createdAt).getTime() + delayMinutes * 60000);
+      const isLocked = finalStatus === 'PENDING' && now < availableAt;
+
       return {
         ...response,
-        status: finalStatus
+        status: finalStatus,
+        availableAt: availableAt.toISOString(),
+        isLocked,
+        delayMinutes,
+        driverTier
       };
     });
 

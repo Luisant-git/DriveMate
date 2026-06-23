@@ -93,6 +93,8 @@ export const getDriverReports = async (req, res) => {
         activeSubscriptions: driver.subscriptions.filter((s) => s.status === 'ACTIVE').length,
         totalRevenue: totalRevenue,
         joinedDate: driver.createdAt,
+        licenseExpiryDate: driver.licenseExpiryDate,
+        policeVerificationExpiryDate: driver.policeVerificationExpiryDate,
       };
     }));
 

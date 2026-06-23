@@ -1054,11 +1054,33 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                  {driver.photo ? '✓ Uploaded' : 'Not uploaded'}
                                              </span>
                                          </div>
-                                         <div className="flex justify-between items-center py-1">
-                                             <span className="text-gray-500">Driving License:</span>
-                                             <span className={`font-medium text-xs px-2 py-1 rounded ${driver.dlPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                 {driver.dlPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                                             </span>
+                                         <div className="flex flex-col py-1 border-b border-gray-100 pb-2">
+                                             <div className="flex justify-between items-center">
+                                                 <span className="text-gray-500 font-medium">Driving License:</span>
+                                                 <span className={`font-medium text-xs px-2 py-1 rounded ${driver.dlPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                     {driver.dlPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                                                 </span>
+                                             </div>
+                                             <div className="flex items-center mt-1.5 gap-1.5 text-[10px] bg-white border border-gray-100 px-2 py-1.5 rounded-md shadow-sm">
+                                                 <span className="text-gray-400 uppercase font-bold tracking-wide flex-shrink-0">Expiry:</span>
+                                                 {(() => {
+                                                     if (!driver.licenseExpiryDate) return <span className="font-medium text-gray-700 break-words">Not set</span>;
+                                                     const expiry = new Date(driver.licenseExpiryDate);
+                                                     const today = new Date();
+                                                     today.setHours(0,0,0,0);
+                                                     const thirtyDaysFromNow = new Date();
+                                                     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                                                     
+                                                     const isExpired = expiry < today;
+                                                     const isExpiringSoon = !isExpired && expiry <= thirtyDaysFromNow;
+                                                     
+                                                     return (
+                                                         <span className={`font-medium break-words ${isExpired || isExpiringSoon ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+                                                             {expiry.toLocaleDateString('en-GB')} {isExpired ? '(Expired)' : isExpiringSoon ? '(Expiring soon)' : ''}
+                                                         </span>
+                                                     );
+                                                 })()}
+                                             </div>
                                          </div>
                                          <div className="flex justify-between items-center py-1">
                                              <span className="text-gray-500">PAN Card:</span>
@@ -1082,9 +1104,28 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                      <span className={`font-medium text-xs px-2 py-1 rounded ${driver.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                                          {driver.policeVerificationPhoto ? '✓ Uploaded' : ' Not Uploaded'}
                                                      </span>
-                                                    
-                                                    
                                                  </div>
+                                             </div>
+                                             
+                                             <div className="flex items-center mt-1.5 gap-1.5 text-[10px] bg-white border border-gray-100 px-2 py-1.5 rounded-md shadow-sm">
+                                                 <span className="text-gray-400 uppercase font-bold tracking-wide flex-shrink-0">Expiry:</span>
+                                                 {(() => {
+                                                     if (!driver.policeVerificationExpiryDate) return <span className="font-medium text-gray-700 break-words">Not set</span>;
+                                                     const expiry = new Date(driver.policeVerificationExpiryDate);
+                                                     const today = new Date();
+                                                     today.setHours(0,0,0,0);
+                                                     const thirtyDaysFromNow = new Date();
+                                                     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                                                     
+                                                     const isExpired = expiry < today;
+                                                     const isExpiringSoon = !isExpired && expiry <= thirtyDaysFromNow;
+                                                     
+                                                     return (
+                                                         <span className={`font-medium break-words ${isExpired || isExpiringSoon ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+                                                             {expiry.toLocaleDateString('en-GB')} {isExpired ? '(Expired)' : isExpiringSoon ? '(Expiring soon)' : ''}
+                                                         </span>
+                                                     );
+                                                 })()}
                                              </div>
                                             
                                              <div className="text-[10px] text-gray-400 mt-1">

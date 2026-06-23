@@ -10,6 +10,8 @@ interface OverdueEntity {
   licenseNo: string;
   lastVerifiedAt?: string;
   nextVerificationDue?: string;
+  licenseExpiryDate?: string;
+  policeVerificationExpiryDate?: string;
   isActive: boolean;
 }
 
@@ -19,6 +21,13 @@ const getOverdueDays = (nextDue?: string) => {
   const now = new Date();
   const diffDays = Math.ceil((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   return diffDays > 0 ? diffDays : 0;
+};
+
+const isDocumentExpiring = (dateString?: string) => {
+  if (!dateString) return true; // Missing is considered expiring/expired
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  return new Date(dateString).getTime() <= thirtyDaysFromNow.getTime();
 };
 
 export default function OverdueReport() {
@@ -43,20 +52,26 @@ export default function OverdueReport() {
       const allLeads = lRes.data?.leads || [];
 
       // Filter only overdue
-      const overdueDrivers = allDrivers.filter((d: OverdueEntity) => {
-        if (!d.nextVerificationDue) return false;
-        const due = new Date(d.nextVerificationDue);
-        return due.getTime() < new Date().getTime();
-      });
+      const checkDriverOverdue = (entity: OverdueEntity) => {
+        if (entity.nextVerificationDue) {
+          const due = new Date(entity.nextVerificationDue);
+          if (due.getTime() < new Date().getTime()) return true;
+        }
+        if (isDocumentExpiring(entity.licenseExpiryDate)) return true;
+        if (isDocumentExpiring(entity.policeVerificationExpiryDate)) return true;
+        return false;
+      };
 
-      const overdueLeads = allLeads.filter((l: OverdueEntity) => {
-        if (!l.nextVerificationDue) return false;
-        const due = new Date(l.nextVerificationDue);
-        return due.getTime() < new Date().getTime();
-      });
+      const checkLeadOverdue = (entity: OverdueEntity) => {
+        if (entity.nextVerificationDue) {
+          const due = new Date(entity.nextVerificationDue);
+          if (due.getTime() < new Date().getTime()) return true;
+        }
+        return false;
+      };
 
-      setDrivers(overdueDrivers);
-      setLeads(overdueLeads);
+      setDrivers(allDrivers.filter(checkDriverOverdue));
+      setLeads(allLeads.filter(checkLeadOverdue));
     } catch (e) {
       console.error(e);
     } finally {
@@ -131,10 +146,9 @@ export default function OverdueReport() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">License No</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Last Verified</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Due Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Overdue By</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Quarterly Due</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">DL Expiry</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">PV Expiry</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                 </tr>
               </thead>
@@ -158,29 +172,40 @@ export default function OverdueReport() {
                         <p className="text-sm text-gray-900">{entity.phone}</p>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-sm text-gray-900">{entity.licenseNo}</p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <p className="text-xs text-gray-600">
-                          {entity.lastVerifiedAt 
-                            ? new Date(entity.lastVerifiedAt).toLocaleDateString('en-GB')
-                            : 'Never'}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <p className="text-xs text-gray-600">
-                          {entity.nextVerificationDue 
-                            ? new Date(entity.nextVerificationDue).toLocaleDateString('en-GB')
-                            : '—'}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 px-2.5 py-1 rounded-full">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                          </svg>
-                          {overdueDays} {overdueDays === 1 ? 'day' : 'days'}
+                        <span className="text-xs font-medium text-gray-900">
+                          {entity.nextVerificationDue ? new Date(entity.nextVerificationDue).toLocaleDateString('en-GB') : '—'}
                         </span>
+                        {overdueDays > 0 && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                              {overdueDays}d overdue
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {(() => {
+                          if (!entity.licenseExpiryDate) return <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">Missing</span>;
+                          const isExpiring = isDocumentExpiring(entity.licenseExpiryDate);
+                          const isExpired = new Date(entity.licenseExpiryDate).getTime() < new Date().getTime();
+                          return (
+                            <span className={`text-xs font-medium ${isExpired ? 'text-white bg-red-600 px-2 py-1 rounded-md shadow-sm' : isExpiring ? 'text-orange-600 font-bold' : 'text-gray-900'}`}>
+                              {isExpired ? 'Expired - ' : ''}{new Date(entity.licenseExpiryDate).toLocaleDateString('en-GB')}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-4">
+                        {(() => {
+                          if (!entity.policeVerificationExpiryDate) return <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">Missing</span>;
+                          const isExpiring = isDocumentExpiring(entity.policeVerificationExpiryDate);
+                          const isExpired = new Date(entity.policeVerificationExpiryDate).getTime() < new Date().getTime();
+                          return (
+                            <span className={`text-xs font-medium ${isExpired ? 'text-white bg-red-600 px-2 py-1 rounded-md shadow-sm' : isExpiring ? 'text-orange-600 font-bold' : 'text-gray-900'}`}>
+                              {isExpired ? 'Expired - ' : ''}{new Date(entity.policeVerificationExpiryDate).toLocaleDateString('en-GB')}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-4">
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
@@ -206,15 +231,15 @@ export default function OverdueReport() {
           <button
             onClick={() => {
               const csvContent = [
-                ['S.No', 'Name', 'Phone', 'License No', 'Last Verified', 'Due Date', 'Overdue Days', 'Status'],
+                ['S.No', 'Name', 'Phone', 'Quarterly Due', 'Overdue Days', 'DL Expiry', 'PV Expiry', 'Status'],
                 ...entities.map((e, i) => [
                   i + 1,
                   e.name,
                   e.phone,
-                  e.licenseNo,
-                  e.lastVerifiedAt ? new Date(e.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never',
                   e.nextVerificationDue ? new Date(e.nextVerificationDue).toLocaleDateString('en-GB') : '—',
                   getOverdueDays(e.nextVerificationDue),
+                  e.licenseExpiryDate ? new Date(e.licenseExpiryDate).toLocaleDateString('en-GB') : 'Missing',
+                  e.policeVerificationExpiryDate ? new Date(e.policeVerificationExpiryDate).toLocaleDateString('en-GB') : 'Missing',
                   e.isActive ? 'Active' : 'Inactive'
                 ])
               ].map(row => row.join(',')).join('\n');

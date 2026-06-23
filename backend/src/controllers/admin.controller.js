@@ -288,9 +288,16 @@ export const updateDriverDocument = async (req, res) => {
     if (documentType === 'policeVerificationPhoto') {
       data.policeVerificationPhoto = documentUrl || null;
       if (documentUrl) {
-        if (expiryDate) data.policeVerificationExpiryDate = expiryDate;
+        if (expiryDate) data.policeVerificationExpiryDate = new Date(expiryDate).toISOString();
       } else {
         data.policeVerificationExpiryDate = null;
+      }
+    } else if (documentType === 'dlPhoto') {
+      data.dlPhoto = documentUrl || null;
+      if (documentUrl) {
+        if (expiryDate) data.licenseExpiryDate = new Date(expiryDate).toISOString();
+      } else {
+        data.licenseExpiryDate = null;
       }
     } else {
       return res.status(400).json({ success: false, error: 'Unsupported document type' });

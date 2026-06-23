@@ -294,7 +294,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'CUSTOMERS', label: 'Customers', icon: FaUsers },
     { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
     { id: 'LEADS', label: 'Leads', icon: FaBullseye },
-    { id: 'OVERDUE_REPORT', label: 'Overdue Report', icon: BiError },
+    { id: 'OVERDUE_REPORT', label: 'Verification Report', icon: BiError },
     { id: 'LEAD_PACKAGES', label: 'Lead Packages', icon: FaBox },
     { id: 'LEAD_SUBSCRIPTIONS', label: 'Lead Subscriptions', icon: FaFileAlt },
     { id: 'PACKAGES', label: 'Packages', icon: FaBox },

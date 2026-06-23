@@ -8,6 +8,12 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
   const [allocatedBookings, setAllocatedBookings] = useState([]);
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetchCurrentSubscription();
@@ -117,82 +123,90 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
       {(!activeSubTab || activeSubTab === 'PENDING') && (
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Pending Requests</h2>
-        {requests.length === 0 ? (
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-            </div>
-            <p className="text-gray-500 text-sm">No pending requests</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {requests.map(request => {
-              const startDate = new Date(request.booking.startDateTime);
-              const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-              const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              
-              return (
-                <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
-                  <div className="p-4 sm:p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
-                        {request.booking.estimateAmount && (
-                          <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
-                        )}
-                        {request.booking.paymentMethod && (
-                          <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{request.booking.paymentMethod}</span></p>
-                        )}
-                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Route */}
-                    <div className="space-y-3 mb-4">
-                      <div className="flex gap-3">
-                        <div className="flex flex-col items-center pt-1">
-                          <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                          <div className="w-0.5 h-8 bg-gray-300"></div>
-                          <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Pickup</p>
-                            <p className="text-sm font-medium text-gray-900">{request.booking.pickupLocation}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Drop-off</p>
-                            <p className="text-sm font-medium text-gray-900">{request.booking.dropLocation}</p>
-                          </div>
+        {(() => {
+          const visibleRequests = requests.filter(req => !req.availableAt || new Date(req.availableAt).getTime() <= currentTime.getTime());
+          
+          if (visibleRequests.length === 0) {
+            return (
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 text-sm">No pending requests</p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-3">
+              {visibleRequests.map(request => {
+                const startDate = new Date(request.booking.startDateTime);
+                const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                return (
+                  <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
+                    <div className="p-4 sm:p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
+                          {request.booking.estimateAmount && (
+                            <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
+                          )}
+                          {request.booking.paymentMethod && (
+                            <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{request.booking.paymentMethod}</span></p>
+                          )}
+                          <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Customer Info hidden for pending requests */}
-                    
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 sm:gap-3">
-                      <button 
-                        onClick={() => respondToRequest(request.id, 'REJECTED')} 
-                        className="flex-1 bg-gray-100 text-gray-900 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-200 transition active:scale-95"
-                      >
-                        Decline
-                      </button>
-                      <button 
-                        onClick={() => respondToRequest(request.id, 'ACCEPTED')} 
-                        className="flex-1 bg-black text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95"
-                      >
-                        Accept
-                      </button>
+                      
+                      {/* Route */}
+                      <div className="space-y-3 mb-4">
+                        <div className="flex gap-3">
+                          <div className="flex flex-col items-center pt-1">
+                            <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                            <div className="w-0.5 h-8 bg-gray-300"></div>
+                            <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Pickup</p>
+                              <p className="text-sm font-medium text-gray-900">{request.booking.pickupLocation}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Drop-off</p>
+                              <p className="text-sm font-medium text-gray-900">{request.booking.dropLocation}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Customer Info hidden for pending requests */}
+                      
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 sm:gap-3">
+                        <button 
+                          onClick={() => respondToRequest(request.id, 'REJECTED')} 
+                          className="flex-1 bg-gray-100 text-gray-900 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-200 transition active:scale-95"
+                        >
+                          Decline
+                        </button>
+                        <button 
+                          onClick={() => respondToRequest(request.id, 'ACCEPTED')} 
+                          className="flex-1 bg-black text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95 shadow-md"
+                        >
+                          Accept
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
       )}
 

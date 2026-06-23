@@ -3,7 +3,7 @@ import { getDriverReports, getCustomerReports, getRevenueReport, getDriverTrips,
 import { API_BASE_URL } from '../../api/config.js';
 
 const Reports: React.FC = () => {
-  const [activeReport, setActiveReport] = useState<'DRIVERS' | 'CUSTOMERS' | 'REVENUE'>('DRIVERS');
+  const [activeReport, setActiveReport] = useState<'DRIVERS' | 'CUSTOMERS' | 'REVENUE' | 'OVERDUE VERIFICATION'>('DRIVERS');
   const [driverReports, setDriverReports] = useState<any[]>([]);
   const [customerReports, setCustomerReports] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
@@ -109,8 +109,8 @@ const Reports: React.FC = () => {
     <div className="p-4 md:p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
         <h2 className="text-xl md:text-2xl font-bold">Reports</h2>
-        <div className="flex gap-2 w-full md:w-auto overflow-x-auto">
-          {['DRIVERS', 'CUSTOMERS', 'REVENUE'].map((tab) => (
+        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
+          {['DRIVERS', 'CUSTOMERS', 'REVENUE', 'OVERDUE VERIFICATION'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveReport(tab as any)}
@@ -240,10 +240,89 @@ const Reports: React.FC = () => {
                   <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-200">
                     <tr>
                       <td colSpan={5} className="px-6 py-4 text-right text-sm">Grand Total:</td>
-                      <td className="px-6 py-4 text-sm text-green-700">₹{driverReports.reduce((acc, curr) => acc + Number(curr.totalRevenue || 0), 0).toFixed(2)}</td>
-                      <td></td>
+                      <td className="px-6 py-4 text-sm text-green-700">₹{customerReports.reduce((acc, curr) => acc + Number(curr.totalSpent || 0), 0).toFixed(2)}</td>
+                      <td colSpan={3}></td>
                     </tr>
                   </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeReport === 'OVERDUE VERIFICATION' && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Phone</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Driving License Expiry</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Police Verif. Expiry</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {(() => {
+                      const thirtyDaysFromNow = new Date();
+                      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                      const today = new Date();
+                      today.setHours(0,0,0,0);
+
+                      const overdueDrivers = driverReports.filter(d => {
+                        let isOverdue = false;
+                        if (!d.licenseExpiryDate || new Date(d.licenseExpiryDate) <= thirtyDaysFromNow) isOverdue = true;
+                        if (!d.policeVerificationExpiryDate || new Date(d.policeVerificationExpiryDate) <= thirtyDaysFromNow) isOverdue = true;
+                        return isOverdue;
+                      });
+
+                      if (overdueDrivers.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">No drivers with overdue or missing documents.</td>
+                          </tr>
+                        );
+                      }
+
+                      return overdueDrivers.map((driver) => {
+                        const isDLExpired = !driver.licenseExpiryDate || new Date(driver.licenseExpiryDate) < today;
+                        const isDLExpiring = !isDLExpired && new Date(driver.licenseExpiryDate) <= thirtyDaysFromNow;
+                        
+                        const isPVExpired = !driver.policeVerificationExpiryDate || new Date(driver.policeVerificationExpiryDate) < today;
+                        const isPVExpiring = !isPVExpired && new Date(driver.policeVerificationExpiryDate) <= thirtyDaysFromNow;
+
+                        return (
+                          <tr key={driver.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 text-sm font-medium">{driver.name}</td>
+                            <td className="px-6 py-4 text-sm">{driver.phone}</td>
+                            <td className="px-6 py-4 text-sm">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${driver.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {driver.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              {!driver.licenseExpiryDate ? (
+                                <span className="text-red-600 font-bold">Missing</span>
+                              ) : (
+                                <span className={isDLExpired ? 'text-red-600 font-bold' : isDLExpiring ? 'text-orange-600 font-bold' : 'text-gray-900'}>
+                                  {new Date(driver.licenseExpiryDate).toLocaleDateString('en-GB')} {isDLExpired ? '(Expired)' : isDLExpiring ? '(Expiring Soon)' : ''}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              {!driver.policeVerificationExpiryDate ? (
+                                <span className="text-red-600 font-bold">Missing</span>
+                              ) : (
+                                <span className={isPVExpired ? 'text-red-600 font-bold' : isPVExpiring ? 'text-orange-600 font-bold' : 'text-gray-900'}>
+                                  {new Date(driver.policeVerificationExpiryDate).toLocaleDateString('en-GB')} {isPVExpired ? '(Expired)' : isPVExpiring ? '(Expiring Soon)' : ''}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
                 </table>
               </div>
             </div>

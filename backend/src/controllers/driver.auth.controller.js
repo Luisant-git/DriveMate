@@ -95,6 +95,23 @@ export const driverLogin = async (req, res) => {
       return res.status(403).json({ error: 'Your account is not active. Please contact admin.' });
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (driver.licenseExpiryDate) {
+      const dlExpiry = new Date(driver.licenseExpiryDate);
+      if (dlExpiry < today) {
+        return res.status(403).json({ error: 'Your Driving License has expired. Please contact admin to update it.' });
+      }
+    }
+
+    if (driver.policeVerificationExpiryDate) {
+      const pvExpiry = new Date(driver.policeVerificationExpiryDate);
+      if (pvExpiry < today) {
+        return res.status(403).json({ error: 'Your Police Verification Document has expired. Please contact admin to update it.' });
+      }
+    }
+
     const token = jwt.sign({ userId: driver.id, role: 'DRIVER' }, process.env.JWT_SECRET);
     req.session.userId = driver.id;
     req.session.role = 'DRIVER';
