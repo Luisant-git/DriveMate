@@ -422,7 +422,8 @@ export default function BookingWorkflow() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Source</th>
+                      {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th> */}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -493,6 +494,14 @@ export default function BookingWorkflow() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
+                            <span className={`inline-block text-[10px] px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wider ${
+                              booking.customer?.email?.includes('@temp.com') ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                            }`}>
+                              {booking.customer?.email?.includes('@temp.com') ? 'Admin Booking' : 'Online Booking'}
+                            </span>
+                          </td>
+                          {false && (
+                          <td className="px-4 py-4">
                             {!booking.selectedPackageType && !booking.selectedLeadPackageId ? (
                               <div className="space-y-2">
                                 <select
@@ -553,6 +562,7 @@ export default function BookingWorkflow() {
                               </div>
                             )}
                           </td>
+                          )}
                         </tr>
                       );
                     })}
