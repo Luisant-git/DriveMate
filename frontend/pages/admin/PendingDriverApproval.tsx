@@ -4,6 +4,8 @@ import { API_BASE_URL } from '../../api/config.js';
 
 export default function PendingDriverApproval() {
   const [bookingsWithAcceptedDrivers, setBookingsWithAcceptedDrivers] = useState([]);
+  const [allocatedBookings, setAllocatedBookings] = useState([]);
+  const [activeTab, setActiveTab] = useState('PENDING'); // PENDING or ALLOCATED
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [acceptedDrivers, setAcceptedDrivers] = useState([]);
   const [allDrivers, setAllDrivers] = useState([]);
@@ -15,6 +17,7 @@ export default function PendingDriverApproval() {
 
   useEffect(() => {
     fetchBookingsWithAcceptedDrivers();
+    fetchAllocatedBookings();
   }, []);
 
   const fetchBookingsWithAcceptedDrivers = async () => {
@@ -24,10 +27,18 @@ export default function PendingDriverApproval() {
       
       // Show ALL bookings that are not allocated yet
       const sentBookings = bookings.filter(b => !b.allocatedDriverId);
-      console.log('All bookings:', sentBookings);
       setBookingsWithAcceptedDrivers(sentBookings);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const fetchAllocatedBookings = async () => {
+    try {
+      const res = await apiClient.get('/booking-workflow/admin/allocated');
+      setAllocatedBookings(res.data.bookings || []);
+    } catch (error) {
+      console.error('Error fetching allocated bookings:', error);
     }
   };
 
@@ -130,20 +141,12 @@ export default function PendingDriverApproval() {
   const fetchAllDrivers = async () => {
     try {
       setLoadingDrivers(true);
-      const res = await apiClient.get('/drivers');
-      setAllDrivers(res.data || []);
+      const res = await apiClient.get('/admin/drivers');
+      // res.data is the array of drivers from admin controller
+      setAllDrivers(Array.isArray(res.data) ? res.data : (res.data?.drivers || []));
       
-      // Check busy status for each driver (active trips + pending/conflict status)
       const busyStatus = {};
-      for (const driver of (res.data || [])) {
-        const tripsRes = await apiClient.get(`/reports/drivers/${driver.id}/trips`);
-        const trips = tripsRes.data?.trips || [];
-        // Check if driver has any active or pending trips
-        const activeTrip = trips.find(trip => 
-          trip.status && ['STARTED', 'ASSIGNED', 'ACCEPTED', 'PENDING', 'ONGOING'].includes(trip.status)
-        );
-        busyStatus[driver.id] = !!activeTrip;
-      }
+      // We are skipping the N+1 API calls to avoid overwhelming the server
       setDriverBusyStatus(busyStatus);
     } catch (error) {
       console.error('Error fetching drivers:', error);
@@ -246,7 +249,7 @@ export default function PendingDriverApproval() {
                             <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
-                            <span className="text-sm font-semibold text-gray-900">{person.rating}</span>
+                            <span className="text-sm font-semibold text-gray-900">{Number(person.rating).toFixed(1)}</span>
                           </div>
                         )}
                       </div>
@@ -260,12 +263,31 @@ export default function PendingDriverApproval() {
                         </div>
                       )}
                       
-                      <button 
-                        onClick={() => approveDriver(person.id, isLead)} 
-                        className="w-full bg-green-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
-                      >
-                        Approve & Allocate {isLead ? 'Lead' : 'Driver'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={async () => {
+                            try {
+                              const endpoint = isLead 
+                                ? `/booking-workflow/admin/${selectedBooking.id}/reject-driver-response`
+                                : `/booking-workflow/admin/${selectedBooking.id}/reject-driver-response`;
+                              const payload = isLead ? { leadId: person.id } : { driverId: person.id };
+                              await apiClient.put(endpoint, payload);
+                              viewAcceptedDrivers(selectedBooking); // refresh list
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                          className="w-1/3 bg-red-50 text-red-600 px-4 py-3 rounded-xl font-semibold text-sm hover:bg-red-100 transition"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={() => approveDriver(person.id, isLead)} 
+                          className="w-2/3 bg-green-600 text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-green-700 transition"
+                        >
+                          Approve & Allocate {isLead ? 'Lead' : 'Driver'}
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -386,88 +408,187 @@ export default function PendingDriverApproval() {
 
   return (
     <div className="px-3 sm:px-6 py-4 sm:py-6">
-      <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Pending Driver Approval</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Driver Approvals</h2>
+        <div className="flex bg-gray-100 p-1 rounded-xl">
+          <button
+            onClick={() => setActiveTab('PENDING')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'PENDING' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Pending Approvals
+            {bookingsWithAcceptedDrivers.length > 0 && (
+              <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
+                {bookingsWithAcceptedDrivers.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('ALLOCATED')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'ALLOCATED' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Allocated Records
+          </button>
+        </div>
+      </div>
       
-      {bookingsWithAcceptedDrivers.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+      {activeTab === 'PENDING' ? (
+        bookingsWithAcceptedDrivers.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-sm">No bookings waiting for driver approval</p>
           </div>
-          <p className="text-gray-500 text-sm">No bookings waiting for driver approval</p>
-        </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Approval</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {bookingsWithAcceptedDrivers.map((booking, index) => {
+                  const acceptedCount = (booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0) + 
+                                       (booking.leadResponses?.filter(r => r.status === 'ACCEPTED').length || 0);
+                  
+                  return (
+                    <tr key={booking.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-semibold text-xs">{booking.customer?.name?.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{booking.customer?.name}</p>
+                            <p className="text-xs text-gray-600">{booking.customer?.phone}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-900 font-medium">{booking.pickupLocation}</p>
+                          <p className="text-xs text-gray-500">→ {booking.dropLocation}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
+                          {booking.selectedLeadPackageId ? 'LEAD' : booking.selectedPackageType}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {(() => {
+                             const acceptedDrivers = booking.driverResponses?.filter(r => r.status === 'ACCEPTED').map(r => r.driver?.name) || [];
+                             const acceptedLeads = booking.leadResponses?.filter(r => r.status === 'ACCEPTED').map(r => r.lead?.name) || [];
+                             const allNames = [...acceptedDrivers, ...acceptedLeads].filter(Boolean);
+                             
+                             if (allNames.length === 0) {
+                               return <span className="text-xs text-gray-400">None yet</span>;
+                             }
+                             return allNames.map((name, i) => (
+                               <span key={i} className="inline-block bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+                                 {name}
+                               </span>
+                             ));
+                          })()}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button 
+                          onClick={() => viewAcceptedDrivers(booking)}
+                          disabled={loading || acceptedCount === 0}
+                          className="bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition"
+                        >
+                          View & Approve
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        )
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
-              <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Accepted</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {bookingsWithAcceptedDrivers.map((booking, index) => {
-                const acceptedCount = (booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0) + 
-                                     (booking.leadResponses?.filter(r => r.status === 'ACCEPTED').length || 0);
-                
-                return (
-                  <tr key={booking.id} className="hover:bg-gray-50 transition">
-                    <td className="px-4 py-4">
-                      <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-xs">{booking.customer?.name?.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{booking.customer?.name}</p>
-                          <p className="text-xs text-gray-600">{booking.customer?.phone}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-900 font-medium">{booking.pickupLocation}</p>
-                        <p className="text-xs text-gray-500">→ {booking.dropLocation}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                        {booking.selectedLeadPackageId ? 'LEAD' : booking.selectedPackageType}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="inline-block bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-bold">
-                        {acceptedCount} {booking.selectedLeadPackageId ? 'Lead' : 'Driver'}{acceptedCount !== 1 ? 's' : ''}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <button 
-                        onClick={() => viewAcceptedDrivers(booking)}
-                        disabled={loading || acceptedCount === 0}
-                        className="bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition"
-                      >
-                        View & Approve
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        allocatedBookings.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <p className="text-gray-500 text-sm">No allocated drivers yet</p>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Allocated Driver</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {allocatedBookings.map((booking, index) => {
+                  const driverName = booking.driver?.name || booking.lead?.name || 'N/A';
+                  const driverPhone = booking.driver?.phone || booking.lead?.phone || 'N/A';
+                  return (
+                    <tr key={booking.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-4"><p className="text-sm font-semibold text-gray-900">{index + 1}</p></td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{booking.customer?.name}</p>
+                            <p className="text-xs text-gray-600">{booking.customer?.phone}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-900 font-medium">{booking.pickupLocation}</p>
+                          <p className="text-xs text-gray-500">→ {booking.dropLocation}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-semibold text-xs">{driverName.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{driverName}</p>
+                            <p className="text-xs text-gray-600">{driverPhone}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4"><p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p></td>
+                      <td className="px-4 py-4">
+                        <p className="text-xs text-gray-500">{new Date(booking.allocatedAt || booking.createdAt).toLocaleDateString()}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

@@ -9,6 +9,7 @@ datasource db {
 
 model Customer {
   id        String   @id @default(cuid())
+  customerNo Int     @unique @default(autoincrement())
   name      String?
   email     String?  @unique
   phone     String   @unique
@@ -29,6 +30,7 @@ model Customer {
 
 model Driver {
   id           String        @id @default(cuid())
+  driverNo     Int           @unique @default(autoincrement())
   name         String
   email        String?       @unique
   phone        String        @unique
@@ -373,6 +375,7 @@ model Booking {
   
   // Trip execution fields
   actualStartTime DateTime?
+  completedAt     DateTime?
   carFrontPhoto   String?
   carBackPhoto    String?
   

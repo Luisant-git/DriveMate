@@ -10,6 +10,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ phone: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [errorModal, setErrorModal] = useState({ isOpen: false, message: '' });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +29,10 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
       if (response.ok) {
         onLogin({ ...data.driver, role: 'DRIVER' });
       } else {
-        alert(data.error || data.message || 'Invalid credentials');
+        setErrorModal({ isOpen: true, message: data.error || data.message || 'Invalid credentials' });
       }
     } catch (error) {
-      alert('Login failed. Please try again.');
+      setErrorModal({ isOpen: true, message: 'Login failed. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +83,32 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
       <p className="text-center text-sm text-gray-500 mt-4">
         Join as driver partner? <span onClick={() => navigate('/driver/register')} className="font-bold text-black cursor-pointer hover:underline">Register here</span>
       </p>
+
+      {/* Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl transform transition-all scale-100">
+            <div className="bg-red-500 p-6 flex justify-center">
+              <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="p-6 text-center">
+              <h3 className="text-xl font-black text-gray-900 mb-2">Access Denied</h3>
+              <p className="text-sm text-gray-600 font-medium leading-relaxed mb-6">
+                {errorModal.message}
+              </p>
+              <button 
+                type="button"
+                onClick={() => setErrorModal({ isOpen: false, message: '' })}
+                className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition shadow-lg active:scale-95"
+              >
+                Okay, Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAdminPendingBookings,
+  getAdminAllocatedBookings,
   adminReviewBooking,
   sendBookingToDrivers,
   getDriverPendingRequests,
@@ -16,7 +17,8 @@ import {
   respondToLeadBookingRequest,
   getLeadBookingResponses,
   allocateLeadToBooking,
-  cleanupDuplicateResponses
+  cleanupDuplicateResponses,
+  rejectDriverResponse
 } from '../controllers/booking.workflow.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
@@ -36,6 +38,17 @@ const router = express.Router();
  *         description: List of pending bookings
  */
 router.get('/admin/pending', authenticateToken, getAdminPendingBookings);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/allocated:
+ *   get:
+ *     summary: Get all allocated bookings
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/admin/allocated', authenticateToken, getAdminAllocatedBookings);
 
 /**
  * @swagger
@@ -135,6 +148,17 @@ router.get('/admin/:bookingId/responses', authenticateToken, getBookingResponses
  *         description: Driver allocated successfully
  */
 router.post('/admin/:bookingId/allocate-driver', authenticateToken, allocateDriverToBooking);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/{bookingId}/reject-driver-response:
+ *   put:
+ *     summary: Admin rejects a driver's response
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.put('/admin/:bookingId/reject-driver-response', authenticateToken, rejectDriverResponse);
 
 /**
  * @swagger

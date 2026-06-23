@@ -78,6 +78,7 @@ export const getDriverTrips = async (req, res) => {
       rating: booking.rating,
       feedback: booking.feedback,
       actualStartTime: booking.actualStartTime,
+      completedAt: booking.completedAt || (booking.status === 'COMPLETED' ? booking.updatedAt : null),
       finalAmount: booking.finalAmount,
     }));
 
@@ -166,6 +167,9 @@ export const completeTrip = async (req, res) => {
         lead: true,
       },
     });
+
+    // Manually set completedAt using raw SQL and ISOString to ensure UTC is saved in the DB
+    await prisma.$executeRawUnsafe(`UPDATE bookings SET "completedAt" = $1::timestamp WHERE id = $2`, new Date().toISOString(), tripId);
 
     // Update driver or lead's completed trips count
     if (isLead) {

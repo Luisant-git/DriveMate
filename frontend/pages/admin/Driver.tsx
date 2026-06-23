@@ -26,6 +26,7 @@ export default function Driver() {
   const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [verifyFilter, setVerifyFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Verification modal state
   const [verifyDriver, setVerifyDriver] = useState(null);
@@ -366,8 +367,24 @@ export default function Driver() {
   };
 
   const filteredDrivers = drivers.filter(d => {
-    if (verifyFilter === 'ALL') return true;
-    return getVerificationStatus(d) === verifyFilter;
+    let matchesStatus = true;
+    if (verifyFilter !== 'ALL') {
+      matchesStatus = getVerificationStatus(d) === verifyFilter;
+    }
+
+    let matchesSearch = true;
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase().trim();
+      const driverIdFormatted = `drv-${d.driverNo ? d.driverNo.toString().padStart(4, '0') : 'xxxx'}`;
+      matchesSearch = 
+        (d.phone && d.phone.toLowerCase().includes(q)) ||
+        (d.name && d.name.toLowerCase().includes(q)) ||
+        (d.id && d.id.toLowerCase().includes(q)) ||
+        driverIdFormatted.includes(q) ||
+        (d.driverNo && d.driverNo.toString().includes(q));
+    }
+
+    return matchesStatus && matchesSearch;
   });
 
   const filterCounts = {
@@ -393,11 +410,12 @@ export default function Driver() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        {[
-          { key: 'ALL', label: 'All' },
-          { key: 'OVERDUE', label: 'Overdue' },
-          { key: 'DUE_SOON', label: 'Due Soon' },
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: 'ALL', label: 'All' },
+          /* { key: 'OVERDUE', label: 'Overdue' },
+          { key: 'DUE_SOON', label: 'Due Soon' }, */
           { key: 'NEVER', label: 'Never Verified' },
           { key: 'OK', label: 'Verified' },
         ].map(f => (
@@ -412,6 +430,20 @@ export default function Driver() {
             <span className="ml-1.5 text-[10px] opacity-70">({filterCounts[f.key]})</span>
           </button>
         ))}
+        </div>
+        
+        <div className="w-full sm:w-64">
+          <div className="relative">
+            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input 
+              type="text" 
+              placeholder="Search by name, phone or ID..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black transition shadow-sm"
+            />
+          </div>
+        </div>
       </div>
 
       {filteredDrivers.length === 0 ? (
@@ -421,17 +453,18 @@ export default function Driver() {
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[700px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Driving License</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Verification</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Active</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">S.No</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Driver ID</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Driving License</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Package</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -440,37 +473,42 @@ export default function Driver() {
                   const rowBg = vs === 'OVERDUE' ? 'bg-red-50 hover:bg-red-100' : vs === 'DUE_SOON' ? 'bg-yellow-50 hover:bg-yellow-100' : vs === 'NEVER' ? 'bg-gray-50 hover:bg-gray-100' : 'bg-green-50 hover:bg-green-100';
                   return (
                   <tr key={driver.id} className={`${rowBg} transition`}>
-                    <td className="px-4 py-4"><p className="text-sm font-semibold text-gray-900">{index + 1}</p></td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">
+                    <td className="px-3 py-3"><p className="text-xs font-bold text-gray-900">{index + 1}</p></td>
+                    <td className="px-3 py-3">
+                      <p className="text-xs font-bold text-gray-900">
+                        DRV-{driver.driverNo ? driver.driverNo.toString().padStart(4, '0') : 'XXXX'}
+                      </p>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 bg-gray-800 text-white rounded-full flex items-center justify-center font-bold text-[10px]">
                           {driver.name ? driver.name[0] : 'D'}
                         </div>
-                        <p className="text-sm font-semibold text-gray-900">{driver.name}</p>
+                        <p className="text-xs font-bold text-gray-900 truncate max-w-[120px]">{driver.name}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-4"><p className="text-sm text-gray-900">{driver.phone}</p></td>
-                    <td className="px-4 py-4"><p className="text-sm text-gray-900">{driver.licenseNo}</p></td>
-                    <td className="px-4 py-4">
-                      <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
+                    <td className="px-3 py-3"><p className="text-xs text-gray-700">{driver.phone}</p></td>
+                    <td className="px-3 py-3"><p className="text-xs text-gray-700">{driver.licenseNo}</p></td>
+                    <td className="px-3 py-3">
+                      <span className="inline-block bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-full font-bold truncate max-w-[100px]">
                         {driver.activeSubscription?.plan?.name || 'No Active Package'}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3">
                       <VerificationBadge driver={driver} onClick={() => openVerifyModal(driver)} />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3">
                       <button
                         onClick={() => toggleActiveStatus(driver.id, driver.isActive)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold transition ${driver.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                        className={`px-2 py-1 rounded-full text-[10px] font-bold transition ${driver.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
                       >
                         {driver.isActive ? 'Active' : 'Deactive'}
                       </button>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3">
                       <button
                         onClick={() => setSelectedDriver(driver)}
-                        className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
+                        className="w-7 h-7 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

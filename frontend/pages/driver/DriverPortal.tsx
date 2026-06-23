@@ -760,8 +760,17 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                      ) : (
                          pastTrips.map(trip => (
                              <div key={trip.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 shadow-sm mb-4 hover:border-gray-300 transition-colors">
-                                 <div className="flex justify-between items-center mb-2">
-                                     <span className="text-xs font-bold text-gray-500">{trip.startDate} • {trip.startTime}</span>
+                                 <div className="flex justify-between items-start mb-2">
+                                     <div className="flex flex-col">
+                                       <span className="text-xs font-bold text-gray-500 mb-0.5">
+                                         Start: {(trip as any).actualStartTime ? new Date((trip as any).actualStartTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : `${trip.startDate} • ${trip.startTime}`}
+                                       </span>
+                                       {trip.status === 'COMPLETED' && (trip as any).completedAt && (
+                                         <span className="text-[10px] font-bold text-green-600">
+                                           Ended: {new Date((trip as any).completedAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                         </span>
+                                       )}
+                                     </div>
                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${trip.status === 'CANCELLED' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
                                          {trip.status === 'CANCELLED' ? 'Cancelled' : 'Completed'}
                                      </span>

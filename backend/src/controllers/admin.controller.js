@@ -6,7 +6,19 @@ export const getAllCustomers = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ customers });
+    // Manually fetch customerNo since Prisma client is stale
+    try {
+      const customerNos = await prisma.$queryRawUnsafe('SELECT id, "customerNo" FROM customers');
+      const customerNoMap = {};
+      customerNos.forEach(c => { customerNoMap[c.id] = c.customerNo; });
+      const mappedCustomers = customers.map(c => ({
+        ...c,
+        customerNo: customerNoMap[c.id]
+      }));
+      return res.json({ customers: mappedCustomers });
+    } catch (e) {
+      return res.json({ customers });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -21,7 +33,19 @@ export const getAllDrivers = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(drivers);
+    // Manually fetch driverNo since Prisma client is stale
+    try {
+      const driverNos = await prisma.$queryRawUnsafe('SELECT id, "driverNo" FROM drivers');
+      const driverNoMap = {};
+      driverNos.forEach(d => { driverNoMap[d.id] = d.driverNo; });
+      const mappedDrivers = drivers.map(d => ({
+        ...d,
+        driverNo: driverNoMap[d.id]
+      }));
+      return res.json(mappedDrivers);
+    } catch (e) {
+      return res.json(drivers);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

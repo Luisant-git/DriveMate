@@ -244,7 +244,17 @@ export const getDriverTrips = async (req, res) => {
       }),
     ]);
 
-    res.json({ success: true, data: { bookings, trips, rides } });
+    // Add completedAt fallback since Prisma schema might be stale
+    const mapTrips = (tripsList) => tripsList.map(t => ({
+      ...t,
+      completedAt: t.completedAt || (t.status === 'COMPLETED' ? t.updatedAt : null)
+    }));
+
+    res.json({ success: true, data: { 
+      bookings: mapTrips(bookings), 
+      trips: mapTrips(trips), 
+      rides: mapTrips(rides) 
+    } });
   } catch (error) {
     console.error('Error fetching driver trips:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch driver trips' });
@@ -273,7 +283,17 @@ export const getCustomerTrips = async (req, res) => {
       }),
     ]);
 
-    res.json({ success: true, data: { bookings, trips, rides } });
+    // Add completedAt fallback since Prisma schema might be stale
+    const mapTrips = (tripsList) => tripsList.map(t => ({
+      ...t,
+      completedAt: t.completedAt || (t.status === 'COMPLETED' ? t.updatedAt : null)
+    }));
+
+    res.json({ success: true, data: { 
+      bookings: mapTrips(bookings), 
+      trips: mapTrips(trips), 
+      rides: mapTrips(rides) 
+    } });
   } catch (error) {
     console.error('Error fetching customer trips:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch customer trips' });

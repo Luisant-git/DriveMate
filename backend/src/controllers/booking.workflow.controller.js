@@ -56,6 +56,32 @@ export const getAdminPendingBookings = async (req, res) => {
   }
 };
 
+// ADMIN: Get all allocated bookings
+export const getAdminAllocatedBookings = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        OR: [
+          { driverId: { not: null } },
+          { leadId: { not: null } }
+        ]
+      },
+      include: {
+        customer: true,
+        driver: true,
+        lead: true
+      },
+      orderBy: { allocatedAt: 'desc' },
+      take: 100
+    });
+
+    res.json({ success: true, bookings });
+  } catch (error) {
+    console.error('Error fetching allocated bookings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // ADMIN: Review booking and select package type
 export const adminReviewBooking = async (req, res) => {
   try {
@@ -1358,5 +1384,28 @@ export const cleanupDuplicateResponses = async (req, res) => {
   } catch (error) {
     console.error('Error during cleanup:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const rejectDriverResponse = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { driverId, leadId } = req.body;
+
+    if (driverId) {
+      await prisma.bookingResponse.updateMany({
+        where: { bookingId, driverId },
+        data: { status: 'REJECTED' }
+      });
+    } else if (leadId) {
+      await prisma.leadBookingResponse.updateMany({
+        where: { bookingId, leadId },
+        data: { status: 'REJECTED' }
+      });
+    }
+
+    res.json({ success: true, message: 'Driver response rejected successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
