@@ -83,6 +83,15 @@ export const updateRideStatus = async (req, res) => {
       updateData.startedAt = new Date();
     } else if (status === 'COMPLETED') {
       updateData.completedAt = new Date();
+      
+      const rideInfo = await prisma.ride.findUnique({ where: { id: rideId } });
+      if (rideInfo && rideInfo.driverId) {
+        // Increment dutiesCompleted for active subscriptions
+        await prisma.subscription.updateMany({
+          where: { driverId: rideInfo.driverId, status: 'ACTIVE' },
+          data: { dutiesCompleted: { increment: 1 } },
+        });
+      }
     }
 
     const ride = await prisma.ride.update({

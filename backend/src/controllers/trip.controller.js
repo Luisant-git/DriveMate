@@ -182,6 +182,12 @@ export const completeTrip = async (req, res) => {
           totalRides: { increment: 1 },
         },
       });
+
+      // Increment dutiesCompleted for active subscriptions
+      await prisma.subscription.updateMany({
+        where: { driverId: userId, status: 'ACTIVE' },
+        data: { dutiesCompleted: { increment: 1 } },
+      });
     }
 
     // Transform to trip format

@@ -24,6 +24,7 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   duration: number;
+  maxDuties?: number;
   price: number;
   description?: string;
   type?: SubscriptionType;
@@ -35,6 +36,7 @@ interface PackageFormState {
   type: SubscriptionType;
   price: number;
   durationDays: number;
+  maxDuties: number;
   description: string;
 }
 
@@ -204,6 +206,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       type: 'LOCAL',
       price: 0,
       durationDays: 30,
+      maxDuties: 0,
       description: '',
     });
     setPackageModalError(null);
@@ -217,6 +220,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       type: (pkg.type as SubscriptionType) || 'LOCAL',
       price: pkg.price || 0,
       durationDays: pkg.duration || 30,
+      maxDuties: pkg.maxDuties || 0,
       description: pkg.description || '',
     });
     setPackageModalError(null);
@@ -237,6 +241,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       const payload: any = {
         name: packageForm.name,
         duration: packageForm.durationDays,
+        maxDuties: packageForm.maxDuties,
         price: packageForm.price,
         description: packageForm.description,
       };
@@ -438,6 +443,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                       <div className="flex justify-between items-center border-t border-gray-100 pt-3">
                         <p className="text-xs text-gray-500">
                           Duration: {pkg.duration} days
+                          {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
                         </p>
                         <div className="flex gap-2">
                           <button
@@ -608,7 +614,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 </select>
               </label>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Price (₹)
                   <input
@@ -640,6 +646,21 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                       }))
                     }
                     required
+                  />
+                </label>
+                <label className="block text-xs font-bold text-gray-500 uppercase">
+                  Max Duties
+                  <input
+                    type="number"
+                    min={0}
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    value={packageForm.maxDuties}
+                    onChange={(e) =>
+                      setPackageForm((prev) => ({
+                        ...prev,
+                        maxDuties: Number(e.target.value),
+                      }))
+                    }
                   />
                 </label>
               </div>

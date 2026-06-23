@@ -608,7 +608,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                             Cancel
                                           </button>
                                           <button 
-                                            disabled={isStartingTrip}
+                                            disabled={isStartingTrip || !tripPhotos.front || !tripPhotos.back}
                                             onClick={async () => {
                                               try {
                                                 setIsStartingTrip(true);
@@ -650,16 +650,27 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                         </div>
                                       </div>
                                     ) : (
-                                      <button 
-                                          onClick={() => setStartingTripId(trip.id)}
-                                          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                                      >
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                          </svg>
-                                          Start Trip
-                                      </button>
+                                      <div className="flex gap-3">
+                                        <button 
+                                            onClick={() => setStartingTripId(trip.id)}
+                                            className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Start Trip
+                                        </button>
+                                        <button 
+                                            onClick={() => handleCancelTrip(trip.id)}
+                                            className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-1 shadow-sm"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                            Cancel
+                                        </button>
+                                      </div>
                                     )}
                                     
                                     {/* Trip Details Summary */}
@@ -886,7 +897,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          </div>
                                          <div className="flex-1 min-w-0 mt-1 sm:mt-0">
                                              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Total trips</p>
-                                             <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{driver.completedTrips || 0}</p>
+                                             <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{(driver as any).totalRides || 0}</p>
                                          </div>
                                      </div>
                                  </div>
@@ -956,9 +967,19 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                      </p>
                                                  </div>
                                                  <p className="text-xs sm:text-lg md:text-xl font-bold text-black truncate mt-0.5">{currentSubscription.plan.name}</p>
-                                                 <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1 font-bold">
-                                                     {daysLeft} days left
-                                                 </p>
+                                                 <div className="flex flex-wrap gap-2">
+                                                   <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1 font-bold">
+                                                       {daysLeft} days left
+                                                   </p>
+                                                   {(currentSubscription.maxDuties > 0 || (currentSubscription.plan && currentSubscription.plan.maxDuties > 0)) && (() => {
+                                                     const maxLimit = currentSubscription.maxDuties > 0 ? currentSubscription.maxDuties : currentSubscription.plan.maxDuties;
+                                                     return (
+                                                       <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-purple-600 border-purple-200 bg-purple-50 inline-block mt-1 font-bold">
+                                                           {Math.max(0, maxLimit - (currentSubscription.dutiesCompleted || 0))} duties left
+                                                       </p>
+                                                     );
+                                                   })()}
+                                                 </div>
                                              </div>
                                          </div>
                                      </div>

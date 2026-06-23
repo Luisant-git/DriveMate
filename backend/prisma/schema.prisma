@@ -141,6 +141,7 @@ model SubscriptionPlan {
   price       Float
   description String?
   type  PackageType 
+  maxDuties   Int?     @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -186,6 +187,8 @@ model Subscription {
   remainingAmount Float?
   paymentMethod String?
   isAdminCreated Boolean      @default(false)
+  dutiesCompleted Int         @default(0)
+  maxDuties       Int?        @default(0)
 
   @@map("subscriptions")
 }

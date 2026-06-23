@@ -19,14 +19,32 @@ const updateExpiredSubscriptions = async (driverId = null) => {
       status: 'EXPIRED'
     }
   });
+
+  const maxDutiesWhere = {
+    status: 'ACTIVE',
+    maxDuties: { gt: 0 }
+  };
+  if (driverId) {
+    maxDutiesWhere.driverId = driverId;
+  }
+  
+  const activeSubs = await prisma.subscription.findMany({ where: maxDutiesWhere });
+  const expiredIds = activeSubs.filter(s => s.dutiesCompleted >= s.maxDuties).map(s => s.id);
+  
+  if (expiredIds.length > 0) {
+    await prisma.subscription.updateMany({
+      where: { id: { in: expiredIds } },
+      data: { status: 'EXPIRED' }
+    });
+  }
 };
 
 export const createSubscriptionPlan = async (req, res) => {
   try {
-    const { name, duration, price, description ,type} = req.body;
+    const { name, duration, price, description ,type, maxDuties} = req.body;
 
     const plan = await prisma.subscriptionPlan.create({
-      data: { name, duration, price, description, type },
+      data: { name, duration, price, description, type, maxDuties: maxDuties || 0 },
     });
 
     res.status(201).json(plan);
@@ -52,7 +70,7 @@ export const getSubscriptionPlans = async (req, res) => {
 export const updateSubscriptionPlan = async (req, res) => {
   try {
     const id = (req.params.id);
-    const { name, duration, price, description, type, isActive } = req.body;
+    const { name, duration, price, description, type, isActive, maxDuties } = req.body;
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
@@ -61,6 +79,7 @@ export const updateSubscriptionPlan = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (type !== undefined) updateData.type = type;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (maxDuties !== undefined) updateData.maxDuties = maxDuties;
 
     const plan = await prisma.subscriptionPlan.update({
       where: { id },
@@ -123,6 +142,7 @@ export const purchaseSubscription = async (req, res) => {
         amount: plan.price,
         paymentMethod,
         status: 'ACTIVE',
+        maxDuties: plan.maxDuties || 0,
       },
       include: { plan: true },
     });
@@ -259,7 +279,8 @@ export const adminCreateSubscription = async (req, res) => {
         remainingAmount: plan.price - paid,
         paymentMethod: paymentMethod || 'CASH',
         isAdminCreated: true,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        maxDuties: plan.maxDuties || 0,
       },
       include: { plan: true, driver: true }
     });
