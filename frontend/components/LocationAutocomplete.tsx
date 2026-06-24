@@ -28,6 +28,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [skipNextSearch, setSkipNextSearch] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +42,22 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    // If value changed externally (not from a suggestion click) and it's not empty,
+    // fetch suggestions so the user can see Google Maps options.
+    if (skipNextSearch) {
+      setSkipNextSearch(false);
+      return;
+    }
+    
+    if (value && value.length > 2) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        fetchSuggestions(value);
+      }, 500);
+    }
+  }, [value]);
 
   const fetchSuggestions = async (input: string) => {
     if (input.length < 1) {
@@ -74,6 +91,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    setSkipNextSearch(false); // Make sure we search when typing
     onChange(newValue);
     setSelectedIndex(-1);
 
@@ -87,6 +105,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   };
 
   const handleSuggestionClick = (suggestion: Suggestion) => {
+    setSkipNextSearch(true); // Don't re-search when selecting a suggestion
     onChange(suggestion.description);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -125,6 +144,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
             );
             const data = await response.json();
             if (data.results && data.results[0]) {
+              setSkipNextSearch(true); // Don't search after getting my location
               onChange(data.results[0].formatted_address);
               setShowSuggestions(false);
             }
@@ -158,7 +178,9 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         className={`w-full ${className}`}
         autoComplete="off"
         onFocus={() => {
-          if (showMyLocation || (value.length >= 1 && suggestions.length > 0)) {
+          if (value.length >= 1 && suggestions.length === 0 && !loading) {
+            fetchSuggestions(value);
+          } else if (showMyLocation || (value.length >= 1 && suggestions.length > 0)) {
             setShowSuggestions(true);
           }
         }}

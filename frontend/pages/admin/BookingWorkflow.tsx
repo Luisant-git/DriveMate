@@ -16,6 +16,7 @@ export default function BookingWorkflow() {
   const [packages, setPackages] = useState([]);
   const [leadPackages, setLeadPackages] = useState([]);
   const [processingBookings, setProcessingBookings] = useState(new Set()); // Track which bookings are being processed
+  const [customersList, setCustomersList] = useState([]);
   
   // Create Booking State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -34,6 +35,8 @@ export default function BookingWorkflow() {
     driverType: 'Acting Driver'
   });
   const [creatingBooking, setCreatingBooking] = useState(false);
+  const [searchCust, setSearchCust] = useState('');
+  const [showCustDropdown, setShowCustDropdown] = useState(false);
 
   useEffect(() => {
     fetchPendingBookings();
@@ -41,7 +44,17 @@ export default function BookingWorkflow() {
     fetchLeadCounts();
     fetchPackages();
     fetchLeadPackages();
+    fetchCustomers();
   }, [filters]);
+
+  const fetchCustomers = async () => {
+    try {
+      const res = await apiClient.get('/admin/customers');
+      setCustomersList(res.data.customers || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
 
   const fetchPackages = async () => {
     try {
@@ -716,6 +729,54 @@ export default function BookingWorkflow() {
                   </button>
                 </div>
               )}
+
+              {/* Customer Selection */}
+              <div className="mb-4 relative">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Search & Select Customer (Optional)</label>
+                <input 
+                  type="text"
+                  placeholder="Search by name or phone..."
+                  value={searchCust}
+                  onChange={(e) => {
+                    setSearchCust(e.target.value);
+                    setShowCustDropdown(true);
+                  }}
+                  onFocus={() => setShowCustDropdown(true)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white"
+                />
+                {showCustDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setShowCustDropdown(false)}
+                    ></div>
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {customersList.filter(c => (c.phone?.includes(searchCust) || c.name?.toLowerCase().includes(searchCust.toLowerCase()))).map(c => (
+                        <div 
+                          key={c.id} 
+                          className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-100 last:border-0"
+                          onClick={() => {
+                            setCreateForm(prev => ({
+                              ...prev,
+                              customerName: c.name || prev.customerName,
+                              customerPhone: c.phone || prev.customerPhone,
+                              pickupLocation: c.address || prev.pickupLocation
+                            }));
+                            setSearchCust(`${c.name || 'Unnamed'} - ${c.phone}`);
+                            setShowCustDropdown(false);
+                          }}
+                        >
+                          <div className="font-semibold text-gray-900">{c.name || 'Unnamed'}</div>
+                          <div className="text-gray-500 text-xs">{c.phone}</div>
+                        </div>
+                      ))}
+                      {customersList.filter(c => (c.phone?.includes(searchCust) || c.name?.toLowerCase().includes(searchCust.toLowerCase()))).length === 0 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm">No customers found</div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
