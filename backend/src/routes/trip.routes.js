@@ -11,6 +11,7 @@ import {
   updateTripStatus,
   getUpcomingTrips,
   getCompletedTrips,
+  requestCancelTrip,
 } from '../controllers/trip.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
@@ -199,6 +200,26 @@ router.post('/:tripId/start', authenticateToken, requireRole(['DRIVER', 'LEAD'])
  *         description: Trip cancelled
  */
 router.post('/:tripId/cancel', authenticateToken, requireRole(['DRIVER']), cancelTrip);
+
+/**
+ * @swagger
+ * /api/trips/{tripId}/request-cancel:
+ *   post:
+ *     summary: Request cancellation of trip
+ *     tags: [Trip]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cancellation requested
+ */
+router.post('/:tripId/request-cancel', authenticateToken, requireRole(['DRIVER']), requestCancelTrip);
 
 /**
  * @swagger

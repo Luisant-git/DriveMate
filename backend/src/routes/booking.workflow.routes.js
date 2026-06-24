@@ -18,7 +18,10 @@ import {
   getLeadBookingResponses,
   allocateLeadToBooking,
   cleanupDuplicateResponses,
-  rejectDriverResponse
+  rejectDriverResponse,
+  getCancellationRequests,
+  approveCancellation,
+  rejectCancellation
 } from '../controllers/booking.workflow.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
@@ -49,6 +52,39 @@ router.get('/admin/pending', authenticateToken, getAdminPendingBookings);
  *       - bearerAuth: []
  */
 router.get('/admin/allocated', authenticateToken, getAdminAllocatedBookings);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/cancellation-requests:
+ *   get:
+ *     summary: Get all driver cancellation requests
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/admin/cancellation-requests', authenticateToken, getCancellationRequests);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/{bookingId}/approve-cancellation:
+ *   post:
+ *     summary: Approve driver cancellation request
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/admin/:bookingId/approve-cancellation', authenticateToken, approveCancellation);
+
+/**
+ * @swagger
+ * /api/booking-workflow/admin/{bookingId}/reject-cancellation:
+ *   post:
+ *     summary: Reject driver cancellation request
+ *     tags: [Booking Workflow]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/admin/:bookingId/reject-cancellation', authenticateToken, rejectCancellation);
 
 /**
  * @swagger

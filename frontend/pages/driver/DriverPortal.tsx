@@ -189,13 +189,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     setConfirmConfig({
       isOpen: true,
       title: 'Cancel Trip',
-      message: 'Are you sure you want to cancel this trip? This action cannot be undone.',
+      message: (
+        <div className="space-y-3">
+          <p>Are you sure you want to request cancellation for this trip?</p>
+          <div className="bg-orange-50 text-orange-800 p-3 rounded-lg border border-orange-200 flex items-start gap-2">
+            <span className="text-xl leading-none">⚠️</span>
+            <p className="font-bold text-sm leading-tight">
+              Note: This request will be sent to the Admin. If approved, 1 duty will be deducted from your active package.
+            </p>
+          </div>
+        </div>
+      ),
       type: 'danger',
-      confirmText: 'Cancel Trip',
+      confirmText: 'Request Cancellation',
       onConfirm: async () => {
         closeConfirm();
         try {
-          const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/cancel`, {
+          const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/request-cancel`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -205,8 +215,12 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           });
           
           if (response.ok) {
+            alert('Cancellation request submitted to Admin successfully. Please wait for approval.');
             const driverRes = await tripAPI.getDriverTrips();
             if (driverRes.success) setTrips(driverRes.trips || []);
+          } else {
+            const err = await response.json();
+            alert(err.error || 'Failed to request cancellation');
           }
         } catch (error) {
           console.error('Error cancelling trip:', error);
@@ -906,7 +920,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                          </div>
                                          <div className="flex-1 min-w-0 mt-1 sm:mt-0">
                                              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Total trips</p>
-                                             <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{(driver as any).totalRides || 0}</p>
+                                             <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{trips.length}</p>
                                          </div>
                                      </div>
                                  </div>
@@ -921,7 +935,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Avg Rating</p>
                                              <div className="flex items-baseline gap-1 mt-1">
                                                  <p className="text-lg sm:text-2xl font-bold text-black leading-none">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
-                                                 <span className="text-[9px] sm:text-xs text-gray-500 truncate">({(driver as any).totalRides || 0} rides)</span>
+                                                 <span className="text-[9px] sm:text-xs text-gray-500 truncate">({trips.filter(t => (t as any).rating).length} ratings)</span>
                                              </div>
                                          </div>
                                      </div>
@@ -982,9 +996,14 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                    </p>
                                                    {(currentSubscription.maxDuties > 0 || (currentSubscription.plan && currentSubscription.plan.maxDuties > 0)) && (() => {
                                                      const maxLimit = currentSubscription.maxDuties > 0 ? currentSubscription.maxDuties : currentSubscription.plan.maxDuties;
+                                                     const subStart = new Date(currentSubscription.startDate).getTime();
+                                                     const dynamicDutiesUsed = trips.filter(t => 
+                                                         (t.status === 'COMPLETED' || t.status === 'CANCELLED') && 
+                                                         new Date(t.startDate).getTime() >= subStart
+                                                     ).length;
                                                      return (
                                                        <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-purple-600 border-purple-200 bg-purple-50 inline-block mt-1 font-bold">
-                                                           {Math.max(0, maxLimit - (currentSubscription.dutiesCompleted || 0))} duties left
+                                                           {Math.max(0, maxLimit - dynamicDutiesUsed)} duties left
                                                        </p>
                                                      );
                                                    })()}

@@ -305,7 +305,7 @@ export const updateTripStatus = async (req, res) => {
 export const cancelTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const driverId = req.user.userId;
+    const driverId = req.user.userId || req.user.id;
 
     console.log('Cancel trip - driverId:', driverId, 'tripId:', tripId);
 
@@ -321,6 +321,18 @@ export const cancelTrip = async (req, res) => {
         customer: true,
         driver: true,
       },
+    });
+
+    // If driver intentionally cancels, it counts as a used duty from their package
+    await prisma.subscription.updateMany({
+      where: { driverId, status: 'ACTIVE' },
+      data: { dutiesCompleted: { increment: 1 } },
+    });
+
+    // Also increment their total trips count to reflect the consumed duty
+    await prisma.driver.update({
+      where: { id: driverId },
+      data: { totalRides: { increment: 1 } },
     });
 
     res.json({ success: true, message: 'Trip cancelled successfully' });
@@ -352,6 +364,31 @@ export const getCompletedTrips = async (req, res) => {
     });
     res.json({ success: true, trips });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const requestCancelTrip = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const driverId = req.user.userId || req.user.id;
+
+    const booking = await prisma.booking.findFirst({
+      where: { id: tripId, driverId }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: tripId },
+      data: { cancellationRequested: true }
+    });
+
+    res.json({ success: true, booking: updatedBooking });
+  } catch (error) {
+    console.error('Request cancel error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

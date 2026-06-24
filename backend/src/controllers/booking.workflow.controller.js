@@ -71,7 +71,7 @@ export const getAdminAllocatedBookings = async (req, res) => {
         driver: true,
         lead: true
       },
-      orderBy: { allocatedAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 100
     });
 
@@ -1407,5 +1407,66 @@ export const rejectDriverResponse = async (req, res) => {
     res.json({ success: true, message: 'Driver response rejected successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCancellationRequests = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: { cancellationRequested: true, status: { notIn: ['CANCELLED', 'COMPLETED'] } },
+      include: {
+        customer: true,
+        driver: true,
+        lead: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, bookings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const approveCancellation = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) return res.status(404).json({ success: false, error: 'Booking not found' });
+
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'CANCELLED',
+        cancellationRequested: false,
+      }
+    });
+
+    if (booking.driverId) {
+      await prisma.subscription.updateMany({
+        where: { driverId: booking.driverId, status: 'ACTIVE' },
+        data: { dutiesCompleted: { increment: 1 } }
+      });
+      await prisma.driver.update({
+        where: { id: booking.driverId },
+        data: { totalRides: { increment: 1 } }
+      });
+    }
+
+    res.json({ success: true, booking: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const rejectCancellation = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { cancellationRequested: false }
+    });
+    res.json({ success: true, booking: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
