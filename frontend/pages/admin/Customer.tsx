@@ -6,6 +6,7 @@ export default function Customer() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -90,6 +91,7 @@ export default function Customer() {
 
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">ID Proof</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Joined</th>
+                <th className="px-3 py-3 text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -135,10 +137,94 @@ export default function Customer() {
                       {new Date(customer.createdAt).toLocaleDateString()}
                     </p>
                   </td>
+                  <td className="px-3 py-3 text-center">
+                    <button 
+                      onClick={() => setSelectedCustomer(customer)}
+                      className="text-gray-400 hover:text-black transition"
+                      title="View Details"
+                    >
+                      <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Detail Modal */}
+      {selectedCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Customer Details</h2>
+                <p className="text-xs text-gray-500 mt-1">CUS-{selectedCustomer.customerNo ? selectedCustomer.customerNo.toString().padStart(4, '0') : 'XXXX'}</p>
+              </div>
+              <button onClick={() => setSelectedCustomer(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-2xl">
+                  {selectedCustomer.name ? selectedCustomer.name[0] : 'U'}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedCustomer.name || 'Unnamed Customer'}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{selectedCustomer.email || 'No email provided'}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Contact Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="font-semibold text-gray-900">{selectedCustomer.phone}</span>
+                    </div>
+                    {selectedCustomer.alternatePhone && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Alt Phone:</span>
+                        <span className="font-semibold text-gray-900">{selectedCustomer.alternatePhone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Address & Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="text-gray-600 block mb-1">Full Address:</span>
+                      <span className="font-semibold text-gray-900 block">{selectedCustomer.address || 'No address provided'}</span>
+                    </div>
+                    <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
+                      <span className="text-gray-600">Joined Date:</span>
+                      <span className="font-semibold text-gray-900">{new Date(selectedCustomer.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedCustomer.idProof && (
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-blue-900">ID Proof Document</h4>
+                      <p className="text-xs text-blue-700 mt-0.5">Customer verification document</p>
+                    </div>
+                    <button 
+                      onClick={() => window.open(selectedCustomer.idProof, '_blank')}
+                      className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-sm"
+                    >
+                      View Doc
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
