@@ -87,7 +87,7 @@ export default function Customer() {
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Address</th>
+
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">ID Proof</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Joined</th>
               </tr>
@@ -117,9 +117,7 @@ export default function Customer() {
                   <td className="px-3 py-3">
                     <p className="text-xs text-gray-700">{customer.phone}</p>
                   </td>
-                  <td className="px-3 py-3">
-                    <p className="text-xs text-gray-600 truncate max-w-[120px]">{customer.address || 'N/A'}</p>
-                  </td>
+
                   <td className="px-3 py-3">
                     {customer.idProof ? (
                       <button 
