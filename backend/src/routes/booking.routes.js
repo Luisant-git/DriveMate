@@ -1,5 +1,5 @@
 import express from 'express';
-import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips, rateBooking, adminCreateBooking } from '../controllers/booking.controller.js';
+import { createBooking, getEstimate, getCustomerBookings, getDriverBookings, getLeadBookings, getLeadCompletedTrips, rateBooking, adminCreateBooking, customerCancelBooking } from '../controllers/booking.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
 
@@ -190,6 +190,7 @@ router.get('/driver-bookings', authenticateToken, getDriverBookings);
  *         description: Rating submitted successfully
  */
 router.post('/:id/rate', authenticateToken, rateBooking);
+router.post('/:id/cancel', authenticateToken, customerCancelBooking);
 
 router.get('/lead/allocated', authenticateLead, getLeadBookings);
 router.get('/lead/completed', authenticateLead, getLeadCompletedTrips);

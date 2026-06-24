@@ -445,3 +445,47 @@ export const rateBooking = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const customerCancelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId || req.user.id;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    if (booking.customerId !== userId) {
+      return res.status(403).json({ success: false, error: 'Not authorized to cancel this booking' });
+    }
+
+    if (booking.status === 'COMPLETED') {
+      return res.status(400).json({ success: false, error: 'Cannot cancel a completed booking' });
+    }
+    if (booking.status === 'CANCELLED') {
+      return res.status(400).json({ success: false, error: 'Booking is already cancelled' });
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        driverId: null, // Clear driver so it doesn't show in their history
+        leadId: null
+      }
+    });
+
+    res.json({
+      success: true,
+      booking: updatedBooking,
+      message: 'Booking cancelled successfully'
+    });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

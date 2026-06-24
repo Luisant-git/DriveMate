@@ -18,6 +18,17 @@ export default function CustomerBookingStatus() {
     }
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      await apiClient.post(`/bookings/${bookingId}/cancel`);
+      alert('Booking cancelled successfully');
+      fetchBookings();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to cancel booking');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
       <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900">Your Bookings</h1>
@@ -43,21 +54,34 @@ export default function CustomerBookingStatus() {
                     <p className="text-sm text-gray-600">{time}, {date}</p>
                     <p className="text-2xl font-bold text-gray-900">₹{booking.estimateAmount}</p>
                   </div>
-                  <span className={`inline-block px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold whitespace-nowrap ${
-                    assignedPerson ? 'bg-green-100 text-green-700' :
-                    booking.selectedLeadPackageId ? 'bg-purple-100 text-purple-700' :
-                    booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700' :
-                    'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {assignedPerson ? (isLead ? 'LEAD ALLOCATED' : 'DRIVER ALLOCATED') : 
-                     booking.selectedLeadPackageId ? 'REQUEST SENT TO LEADS' :
-                     booking.status === 'CONFIRMED' ? 'REQUEST SENT TO DRIVERS' : booking.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`inline-block px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold whitespace-nowrap ${
+                      assignedPerson ? 'bg-green-100 text-green-700' :
+                      booking.selectedLeadPackageId ? 'bg-purple-100 text-purple-700' :
+                      booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700' :
+                      booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {assignedPerson ? (isLead ? 'LEAD ALLOCATED' : 'DRIVER ALLOCATED') : 
+                       booking.selectedLeadPackageId ? 'REQUEST SENT TO LEADS' :
+                       booking.status === 'CONFIRMED' ? 'REQUEST SENT TO DRIVERS' : booking.status}
+                    </span>
+                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && (
+                      <button
+                        onClick={() => handleCancelBooking(booking.id)}
+                        className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100 font-bold transition shadow-sm border border-red-100"
+                      >
+                        Cancel Trip
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <p className="inline-block bg-gray-100 px-3 py-1 rounded text-xs font-medium text-gray-700 mb-4">
-                  {booking.bookingType}
-                </p>
+                <div className="mb-4">
+                  <p className="inline-block bg-gray-100 px-3 py-1 rounded text-xs font-medium text-gray-700">
+                    {booking.bookingType}
+                  </p>
+                </div>
 
                 {/* Route */}
                 <div className="mb-4 space-y-2">

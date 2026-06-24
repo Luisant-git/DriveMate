@@ -122,3 +122,24 @@ export const rateBooking = async (bookingId, rating, feedback = '') => {
     return { success: false, error: 'Network error' };
   }
 };
+
+export const cancelBooking = async (bookingId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/cancel`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error || 'Failed to cancel booking' };
+    }
+    
+    const data = await response.json();
+    return { success: true, ...data };
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    return { success: false, error: 'Network error' };
+  }
+};
