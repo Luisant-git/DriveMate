@@ -736,7 +736,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs sm:text-sm text-gray-500">Total trips completed</p>
-                        <p className="text-xl sm:text-2xl font-bold text-black">{lead.totalRides || 0}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-black">{completedTrips.length}</p>
                       </div>
                     </div>
                   </div>
@@ -751,7 +751,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                               <p className="text-xs sm:text-sm text-gray-500">Average Rating</p>
                               <div className="flex items-baseline gap-2">
                                   <p className="text-xl sm:text-2xl font-bold text-black">{lead.rating?.toFixed(1) || '0.0'}</p>
-                                  <span className="text-xs text-gray-500">({lead.totalRides || 0} ratings)</span>
+                                  <span className="text-xs text-gray-500">({completedTrips.filter(t => t.rating).length} ratings)</span>
                               </div>
                           </div>
                       </div>
