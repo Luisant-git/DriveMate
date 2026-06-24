@@ -41,6 +41,10 @@ export default function Driver() {
 
   // Add driver modal state
   const [showAddDriverModal, setShowAddDriverModal] = useState(false);
+  const [showUpdatePackageModal, setShowUpdatePackageModal] = useState(false);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [updatePackageForm, setUpdatePackageForm] = useState({ planId: '', paidAmount: '' });
+  const [isUpdatingPackage, setIsUpdatingPackage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSameAddress, setIsSameAddress] = useState(false);
   const [addDriverForm, setAddDriverForm] = useState({
@@ -66,7 +70,20 @@ export default function Driver() {
     policeVerificationPhoto: null
   });
 
-  useEffect(() => { fetchDrivers(); }, []);
+  useEffect(() => { 
+    fetchDrivers(); 
+    fetchSubscriptionPlans();
+  }, []);
+
+  const fetchSubscriptionPlans = async () => {
+    try {
+      const res = await apiClient.get('/subscriptions/plans');
+      setSubscriptionPlans(res.data || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
 
   const fetchDrivers = async () => {
     try {
@@ -397,6 +414,36 @@ export default function Driver() {
 
   if (loading) return <div className="px-6 py-6 flex items-center justify-center"><div className="text-gray-500">Loading drivers...</div></div>;
 
+  const handleUpdatePackageSubmit = async (e) => {
+    e.preventDefault();
+    setIsUpdatingPackage(true);
+    try {
+      if (!updatePackageForm.planId || !updatePackageForm.paidAmount) {
+        throw new Error('Please select a plan and enter the paid amount.');
+      }
+      const response = await apiClient.post('/subscriptions/admin/create', {
+        driverId: selectedDriver.id,
+        planId: updatePackageForm.planId,
+        paidAmount: parseFloat(updatePackageForm.paidAmount),
+        paymentMethod: 'CASH'
+      });
+      if (response.data.success) {
+        setShowUpdatePackageModal(false);
+        fetchDrivers(); // Refresh drivers list
+        // Update selectedDriver locally so modal reflects changes immediately
+        setSelectedDriver(prev => ({
+          ...prev,
+          activeSubscription: response.data.subscription,
+          subscriptions: [...(prev.subscriptions || []), response.data.subscription]
+        }));
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || error.message || 'Failed to update package');
+    } finally {
+      setIsUpdatingPackage(false);
+    }
+  };
+
   return (
     <div className="px-6 py-6">
       <div className="flex justify-between items-center mb-4">
@@ -460,8 +507,8 @@ export default function Driver() {
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Driver ID</th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Driving License</th>
-                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Package</th>
+
+
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active</th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
@@ -488,12 +535,8 @@ export default function Driver() {
                       </div>
                     </td>
                     <td className="px-3 py-3"><p className="text-xs text-gray-700">{driver.phone}</p></td>
-                    <td className="px-3 py-3"><p className="text-xs text-gray-700">{driver.licenseNo}</p></td>
-                    <td className="px-3 py-3">
-                      <span className="inline-block bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded-full font-bold truncate max-w-[100px]">
-                        {driver.activeSubscription?.plan?.name || 'No Active Package'}
-                      </span>
-                    </td>
+
+
                     <td className="px-3 py-3">
                       <VerificationBadge driver={driver} onClick={() => openVerifyModal(driver)} />
                     </td>
@@ -764,12 +807,70 @@ export default function Driver() {
                     <div><span className="font-medium">Alt Mobile 3:</span> {selectedDriver.alternateMobile3 || 'N/A'}</div>
                     <div><span className="font-medium">Alt Mobile 4:</span> {selectedDriver.alternateMobile4 || 'N/A'}</div>
                     <div><span className="font-medium">Gpay/PhonePe number:</span> {selectedDriver.gpayNo || selectedDriver.phonepeNo || 'N/A'}</div>
-                    <div><span className="font-medium">Package:</span> {selectedDriver.activeSubscription?.plan?.name || 'No Active Package'}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">Package:</span> 
+                      <span className="flex-1 font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-xs">{selectedDriver.activeSubscription?.plan?.name || 'No Active Package'}</span>
+                      <button onClick={() => {
+                        setUpdatePackageForm({ planId: '', paidAmount: '' });
+                        setShowUpdatePackageModal(true);
+                      }} className="bg-black text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-800 transition shadow-sm ml-auto">
+                        Update
+                      </button>
+                    </div>
                     <div><span className="font-medium">Total Rides:</span> {selectedDriver.totalRides}</div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Package Modal */}
+      {showUpdatePackageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-base font-bold text-gray-900">Update Package</h3>
+              <button onClick={() => setShowUpdatePackageModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={handleUpdatePackageSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Select Package</label>
+                <select 
+                  value={updatePackageForm.planId}
+                  onChange={(e) => setUpdatePackageForm({...updatePackageForm, planId: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  required
+                >
+                  <option value="">-- Choose Package --</option>
+                  {subscriptionPlans.map(plan => (
+                    <option key={plan.id} value={plan.id}>{plan.name} - ₹{plan.price}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Paid Amount (₹)</label>
+                <input 
+                  type="number"
+                  min="0"
+                  value={updatePackageForm.paidAmount}
+                  onChange={(e) => setUpdatePackageForm({...updatePackageForm, paidAmount: e.target.value})}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="e.g. 500"
+                  required
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={isUpdatingPackage}
+                className="w-full py-2 bg-black text-white rounded-lg font-bold text-sm hover:bg-gray-800 disabled:opacity-50 transition"
+              >
+                {isUpdatingPackage ? 'Updating...' : 'Confirm Update'}
+              </button>
+            </form>
           </div>
         </div>
       )}
