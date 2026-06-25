@@ -382,6 +382,7 @@ model Booking {
   // Admin workflow fields
   adminReviewedAt DateTime?
   cancellationRequested Boolean @default(false)
+  cancellationReason    String?
   selectedPackageType PackageType?
   selectedLeadPackageId String?
   

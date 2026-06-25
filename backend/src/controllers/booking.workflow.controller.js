@@ -432,7 +432,14 @@ export const respondToBookingRequest = async (req, res) => {
       }
     });
 
-    // Removed Auto-allocate logic here to enforce manual Admin approval
+    if (action === 'ACCEPTED' && response.booking.serviceType !== 'OUTSTATION' && !response.booking.driverId) {
+      const mockReq = { params: { bookingId: response.bookingId }, body: { driverId: response.driverId } };
+      const mockRes = {
+        json: () => {},
+        status: () => ({ json: () => {} })
+      };
+      await allocateDriverToBooking(mockReq, mockRes);
+    }
 
     res.json({ 
       success: true, 
@@ -493,19 +500,22 @@ export const allocateDriverToBooking = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Driver ID required' });
     }
 
-    // Verify driver accepted the booking
-    const response = await prisma.bookingResponse.findUnique({
+    // Ensure driver has an ACCEPTED response (Force allocate)
+    await prisma.bookingResponse.upsert({
       where: {
         bookingId_driverId: { bookingId, driverId }
+      },
+      update: {
+        status: 'ACCEPTED',
+        respondedAt: new Date()
+      },
+      create: {
+        bookingId,
+        driverId,
+        status: 'ACCEPTED',
+        respondedAt: new Date()
       }
     });
-
-    if (!response || response.status !== 'ACCEPTED') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Driver has not accepted this booking' 
-      });
-    }
 
     // Update booking with allocated driver
     const booking = await prisma.booking.update({
@@ -684,30 +694,18 @@ export const offerBookingToDriver = async (req, res) => {
     }
 
     // If pending response exists, delete it and create new one (fresh offer)
-    if (response && response.status === 'PENDING') {
-      await prisma.bookingResponse.delete({
-        where: { id: response.id }
+    if (response) {
+      response = await prisma.bookingResponse.update({
+        where: { id: response.id },
+        data: { status: 'PENDING' },
+        include: { driver: { select: { id: true, name: true, phone: true } } }
+      });
+    } else {
+      response = await prisma.bookingResponse.create({
+        data: { bookingId, driverId, status: 'PENDING' },
+        include: { driver: { select: { id: true, name: true, phone: true } } }
       });
     }
-
-    // Create new booking response with PENDING status
-    response = await prisma.bookingResponse.create({
-      data: {
-        bookingId,
-        driverId,
-        status: 'PENDING'
-      },
-      include: {
-        driver: {
-          select: {
-            id: true,
-            name: true,
-            phone: true
-          }
-        }
-      }
-    });
-
     // Get driver details for WhatsApp
     const driver = await prisma.driver.findUnique({
       where: { id: driverId },
@@ -1146,7 +1144,14 @@ export const respondToLeadBookingRequest = async (req, res) => {
       include: { booking: true, lead: true }
     });
 
-    // Removed Auto-allocate logic here to enforce manual Admin approval
+    if (action === 'ACCEPTED' && response.booking.serviceType !== 'OUTSTATION' && !response.booking.leadId) {
+      const mockReq = { params: { bookingId: response.bookingId }, body: { leadId: response.leadId } };
+      const mockRes = {
+        json: () => {},
+        status: () => ({ json: () => {} })
+      };
+      await allocateLeadToBooking(mockReq, mockRes);
+    }
 
     res.json({ success: true, response, message: `Booking request ${action.toLowerCase()}` });
   } catch (error) {
@@ -1427,6 +1432,58 @@ export const getCancellationRequests = async (req, res) => {
   }
 };
 
+export const getCancellationHistory = async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: { status: 'CANCELLED' },
+      include: {
+        customer: true,
+        driver: true,
+        lead: true
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100
+    });
+
+    const cancelledResponses = await prisma.bookingResponse.findMany({
+      where: { status: 'CANCELLED' },
+      include: {
+        driver: true,
+        booking: { include: { customer: true } }
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100
+    });
+
+    const history = [
+      ...bookings.map(b => ({
+        id: b.id,
+        customer: b.customer,
+        pickupLocation: b.pickupLocation,
+        dropLocation: b.dropLocation,
+        driver: b.driver || b.lead,
+        cancellationReason: b.cancellationReason || 'Requested by Customer',
+        estimateAmount: b.estimateAmount,
+        updatedAt: b.updatedAt
+      })),
+      ...cancelledResponses.map(r => ({
+        id: r.id + '_response',
+        customer: r.booking.customer,
+        pickupLocation: r.booking.pickupLocation,
+        dropLocation: r.booking.dropLocation,
+        driver: r.driver,
+        cancellationReason: 'Requested by Driver',
+        estimateAmount: r.booking.estimateAmount,
+        updatedAt: r.updatedAt
+      }))
+    ].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+    res.json({ success: true, bookings: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const approveCancellation = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -1441,7 +1498,55 @@ export const approveCancellation = async (req, res) => {
       }
     });
 
+    if (booking.driverId && booking.cancellationReason !== 'Requested by Customer') {
+      await prisma.subscription.updateMany({
+        where: { driverId: booking.driverId, status: 'ACTIVE' },
+        data: { dutiesCompleted: { increment: 1 } }
+      });
+      await prisma.driver.update({
+        where: { id: booking.driverId },
+        data: { totalRides: { increment: 1 } }
+      });
+    }
+
+    res.json({ success: true, booking: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const reallocateCancellation = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) return res.status(404).json({ success: false, error: 'Booking not found' });
+
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        driverId: null,
+        leadId: null,
+        allocatedAt: null,
+        status: 'CONFIRMED',
+        cancellationRequested: false,
+      }
+    });
+
     if (booking.driverId) {
+      await prisma.bookingResponse.updateMany({
+        where: { bookingId: booking.id, driverId: booking.driverId, status: 'ACCEPTED' },
+        data: { status: 'CANCELLED' }
+      });
+    }
+
+    if (booking.leadId) {
+      await prisma.leadBookingResponse.updateMany({
+        where: { bookingId: booking.id, leadId: booking.leadId, status: 'ACCEPTED' },
+        data: { status: 'CANCELLED' }
+      });
+    }
+
+    if (booking.driverId && booking.cancellationReason !== 'Requested by Customer') {
       await prisma.subscription.updateMany({
         where: { driverId: booking.driverId, status: 'ACTIVE' },
         data: { dutiesCompleted: { increment: 1 } }

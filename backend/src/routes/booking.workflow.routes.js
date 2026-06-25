@@ -20,7 +20,9 @@ import {
   cleanupDuplicateResponses,
   rejectDriverResponse,
   getCancellationRequests,
+  getCancellationHistory,
   approveCancellation,
+  reallocateCancellation,
   rejectCancellation
 } from '../controllers/booking.workflow.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
@@ -63,6 +65,7 @@ router.get('/admin/allocated', authenticateToken, getAdminAllocatedBookings);
  *       - bearerAuth: []
  */
 router.get('/admin/cancellation-requests', authenticateToken, getCancellationRequests);
+router.get('/admin/cancellation-history', authenticateToken, getCancellationHistory);
 
 /**
  * @swagger
@@ -74,6 +77,7 @@ router.get('/admin/cancellation-requests', authenticateToken, getCancellationReq
  *       - bearerAuth: []
  */
 router.post('/admin/:bookingId/approve-cancellation', authenticateToken, approveCancellation);
+router.post('/admin/:bookingId/reallocate-cancellation', authenticateToken, reallocateCancellation);
 
 /**
  * @swagger

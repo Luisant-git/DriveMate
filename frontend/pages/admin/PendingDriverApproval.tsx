@@ -14,12 +14,14 @@ export default function PendingDriverApproval() {
   const [loading, setLoading] = useState(false);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
   const [cancellationRequests, setCancellationRequests] = useState([]);
+  const [cancellationHistory, setCancellationHistory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchBookingsWithAcceptedDrivers();
     fetchAllocatedBookings();
     fetchCancellationRequests();
+    fetchCancellationHistory();
   }, []);
 
   const fetchBookingsWithAcceptedDrivers = async () => {
@@ -50,6 +52,15 @@ export default function PendingDriverApproval() {
       setCancellationRequests(res.data.bookings || []);
     } catch (error) {
       console.error('Error fetching cancellation requests:', error);
+    }
+  };
+
+  const fetchCancellationHistory = async () => {
+    try {
+      const res = await apiClient.get('/booking-workflow/admin/cancellation-history');
+      setCancellationHistory(res.data.bookings || []);
+    } catch (error) {
+      console.error('Error fetching cancellation history:', error);
     }
   };
 
@@ -89,10 +100,11 @@ export default function PendingDriverApproval() {
 
   const deallocateCurrentDriver = async () => {
     try {
-      if (selectedBooking.allocatedDriverId) {
+      const currentDriverId = selectedBooking.allocatedDriverId || selectedBooking.driverId;
+      if (currentDriverId) {
         await apiClient.post(
           `/booking-workflow/admin/${selectedBooking.id}/deallocate-driver`,
-          { driverId: selectedBooking.allocatedDriverId }
+          { driverId: currentDriverId }
         );
         console.log('Current driver deallocated');
       }
@@ -111,8 +123,8 @@ export default function PendingDriverApproval() {
           return;
         }
 
-        // If replacing an existing driver, deallocate them first
-        if (selectedBooking.allocatedDriverId) {
+        // If replacing an existing driver normally, deallocate them first
+        if (selectedBooking.allocatedDriverId || selectedBooking.driverId) {
           await deallocateCurrentDriver();
         }
       }
@@ -248,9 +260,6 @@ export default function PendingDriverApproval() {
                   return (
                     <div key={response.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-semibold text-lg">
-                          {person?.name?.[0] || 'D'}
-                        </div>
                         <div className="flex-1">
                           <p className="text-base font-semibold text-gray-900">{person?.name || (isLead ? 'Lead' : 'Driver')}</p>
                           <p className="text-sm text-gray-600">{person?.phone || 'N/A'}</p>
@@ -359,11 +368,7 @@ export default function PendingDriverApproval() {
                         return (
                           <tr key={driver.id} className="hover:bg-gray-50 transition">
                             <td className="px-4 py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <span className="text-gray-700 font-semibold text-xs">{driver?.name?.[0] || 'D'}</span>
-                                </div>
-                                <div>
+                              <div>
                                   <div className="flex items-center gap-2">
                                     <p className="text-sm font-semibold text-gray-900 truncate">{driver?.name || 'Driver'}</p>
                                     {driver?.rating > 0 && (
@@ -377,8 +382,7 @@ export default function PendingDriverApproval() {
                                   </div>
                                   <p className="text-xs text-gray-600 truncate">{driver?.phone || 'N/A'}</p>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
                             <td className="px-4 py-4">
                               {isBusy ? (
                                 <span className="inline-block bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-semibold border border-red-200">
@@ -449,6 +453,12 @@ export default function PendingDriverApproval() {
                 {cancellationRequests.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('HISTORY')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'HISTORY' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            History
           </button>
         </div>
       </div>
@@ -534,10 +544,10 @@ export default function PendingDriverApproval() {
                       <td className="px-4 py-4">
                         <button 
                           onClick={() => viewAcceptedDrivers(booking)}
-                          disabled={loading || acceptedCount === 0}
+                          disabled={loading}
                           className="bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition"
                         >
-                          View & Approve
+                          Review & Allocate
                         </button>
                       </td>
                     </tr>
@@ -563,6 +573,7 @@ export default function PendingDriverApproval() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Driver</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reason</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
                 </tr>
@@ -589,27 +600,49 @@ export default function PendingDriverApproval() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-semibold text-xs">{driverName.charAt(0)}</span>
-                          </div>
-                          <div>
+                        <div>
                             <p className="text-sm font-bold text-gray-900">{driverName}</p>
                             <p className="text-xs text-gray-600">{driverPhone}</p>
-                          </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {booking.cancellationReason ? (
+                          <span className="text-[10px] font-bold text-red-600 bg-red-50 inline-block px-2 py-1 rounded border border-red-100">
+                            {booking.cancellationReason.toUpperCase()}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-orange-600 bg-orange-50 inline-block px-2 py-1 rounded border border-orange-100">
+                            REQUESTED BY DRIVER
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-4"><p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p></td>
                       <td className="px-4 py-4 flex gap-2">
                         <button
                           onClick={async () => {
-                            if(window.confirm('Approve cancellation? This will deduct 1 duty and cancel the trip.')) {
-                              try {
-                                await apiClient.post(`/booking-workflow/admin/${booking.id}/approve-cancellation`);
-                                fetchCancellationRequests();
-                                fetchAllocatedBookings();
-                              } catch (e) {
-                                alert(e.response?.data?.error || 'Failed to approve cancellation');
+                            const isCustomer = booking.cancellationReason === 'Requested by Customer';
+                            
+                            if (isCustomer) {
+                              if(window.confirm('Approve customer cancellation?')) {
+                                try {
+                                  await apiClient.post(`/booking-workflow/admin/${booking.id}/approve-cancellation`);
+                                  fetchCancellationRequests();
+                                  fetchAllocatedBookings();
+                                } catch (e) {
+                                  alert(e.response?.data?.error || 'Failed to approve cancellation');
+                                }
+                              }
+                            } else {
+                              if(window.confirm('Approve driver cancellation? This will deduct 1 duty and remove the driver immediately.')) {
+                                try {
+                                  await apiClient.post(`/booking-workflow/admin/${booking.id}/reallocate-cancellation`);
+                                  fetchCancellationRequests();
+                                  fetchAllocatedBookings();
+                                  setSelectedBooking({ ...booking, driverId: null, allocatedDriverId: null, cancellationRequested: false });
+                                  handleChooseAnotherDriver();
+                                } catch (e) {
+                                  alert(e.response?.data?.error || 'Failed to re-allocate');
+                                }
                               }
                             }
                           }}
@@ -656,6 +689,7 @@ export default function PendingDriverApproval() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Allocated Driver</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
                 </tr>
@@ -682,27 +716,94 @@ export default function PendingDriverApproval() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-semibold text-xs">{driverName.charAt(0)}</span>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-bold text-gray-900">{driverName}</p>
-                              {booking.cancellationRequested && (
-                                <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200">
-                                  Cancellation Pending
-                                </span>
-                              )}
-                            </div>
+                        <div>
+                            <p className="text-sm font-bold text-gray-900">{driverName}</p>
                             <p className="text-xs text-gray-600">{driverPhone}</p>
                           </div>
-                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {booking.status === 'CANCELLED' ? (
+                          <span className="bg-red-50 text-red-700 px-2 py-1 rounded text-[10px] font-bold border border-red-200 whitespace-nowrap">
+                            CANCELLED
+                          </span>
+                        ) : booking.cancellationRequested ? (
+                          <span className="bg-orange-50 text-orange-600 px-2 py-1 rounded text-[10px] font-bold border border-orange-200 whitespace-nowrap">
+                            Cancel Pending
+                          </span>
+                        ) : (
+                          <span className="bg-green-50 text-green-700 px-2 py-1 rounded text-[10px] font-bold border border-green-200 whitespace-nowrap">
+                            ACCEPTED
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-4"><p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p></td>
                       <td className="px-4 py-4">
                         <p className="text-xs text-gray-500">{new Date(booking.allocatedAt || booking.createdAt).toLocaleDateString()}</p>
                       </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        )
+      ) : activeTab === 'HISTORY' ? (
+        cancellationHistory.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <p className="text-gray-500 text-sm">No cancellation history available</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Driver (If Any)</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reason</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {cancellationHistory.map((booking, index) => {
+                  const driverName = booking.driver?.name || booking.lead?.name || 'N/A';
+                  return (
+                    <tr key={booking.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-4"><p className="text-sm font-semibold text-gray-900">{index + 1}</p></td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{booking.customer?.name}</p>
+                            <p className="text-xs text-gray-600">{booking.customer?.phone}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <p className="text-xs text-gray-900 font-medium">{booking.pickupLocation}</p>
+                          <p className="text-xs text-gray-500">→ {booking.dropLocation}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div>
+                            <p className="text-sm font-bold text-gray-900">{driverName}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {booking.cancellationReason ? (
+                          <span className="text-[10px] font-bold text-gray-600 bg-gray-100 inline-block px-2 py-1 rounded border border-gray-200">
+                            {booking.cancellationReason.toUpperCase()}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-600 bg-gray-100 inline-block px-2 py-1 rounded border border-gray-200">
+                            CANCELLED
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4"><p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p></td>
                     </tr>
                   );
                 })}

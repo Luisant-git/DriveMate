@@ -473,16 +473,15 @@ export const customerCancelBooking = async (req, res) => {
     const updatedBooking = await prisma.booking.update({
       where: { id },
       data: {
-        status: 'CANCELLED',
-        driverId: null, // Clear driver so it doesn't show in their history
-        leadId: null
+        cancellationRequested: true,
+        cancellationReason: 'Requested by Customer'
       }
     });
 
     res.json({
       success: true,
       booking: updatedBooking,
-      message: 'Booking cancelled successfully'
+      message: 'Cancellation request sent to Admin for approval'
     });
   } catch (error) {
     console.error('Error cancelling booking:', error);

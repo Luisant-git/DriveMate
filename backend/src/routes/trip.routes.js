@@ -12,6 +12,7 @@ import {
   getUpcomingTrips,
   getCompletedTrips,
   requestCancelTrip,
+  sendStartOtp,
 } from '../controllers/trip.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
@@ -250,6 +251,26 @@ router.post('/:tripId/request-cancel', authenticateToken, requireRole(['DRIVER']
  *         description: Status updated
  */
 router.put('/:tripId/status', authenticateToken, updateTripStatus);
+
+/**
+ * @swagger
+ * /api/trips/{tripId}/send-start-otp:
+ *   post:
+ *     summary: Send OTP to customer to verify starting the trip
+ *     tags: [Trip]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ */
+router.post('/:tripId/send-start-otp', authenticateToken, requireRole(['DRIVER', 'LEAD']), sendStartOtp);
 
 /**
  * @swagger

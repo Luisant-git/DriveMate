@@ -191,12 +191,9 @@ const DriverRegister: React.FC = () => {
   return (
     <form onSubmit={handleRegister} className="animate-fade-in flex-grow flex flex-col w-full max-w-lg mx-auto">
       <div className="flex justify-between items-center mb-4 px-1">
-        {step < 4 && (
-          <button type="button" onClick={() => step === 1 ? navigate('/driver/login') : prevStep()} className="text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold transition">
-            ← {step === 1 ? 'Back to Login' : 'Back'}
-          </button>
-        )}
-        {step === 4 && <div />}
+        <button type="button" onClick={() => step === 1 ? navigate('/driver/login') : prevStep()} className="text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold transition">
+          ← {step === 1 ? 'Back to Login' : 'Back'}
+        </button>
         <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
           Step {step} of {step === 4 ? 4 : 3}
         </span>

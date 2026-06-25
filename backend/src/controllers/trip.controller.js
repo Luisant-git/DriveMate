@@ -241,13 +241,79 @@ export const completeTrip = async (req, res) => {
   }
 };
 
+// In-memory OTP store for trip starts
+const startOtpStore = new Map();
+
+// Send OTP to customer for starting trip
+export const sendStartOtp = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const booking = await prisma.booking.findUnique({
+      where: { id: tripId },
+      include: { customer: true }
+    });
+    
+    if (!booking || !booking.customer || !booking.customer.phone) {
+      return res.status(400).json({ success: false, error: 'Customer phone not found' });
+    }
+    
+    const phone = booking.customer.phone;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    startOtpStore.set(tripId, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+    });
+    
+    console.log(`[Trip] Start OTP for Trip ${tripId} (Phone: ${phone}): ${otp}`);
+    
+    try {
+      // We dynamically import to avoid circular dependency issues if any
+      const { customerLoginOtp } = await import('./whatsapp.controller.js');
+      const mockReq = { body: { phone, otp } };
+      const mockRes = {
+        json: (data) => console.log('[WhatsApp] Success:', data.message),
+        status: (code) => ({ json: (data) => console.error('[WhatsApp] Error:', data.error) })
+      };
+      
+      await customerLoginOtp(mockReq, mockRes);
+      console.log(`[Trip] WhatsApp Start OTP sent successfully to ${phone}`);
+    } catch (whatsappError) {
+      console.error('[Trip] WhatsApp Start OTP Error:', whatsappError.message);
+    }
+    
+    res.json({ success: true, message: 'OTP sent to customer successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // Driver/Lead starts a trip
 export const startTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const { carFrontPhoto, carBackPhoto } = req.body;
+    const { carFrontPhoto, carBackPhoto, otp } = req.body;
     const userId = req.user.userId || req.user.id;
     const isLead = req.user.type === 'lead';
+
+    if (!otp) {
+      return res.status(400).json({ success: false, error: 'OTP is required' });
+    }
+    
+    const storedOtpData = startOtpStore.get(tripId);
+    if (!storedOtpData) {
+      return res.status(400).json({ success: false, error: 'OTP expired or not requested' });
+    }
+    if (Date.now() > storedOtpData.expiresAt) {
+      startOtpStore.delete(tripId);
+      return res.status(400).json({ success: false, error: 'OTP expired. Please request a new OTP.' });
+    }
+    if (otp !== storedOtpData.otp) {
+      return res.status(400).json({ success: false, error: 'Invalid OTP' });
+    }
+    
+    // OTP is valid, proceed
+    startOtpStore.delete(tripId);
 
     console.log('Start trip - userId:', userId, 'tripId:', tripId);
 
@@ -383,7 +449,10 @@ export const requestCancelTrip = async (req, res) => {
 
     const updatedBooking = await prisma.booking.update({
       where: { id: tripId },
-      data: { cancellationRequested: true }
+      data: { 
+        cancellationRequested: true,
+        cancellationReason: 'Requested by Driver'
+      }
     });
 
     res.json({ success: true, booking: updatedBooking });
