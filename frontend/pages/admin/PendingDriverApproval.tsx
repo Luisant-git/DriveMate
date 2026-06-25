@@ -18,10 +18,19 @@ export default function PendingDriverApproval() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchBookingsWithAcceptedDrivers();
-    fetchAllocatedBookings();
-    fetchCancellationRequests();
-    fetchCancellationHistory();
+    const refreshData = () => {
+      fetchBookingsWithAcceptedDrivers();
+      fetchAllocatedBookings();
+      fetchCancellationRequests();
+      fetchCancellationHistory();
+    };
+    
+    refreshData(); // Initial load
+    
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(refreshData, 15000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchBookingsWithAcceptedDrivers = async () => {
@@ -423,8 +432,17 @@ export default function PendingDriverApproval() {
 
   return (
     <div className="px-3 sm:px-6 py-4 sm:py-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Driver Approvals</h2>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Driver Approvals</h2>
+          <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-200" title="Data updates automatically every 15 seconds">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider hidden sm:inline-block">Live Refresh</span>
+          </div>
+        </div>
         <div className="flex bg-gray-100 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('PENDING')}
@@ -731,7 +749,7 @@ export default function PendingDriverApproval() {
                             Cancel Pending
                           </span>
                         ) : (
-                          <span className="bg-green-50 text-green-700 px-2 py-1 rounded text-[10px] font-bold border border-green-200 whitespace-nowrap">
+                          <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-[10px] font-bold border border-green-400 whitespace-nowrap shadow-sm">
                             ACCEPTED
                           </span>
                         )}

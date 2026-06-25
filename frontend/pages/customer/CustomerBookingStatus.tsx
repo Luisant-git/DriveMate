@@ -52,12 +52,12 @@ export default function CustomerBookingStatus() {
             return (
               <div key={booking.id} className="bg-white border rounded-lg p-4 sm:p-5">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+                <div className="flex flex-row justify-between items-start gap-3 mb-4 flex-wrap sm:flex-nowrap">
                   <div>
-                    <p className="text-sm text-gray-600">{time}, {date}</p>
+                    <p className="text-sm sm:text-xs text-gray-600">{time}, {date}</p>
                     <p className="text-2xl font-bold text-gray-900">₹{booking.estimateAmount}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-2">
                     <span className={`inline-block px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold whitespace-nowrap ${
                       booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
                       booking.cancellationRequested ? 'bg-orange-100 text-orange-700' :

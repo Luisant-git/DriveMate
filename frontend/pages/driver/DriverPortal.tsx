@@ -616,72 +616,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                             </div>
                                           </div>
                                         </div>
-                                        <div className="flex gap-2">
-                                          {isStartOtpSent ? (
-                                            <div className="w-full space-y-3 mb-3">
-                                              <div>
-                                                <label className="block text-xs font-bold text-gray-400 mb-1">Enter OTP sent to Customer</label>
-                                                <input 
-                                                  type="text" 
-                                                  maxLength={6}
-                                                  placeholder="6-digit code"
-                                                  value={startOtp}
-                                                  onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, ''))}
-                                                  className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-center tracking-[0.5em] text-white font-bold placeholder:tracking-normal placeholder:font-normal placeholder:text-sm placeholder:text-gray-400" 
-                                                />
-                                              </div>
-                                              <div className="flex gap-2">
-                                                <button 
-                                                  disabled={isStartingTrip}
-                                                  onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); setIsStartOtpSent(false); setStartOtp(''); }}
-                                                  className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
-                                                >
-                                                  Cancel
-                                                </button>
-                                                <button 
-                                                  disabled={isStartingTrip || startOtp.length !== 6 || !tripPhotos.front || !tripPhotos.back}
-                                                  onClick={async () => {
-                                              try {
-                                                setIsStartingTrip(true);
-                                                let frontUrl = null, backUrl = null;
-                                                
-                                                if (tripPhotos.front) {
-                                                  const frontRes = await uploadFile(tripPhotos.front);
-                                                  if (frontRes.success && frontRes.path) frontUrl = frontRes.path.split('/').pop();
-                                                }
-                                                if (tripPhotos.back) {
-                                                  const backRes = await uploadFile(tripPhotos.back);
-                                                  if (backRes.success && backRes.path) backUrl = backRes.path.split('/').pop();
-                                                }
-                                                
-                                                const result = await tripAPI.startTrip(trip.id, {
-                                                  carFrontPhoto: frontUrl,
-                                                  carBackPhoto: backUrl,
-                                                  otp: startOtp
-                                                });
-                                                
-                                                if (result.success) {
-                                                  setStartingTripId(null);
-                                                  setTripPhotos({ front: null, back: null });
-                                                  const driverRes = await tripAPI.getDriverTrips();
-                                                  if (driverRes.success) setTrips(driverRes.trips);
-                                                } else {
-                                                  alert('Failed to start trip: ' + result.error);
-                                                }
-                                              } catch (error) {
-                                                console.error('Start trip error:', error);
-                                                alert('Failed to start trip');
-                                              } finally {
-                                                  setIsStartingTrip(false);
-                                                }
-                                              }}
-                                              className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
-                                            >
-                                              {isStartingTrip ? 'Starting...' : 'Confirm Start'}
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ) : (
+
                                         <div className="flex gap-2 mt-3 w-full">
                                           <button 
                                             disabled={isSendingStartOtp}
@@ -717,8 +652,6 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                             {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
                                           </button>
                                         </div>
-                                      )}
-                                      </div>
                                       </div>
                                     ) : (
                                       <div className="flex gap-3">
@@ -1666,6 +1599,117 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Start Trip OTP Modal */}
+      {isStartOtpSent && startingTripId && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[70] backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl transform transition-all animate-fade-in-up">
+            <div className="p-6 bg-gray-50 border-b border-gray-100 flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">Verify OTP</h3>
+              <p className="text-sm text-gray-500 text-center">Enter the 6-digit code sent to the customer's phone to start the trip.</p>
+            </div>
+            <div className="p-6">
+              <input 
+                type="text" 
+                maxLength={6}
+                placeholder="0 0 0 0 0 0"
+                value={startOtp}
+                onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-gray-100 border border-gray-300 rounded-xl p-4 text-center tracking-[0.5em] text-gray-900 font-bold text-2xl placeholder:tracking-normal placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner mb-4" 
+              />
+              
+              <button
+                disabled={isSendingStartOtp}
+                onClick={async () => {
+                  setIsSendingStartOtp(true);
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/trips/${startingTripId}/send-start-otp`, {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert('OTP resent to customer successfully!');
+                    } else {
+                      alert(data.error || 'Failed to resend OTP');
+                    }
+                  } catch (error) {
+                    console.error('Resend OTP error:', error);
+                    alert('Failed to resend OTP');
+                  } finally {
+                    setIsSendingStartOtp(false);
+                  }
+                }}
+                className="w-full text-blue-600 font-bold text-sm hover:text-blue-800 transition mb-6"
+              >
+                {isSendingStartOtp ? 'Resending...' : 'Resend OTP'}
+              </button>
+
+              <div className="flex gap-3">
+                <button 
+                  disabled={isStartingTrip}
+                  onClick={() => { setIsStartOtpSent(false); setStartOtp(''); }}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isStartingTrip || startOtp.length !== 6 || !tripPhotos.front || !tripPhotos.back}
+                  onClick={async () => {
+                    try {
+                      setIsStartingTrip(true);
+                      let frontUrl = null, backUrl = null;
+                      
+                      if (tripPhotos.front) {
+                        const frontRes = await uploadFile(tripPhotos.front);
+                        if (frontRes.success && frontRes.path) frontUrl = frontRes.path.split('/').pop();
+                      }
+                      if (tripPhotos.back) {
+                        const backRes = await uploadFile(tripPhotos.back);
+                        if (backRes.success && backRes.path) backUrl = backRes.path.split('/').pop();
+                      }
+                      
+                      const result = await tripAPI.startTrip(startingTripId, {
+                        carFrontPhoto: frontUrl,
+                        carBackPhoto: backUrl,
+                        otp: startOtp
+                      });
+                      
+                      if (result.success) {
+                        setStartingTripId(null);
+                        setTripPhotos({ front: null, back: null });
+                        setIsStartOtpSent(false);
+                        setStartOtp('');
+                        const driverRes = await tripAPI.getDriverTrips();
+                        if (driverRes.success) setTrips(driverRes.trips);
+                      } else {
+                        alert('Failed to start trip: ' + result.error);
+                      }
+                    } catch (error) {
+                      console.error('Start trip error:', error);
+                      alert('Failed to start trip');
+                    } finally {
+                      setIsStartingTrip(false);
+                    }
+                  }}
+                  className={`flex-1 text-white py-3.5 rounded-xl font-bold transition active:scale-95 shadow-md ${
+                    isStartingTrip || startOtp.length !== 6 || !tripPhotos.front || !tripPhotos.back
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {isStartingTrip ? 'Starting...' : 'Confirm Start'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

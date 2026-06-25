@@ -1955,9 +1955,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         
                         return (
                         <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
-                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-2 mb-3">
-                                <span className="text-sm font-bold sm:mt-1">{formattedTime}, {formattedDate}</span>
-                                <div className="flex items-center justify-start sm:justify-end gap-2 flex-wrap">
+                             <div className="flex flex-row justify-between items-center sm:items-start gap-2 mb-3 flex-wrap sm:flex-nowrap">
+                                <span className="text-sm sm:text-xs font-bold sm:mt-1">{formattedTime}, {formattedDate}</span>
+                                <div className="flex flex-col items-end gap-2">
                                     <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
                                         booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
                                         (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'bg-green-100 text-green-800' : 

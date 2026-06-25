@@ -9,6 +9,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
   const [currentSubscription, setCurrentSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [successModal, setSuccessModal] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -63,7 +64,13 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
       await apiClient.put(`/booking-workflow/driver/respond/${responseId}`, 
         { action }
       );
-      alert(`Booking ${action.toLowerCase()}!`);
+      setSuccessModal({
+        isOpen: true,
+        title: action === 'ACCEPTED' ? 'Booking Accepted!' : 'Booking Declined',
+        message: action === 'ACCEPTED' 
+          ? 'You have successfully accepted this booking. Please wait for the admin to allocate it to you.'
+          : 'You have declined this booking request. We will assign it to another driver.'
+      });
       fetchRequests();
       if (action === 'ACCEPTED') {
         fetchAllocatedBookings();
@@ -272,6 +279,39 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
           </div>
         )}
       </div>
+      )}
+
+      {/* Success Modal */}
+      {successModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl transform transition-all animate-fade-in-up scale-100">
+            <div className={`p-8 text-center ${successModal.title.includes('Accepted') ? 'bg-green-50' : 'bg-gray-50'}`}>
+              <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-5 shadow-inner ${
+                successModal.title.includes('Accepted') ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'
+              }`}>
+                {successModal.title.includes('Accepted') ? (
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">{successModal.title}</h3>
+              <p className="text-sm text-gray-600 font-medium">{successModal.message}</p>
+            </div>
+            <div className="p-5 bg-white border-t border-gray-100">
+              <button
+                onClick={() => setSuccessModal({ isOpen: false, title: '', message: '' })}
+                className="w-full bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition active:scale-95 shadow-md text-base"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
