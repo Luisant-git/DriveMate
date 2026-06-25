@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { getDriverReports, getCustomerReports, getRevenueReport, getDriverTrips, getCustomerTrips } from '../../api/reports';
+import { getDriverReports, getCustomerReports, getRevenueReport, getDriverTrips, getCustomerTrips, getAllBookingsReport } from '../../api/reports';
 import { API_BASE_URL } from '../../api/config.js';
 
 const Reports: React.FC = () => {
-  const [activeReport, setActiveReport] = useState<'DRIVERS' | 'CUSTOMERS' | 'REVENUE' | 'OVERDUE VERIFICATION'>('DRIVERS');
+  const [activeReport, setActiveReport] = useState<'DRIVERS' | 'CUSTOMERS' | 'REVENUE' | 'OVERDUE VERIFICATION' | 'ALL BOOKINGS'>('ALL BOOKINGS');
   const [driverReports, setDriverReports] = useState<any[]>([]);
   const [customerReports, setCustomerReports] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
+  const [allBookingsReports, setAllBookingsReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ startDate: '', endDate: '', status: '' });
   const [selectedEntity, setSelectedEntity] = useState<any>(null);
@@ -34,6 +35,9 @@ const Reports: React.FC = () => {
       } else if (activeReport === 'REVENUE') {
         const res = await getRevenueReport(filters);
         if (res.success) setRevenueData(res.data);
+      } else if (activeReport === 'ALL BOOKINGS') {
+        const res = await getAllBookingsReport(filters);
+        if (res.success) setAllBookingsReports(res.data || []);
       }
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -110,7 +114,7 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
         <h2 className="text-xl md:text-2xl font-bold">Reports</h2>
         <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
-          {['DRIVERS', 'CUSTOMERS', 'REVENUE', 'OVERDUE VERIFICATION'].map((tab) => (
+          {['ALL BOOKINGS', 'DRIVERS', 'CUSTOMERS', 'REVENUE', 'OVERDUE VERIFICATION'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveReport(tab as any)}
@@ -143,8 +147,10 @@ const Reports: React.FC = () => {
           <button
             onClick={() =>
               exportToCSV(
-                activeReport === 'DRIVERS' ? driverReports : customerReports,
-                `${activeReport.toLowerCase()}-report`
+                activeReport === 'DRIVERS' ? driverReports : 
+                activeReport === 'CUSTOMERS' ? customerReports : 
+                activeReport === 'ALL BOOKINGS' ? allBookingsReports : [],
+                `${activeReport.toLowerCase().replace(' ', '-')}-report`
               )
             }
             className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold w-full md:w-auto"
@@ -244,6 +250,72 @@ const Reports: React.FC = () => {
                       <td colSpan={3}></td>
                     </tr>
                   </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeReport === 'ALL BOOKINGS' && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Customer</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Route</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Driver</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {allBookingsReports.map((booking: any) => (
+                      <tr key={booking.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm font-medium">
+                          {booking.customer?.name}
+                          <p className="text-xs text-gray-500 font-normal">{booking.customer?.phone}</p>
+                        </td>
+                        <td className="px-6 py-4 text-sm max-w-[200px]">
+                          <p className="truncate text-xs" title={booking.pickupLocation}>{booking.pickupLocation}</p>
+                          <p className="truncate text-xs text-gray-500" title={booking.dropLocation}>→ {booking.dropLocation}</p>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {booking.driver ? (
+                            <>
+                              <p className="font-medium">{booking.driver.name}</p>
+                              <p className="text-xs text-gray-500">{booking.driver.phone}</p>
+                            </>
+                          ) : booking.lead ? (
+                            <>
+                              <p className="font-medium">{booking.lead.name}</p>
+                              <p className="text-xs text-gray-500">{booking.lead.phone}</p>
+                            </>
+                          ) : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                            booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                            booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                            booking.status === 'ONGOING' ? 'bg-blue-100 text-blue-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {booking.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {booking.serviceType}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-bold">
+                          ₹{booking.finalAmount || booking.estimateAmount || 0}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {new Date(booking.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
               </div>
             </div>

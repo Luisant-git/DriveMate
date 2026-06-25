@@ -144,12 +144,9 @@ export default function PendingDriverApproval() {
       if (isLead) {
         endpoint = `/booking-workflow/admin/${selectedBooking.id}/allocate-lead`;
         payload = { leadId: personId };
-      } else if (forceAllocate) {
-        // For available drivers - send as new request instead of direct allocation
-        endpoint = `/booking-workflow/admin/${selectedBooking.id}/offer-driver`;
-        payload = { driverId: personId };
       } else {
-        // For drivers who accepted
+        // Use allocate-driver for both accepted drivers and forced allocations
+        // This will automatically assign the driver and mark them as ACCEPTED
         endpoint = `/booking-workflow/admin/${selectedBooking.id}/allocate-driver`;
         payload = { driverId: personId };
       }
@@ -157,7 +154,7 @@ export default function PendingDriverApproval() {
       await apiClient.post(endpoint, payload);
       
       if (forceAllocate) {
-        alert(`✓ Previous driver cancelled and new booking request sent!`);
+        alert(`✓ Driver automatically assigned to the trip!`);
       } else {
         alert(`✓ ${isLead ? 'Lead' : 'Driver'} approved and allocated!`);
       }
@@ -385,7 +382,7 @@ export default function PendingDriverApproval() {
                                         <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                         </svg>
-                                        <span className="text-[10px] font-bold text-yellow-700">{driver.rating}</span>
+                                        <span className="text-[10px] font-bold text-yellow-700">{Number(driver.rating).toFixed(1)}</span>
                                       </div>
                                     )}
                                   </div>
@@ -448,7 +445,7 @@ export default function PendingDriverApproval() {
             onClick={() => setActiveTab('PENDING')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'PENDING' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Pending Approvals
+            Pending Trips
             {bookingsWithAcceptedDrivers.length > 0 && (
               <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
                 {bookingsWithAcceptedDrivers.length}
@@ -459,7 +456,7 @@ export default function PendingDriverApproval() {
             onClick={() => setActiveTab('ALLOCATED')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'ALLOCATED' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Allocated Records
+            Accepted Trips
           </button>
           <button
             onClick={() => setActiveTab('CANCELLATIONS')}
@@ -476,7 +473,7 @@ export default function PendingDriverApproval() {
             onClick={() => setActiveTab('HISTORY')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'HISTORY' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            History
+            Cancel History
           </button>
         </div>
       </div>
@@ -489,7 +486,7 @@ export default function PendingDriverApproval() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <p className="text-gray-500 text-sm">No bookings waiting for driver approval</p>
+            <p className="text-gray-500 text-sm">No pending trips waiting for drivers</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -501,8 +498,7 @@ export default function PendingDriverApproval() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Package</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Approval</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Responses</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
                 </tr>
               </thead>
@@ -528,18 +524,13 @@ export default function PendingDriverApproval() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="space-y-1">
-                          <p className="text-xs text-gray-900 font-medium">{booking.pickupLocation}</p>
-                          <p className="text-xs text-gray-500">→ {booking.dropLocation}</p>
+                        <div className="space-y-1 max-w-[200px] sm:max-w-[300px]">
+                          <p className="text-xs text-gray-900 font-medium truncate" title={booking.pickupLocation}>{booking.pickupLocation}</p>
+                          <p className="text-xs text-gray-500 truncate" title={booking.dropLocation}>→ {booking.dropLocation}</p>
                         </div>
                       </td>
                       <td className="px-4 py-4">
                         <p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                          {booking.selectedLeadPackageId ? 'LEAD' : booking.selectedPackageType}
-                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-1">
@@ -710,6 +701,7 @@ export default function PendingDriverApproval() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -757,6 +749,17 @@ export default function PendingDriverApproval() {
                       <td className="px-4 py-4"><p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p></td>
                       <td className="px-4 py-4">
                         <p className="text-xs text-gray-500">{new Date(booking.allocatedAt || booking.createdAt).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            handleChooseAnotherDriver();
+                          }}
+                          className="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs hover:bg-blue-700 transition whitespace-nowrap"
+                        >
+                          Change Driver
+                        </button>
                       </td>
                     </tr>
                   );

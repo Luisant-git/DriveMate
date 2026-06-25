@@ -299,3 +299,25 @@ export const getCustomerTrips = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch customer trips' });
   }
 };
+
+export const getAllBookingsReport = async (req, res) => {
+  try {
+    const { startDate, endDate, status } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+    const bookings = await prisma.booking.findMany({
+      where,
+      include: { customer: true, driver: true, lead: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, data: bookings });
+  } catch (error) {
+    console.error('Error fetching bookings report:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch bookings report' });
+  }
+};

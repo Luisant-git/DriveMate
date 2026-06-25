@@ -93,3 +93,20 @@ export const getCustomerTrips = async (customerId, filters = {}) => {
     return { success: false, error: 'Failed to fetch customer trips' };
   }
 };
+
+export const getAllBookingsReport = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.status) params.append('status', filters.status);
+    const response = await fetch(`${API_BASE_URL}/api/reports/bookings?${params}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching bookings report:', error);
+    return { success: false, error: 'Failed to fetch bookings report' };
+  }
+};
