@@ -179,7 +179,7 @@ const processTiersInBackground = async (bookingId, tiersMap, sortedPrices, booki
                   fareAmount: `₹${booking.estimateAmount || 0}`,
                   pickup: booking.pickupLocation,
                   destination: booking.dropLocation,
-                  tripTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+                  tripTime: new Date(booking.startDateTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
                 }
               }};
               const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };
@@ -226,7 +226,7 @@ const processTiersInBackground = async (bookingId, tiersMap, sortedPrices, booki
                   fareAmount: `₹${booking.estimateAmount || 0}`,
                   pickup: booking.pickupLocation,
                   destination: booking.dropLocation,
-                  tripTime: new Date(booking.startDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
+                  tripTime: new Date(booking.startDateTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })
                 }
               }};
               const mockRes = { json: () => {}, status: () => ({ json: () => {} }) };

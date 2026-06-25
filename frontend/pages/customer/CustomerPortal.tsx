@@ -181,7 +181,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     try {
       const response = await cancelBooking(cancelModalBookingId);
       if (response.success) {
-        toast.success('Booking cancelled successfully');
+        toast.success('Cancellation request submitted to Admin for approval');
         fetchBookings();
       } else {
         toast.error(response.error || 'Failed to cancel booking');
@@ -811,8 +811,60 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           {activeTab === 'BOOK' && (
               <>
                 <div className="p-3 sm:p-4 pb-0">
+                    {/* Main Category Selection */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                if ([BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)) {
+                                    setDriverType(BookingType.ACTING);
+                                }
+                            }}
+                            className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${
+                                ![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)
+                                    ? 'bg-black text-white border-black' 
+                                    : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
+                            }`}
+                        >
+                            <span className="font-bold text-xs sm:text-sm">Standard</span>
+                            <span className={`text-[9px] sm:text-[10px] mt-0.5 ${![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) ? 'text-gray-300' : 'text-gray-500'}`}>Hourly/Daily</span>
+                        </button>
+                        
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setDriverType(BookingType.WEEKLY);
+                            }}
+                            className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${
+                                driverType === BookingType.WEEKLY
+                                    ? 'bg-blue-600 text-white border-blue-600' 
+                                    : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
+                            }`}
+                        >
+                            <span className="font-bold text-xs sm:text-sm">Weekly</span>
+                            <span className={`text-[9px] sm:text-[10px] mt-0.5 ${driverType === BookingType.WEEKLY ? 'text-blue-100' : 'text-gray-500'}`}>Short Term</span>
+                        </button>
+                        
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setDriverType(BookingType.MONTHLY);
+                            }}
+                            className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${
+                                driverType === BookingType.MONTHLY
+                                    ? 'bg-green-600 text-white border-green-600' 
+                                    : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
+                            }`}
+                        >
+                            <span className="font-bold text-xs sm:text-sm">Monthly</span>
+                            <span className={`text-[9px] sm:text-[10px] mt-0.5 ${driverType === BookingType.MONTHLY ? 'text-green-100' : 'text-gray-500'}`}>Long Term</span>
+                        </button>
+                    </div>
+
                     {/* Trip Type Buttons */}
-                    <div className="flex gap-2 mb-4">
+                    {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
+                        <>
+                            <div className="flex gap-2 mb-4">
                         <button 
                             type="button"
                             onClick={() => {
@@ -879,6 +931,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 Round Trip
                             </button>
                         </div>
+                    )}
+                        </>
                     )}
 
                     {/* Location Inputs */}
@@ -1076,27 +1130,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </div>
 
                 <div className="flex-grow overflow-y-auto px-3 sm:px-4 pb-2 custom-scrollbar">
-                    {/* Choose Service Dropdown */}
-                    <div className="relative mb-3">
-                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose Service</label>
-                        <div 
-                            onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
-                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                        >
-                            <span>{driverType}</span>
-                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </div>
-                        {openDropdown === 'service' && (
-                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
-                                {[
-                                    BookingType.ACTING,
-                                    BookingType.SPARE,
-                                    BookingType.TEMPORARY,
-                                    BookingType.VALET,
-                                    BookingType.DAILY,
-                                    BookingType.WEEKLY,
-                                    BookingType.MONTHLY
-                                ].map((type) => (
+                    {/* Choose Service Dropdown - Hidden for Weekly/Monthly */}
+                    {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
+                        <div className="relative mb-3">
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose Service</label>
+                            <div 
+                                onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
+                                className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                            >
+                                <span>{driverType}</span>
+                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                            {openDropdown === 'service' && (
+                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
+                                    {[
+                                        BookingType.ACTING,
+                                        BookingType.SPARE,
+                                        BookingType.TEMPORARY,
+                                        BookingType.VALET,
+                                        BookingType.DAILY
+                                    ].map((type) => (
                                     <div 
                                         key={type}
                                         onClick={() => { setDriverType(type); setOpenDropdown(null); }}
@@ -1111,9 +1164,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Choose Type of Service Dropdown - Show for all services */}
                     {/* <div className="relative mb-3">
@@ -1901,19 +1955,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         
                         return (
                         <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
-                             <div className="flex justify-between items-start gap-2 mb-3">
-                                <span className="text-sm font-bold mt-1">{formattedTime}, {formattedDate}</span>
-                                <div className="flex flex-col items-end gap-2">
-                                    <span className={`text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
+                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-2 mb-3">
+                                <span className="text-sm font-bold sm:mt-1">{formattedTime}, {formattedDate}</span>
+                                <div className="flex items-center justify-start sm:justify-end gap-2 flex-wrap">
+                                    <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
+                                        booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
                                         (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'bg-green-100 text-green-800' : 
                                         booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
                                         booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                         booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
                                         'bg-gray-100'
                                     }`}>
-                                        {(booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
+                                        {booking.cancellationRequested ? 'CANCELLATION PENDING' :
+                                         booking.status === 'CANCELLED' ? 'CANCELLED' :
+                                         (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
                                     </span>
-                                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && (
+                                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
                                         <button
                                             onClick={() => setCancelModalBookingId(booking.id)}
                                             className="text-[10px] bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 font-bold transition shadow-sm border border-red-100"
@@ -2455,7 +2512,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900">Cancel Booking?</h3>
-              <p className="text-sm text-gray-500 font-medium">Are you sure you want to cancel this trip? This action cannot be undone.</p>
+              <p className="text-sm text-gray-500 font-medium">Are you sure? This request will be sent to the Admin for approval.</p>
             </div>
             <div className="flex border-t border-gray-100 divide-x divide-gray-100">
               <button
