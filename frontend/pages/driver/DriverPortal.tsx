@@ -986,7 +986,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                    </p>
                                                    {(currentSubscription.maxDuties > 0 || (currentSubscription.plan && currentSubscription.plan.maxDuties > 0)) && (() => {
                                                      const maxLimit = currentSubscription.maxDuties > 0 ? currentSubscription.maxDuties : currentSubscription.plan.maxDuties;
-                                                     const subStart = new Date(currentSubscription.startDate).getTime();
+                                                     const subStartDate = new Date(currentSubscription.startDate);
+                                                     subStartDate.setHours(0, 0, 0, 0);
+                                                     const subStart = subStartDate.getTime();
                                                      const dynamicDutiesUsed = trips.filter(t => 
                                                          (t.status === 'COMPLETED' || t.status === 'CANCELLED') && 
                                                          new Date(t.startDate).getTime() >= subStart
