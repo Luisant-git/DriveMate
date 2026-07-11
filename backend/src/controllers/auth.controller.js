@@ -418,6 +418,19 @@ export const deleteAccount = async (req, res) => {
     const role = req.user.role || (req.user.type === 'lead' ? 'LEAD' : null);
     
     if (role === 'CUSTOMER') {
+      const original = await prisma.customer.findUnique({ where: { id: userId } });
+      if (original) {
+        await prisma.deletedAccountArchive.create({
+          data: {
+            originalId: userId,
+            role: 'CUSTOMER',
+            name: original.name,
+            phone: original.phone,
+            email: original.email,
+            data: original
+          }
+        });
+      }
       await prisma.customer.update({
         where: { id: userId },
         data: {
@@ -430,6 +443,19 @@ export const deleteAccount = async (req, res) => {
         }
       });
     } else if (role === 'DRIVER') {
+      const original = await prisma.driver.findUnique({ where: { id: userId } });
+      if (original) {
+        await prisma.deletedAccountArchive.create({
+          data: {
+            originalId: userId,
+            role: 'DRIVER',
+            name: original.name,
+            phone: original.phone,
+            email: original.email,
+            data: original
+          }
+        });
+      }
       await prisma.driver.update({
         where: { id: userId },
         data: {
@@ -457,6 +483,19 @@ export const deleteAccount = async (req, res) => {
     } else if (role === 'ADMIN') {
       return res.status(403).json({ success: false, error: 'Admin accounts cannot be deleted from the app' });
     } else if (role === 'LEAD') {
+      const original = await prisma.lead.findUnique({ where: { id: userId } });
+      if (original) {
+        await prisma.deletedAccountArchive.create({
+          data: {
+            originalId: userId,
+            role: 'LEAD',
+            name: original.name,
+            phone: original.phone,
+            email: original.email,
+            data: original
+          }
+        });
+      }
       await prisma.lead.update({
         where: { id: userId },
         data: {

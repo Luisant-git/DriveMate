@@ -13,8 +13,9 @@ import ServiceAreaManagement from '../../components/admin/ServiceAreaManagement'
 import Reports from './Reports';
 import OverdueReport from './OverdueReport';
 import BookingRoutingConfig from './BookingRoutingConfig';
+import AdminDeletedAccounts from './AdminDeletedAccounts';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
-import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar, FaChartArea } from 'react-icons/fa';
+import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar, FaChartArea, FaTrashAlt } from 'react-icons/fa';
 import { BiAnalyse, BiError } from 'react-icons/bi';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
@@ -47,7 +48,7 @@ interface AdminPortalProps {
 
 const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG' | 'OVERDUE_REPORT'
+    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG' | 'OVERDUE_REPORT' | 'DELETED_ACCOUNTS'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -325,7 +326,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'PRICING', label: 'Pricing', icon: FaMoneyBillWave },
     { id: 'SERVICE_AREAS', label: 'Service Areas', icon: FaMapMarkerAlt },
     { id: 'PAYMENTS', label: 'Payments', icon: FaCreditCard },
-    { id: 'REPORTS', label: 'Reports', icon: FaChartBar }
+    { id: 'REPORTS', label: 'Reports', icon: FaChartBar },
+    { id: 'DELETED_ACCOUNTS', label: 'Deleted Accounts', icon: FaTrashAlt }
   ];
 
   // --------------- RENDER ---------------
@@ -511,6 +513,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             {activeTab === 'REPORTS' && <Reports />}
             {activeTab === 'ROUTING_CONFIG' && <BookingRoutingConfig />}
             {activeTab === 'OVERDUE_REPORT' && <OverdueReport />}
+            {activeTab === 'DELETED_ACCOUNTS' && <AdminDeletedAccounts />}
 
             {activeTab === 'PAYMENTS' && (
               <>

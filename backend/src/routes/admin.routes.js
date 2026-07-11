@@ -14,6 +14,7 @@ import {
   submitVerification,
   getVerificationHistory,
   updateDriverDocument,
+  getDeletedAccounts,
 } from '../controllers/admin.controller.js';
 import { updateDriverStatus } from '../controllers/driver.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -35,5 +36,6 @@ router.get('/analytics', authenticateToken, getAnalytics);
 router.get('/drivers/nearby', authenticateToken, findNearestDrivers);
 router.post('/verification', authenticateToken, submitVerification);
 router.get('/verification/:entityId/history', authenticateToken, getVerificationHistory);
+router.get('/deleted-accounts', authenticateToken, getDeletedAccounts);
 
 export default router;

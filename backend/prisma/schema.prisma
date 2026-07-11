@@ -569,3 +569,16 @@ model BookingRoutingConfig {
   @@unique([serviceType, tripType])
   @@map("booking_routing_configs")
 }
+
+model DeletedAccountArchive {
+  id          String   @id @default(cuid())
+  originalId  String
+  role        String   // 'CUSTOMER', 'DRIVER', 'LEAD'
+  name        String?
+  phone       String?
+  email       String?
+  data        Json     // Stores the full original record
+  deletedAt   DateTime @default(now())
+
+  @@map("deleted_account_archives")
+}

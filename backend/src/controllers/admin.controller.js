@@ -337,3 +337,14 @@ export const updateDriverDocument = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const getDeletedAccounts = async (req, res) => {
+  try {
+    const deletedAccounts = await prisma.deletedAccountArchive.findMany({
+      orderBy: { deletedAt: 'desc' }
+    });
+    res.json({ success: true, deletedAccounts });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
