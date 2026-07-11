@@ -2351,7 +2351,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          type: 'info',
                                          confirmText: 'Logout',
                                          onConfirm: () => {
-                                             localStorage.removeItem('token');
+                                             localStorage.removeItem('auth-token');
                                              window.location.href = '/';
                                          }
                                      });
@@ -2372,7 +2372,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          confirmText: 'Deactivate',
                                          onConfirm: async () => {
                                              try {
-                                                 const token = localStorage.getItem('token');
+                                                 const token = localStorage.getItem('auth-token');
                                                  const res = await fetch(`${API_BASE_URL}/api/auth/deactivate`, {
                                                      method: 'DELETE',
                                                      headers: { 'Authorization': `Bearer ${token}` }
@@ -2380,7 +2380,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                  const data = await res.json();
                                                  if(data.success) {
                                                      toast.success('Account deactivated successfully');
-                                                     localStorage.removeItem('token');
+                                                     localStorage.removeItem('auth-token');
                                                      window.location.href = '/';
                                                  } else {
                                                      toast.error(data.error || 'Failed to deactivate account');
