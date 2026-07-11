@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, sendOTP, verifyOTP, logout, getProfile, updateProfile, deactivateAccount } from '../controllers/auth.controller.js';
+import { register, login, sendOTP, verifyOTP, logout, getProfile, updateProfile, deleteAccount } from '../controllers/auth.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -252,16 +252,16 @@ router.put('/profile', authenticateToken, updateProfile);
 
 /**
  * @swagger
- * /api/auth/deactivate:
+ * /api/auth/delete:
  *   delete:
- *     summary: Deactivate and delete account data
+ *     summary: Delete account and personal data
  *     tags: [Admin Auth]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Account deactivated successfully
+ *         description: Account deleted successfully
  */
-router.delete('/deactivate', authenticateToken, deactivateAccount);
+router.delete('/delete', authenticateToken, deleteAccount);
 
 export default router;

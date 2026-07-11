@@ -2362,31 +2362,32 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  Logout
                              </button>
 
+{/* 
                              <button
                                  onClick={() => {
                                      setConfirmConfig({
                                          isOpen: true,
-                                         title: 'Deactivate Account',
-                                         message: 'Are you sure you want to deactivate your account? This action cannot be undone and will delete your personal data.',
+                                         title: 'Delete Account',
+                                         message: 'Are you sure you want to delete your account? This action cannot be undone and will delete your personal data.',
                                          type: 'danger',
-                                         confirmText: 'Deactivate',
+                                         confirmText: 'Delete',
                                          onConfirm: async () => {
                                              try {
                                                  const token = localStorage.getItem('auth-token');
-                                                 const res = await fetch(`${API_BASE_URL}/api/auth/deactivate`, {
+                                                 const res = await fetch(`${API_BASE_URL}/api/auth/delete`, {
                                                      method: 'DELETE',
                                                      headers: { 'Authorization': `Bearer ${token}` }
                                                  });
                                                  const data = await res.json();
                                                  if(data.success) {
-                                                     toast.success('Account deactivated successfully');
+                                                     toast.success('Account deleted successfully');
                                                      localStorage.removeItem('auth-token');
                                                      window.location.href = '/';
                                                  } else {
-                                                     toast.error(data.error || 'Failed to deactivate account');
+                                                     toast.error(data.error || 'Failed to delete account');
                                                  }
                                              } catch(e) {
-                                                 toast.error('Error deactivating account');
+                                                 toast.error('Error deleting account');
                                              }
                                          }
                                      });
@@ -2394,8 +2395,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold text-sm hover:bg-red-100 transition flex items-center justify-center gap-2"
                              >
                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                 Deactivate Account
+                                 Delete Account
                              </button>
+*/}
                          </div>
                      </div>
                  ) : (

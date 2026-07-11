@@ -1,10 +1,10 @@
-# Account Deactivation API Documentation
+# Account Delete API Documentation
 
 ## Endpoint
-**DELETE** `/api/auth/deactivate`
+**DELETE** `/api/auth/delete`
 
 ## Description
-This API is responsible for deactivating a user's account and anonymizing their Personally Identifiable Information (PII) to comply with data privacy policies (like Google Play Store's data deletion requirements). 
+This API is responsible for deleting a user's account and anonymizing their Personally Identifiable Information (PII) to comply with data privacy policies (like Google Play Store's data deletion requirements). 
 
 Instead of hard-deleting the database records (which would break historical trip/booking data), the API performs a "soft-delete". It scrubs all personal data (name, email, phone, addresses, documents) and replaces them with a generic placeholder (e.g., "[DELETED_CUSTOMER]"). The account is also marked as inactive so it cannot be logged into anymore.
 
@@ -15,7 +15,7 @@ Instead of hard-deleting the database records (which would break historical trip
 - **CUSTOMER**: Scrubbed in the `Customer` table.
 - **DRIVER**: Scrubbed in the `Driver` table.
 - **LEAD**: Scrubbed in the `Lead` table.
-- **ADMIN**: Admin accounts are protected and *cannot* be deactivated using this endpoint.
+- **ADMIN**: Admin accounts are protected and *cannot* be deleted using this endpoint.
 
 ## Request Body
 None required. The user is identified via the JWT token.
@@ -23,20 +23,18 @@ None required. The user is identified via the JWT token.
 ## Success Response
 - **Code:** 200 OK
 - **Content:**
-  ```json
   {
     "success": true,
-    "message": "Account deactivated and personal data removed successfully",
+    "message": "Account deleted successfully",
     "role": "CUSTOMER" // (or DRIVER / LEAD)
   }
-  ```
   *(Note: The server also clears the authentication cookie upon success).*
 
 ## Error Responses
 - **Code:** 401 Unauthorized
   - *Reason:* No token provided or token is invalid.
 - **Code:** 403 Forbidden
-  - *Reason:* Attempting to deactivate an Admin account.
+  - *Reason:* Attempting to delete an Admin account.
 - **Code:** 404 Not Found
   - *Reason:* User record not found in the database.
 - **Code:** 500 Internal Server Error

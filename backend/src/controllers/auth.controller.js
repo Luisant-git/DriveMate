@@ -380,7 +380,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-export const deactivateAccount = async (req, res) => {
+export const deleteAccount = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
     const role = req.user.role || (req.user.type === 'lead' ? 'LEAD' : null);
@@ -466,7 +466,7 @@ export const deactivateAccount = async (req, res) => {
     }
     res.clearCookie('connect.sid');
 
-    res.json({ success: true, message: 'Account deactivated and data deleted successfully' });
+    res.json({ success: true, message: 'Account deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

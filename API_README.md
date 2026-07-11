@@ -161,4 +161,4 @@ This document provides a 1-line explanation of all DriveMate APIs grouped by the
 - **PUT /api/subscriptions/admin/update-payment/:id** : Update subscriptions admin update-payment by ID
 - **GET /api/trips/upcoming** : Retrieve trips upcoming
 - **GET /api/trips/completed** : Retrieve trips completed
-- **DELETE /api/auth/deactivate** : Deactivate account and anonymize user personal data (Customer, Driver, Lead)
+- **DELETE /api/auth/delete** : Delete account and anonymize user personal data (Customer, Driver, Lead)
