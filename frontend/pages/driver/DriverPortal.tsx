@@ -776,7 +776,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                        )}
                                      </div>
                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${trip.status === 'CANCELLED' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
-                                         {trip.status === 'CANCELLED' ? 'Cancelled' : 'Completed'}
+                                         {trip.status === 'CANCELLED' ? ((trip as any).cancellationReason === 'Requested by Customer' ? 'Cancelled by Customer' : ((trip as any).cancellationReason === 'Requested by Driver' ? 'Cancelled by Driver' : 'Cancelled')) : 'Completed'}
                                      </span>
                                  </div>
                                  
@@ -990,7 +990,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                      subStartDate.setHours(0, 0, 0, 0);
                                                      const subStart = subStartDate.getTime();
                                                      const dynamicDutiesUsed = trips.filter(t => 
-                                                         (t.status === 'COMPLETED' || t.status === 'CANCELLED') && 
+                                                         (t.status === 'COMPLETED' || (t.status === 'CANCELLED' && t.cancellationReason !== 'Requested by Customer')) && 
                                                          new Date(t.startDate).getTime() >= subStart
                                                      ).length;
                                                      return (

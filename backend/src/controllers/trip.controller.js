@@ -58,7 +58,6 @@ export const getDriverTrips = async (req, res) => {
 
     console.log('Found bookings for driver:', bookings.length);
 
-    // Transform bookings to match the trip format expected by frontend
     const trips = bookings.map(booking => ({
       id: booking.id,
       customerId: booking.customerId,
@@ -80,6 +79,8 @@ export const getDriverTrips = async (req, res) => {
       actualStartTime: booking.actualStartTime,
       completedAt: booking.completedAt || (booking.status === 'COMPLETED' ? booking.updatedAt : null),
       finalAmount: booking.finalAmount,
+      cancellationRequested: booking.cancellationRequested,
+      cancellationReason: booking.cancellationReason,
     }));
 
     res.json({ success: true, trips });
