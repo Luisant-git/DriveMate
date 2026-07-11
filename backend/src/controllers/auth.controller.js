@@ -272,6 +272,38 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
+export const verifyOTPOnly = async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+    
+    if (!phone || !otp) {
+      return res.status(400).json({ error: 'Phone and OTP required' });
+    }
+
+    const storedOtpData = otpStore.get(phone);
+    
+    if (!storedOtpData) {
+      return res.status(401).json({ error: 'OTP expired or not found. Please request a new OTP.' });
+    }
+
+    if (Date.now() > storedOtpData.expiresAt) {
+      otpStore.delete(phone);
+      return res.status(401).json({ error: 'OTP expired. Please request a new OTP.' });
+    }
+
+    if (otp !== storedOtpData.otp) {
+      return res.status(401).json({ error: 'Invalid OTP' });
+    }
+
+    // OTP is valid, delete it
+    otpStore.delete(phone);
+
+    res.json({ success: true, message: 'OTP verified successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const logout = async (req, res) => {
   try {
     req.session.destroy((err) => {

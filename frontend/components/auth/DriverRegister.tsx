@@ -85,6 +85,33 @@ const DriverRegister: React.FC = () => {
     setIsLoading(true);
     
     try {
+      // Verify Primary OTP
+      const primaryRes = await fetch(`${API_BASE_URL}/api/auth/verify-otp-only`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: registerData.phone, otp: primaryOtp })
+      });
+      const primaryData = await primaryRes.json();
+      if (!primaryRes.ok) {
+        alert(`Primary Phone Verification Failed: ${primaryData.error}`);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (registerData.alternateMobile1) {
+        const altRes = await fetch(`${API_BASE_URL}/api/auth/verify-otp-only`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: registerData.alternateMobile1, otp: altOtp })
+        });
+        const altData = await altRes.json();
+        if (!altRes.ok) {
+          alert(`Alternate Phone Verification Failed: ${altData.error}`);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Prepare altPhone array
       const altPhone = [
         registerData.alternateMobile1,
@@ -178,6 +205,24 @@ const DriverRegister: React.FC = () => {
       
       // Go to OTP step WITHOUT saving to database
       setStep(4);
+      
+      // Send OTPs
+      try {
+        await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: registerData.phone })
+        });
+        if (registerData.alternateMobile1) {
+          await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: registerData.alternateMobile1 })
+          });
+        }
+      } catch (err) {
+        console.error('Failed to send OTPs:', err);
+      }
     } catch (error: any) {
       console.error('File upload error:', error);
       alert(error.message || 'Failed to upload files. Please try again.');

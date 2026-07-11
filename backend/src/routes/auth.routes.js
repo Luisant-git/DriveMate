@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, sendOTP, verifyOTP, logout, getProfile, updateProfile, deleteAccount } from '../controllers/auth.controller.js';
+import { register, login, sendOTP, verifyOTP, verifyOTPOnly, logout, getProfile, updateProfile, deleteAccount } from '../controllers/auth.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -188,6 +188,32 @@ router.post('/send-otp', sendOTP);
  *                   $ref: '#/components/schemas/Customer'
  */
 router.post('/verify-otp', verifyOTP);
+
+/**
+ * @swagger
+ * /api/auth/verify-otp-only:
+ *   post:
+ *     summary: Verify OTP without logging in
+ *     tags: [Customer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *               - otp
+ *             properties:
+ *               phone:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ */
+router.post('/verify-otp-only', verifyOTPOnly);
 
 /**
  * @swagger
