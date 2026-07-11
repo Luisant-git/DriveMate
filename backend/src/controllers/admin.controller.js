@@ -4,7 +4,7 @@ export const getAllCustomers = async (req, res) => {
   try {
     const customers = await prisma.customer.findMany({
       where: {
-        name: { not: 'Deleted User' }
+        email: { not: { startsWith: 'deleted_' } }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -31,7 +31,7 @@ export const getAllDrivers = async (req, res) => {
   try {
     const drivers = await prisma.driver.findMany({
       where: {
-        name: { not: 'Deleted Driver' }
+        email: { not: { startsWith: 'deleted_' } }
       },
       include: {
         subscriptions: { include: { plan: true } },
@@ -177,7 +177,7 @@ export const getAllLeads = async (req, res) => {
   try {
     const leads = await prisma.lead.findMany({
       where: {
-        name: { not: 'Deleted Lead' }
+        email: { not: { startsWith: 'deleted_' } }
       },
       include: {
         leadSubscriptions: {
