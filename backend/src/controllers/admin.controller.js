@@ -3,6 +3,9 @@ import prisma from '../config/database.js';
 export const getAllCustomers = async (req, res) => {
   try {
     const customers = await prisma.customer.findMany({
+      where: {
+        name: { not: 'Deleted User' }
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -27,6 +30,9 @@ export const getAllCustomers = async (req, res) => {
 export const getAllDrivers = async (req, res) => {
   try {
     const drivers = await prisma.driver.findMany({
+      where: {
+        name: { not: 'Deleted Driver' }
+      },
       include: {
         subscriptions: { include: { plan: true } },
       },
@@ -170,6 +176,9 @@ export const findNearestDrivers = async (req, res) => {
 export const getAllLeads = async (req, res) => {
   try {
     const leads = await prisma.lead.findMany({
+      where: {
+        name: { not: 'Deleted Lead' }
+      },
       include: {
         leadSubscriptions: {
           include: { plan: true },
