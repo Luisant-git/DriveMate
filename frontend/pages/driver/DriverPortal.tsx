@@ -97,6 +97,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     });
   }, [initialDriver]);
 
+  const fetchCurrentSubscription = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (response.ok && data) {
+        setCurrentSubscription(data);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchPackages = async () => {
       try {
@@ -109,23 +126,6 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
         }
       } catch (error) {
         console.error('Error fetching packages:', error);
-      }
-    };
-
-    const fetchCurrentSubscription = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-          },
-          credentials: 'include'
-        });
-        const data = await response.json();
-        if (response.ok && data) {
-          setCurrentSubscription(data);
-        }
-      } catch (error) {
-        console.error('Error fetching subscription:', error);
       }
     };
 
@@ -535,6 +535,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                       alert('✓ Trip completed successfully!');
                                                       const driverRes = await tripAPI.getDriverTrips();
                                                       if (driverRes.success) setTrips(driverRes.trips);
+                                                      fetchCurrentSubscription();
                                                     } else {
                                                       alert('Failed to complete trip: ' + (result.error || 'Unknown error'));
                                                     }
@@ -995,13 +996,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                    </p>
                                                    {(currentSubscription.maxDuties > 0 || (currentSubscription.plan && currentSubscription.plan.maxDuties > 0)) && (() => {
                                                      const maxLimit = currentSubscription.maxDuties > 0 ? currentSubscription.maxDuties : currentSubscription.plan.maxDuties;
-                                                     const subStartDate = new Date(currentSubscription.startDate);
-                                                     subStartDate.setHours(0, 0, 0, 0);
-                                                     const subStart = subStartDate.getTime();
-                                                     const dynamicDutiesUsed = trips.filter(t => 
-                                                         (t.status === 'COMPLETED' || (t.status === 'CANCELLED' && t.cancellationReason !== 'Requested by Customer')) && 
-                                                         new Date(t.startDate).getTime() >= subStart
-                                                     ).length;
+                                                     const dynamicDutiesUsed = currentSubscription.dutiesCompleted || 0;
                                                      return (
                                                        <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-purple-600 border-purple-200 bg-purple-50 inline-block mt-1 font-bold">
                                                            {Math.max(0, maxLimit - dynamicDutiesUsed)} duties left
