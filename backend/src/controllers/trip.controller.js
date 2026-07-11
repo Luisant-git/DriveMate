@@ -47,9 +47,14 @@ export const getDriverTrips = async (req, res) => {
 
     console.log('getDriverTrips - driverId:', driverId);
 
-    // Get bookings assigned to this driver
+    // Get bookings assigned to this driver, or where the driver cancelled
     const bookings = await prisma.booking.findMany({
-      where: { driverId },
+      where: {
+        OR: [
+          { driverId },
+          { driverResponses: { some: { driverId, status: 'CANCELLED' } } }
+        ]
+      },
       include: {
         customer: true,
       },
@@ -58,30 +63,34 @@ export const getDriverTrips = async (req, res) => {
 
     console.log('Found bookings for driver:', bookings.length);
 
-    const trips = bookings.map(booking => ({
-      id: booking.id,
-      customerId: booking.customerId,
-      driverId: booking.driverId,
-      customer: booking.customer,
-      pickupLocation: booking.pickupLocation,
-      dropLocation: booking.dropLocation,
-      type: booking.bookingType,
-      serviceType: booking.serviceType,
-      startDate: booking.startDateTime.toISOString().split('T')[0],
-      startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
-      duration: booking.duration,
-      vehicleType: booking.vehicleType,
-      estimateAmount: booking.estimateAmount,
-      estimatedCost: booking.estimateAmount,
-      status: booking.status,
-      rating: booking.rating,
-      feedback: booking.feedback,
-      actualStartTime: booking.actualStartTime,
-      completedAt: booking.completedAt || (booking.status === 'COMPLETED' ? booking.updatedAt : null),
-      finalAmount: booking.finalAmount,
-      cancellationRequested: booking.cancellationRequested,
-      cancellationReason: booking.cancellationReason,
-    }));
+    const trips = bookings.map(booking => {
+      const isCancelledByThisDriver = booking.driverId !== driverId;
+
+      return {
+        id: booking.id,
+        customerId: booking.customerId,
+        driverId: isCancelledByThisDriver ? driverId : booking.driverId,
+        customer: booking.customer,
+        pickupLocation: booking.pickupLocation,
+        dropLocation: booking.dropLocation,
+        type: booking.bookingType,
+        serviceType: booking.serviceType,
+        startDate: booking.startDateTime.toISOString().split('T')[0],
+        startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
+        duration: booking.duration,
+        vehicleType: booking.vehicleType,
+        estimateAmount: booking.estimateAmount,
+        estimatedCost: booking.estimateAmount,
+        status: isCancelledByThisDriver ? 'CANCELLED' : booking.status,
+        rating: booking.rating,
+        feedback: booking.feedback,
+        actualStartTime: booking.actualStartTime,
+        completedAt: booking.completedAt || (booking.status === 'COMPLETED' ? booking.updatedAt : null),
+        finalAmount: booking.finalAmount,
+        cancellationRequested: isCancelledByThisDriver ? false : booking.cancellationRequested,
+        cancellationReason: isCancelledByThisDriver ? 'Requested by Driver' : booking.cancellationReason,
+      };
+    });
 
     res.json({ success: true, trips });
   } catch (error) {
