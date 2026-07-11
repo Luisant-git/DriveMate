@@ -379,3 +379,95 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const deactivateAccount = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const role = req.user.role || (req.user.type === 'lead' ? 'LEAD' : null);
+    
+    if (role === 'CUSTOMER') {
+      await prisma.customer.update({
+        where: { id: userId },
+        data: {
+          name: 'Deleted User',
+          email: `deleted_${userId}@example.com`,
+          phone: `deleted_${userId}`,
+          password: '',
+          address: '',
+          idProof: null,
+        }
+      });
+    } else if (role === 'DRIVER') {
+      await prisma.driver.update({
+        where: { id: userId },
+        data: {
+          name: 'Deleted Driver',
+          email: `deleted_${userId}@example.com`,
+          phone: `deleted_${userId}`,
+          password: '',
+          aadharNo: `deleted_${userId}`,
+          licenseNo: `deleted_${userId}`,
+          alternateMobile1: null,
+          alternateMobile2: null,
+          alternateMobile3: null,
+          alternateMobile4: null,
+          gpayNo: null,
+          phonepeNo: null,
+          photo: null,
+          dlPhoto: null,
+          panPhoto: null,
+          aadharPhoto: null,
+          policeVerificationPhoto: null,
+          isActive: false,
+          status: 'REJECTED'
+        }
+      });
+    } else if (role === 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Admin accounts cannot be deleted from the app' });
+    } else if (role === 'LEAD') {
+      await prisma.lead.update({
+        where: { id: userId },
+        data: {
+          name: 'Deleted Lead',
+          email: `deleted_${userId}@example.com`,
+          phone: `deleted_${userId}`,
+          password: '',
+          aadharNo: `deleted_${userId}`,
+          licenseNo: `deleted_${userId}`,
+          alternateMobile1: null,
+          alternateMobile2: null,
+          alternateMobile3: null,
+          alternateMobile4: null,
+          gpayNo: null,
+          phonepeNo: null,
+          photo: null,
+          dlPhoto: null,
+          panPhoto: null,
+          aadharPhoto: null,
+          msmePhoto: null,
+          rationCardPhoto: null,
+          policeVerificationPhoto: null,
+          electricityBillPhoto: null,
+          rentalAgreementPhoto: null,
+          creditCardPhoto: null,
+          debitCardPhoto: null,
+          isActive: false
+        }
+      });
+    }
+
+    // Attempt to destroy session if applicable
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+        }
+      });
+    }
+    res.clearCookie('connect.sid');
+
+    res.json({ success: true, message: 'Account deactivated and data deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

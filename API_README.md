@@ -1,0 +1,164 @@
+# DriveMate API Documentation
+
+This document provides a 1-line explanation of all DriveMate APIs grouped by their target audience.
+
+## Customer APIs
+
+- **POST /api/auth/register** : User registration endpoint
+- **POST /api/auth/login** : User login endpoint
+- **POST /api/auth/send-otp** : Create or perform action for auth send-otp
+- **POST /api/auth/verify-otp** : Verify user or OTP
+- **POST /api/auth/logout** : Create or perform action for auth logout
+- **GET /api/auth/profile** : Retrieve auth profile
+- **GET /api/auth/me** : Retrieve auth me
+- **PUT /api/auth/profile** : Update auth profile
+- **GET /api/bookings** : Retrieve bookings
+- **POST /api/bookings** : Create or perform action for bookings
+- **GET /api/bookings/estimate** : Retrieve bookings estimate
+- **GET /api/bookings/my-bookings** : Retrieve bookings my-bookings
+- **POST /api/bookings/:id/rate** : Create or perform action for bookings by ID rate
+- **POST /api/bookings/:id/cancel** : Create or perform action for bookings by ID cancel
+- **GET /api/bookings/lead/allocated** : Retrieve bookings lead allocated
+- **GET /api/bookings/lead/completed** : Retrieve bookings lead completed
+- **GET /api/booking-workflow/customer/:bookingId** : Retrieve booking-workflow customer by ID
+- **GET /api/booking-workflow/lead/pending-requests** : Retrieve booking-workflow lead pending-requests
+- **PUT /api/booking-workflow/lead/respond/:responseId** : Update booking-workflow lead respond by ID
+- **GET /api/booking-routing** : Retrieve booking-routing
+- **POST /api/booking-routing** : Create or perform action for booking-routing
+- **PUT /api/booking-routing/:id** : Update booking-routing by ID
+- **DELETE /api/booking-routing/:id** : Delete booking-routing by ID
+- **GET /api/distance/calculate** : Retrieve distance calculate
+- **POST /api/leads/register** : User registration endpoint
+- **POST /api/leads/login** : User login endpoint
+- **GET /api/leads** : Retrieve leads
+- **PATCH /api/leads/:id/status** : Update leads by ID status
+- **GET /api/leads/profile** : Retrieve leads profile
+- **PATCH /api/leads/profile** : Update leads profile
+- **GET /api/leads/count-by-type/:packageType** : Retrieve leads count-by-type by ID
+- **GET /api/leads/count-by-package/:packageId** : Retrieve leads count-by-package by ID
+- **GET /api/lead-packages** : Retrieve lead-packages
+- **GET /api/lead-subscriptions/plans** : Retrieve lead-subscriptions plans
+- **POST /api/lead-subscriptions/plans** : Create or perform action for lead-subscriptions plans
+- **PUT /api/lead-subscriptions/plans/:id** : Update lead-subscriptions plans by ID
+- **POST /api/lead-subscriptions** : Create or perform action for lead-subscriptions
+- **GET /api/lead-subscriptions/my-subscriptions** : Retrieve lead-subscriptions my-subscriptions
+- **POST /api/lead-subscriptions/purchase** : Create or perform action for lead-subscriptions purchase
+- **PUT /api/lead-subscriptions/reject/:id** : Update lead-subscriptions reject by ID
+- **GET /api/maps/geocode** : Retrieve maps geocode
+- **GET /api/maps/autocomplete** : Retrieve maps autocomplete
+- **GET /api/maps/directions** : Retrieve maps directions
+- **POST /api/rides** : Create or perform action for rides
+- **PUT /api/rides/:tripId/status** : Update rides by ID status
+- **GET /api/subscriptions/plans** : Retrieve subscriptions plans
+- **GET /api/subscriptions/active-packages** : Retrieve subscriptions active-packages
+- **POST /api/trips** : Create or perform action for trips
+- **GET /api/trips/customer** : Retrieve trips customer
+- **POST /api/trips/:tripId/complete** : Create or perform action for trips by ID complete
+- **POST /api/trips/:tripId/start** : Create or perform action for trips by ID start
+- **PUT /api/trips/:tripId/status** : Update trips by ID status
+- **POST /api/trips/:tripId/send-start-otp** : Create or perform action for trips by ID send-start-otp
+- **POST /api/upload/file** : Create or perform action for upload file
+- **POST /api/whatsapp/customer-login-otp** : User login endpoint
+- **POST /api/whatsapp/lead-booking-assignment** : Create or perform action for whatsapp lead-booking-assignment
+- **POST /api/whatsapp/lead-booking-confirmation** : Create or perform action for whatsapp lead-booking-confirmation
+- **POST /api/whatsapp/trip-completed-notification** : Create or perform action for whatsapp trip-completed-notification
+
+## Driver APIs
+
+- **GET /api/bookings/driver-bookings** : Retrieve bookings driver-bookings
+- **GET /api/booking-workflow/driver/pending-requests** : Retrieve booking-workflow driver pending-requests
+- **PUT /api/booking-workflow/driver/respond/:responseId** : Update booking-workflow driver respond by ID
+- **GET /api/booking-workflow/driver/:bookingId** : Retrieve booking-workflow driver by ID
+- **GET /api/download/driver/:driverId** : Retrieve download driver by ID
+- **POST /api/driver/auth/register** : User registration endpoint
+- **POST /api/driver/auth/login** : User login endpoint
+- **POST /api/drivers/register** : User registration endpoint
+- **PUT /api/drivers/location** : Update drivers location
+- **PUT /api/drivers/status** : Update drivers status
+- **GET /api/drivers/profile** : Retrieve drivers profile
+- **PUT /api/drivers/package** : Update drivers package
+- **GET /api/drivers/available/:packageId** : Retrieve drivers available by ID
+- **GET /api/drivers/count-by-type/:packageType** : Retrieve drivers count-by-type by ID
+- **GET /api/drivers** : Retrieve drivers
+- **GET /api/maps/nearby-drivers** : Retrieve maps nearby-drivers
+- **POST /api/subscriptions/purchase** : Create or perform action for subscriptions purchase
+- **GET /api/subscriptions/driver** : Retrieve subscriptions driver
+- **GET /api/trips/available** : Retrieve trips available
+- **GET /api/trips/driver** : Retrieve trips driver
+- **POST /api/trips/:tripId/accept** : Create or perform action for trips by ID accept
+- **POST /api/trips/:tripId/cancel** : Create or perform action for trips by ID cancel
+- **POST /api/trips/:tripId/request-cancel** : Create or perform action for trips by ID request-cancel
+- **POST /api/whatsapp/customer-driver-assigned** : Create or perform action for whatsapp customer-driver-assigned
+- **POST /api/whatsapp/driver-booking-assignment** : Create or perform action for whatsapp driver-booking-assignment
+- **POST /api/whatsapp/driver-booking-confirmation** : Create or perform action for whatsapp driver-booking-confirmation
+
+## Admin APIs
+
+- **GET /api/admin/drivers** : Retrieve admin drivers
+- **GET /api/admin/customers** : Retrieve admin customers
+- **GET /api/admin/leads** : Retrieve admin leads
+- **GET /api/admin/lead-subscriptions** : Retrieve admin lead-subscriptions
+- **PUT /api/admin/drivers/:driverId/document** : Update admin drivers by ID document
+- **PUT /api/admin/drivers/:driverId/approve** : Update admin drivers by ID approve
+- **PUT /api/admin/drivers/:driverId/reject** : Update admin drivers by ID reject
+- **PUT /api/admin/drivers/:driverId/active** : Update admin drivers by ID active
+- **PUT /api/admin/drivers/:driverId/status** : Update admin drivers by ID status
+- **PUT /api/admin/leads/:leadId/active** : Update admin leads by ID active
+- **GET /api/admin/rides** : Retrieve admin rides
+- **GET /api/admin/analytics** : Retrieve admin analytics
+- **GET /api/admin/drivers/nearby** : Retrieve admin drivers nearby
+- **POST /api/admin/verification** : Create or perform action for admin verification
+- **GET /api/admin/verification/:entityId/history** : Retrieve admin verification by ID history
+- **POST /api/bookings/admin/create-booking** : Create or perform action for bookings admin create-booking
+- **GET /api/booking-workflow/admin/pending** : Retrieve booking-workflow admin pending
+- **GET /api/booking-workflow/admin/allocated** : Retrieve booking-workflow admin allocated
+- **GET /api/booking-workflow/admin/cancellation-requests** : Retrieve booking-workflow admin cancellation-requests
+- **GET /api/booking-workflow/admin/cancellation-history** : Retrieve booking-workflow admin cancellation-history
+- **POST /api/booking-workflow/admin/:bookingId/approve-cancellation** : Create or perform action for booking-workflow admin by ID approve-cancellation
+- **POST /api/booking-workflow/admin/:bookingId/reallocate-cancellation** : Create or perform action for booking-workflow admin by ID reallocate-cancellation
+- **POST /api/booking-workflow/admin/:bookingId/reject-cancellation** : Create or perform action for booking-workflow admin by ID reject-cancellation
+- **PUT /api/booking-workflow/admin/:bookingId/review** : Update booking-workflow admin by ID review
+- **POST /api/booking-workflow/admin/:bookingId/send-to-drivers** : Create or perform action for booking-workflow admin by ID send-to-drivers
+- **GET /api/booking-workflow/admin/:bookingId/responses** : Retrieve booking-workflow admin by ID responses
+- **POST /api/booking-workflow/admin/:bookingId/allocate-driver** : Create or perform action for booking-workflow admin by ID allocate-driver
+- **PUT /api/booking-workflow/admin/:bookingId/reject-driver-response** : Update booking-workflow admin by ID reject-driver-response
+- **POST /api/booking-workflow/admin/:bookingId/offer-driver** : Create or perform action for booking-workflow admin by ID offer-driver
+- **POST /api/booking-workflow/admin/:bookingId/deallocate-driver** : Create or perform action for booking-workflow admin by ID deallocate-driver
+- **POST /api/booking-workflow/admin/:bookingId/send-to-leads** : Create or perform action for booking-workflow admin by ID send-to-leads
+- **GET /api/booking-workflow/admin/:bookingId/lead-responses** : Retrieve booking-workflow admin by ID lead-responses
+- **POST /api/booking-workflow/admin/:bookingId/allocate-lead** : Create or perform action for booking-workflow admin by ID allocate-lead
+- **POST /api/booking-workflow/admin/cleanup-duplicates** : Create or perform action for booking-workflow admin cleanup-duplicates
+- **POST /api/lead-subscriptions/admin/create** : Create or perform action for lead-subscriptions admin create
+- **PUT /api/lead-subscriptions/admin/update-payment/:id** : Update lead-subscriptions admin update-payment by ID
+- **GET /api/monthly-pricing** : Retrieve monthly-pricing
+- **POST /api/monthly-pricing** : Create or perform action for monthly-pricing
+- **PUT /api/monthly-pricing/:id** : Update monthly-pricing by ID
+- **DELETE /api/monthly-pricing/:id** : Delete monthly-pricing by ID
+- **POST /api/packages** : Create or perform action for packages
+- **GET /api/packages** : Retrieve packages
+- **PUT /api/packages/:packageId** : Update packages by ID
+- **DELETE /api/packages/:packageId** : Delete packages by ID
+- **GET /api/pricing-packages** : Retrieve pricing-packages
+- **GET /api/pricing-packages/estimate** : Retrieve pricing-packages estimate
+- **POST /api/pricing-packages** : Create or perform action for pricing-packages
+- **PUT /api/pricing-packages/:id** : Update pricing-packages by ID
+- **DELETE /api/pricing-packages/:id** : Delete pricing-packages by ID
+- **GET /api/reports/drivers** : Retrieve reports drivers
+- **GET /api/reports/drivers/:driverId/trips** : Retrieve reports drivers by ID trips
+- **GET /api/reports/customers** : Retrieve reports customers
+- **GET /api/reports/customers/:customerId/trips** : Retrieve reports customers by ID trips
+- **GET /api/reports/revenue** : Retrieve reports revenue
+- **GET /api/reports/bookings** : Retrieve reports bookings
+- **GET /api/service-areas** : Retrieve service-areas
+- **POST /api/service-areas** : Create or perform action for service-areas
+- **PUT /api/service-areas/:id** : Update service-areas by ID
+- **DELETE /api/service-areas/:id** : Delete service-areas by ID
+- **GET /api/service-areas/check** : Retrieve service-areas check
+- **POST /api/subscriptions/plans** : Create or perform action for subscriptions plans
+- **GET /api/subscriptions/all** : Retrieve subscriptions all
+- **PUT /api/subscriptions/reject/:id** : Update subscriptions reject by ID
+- **POST /api/subscriptions/admin/create** : Create or perform action for subscriptions admin create
+- **PUT /api/subscriptions/admin/update-payment/:id** : Update subscriptions admin update-payment by ID
+- **GET /api/trips/upcoming** : Retrieve trips upcoming
+- **GET /api/trips/completed** : Retrieve trips completed
+- **DELETE /api/auth/deactivate** : Deactivate account and anonymize user personal data (Customer, Driver, Lead)

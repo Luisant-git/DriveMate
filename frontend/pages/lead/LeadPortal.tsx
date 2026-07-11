@@ -3,6 +3,7 @@ import { getLeadData, updateLeadProfile } from '../../api/lead';
 import { getLeadSubscriptions, getAllLeadPlans, purchaseLeadSubscription } from '../../api/leadSubscription';
 import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../../api/config.js';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 interface LeadPortalProps {
   onLogout?: () => void;   
@@ -58,6 +59,23 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [completedTrips, setCompletedTrips] = useState<any[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string | React.ReactNode;
+    type: 'danger' | 'success' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
+
+  const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
   useEffect(() => {
     const leadData = getLeadData();
@@ -276,7 +294,27 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
       {/* Top Header Bar - Fixed */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
         <p className="font-bold text-sm leading-none">SNP Lead</p>
-        <p className="text-xs text-gray-400">Welcome, {lead.name}</p>
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-gray-400">Welcome, {lead.name}</p>
+          <button 
+            onClick={() => {
+                setConfirmConfig({
+                    isOpen: true,
+                    title: 'Logout',
+                    message: 'Are you sure you want to logout?',
+                    type: 'info',
+                    confirmText: 'Logout',
+                    onConfirm: () => {
+                        closeConfirm();
+                        if (onLogout) onLogout();
+                    }
+                });
+            }}
+            className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full transition-colors"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Tabs - Fixed */}
@@ -1148,6 +1186,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
           </div>
         </div>
       )}
+      <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
 };

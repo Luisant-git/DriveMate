@@ -16,6 +16,7 @@ import BookingRoutingConfig from './BookingRoutingConfig';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
 import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar, FaChartArea } from 'react-icons/fa';
 import { BiAnalyse, BiError } from 'react-icons/bi';
+import ConfirmModal from '../../components/common/ConfirmModal';
 
 
 type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'ALL';
@@ -51,6 +52,23 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const ITEMS_PER_PAGE = 10;
+  
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string | React.ReactNode;
+    type: 'danger' | 'success' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
+
+  const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
   const [drivers, setDrivers] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -325,7 +343,19 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             </div>
           </div>
           <button 
-            onClick={onLogout}
+            onClick={() => {
+                setConfirmConfig({
+                    isOpen: true,
+                    title: 'Logout',
+                    message: 'Are you sure you want to logout?',
+                    type: 'info',
+                    confirmText: 'Logout',
+                    onConfirm: () => {
+                        closeConfirm();
+                        if (onLogout) onLogout();
+                    }
+                });
+            }}
             className="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full transition-colors"
           >
             Logout
@@ -700,6 +730,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
           </div>
         </div>
       )}
+      
+      <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
 };

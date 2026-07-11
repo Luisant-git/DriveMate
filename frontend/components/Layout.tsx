@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UserRole } from '../types';
+import ConfirmModal from './common/ConfirmModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,23 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwitchRole }) => {
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string | React.ReactNode;
+    type: 'danger' | 'success' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
+
+  const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-black">
       {/* Uber-style Minimal Navbar */}
@@ -30,7 +48,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
                      </div>
                   </div>
                   <button 
-                    onClick={onLogout}
+                    onClick={() => {
+                        setConfirmConfig({
+                            isOpen: true,
+                            title: 'Logout',
+                            message: 'Are you sure you want to logout?',
+                            type: 'info',
+                            confirmText: 'Logout',
+                            onConfirm: () => {
+                                closeConfirm();
+                                onLogout();
+                            }
+                        });
+                    }}
                     className="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full transition-colors"
                   >
                      Logout
@@ -47,13 +77,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
         {children}
       </main>
 
-      {/* Dev Controls */}
-       {/* <div className="bg-gray-100 text-gray-500 py-2 text-center text-[9px] sm:text-[10px] uppercase tracking-wider">
-         <span className="opacity-50 mr-2">Dev Switch:</span>
-         <button onClick={() => onSwitchRole(UserRole.CUSTOMER)} className="mx-1 sm:mx-2 hover:text-black font-bold">Customer</button>
-         <button onClick={() => onSwitchRole(UserRole.DRIVER)} className="mx-1 sm:mx-2 hover:text-black font-bold">Driver</button>
-         <button onClick={() => onSwitchRole(UserRole.ADMIN)} className="mx-1 sm:mx-2 hover:text-black font-bold">Admin</button>
-      </div> */}
+      <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
 };

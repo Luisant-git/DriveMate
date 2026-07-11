@@ -12,6 +12,7 @@ import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
 import TermsAndConditions from '../../components/TermsAndConditions';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance } from '../../utils/fareCalculator';
 import { calculateDistance, getPackageByDistance, getFilteredDurationOptions } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
@@ -75,6 +76,23 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [ratingData, setRatingData] = useState<{ [key: string]: { rating: number, feedback: string } }>({});
   const [cancelModalBookingId, setCancelModalBookingId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string | React.ReactNode;
+    type: 'danger' | 'success' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
+
+  const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
   // Get minimum time (15 minutes from now)
   const getMinDateTime = () => {
@@ -2308,7 +2326,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                          <span>ID Proof Uploaded</span>
                                          <button 
-                                             onClick={() => window.open(customer.idProof, '_blank')}
+                                             onClick={() => window.open(customer.idProof?.startsWith('http') ? customer.idProof : `${API_BASE_URL}${customer.idProof}`, '_blank')}
                                              className="mt-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700"
                                          >
                                              View Document
@@ -2321,6 +2339,63 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                      </div>
                                  )}
                              </div>
+                         </div>
+
+                         <div className="pt-4 space-y-3">
+                             <button
+                                 onClick={() => {
+                                     setConfirmConfig({
+                                         isOpen: true,
+                                         title: 'Logout',
+                                         message: 'Are you sure you want to logout?',
+                                         type: 'info',
+                                         confirmText: 'Logout',
+                                         onConfirm: () => {
+                                             localStorage.removeItem('token');
+                                             window.location.href = '/';
+                                         }
+                                     });
+                                 }}
+                                 className="w-full bg-white border border-gray-200 text-black py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2"
+                             >
+                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                 Logout
+                             </button>
+
+                             <button
+                                 onClick={() => {
+                                     setConfirmConfig({
+                                         isOpen: true,
+                                         title: 'Deactivate Account',
+                                         message: 'Are you sure you want to deactivate your account? This action cannot be undone and will delete your personal data.',
+                                         type: 'danger',
+                                         confirmText: 'Deactivate',
+                                         onConfirm: async () => {
+                                             try {
+                                                 const token = localStorage.getItem('token');
+                                                 const res = await fetch(`${API_BASE_URL}/api/auth/deactivate`, {
+                                                     method: 'DELETE',
+                                                     headers: { 'Authorization': `Bearer ${token}` }
+                                                 });
+                                                 const data = await res.json();
+                                                 if(data.success) {
+                                                     toast.success('Account deactivated successfully');
+                                                     localStorage.removeItem('token');
+                                                     window.location.href = '/';
+                                                 } else {
+                                                     toast.error(data.error || 'Failed to deactivate account');
+                                                 }
+                                             } catch(e) {
+                                                 toast.error('Error deactivating account');
+                                             }
+                                         }
+                                     });
+                                 }}
+                                 className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold text-sm hover:bg-red-100 transition flex items-center justify-center gap-2"
+                             >
+                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                 Deactivate Account
+                             </button>
                          </div>
                      </div>
                  ) : (
@@ -2533,6 +2608,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           </div>
         </div>
       )}
+      
+      <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
 };
