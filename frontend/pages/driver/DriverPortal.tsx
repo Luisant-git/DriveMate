@@ -31,6 +31,31 @@ const TripTimer = ({ startTime }: { startTime: string }) => {
   return <span className="font-mono bg-green-900 px-2 py-0.5 rounded text-sm">{elapsed}</span>;
 };
 
+const formatTimeAMPM = (dateStr: string) => {
+  if (!dateStr) return '';
+  // Check if it's a full date string or just a time string (fallback)
+  if (dateStr.includes('T') || dateStr.includes(' ')) {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  const parts = dateStr.split(':');
+  if (parts.length < 2) return dateStr;
+  const hour = parseInt(parts[0], 10);
+  const minute = parts[1];
+  const ampm = hour >= 12 ? 'pm' : 'am';
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour}:${minute} ${ampm}`;
+};
+
+const formatDateLocal = (dateStr: string) => {
+  if (!dateStr) return '';
+  if (dateStr.includes('T') || dateStr.includes(' ')) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  }
+  return dateStr;
+};
+
 interface DriverPortalProps {
   driver: Driver;
 }
@@ -160,8 +185,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
     const actualStart = new Date(trip.actualStartTime).getTime();
     const actualEnd = new Date().getTime();
-    const actualHours = Math.ceil((actualEnd - actualStart) / (1000 * 60 * 60)); 
-    
+    const actualHours = Math.floor((actualEnd - actualStart) / (1000 * 60 * 60)); 
+
     let baseHours = 0;
     const durationStr = trip.duration.toLowerCase();
     const durationMatch = durationStr.match(/\d+/);
@@ -468,92 +493,315 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex justify-between items-center bg-gray-800 rounded-lg p-3 mb-4 border border-gray-700">
-                                    <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Base Amount</span>
-                                    <span className="text-green-400 font-bold text-lg">₹{trip.estimatedCost || trip.estimateAmount || 0}</span>
+                                <div className="bg-gray-800 rounded-lg p-3 mb-4 border border-gray-700 flex flex-col gap-2">
+                                    <div className="flex justify-between items-center pb-2 border-b border-gray-700/50">
+                                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                          Schedule
+                                        </span>
+                                        <span className="text-white font-bold text-[10px] sm:text-xs text-right leading-snug">
+                                          {/* <span className="block sm:inline">{formatDateLocal(trip.startDateTime || trip.startDate)} at {formatTimeAMPM(trip.startDateTime || trip.startTime)}</span> */}
+                                          {trip.duration && <span className="text-blue-400 block sm:inline mt-0.5 sm:mt-0">Estimate ({trip.duration})</span>}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-1">
+                                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Base Amount</span>
+                                        <span className="text-green-400 font-bold text-lg">₹{trip.estimatedCost || trip.estimateAmount || 0}</span>
+                                    </div>
                                 </div>
                                 <div className="space-y-3">
                                     {trip.status === 'ONGOING' ? (
-                                      <>
-                                        <button 
-                                            onClick={() => {
-                                              const autoCalculatedAmount = calculateFinalAmount(trip);
-                                              setConfirmConfig({
-                                                isOpen: true,
-                                                title: 'Complete Trip',
-                                                message: (
-                                                  <div className="flex flex-col items-center text-center mt-2">
-                                                    {/* Price Section */}
-                                                    <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 w-full rounded-2xl p-6 mb-5 shadow-sm relative overflow-hidden">
-                                                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-200 rounded-full opacity-50 blur-xl"></div>
-                                                      <p className="text-green-800 font-semibold text-xs uppercase tracking-widest mb-1">Final Amount</p>
-                                                      <p className="text-4xl font-black text-green-700 tracking-tight">₹{autoCalculatedAmount}</p>
-                                                      <p className="text-green-600/80 text-[10px] mt-2 font-medium bg-green-200/50 inline-block px-2 py-0.5 rounded-full">*Includes ₹100/hr extra charge if applicable</p>
-                                                    </div>
-                                                    
-                                                    {/* Route Section */}
-                                                    <div className="w-full text-left bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
-                                                      <div className="flex gap-4">
-                                                        <div className="flex flex-col items-center pt-1.5">
-                                                          <div className="w-2.5 h-2.5 bg-black rounded-full shadow-sm"></div>
-                                                          <div className="w-0.5 h-10 bg-gray-300 rounded-full my-1"></div>
-                                                          <div className="w-2.5 h-2.5 border-2 border-black rounded-full shadow-sm"></div>
-                                                        </div>
-                                                        <div className="flex-1 space-y-4">
-                                                          <div>
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Pickup</p>
-                                                            <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.pickupLocation}</p>
-                                                          </div>
-                                                          <div>
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Drop-off</p>
-                                                            <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.dropLocation}</p>
-                                                          </div>
-                                                        </div>
-                                                      </div>
-                                                    </div>
-
-                                                    {/* Customer Section */}
-                                                    <div className="flex items-center gap-3 w-full bg-white border border-gray-100 rounded-xl p-3">
-                                                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
-                                                        {(trip.customer?.name || 'C')[0].toUpperCase()}
-                                                      </div>
-                                                      <div className="text-left">
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Customer</p>
-                                                        <p className="font-bold text-sm text-gray-900">{trip.customer?.name || 'N/A'}</p>
-                                                      </div>
-                                                    </div>
+                                      (() => {
+                                        const lastActivityTime = (trip as any).updatedAt || trip.actualStartTime;
+                                        const hoursSinceLastActivity = lastActivityTime ? Math.ceil((new Date().getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60 * 60)) : 0;
+                                        if (hoursSinceLastActivity > 12 && startingTripId !== trip.id) {
+                                          return (
+                                            <div className="bg-yellow-50 p-4 rounded-xl space-y-4 border border-yellow-200">
+                                              <div className="flex items-start gap-3">
+                                                <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                                                <div>
+                                                  <p className="font-bold text-yellow-900 text-sm">Trip exceeded 12 hours</p>
+                                                  <p className="text-xs text-yellow-700 mt-1">You must re-verify your vehicle photos and OTP to continue the ride.</p>
+                                                </div>
+                                              </div>
+                                              <button 
+                                                onClick={() => setStartingTripId(trip.id)}
+                                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-bold transition-all duration-200 shadow-md"
+                                              >
+                                                Re-verify & Continue Ride
+                                              </button>
+                                            </div>
+                                          );
+                                        } else if (hoursSinceLastActivity > 12 && startingTripId === trip.id) {
+                                          return (
+                                            <div className="bg-gray-800 p-4 rounded-xl space-y-4">
+                                              <div className="space-y-4">
+                                                <div>
+                                                  <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
+                                                  <div className="relative">
+                                                    <input 
+                                                      type="file" 
+                                                      accept="image/*" 
+                                                      capture="environment"
+                                                      id={`carFront-${trip.id}`}
+                                                      className="hidden"
+                                                      onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))} 
+                                                    />
+                                                    <label 
+                                                      htmlFor={`carFront-${trip.id}`}
+                                                      className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.front ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                                    >
+                                                      {tripPhotos.front ? (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                          Photo Captured
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                          Take Photo
+                                                        </>
+                                                      )}
+                                                    </label>
                                                   </div>
-                                                ),
-                                                type: 'success',
-                                                confirmText: 'Complete Trip',
-                                                onConfirm: async () => {
-                                                  closeConfirm();
-                                                  const finalAmount = autoCalculatedAmount;
-                                                  try {
-                                                    const result = await tripAPI.completeTrip(trip.id, { finalAmount });
-                                                    if (result.success) {
-                                                      alert('✓ Trip completed successfully!');
-                                                      const driverRes = await tripAPI.getDriverTrips();
-                                                      if (driverRes.success) setTrips(driverRes.trips);
-                                                      fetchCurrentSubscription();
-                                                    } else {
-                                                      alert('Failed to complete trip: ' + (result.error || 'Unknown error'));
+                                                </div>
+
+                                                <div>
+                                                  <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
+                                                  <div className="relative">
+                                                    <input 
+                                                      type="file" 
+                                                      accept="image/*" 
+                                                      capture="environment"
+                                                      id={`carBack-${trip.id}`}
+                                                      className="hidden"
+                                                      onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))} 
+                                                    />
+                                                    <label 
+                                                      htmlFor={`carBack-${trip.id}`}
+                                                      className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.back ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                                    >
+                                                      {tripPhotos.back ? (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                          Photo Captured
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                          Take Photo
+                                                        </>
+                                                      )}
+                                                    </label>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              {isStartOtpSent ? (
+                                                <div className="space-y-3 mt-4">
+                                                  <p className="text-green-400 text-sm font-bold text-center">OTP Sent successfully!</p>
+                                                  <input 
+                                                    type="text" 
+                                                    placeholder="Enter OTP from Customer" 
+                                                    className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                                    value={startOtp}
+                                                    onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                  />
+                                                  <div className="flex gap-2">
+                                                    <button 
+                                                      disabled={isStartingTrip}
+                                                      onClick={() => { setStartingTripId(null); setIsStartOtpSent(false); setStartOtp(''); }}
+                                                      className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm"
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                    <button 
+                                                      disabled={startOtp.length < 6 || isStartingTrip}
+                                                      onClick={async () => {
+                                                        setIsStartingTrip(true);
+                                                        try {
+                                                          const formData = new FormData();
+                                                          if (tripPhotos.front) formData.append('carFrontPhoto', tripPhotos.front);
+                                                          if (tripPhotos.back) formData.append('carBackPhoto', tripPhotos.back);
+                                                          
+                                                          let frontUrl = null;
+                                                          let backUrl = null;
+
+                                                          // Upload front photo
+                                                          if (tripPhotos.front) {
+                                                            const frontUpload = new FormData();
+                                                            frontUpload.append('file', tripPhotos.front);
+                                                            const fRes = await uploadFile(frontUpload);
+                                                            if (fRes.success) frontUrl = fRes.fileId;
+                                                          }
+
+                                                          // Upload back photo
+                                                          if (tripPhotos.back) {
+                                                            const backUpload = new FormData();
+                                                            backUpload.append('file', tripPhotos.back);
+                                                            const bRes = await uploadFile(backUpload);
+                                                            if (bRes.success) backUrl = bRes.fileId;
+                                                          }
+
+                                                          const result = await tripAPI.startTrip(trip.id, { 
+                                                            otp: startOtp,
+                                                            ...(frontUrl && { carFrontPhoto: frontUrl }),
+                                                            ...(backUrl && { carBackPhoto: backUrl })
+                                                          });
+                                                          
+                                                          if (result.success) {
+                                                            setStartingTripId(null);
+                                                            setIsStartOtpSent(false);
+                                                            setStartOtp('');
+                                                            const driverRes = await tripAPI.getDriverTrips();
+                                                            if (driverRes.success) setTrips(driverRes.trips || []);
+                                                            
+                                                            setConfirmConfig({
+                                                              isOpen: true,
+                                                              title: 'Verification Successful',
+                                                              message: 'Your vehicle photos and OTP have been verified successfully. You can now continue the ride.',
+                                                              type: 'success',
+                                                              confirmText: 'Continue Ride',
+                                                              onConfirm: () => setConfirmConfig(prev => ({ ...prev, isOpen: false }))
+                                                            });
+                                                          } else {
+                                                            alert('Failed to re-verify trip: ' + (result.error || 'Invalid OTP'));
+                                                          }
+                                                        } catch (error) {
+                                                          console.error('Error re-verifying trip:', error);
+                                                          alert('Error re-verifying trip');
+                                                        } finally {
+                                                          setIsStartingTrip(false);
+                                                        }
+                                                      }}
+                                                      className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50"
+                                                    >
+                                                      {isStartingTrip ? 'Verifying...' : 'Verify & Continue'}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <div className="flex gap-2 mt-3 w-full">
+                                                  <button 
+                                                    disabled={isSendingStartOtp}
+                                                    onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
+                                                    className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                  <button 
+                                                    disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
+                                                    onClick={async () => {
+                                                      setIsSendingStartOtp(true);
+                                                      try {
+                                                        const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
+                                                          method: 'POST',
+                                                          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                          setIsStartOtpSent(true);
+                                                        } else {
+                                                          alert(data.error || 'Failed to send OTP');
+                                                        }
+                                                      } catch (error) {
+                                                        console.error('Send OTP error:', error);
+                                                        alert('Failed to send OTP');
+                                                      } finally {
+                                                        setIsSendingStartOtp(false);
+                                                      }
+                                                    }}
+                                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
+                                                  >
+                                                    {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <button 
+                                              onClick={() => {
+                                                const autoCalculatedAmount = calculateFinalAmount(trip);
+                                                setConfirmConfig({
+                                                  isOpen: true,
+                                                  title: 'Complete Trip',
+                                                  message: (
+                                                    <div className="flex flex-col items-center text-center mt-2">
+                                                      {/* Price Section */}
+                                                      <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 w-full rounded-2xl p-6 mb-5 shadow-sm relative overflow-hidden">
+                                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-200 rounded-full opacity-50 blur-xl"></div>
+                                                        <p className="text-green-800 font-semibold text-xs uppercase tracking-widest mb-1">Final Amount</p>
+                                                        <p className="text-4xl font-black text-green-700 tracking-tight">₹{autoCalculatedAmount}</p>
+                                                        <p className="text-green-600/80 text-[10px] mt-2 font-medium bg-green-200/50 inline-block px-2 py-0.5 rounded-full">*Includes ₹100/hr extra charge after {trip.duration}</p>
+                                                      </div>
+                                                      
+                                                      {/* Route Section */}
+                                                      <div className="w-full text-left bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
+                                                        <div className="flex gap-4">
+                                                          <div className="flex flex-col items-center pt-1.5">
+                                                            <div className="w-2.5 h-2.5 bg-black rounded-full shadow-sm"></div>
+                                                            <div className="w-0.5 h-10 bg-gray-300 rounded-full my-1"></div>
+                                                            <div className="w-2.5 h-2.5 border-2 border-black rounded-full shadow-sm"></div>
+                                                          </div>
+                                                          <div className="flex-1 space-y-4">
+                                                            <div>
+                                                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Pickup</p>
+                                                              <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.pickupLocation}</p>
+                                                            </div>
+                                                            <div>
+                                                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Drop-off</p>
+                                                              <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.dropLocation}</p>
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+
+                                                      {/* Customer Section */}
+                                                      <div className="flex items-center gap-3 w-full bg-white border border-gray-100 rounded-xl p-3">
+                                                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
+                                                          {(trip.customer?.name || 'C')[0].toUpperCase()}
+                                                        </div>
+                                                        <div className="text-left">
+                                                          <p className="text-[10px] text-gray-400 font-bold uppercase">Customer</p>
+                                                          <p className="font-bold text-sm text-gray-900">{trip.customer?.name || 'N/A'}</p>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  ),
+                                                  type: 'success',
+                                                  confirmText: 'Complete Trip',
+                                                  onConfirm: async () => {
+                                                    closeConfirm();
+                                                    const finalAmount = autoCalculatedAmount;
+                                                    try {
+                                                      const result = await tripAPI.completeTrip(trip.id, { finalAmount });
+                                                      if (result.success) {
+                                                        alert('✓ Trip completed successfully!');
+                                                        const driverRes = await tripAPI.getDriverTrips();
+                                                        if (driverRes.success) setTrips(driverRes.trips);
+                                                        fetchCurrentSubscription();
+                                                      } else {
+                                                        alert('Failed to complete trip: ' + (result.error || 'Unknown error'));
+                                                      }
+                                                    } catch (error) {
+                                                      console.error('Error completing trip:', error);
+                                                      alert('Error completing trip. Please try again.');
                                                     }
-                                                  } catch (error) {
-                                                    console.error('Error completing trip:', error);
-                                                    alert('Error completing trip. Please try again.');
                                                   }
-                                                }
-                                              });
-                                            }}
-                                            className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Complete Trip
-                                        </button>
-                                      </>
+                                                });
+                                              }}
+                                              className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                          >
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                              Complete Trip
+                                          </button>
+                                        );
+                                      })()
                                     ) : startingTripId === trip.id ? (
                                       <div className="bg-gray-800 p-4 rounded-xl space-y-4">
                                         <div className="space-y-4">
@@ -618,41 +866,118 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                           </div>
                                         </div>
 
-                                        <div className="flex gap-2 mt-3 w-full">
-                                          <button 
-                                            disabled={isSendingStartOtp}
-                                            onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
-                                            className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
-                                          >
-                                            Cancel
-                                          </button>
-                                          <button 
-                                            disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
-                                            onClick={async () => {
-                                              setIsSendingStartOtp(true);
-                                              try {
-                                                const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
-                                                  method: 'POST',
-                                                  headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
-                                                });
-                                                const data = await res.json();
-                                                if (data.success) {
-                                                  setIsStartOtpSent(true);
-                                                } else {
-                                                  alert(data.error || 'Failed to send OTP');
+                                        {isStartOtpSent ? (
+                                          <div className="space-y-3 mt-4">
+                                            <p className="text-green-400 text-sm font-bold text-center">OTP Sent successfully!</p>
+                                            <input 
+                                              type="text" 
+                                              placeholder="Enter OTP from Customer" 
+                                              className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                              value={startOtp}
+                                              onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            />
+                                            <div className="flex gap-2">
+                                              <button 
+                                                disabled={isStartingTrip}
+                                                onClick={() => { setStartingTripId(null); setIsStartOtpSent(false); setStartOtp(''); }}
+                                                className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm"
+                                              >
+                                                Cancel
+                                              </button>
+                                              <button 
+                                                disabled={startOtp.length < 6 || isStartingTrip}
+                                                onClick={async () => {
+                                                  setIsStartingTrip(true);
+                                                  try {
+                                                    const formData = new FormData();
+                                                    if (tripPhotos.front) formData.append('carFrontPhoto', tripPhotos.front);
+                                                    if (tripPhotos.back) formData.append('carBackPhoto', tripPhotos.back);
+                                                    
+                                                    let frontUrl = null;
+                                                    let backUrl = null;
+
+                                                    // Upload front photo
+                                                    if (tripPhotos.front) {
+                                                      const frontUpload = new FormData();
+                                                      frontUpload.append('file', tripPhotos.front);
+                                                      const fRes = await uploadFile(frontUpload);
+                                                      if (fRes.success) frontUrl = fRes.fileId;
+                                                    }
+
+                                                    // Upload back photo
+                                                    if (tripPhotos.back) {
+                                                      const backUpload = new FormData();
+                                                      backUpload.append('file', tripPhotos.back);
+                                                      const bRes = await uploadFile(backUpload);
+                                                      if (bRes.success) backUrl = bRes.fileId;
+                                                    }
+
+                                                    const result = await tripAPI.startTrip(trip.id, { 
+                                                      otp: startOtp,
+                                                      ...(frontUrl && { carFrontPhoto: frontUrl }),
+                                                      ...(backUrl && { carBackPhoto: backUrl })
+                                                    });
+                                                    
+                                                    if (result.success) {
+                                                      alert('✓ Trip Started successfully!');
+                                                      setStartingTripId(null);
+                                                      setIsStartOtpSent(false);
+                                                      setStartOtp('');
+                                                      const driverRes = await tripAPI.getDriverTrips();
+                                                      if (driverRes.success) setTrips(driverRes.trips || []);
+                                                    } else {
+                                                      alert('Failed to start trip: ' + (result.error || 'Invalid OTP'));
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('Error starting trip:', error);
+                                                    alert('Error starting trip');
+                                                  } finally {
+                                                    setIsStartingTrip(false);
+                                                  }
+                                                }}
+                                                className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50"
+                                              >
+                                                {isStartingTrip ? 'Starting...' : 'Verify & Start'}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="flex gap-2 mt-3 w-full">
+                                            <button 
+                                              disabled={isSendingStartOtp}
+                                              onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
+                                              className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
+                                            >
+                                              Cancel
+                                            </button>
+                                            <button 
+                                              disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
+                                              onClick={async () => {
+                                                setIsSendingStartOtp(true);
+                                                try {
+                                                  const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
+                                                    method: 'POST',
+                                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+                                                  });
+                                                  const data = await res.json();
+                                                  if (data.success) {
+                                                    setIsStartOtpSent(true);
+                                                  } else {
+                                                    alert(data.error || 'Failed to send OTP');
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Send OTP error:', error);
+                                                  alert('Failed to send OTP');
+                                                } finally {
+                                                  setIsSendingStartOtp(false);
                                                 }
-                                              } catch (error) {
-                                                console.error('Send OTP error:', error);
-                                                alert('Failed to send OTP');
-                                              } finally {
-                                                setIsSendingStartOtp(false);
-                                              }
-                                            }}
-                                            className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
-                                          >
-                                            {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
-                                          </button>
-                                        </div>
+                                              }}
+                                              className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
+                                            >
+                                              {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
+                                            </button>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
                                       <div className="flex gap-3">
