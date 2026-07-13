@@ -77,6 +77,7 @@ export const getDriverTrips = async (req, res) => {
         serviceType: booking.serviceType,
         startDate: booking.startDateTime.toISOString().split('T')[0],
         startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
+        startDateTime: booking.startDateTime.toISOString(),
         duration: booking.duration,
         vehicleType: booking.vehicleType,
         estimateAmount: booking.estimateAmount,
@@ -89,6 +90,7 @@ export const getDriverTrips = async (req, res) => {
         finalAmount: booking.finalAmount,
         cancellationRequested: isCancelledByThisDriver ? false : booking.cancellationRequested,
         cancellationReason: isCancelledByThisDriver ? 'Requested by Driver' : booking.cancellationReason,
+        updatedAt: booking.updatedAt,
       };
     });
 
@@ -331,13 +333,18 @@ export const startTrip = async (req, res) => {
       return res.status(401).json({ success: false, error: 'User ID not found in request' });
     }
 
+    const currentBooking = await prisma.booking.findUnique({
+      where: { id: tripId },
+      select: { status: true }
+    });
+
     const booking = await prisma.booking.update({
       where: {
         id: tripId,
       },
       data: {
         status: 'ONGOING',
-        actualStartTime: new Date(),
+        ...(currentBooking?.status !== 'ONGOING' && { actualStartTime: new Date() }),
         ...(carFrontPhoto && { carFrontPhoto }),
         ...(carBackPhoto && { carBackPhoto }),
       },
