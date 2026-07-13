@@ -15,12 +15,14 @@ import {
   getVerificationHistory,
   updateDriverDocument,
   getDeletedAccounts,
+  getBusyDrivers,
 } from '../controllers/admin.controller.js';
 import { updateDriverStatus } from '../controllers/driver.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+router.get('/busy-drivers', authenticateToken, getBusyDrivers);
 router.get('/drivers', authenticateToken, getAllDrivers);
 router.get('/customers', authenticateToken, getAllCustomers);
 router.get('/leads', authenticateToken, getAllLeads);

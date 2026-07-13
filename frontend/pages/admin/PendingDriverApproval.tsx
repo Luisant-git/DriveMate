@@ -170,12 +170,16 @@ export default function PendingDriverApproval() {
   const fetchAllDrivers = async () => {
     try {
       setLoadingDrivers(true);
-      const res = await apiClient.get('/admin/drivers');
-      // res.data is the array of drivers from admin controller
-      setAllDrivers(Array.isArray(res.data) ? res.data : (res.data?.drivers || []));
+      const [driversRes, busyRes] = await Promise.all([
+        apiClient.get('/admin/drivers'),
+        apiClient.get('/admin/busy-drivers')
+      ]);
       
+      setAllDrivers(Array.isArray(driversRes.data) ? driversRes.data : (driversRes.data?.drivers || []));
+      
+      const busyIds = busyRes.data?.busyDriverIds || [];
       const busyStatus = {};
-      // We are skipping the N+1 API calls to avoid overwhelming the server
+      busyIds.forEach(id => busyStatus[id] = true);
       setDriverBusyStatus(busyStatus);
     } catch (error) {
       console.error('Error fetching drivers:', error);
@@ -365,12 +369,17 @@ export default function PendingDriverApproval() {
                         const isNotAllocated = !allocatedDriverIds.includes(driver.id) && driver.id !== selectedBooking.allocatedDriverId;
                         
                         if (!isNotAllocated) return false;
+
+                        // Only show drivers with an active subscription plan package
+                        const activeSubscription = driver.subscriptions?.find(sub => sub.status === 'ACTIVE');
+                        if (!activeSubscription) return false;
                         
                         if (searchQuery.trim() === '') return true;
                         const q = searchQuery.toLowerCase();
                         return (driver.name?.toLowerCase().includes(q) || driver.phone?.includes(q) || driver.vehicleNo?.toLowerCase().includes(q));
                       }).map((driver, index) => {
                         const isBusy = driverBusyStatus[driver.id];
+                        const activeSubscription = driver.subscriptions?.find(sub => sub.status === 'ACTIVE');
                         return (
                           <tr key={driver.id} className="hover:bg-gray-50 transition">
                             <td className="px-4 py-4">
@@ -387,6 +396,11 @@ export default function PendingDriverApproval() {
                                     )}
                                   </div>
                                   <p className="text-xs text-gray-600 truncate">{driver?.phone || 'N/A'}</p>
+                                  {activeSubscription?.plan?.name && (
+                                    <span className="mt-1 inline-block bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-semibold border border-blue-200">
+                                      {activeSubscription.plan.name} Package
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             <td className="px-4 py-4">

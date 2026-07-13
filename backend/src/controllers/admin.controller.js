@@ -63,6 +63,33 @@ export const getAllDrivers = async (req, res) => {
   }
 };
 
+export const getBusyDrivers = async (req, res) => {
+  try {
+    const busyBookings = await prisma.booking.findMany({
+      where: { status: { in: ['CONFIRMED', 'ONGOING'] }, driverId: { not: null } },
+      select: { driverId: true }
+    });
+    const busyTrips = await prisma.trip.findMany({
+      where: { status: { in: ['UPCOMING', 'ONGOING'] }, driverId: { not: null } },
+      select: { driverId: true }
+    });
+    const busyRides = await prisma.ride.findMany({
+      where: { status: { in: ['ASSIGNED', 'STARTED'] }, driverId: { not: null } },
+      select: { driverId: true }
+    });
+
+    const busyIds = new Set([
+      ...busyBookings.map(b => b.driverId),
+      ...busyTrips.map(t => t.driverId),
+      ...busyRides.map(r => r.driverId)
+    ]);
+    
+    res.json({ busyDriverIds: Array.from(busyIds) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const approveDriver = async (req, res) => {
   try {
     const { driverId } = req.params;
