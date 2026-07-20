@@ -213,49 +213,6 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     alert('Bookings are assigned by admin. Please wait for assignment.');
   };
 
-  const handleCancelTrip = (tripId: string) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Cancel Trip',
-      message: (
-        <div className="space-y-3">
-          <p>Are you sure you want to request cancellation for this trip?</p>
-          <div className="bg-orange-50 text-orange-800 p-3 rounded-lg border border-orange-200 flex items-start gap-2">
-            <span className="text-xl leading-none">⚠️</span>
-            <p className="font-bold text-sm leading-tight">
-              Note: This request will be sent to the Admin. If approved, 1 duty will be deducted from your active package.
-            </p>
-          </div>
-        </div>
-      ),
-      type: 'danger',
-      confirmText: 'Request Cancellation',
-      onConfirm: async () => {
-        closeConfirm();
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/trips/${tripId}/request-cancel`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-            },
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            alert('Cancellation request submitted to Admin successfully. Please wait for approval.');
-            const driverRes = await tripAPI.getDriverTrips();
-            if (driverRes.success) setTrips(driverRes.trips || []);
-          } else {
-            const err = await response.json();
-            alert(err.error || 'Failed to request cancellation');
-          }
-        } catch (error) {
-          console.error('Error cancelling trip:', error);
-        }
-      }
-    });
-  };
 
   const handleSubscriptionBuy = async (pkg: Package) => {
     setSelectedPackage(pkg);
@@ -987,27 +944,16 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                             Cancellation Pending
                                           </div>
                                         ) : (
-                                          <>
-                                            <button 
-                                                onClick={() => setStartingTripId(trip.id)}
-                                                className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                                            >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                Start Trip
-                                            </button>
-                                            <button 
-                                                onClick={() => handleCancelTrip(trip.id)}
-                                                className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-1 shadow-sm"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                                Cancel
-                                            </button>
-                                          </>
+                                          <button 
+                                              onClick={() => setStartingTripId(trip.id)}
+                                              className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                          >
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                              Start Trip
+                                          </button>
                                         )}
                                       </div>
                                     )}
@@ -1078,14 +1024,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                      </div>
                                  </div>
                                  {/* Cancel Action */}
-                                 {['PENDING', 'ACCEPTED', 'CONFIRMED', 'ONGOING'].includes(trip.status) && !(trip as any).cancellationRequested && (
-                                     <button 
-                                         onClick={() => handleCancelTrip(trip.id)}
-                                         className="mt-3 w-full border border-red-500 text-red-500 py-2 rounded-lg font-bold text-sm hover:bg-red-50 transition"
-                                     >
-                                         Cancel Trip
-                                     </button>
-                                 )}
+
                              </div>
                          ))
                      )}
