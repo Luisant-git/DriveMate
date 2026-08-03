@@ -1,4 +1,5 @@
 import prisma from '../config/database.js';
+import bcrypt from 'bcryptjs';
 
 export const getAllCustomers = async (req, res) => {
   try {
@@ -393,3 +394,25 @@ export const getDeletedAccounts = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const changeDriverPassword = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const driver = await prisma.driver.update({
+      where: { id: driverId },
+      data: { password: hashedPassword },
+    });
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

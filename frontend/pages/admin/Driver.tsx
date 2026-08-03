@@ -42,6 +42,13 @@ export default function Driver() {
   // Add driver modal state
   const [showAddDriverModal, setShowAddDriverModal] = useState(false);
   const [showUpdatePackageModal, setShowUpdatePackageModal] = useState(false);
+  
+  // Password modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [updatePackageForm, setUpdatePackageForm] = useState({ planId: '', paidAmount: '' });
   const [isUpdatingPackage, setIsUpdatingPackage] = useState(false);
@@ -444,6 +451,27 @@ export default function Driver() {
     }
   };
 
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPassword) return;
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await apiClient.put(`/admin/drivers/${selectedDriver.id}/password`, { password: newPassword });
+      alert('Password changed successfully');
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to change password');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="px-6 py-6">
       <div className="flex justify-between items-center mb-4">
@@ -763,9 +791,14 @@ export default function Driver() {
                 <h2 className="text-lg font-bold text-gray-900">{selectedDriver.name}</h2>
                 <p className="text-xs text-gray-500">{selectedDriver.phone} · {selectedDriver.licenseNo}</p>
               </div>
-              <button onClick={() => setSelectedDriver(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setShowPasswordModal(true)} className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition">
+                  Change Password
+                </button>
+                <button onClick={() => setSelectedDriver(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
             </div>
             <div className="p-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1083,6 +1116,54 @@ export default function Driver() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Password Modal */}
+      {showPasswordModal && selectedDriver && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-gray-900">Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-gray-600 transition">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <form onSubmit={handleChangePasswordSubmit} className="p-5">
+              <p className="text-xs text-gray-500 mb-4">Set a new password for driver: <span className="font-bold">{selectedDriver.name}</span></p>
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">New Password</label>
+                <input
+                  required
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-black outline-none transition"
+                  placeholder="Enter new password"
+                  minLength={6}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Confirm Password</label>
+                <input
+                  required
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-black outline-none transition"
+                  placeholder="Re-enter new password"
+                  minLength={6}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isChangingPassword} className="px-4 py-2 text-sm font-bold text-white bg-black hover:bg-gray-800 rounded-lg transition disabled:opacity-50">
+                  {isChangingPassword ? 'Saving...' : 'Save Password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

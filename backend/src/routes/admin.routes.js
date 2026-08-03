@@ -16,6 +16,7 @@ import {
   updateDriverDocument,
   getDeletedAccounts,
   getBusyDrivers,
+  changeDriverPassword,
 } from '../controllers/admin.controller.js';
 import { updateDriverStatus } from '../controllers/driver.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -32,6 +33,7 @@ router.put('/drivers/:driverId/approve', authenticateToken, approveDriver);
 router.put('/drivers/:driverId/reject', authenticateToken, rejectDriver);
 router.put('/drivers/:driverId/active', authenticateToken, toggleDriverActiveStatus);
 router.put('/drivers/:driverId/status', authenticateToken, updateDriverStatus);
+router.put('/drivers/:driverId/password', authenticateToken, changeDriverPassword);
 router.put('/leads/:leadId/active', authenticateToken, toggleLeadActiveStatus);
 router.get('/rides', authenticateToken, getAllRides);
 router.get('/analytics', authenticateToken, getAnalytics);
