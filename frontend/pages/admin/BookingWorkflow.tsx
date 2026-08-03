@@ -38,6 +38,7 @@ export default function BookingWorkflow() {
   const [creatingBooking, setCreatingBooking] = useState(false);
   const [searchCust, setSearchCust] = useState('');
   const [showCustDropdown, setShowCustDropdown] = useState(false);
+  const [calculatedFareInfo, setCalculatedFareInfo] = useState(null);
 
   useEffect(() => {
     fetchPendingBookings();
@@ -57,10 +58,13 @@ export default function BookingWorkflow() {
       
       const fareInfo = await calculateFare(hours, 0, isOutstation, false);
       if (fareInfo) {
+        setCalculatedFareInfo(fareInfo);
         setCreateForm(prev => ({
           ...prev,
           estimateAmount: fareInfo.totalFare.toString()
         }));
+      } else {
+        setCalculatedFareInfo(null);
       }
     };
 
@@ -839,8 +843,17 @@ export default function BookingWorkflow() {
                   <input required type="datetime-local" value={createForm.startDateTime} onChange={e => setCreateForm({...createForm, startDateTime: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Estimate Amount (₹) *</label>
-                  <input required type="number" min="0" value={createForm.estimateAmount} onChange={e => setCreateForm({...createForm, estimateAmount: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="500" />
+                  <label className="block text-xs font-bold text-green-600 uppercase mb-1.5 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Estimate Amount (₹) *
+                  </label>
+                  <input required type="number" min="0" value={createForm.estimateAmount} onChange={e => setCreateForm({...createForm, estimateAmount: e.target.value})} className="w-full bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm font-bold text-green-900 focus:ring-2 focus:ring-green-500 outline-none transition shadow-inner" placeholder="500" />
+                  {calculatedFareInfo && calculatedFareInfo.extraPerHourSch && (
+                    <p className="text-[10px] text-gray-500 mt-1.5 font-medium bg-gray-50 p-1.5 rounded border border-gray-100 inline-flex items-center gap-1">
+                      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Extra Hour Charge: <span className="text-gray-900 font-bold">₹{calculatedFareInfo.extraPerHourSch}/hr</span>
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Duration</label>
