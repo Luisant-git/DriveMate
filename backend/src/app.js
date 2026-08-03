@@ -44,6 +44,7 @@ app.use(cors({
     'http://localhost:3000',
     'https://drivemate.luisant.cloud',
     'https://makecallsnp.com',
+    'https://www.makecallsnp.com',
     'https://snp.luisant.cloud'
   ],
   credentials: true
