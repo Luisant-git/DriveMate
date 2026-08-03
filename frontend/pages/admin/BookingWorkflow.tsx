@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
+import { calculateFare, parseDurationToHours } from '../../utils/fareCalculator';
 
 export default function BookingWorkflow() {
   const [pendingBookings, setPendingBookings] = useState([]);
@@ -46,6 +47,25 @@ export default function BookingWorkflow() {
     fetchLeadPackages();
     fetchCustomers();
   }, [filters]);
+
+  useEffect(() => {
+    const calculateEstimate = async () => {
+      if (!showCreateModal) return;
+      
+      const isOutstation = createForm.serviceType === 'Outstation';
+      const hours = parseDurationToHours(createForm.duration);
+      
+      const fareInfo = await calculateFare(hours, 0, isOutstation, false);
+      if (fareInfo) {
+        setCreateForm(prev => ({
+          ...prev,
+          estimateAmount: fareInfo.totalFare.toString()
+        }));
+      }
+    };
+
+    calculateEstimate();
+  }, [createForm.duration, createForm.serviceType, showCreateModal]);
 
   const fetchCustomers = async () => {
     try {
