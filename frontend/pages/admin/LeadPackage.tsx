@@ -121,7 +121,7 @@ const LeadPackage: React.FC = () => {
             
             <div className="mb-4">
               <p className="text-3xl font-bold mb-1">₹{pkg.price}</p>
-              <p className="text-sm text-gray-600">Duration: {pkg.duration} days</p>
+              <p className="text-sm text-gray-600">Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}</p>
               {pkg.maxLeads && <p className="text-sm font-medium text-green-600">Up to {pkg.maxLeads} leads</p>}
               {pkg.advancePayment && <p className="text-sm font-medium text-blue-600">Advance: ₹{pkg.advancePayment}</p>}
             </div>
@@ -228,16 +228,28 @@ const LeadPackage: React.FC = () => {
                 </label>
               </div>
               
-              <label className="block text-xs font-bold text-gray-500 uppercase">
-                Duration (days)
+              <div className="block text-xs font-bold text-gray-500 uppercase">
+                <div className="flex justify-between items-center mb-1">
+                  <span>Duration (days)</span>
+                  <label className="flex items-center gap-1 text-[10px] text-gray-500 font-normal cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.duration === 36500} 
+                      onChange={(e) => setFormData({ ...formData, duration: e.target.checked ? 36500 : 30 })}
+                    />
+                    Unlimited
+                  </label>
+                </div>
                 <input
                   type="number"
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-                  value={formData.duration}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400"
+                  value={formData.duration === 36500 ? '' : formData.duration}
+                  placeholder={formData.duration === 36500 ? 'Unlimited' : ''}
+                  disabled={formData.duration === 36500}
                   onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
-                  required
+                  required={formData.duration !== 36500}
                 />
-              </label>
+              </div>
               
               <div className="space-y-2">
                 <p className="text-xs font-bold text-gray-500 uppercase">Service Features</p>

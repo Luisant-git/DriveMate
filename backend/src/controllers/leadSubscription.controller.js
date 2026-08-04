@@ -1,12 +1,37 @@
 import prisma from '../config/database.js';
 
+const getPlanSortValue = (name) => {
+  const lowerName = (name || '').toLowerCase();
+  if (lowerName.includes('silver')) return 1;
+  if (lowerName.includes('gold')) return 2;
+  if (lowerName.includes('platinum')) return 3;
+  if (lowerName.includes('diamond')) return 4;
+  return 99;
+};
+
+const sortPlans = (plans) => {
+  return plans.sort((a, b) => {
+    const tierA = getPlanSortValue(a.name);
+    const tierB = getPlanSortValue(b.name);
+    
+    if (tierA !== tierB) return tierA - tierB;
+    if (a.duration !== b.duration) return (a.duration || 0) - (b.duration || 0);
+    if (a.maxLeads !== undefined && b.maxLeads !== undefined && a.maxLeads !== b.maxLeads) {
+      return (a.maxLeads || 0) - (b.maxLeads || 0);
+    }
+    return (a.price || 0) - (b.price || 0);
+  });
+};
+
 export const getAllLeadPlans = async (req, res) => {
   try {
     const plans = await prisma.leadSubscriptionPlan.findMany({
-      where: { isActive: true },
-      orderBy: { price: 'asc' }
+      where: { isActive: true }
     });
-    res.json({ success: true, plans });
+    
+    const sortedPlans = sortPlans(plans);
+    
+    res.json({ success: true, plans: sortedPlans });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

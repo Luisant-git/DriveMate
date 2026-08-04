@@ -474,7 +474,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                       <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
                       <div className="flex justify-between items-center border-t border-gray-100 pt-3">
                         <p className="text-xs text-gray-500">
-                          Duration: {pkg.duration} days
+                          Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
                           {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
                         </p>
                         <div className="flex gap-2">
@@ -598,7 +598,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       {/* ADD / EDIT PACKAGE MODAL */}
       {isPackageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingPackage ? 'Edit Package' : 'Add Package'}
@@ -665,22 +665,40 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   />
                 </label>
 
-                <label className="block text-xs font-bold text-gray-500 uppercase">
-                  Duration (days)
+                <div className="block text-xs font-bold text-gray-500 uppercase">
+                  <div className="flex justify-between items-center mb-1">
+                    <span>Duration (days)</span>
+                    <label className="flex items-center gap-1 text-[10px] text-gray-500 font-normal cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={packageForm.durationDays === 36500} 
+                        onChange={(e) =>
+                          setPackageForm((prev) => ({
+                            ...prev,
+                            durationDays: e.target.checked ? 36500 : 30,
+                          }))
+                        }
+                      />
+                      Unlimited
+                    </label>
+                  </div>
                   <input
                     type="number"
                     min={1}
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.durationDays}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 disabled:bg-gray-100 disabled:text-gray-400"
+                    value={packageForm.durationDays === 36500 ? '' : packageForm.durationDays}
+                    placeholder={packageForm.durationDays === 36500 ? 'Unlimited' : ''}
+                    disabled={packageForm.durationDays === 36500}
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
                         durationDays: Number(e.target.value),
                       }))
                     }
-                    required
+                    required={packageForm.durationDays !== 36500}
                   />
-                </label>
+                </div>
+
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Max Duties
                   <input

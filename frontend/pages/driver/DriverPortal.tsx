@@ -202,7 +202,19 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
     if (baseHours > 0 && actualHours > baseHours) {
       const extraHours = actualHours - baseHours;
-      return baseAmount + (extraHours * 100);
+      
+      // Determine if it was an immediate or scheduled booking
+      let extraPerHour = 90; // Default scheduled
+      if (trip.createdAt && trip.startDateTime) {
+        const created = new Date(trip.createdAt).getTime();
+        const start = new Date(trip.startDateTime).getTime();
+        // If start time is within 15 minutes of creation, it's considered Immediate
+        if (Math.abs(start - created) <= 15 * 60 * 1000) {
+          extraPerHour = 100;
+        }
+      }
+
+      return baseAmount + (extraHours * extraPerHour);
     }
     
     return baseAmount;

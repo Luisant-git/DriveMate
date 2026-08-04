@@ -53,15 +53,36 @@ export const createSubscriptionPlan = async (req, res) => {
   }
 };
 
+const getPlanSortValue = (name) => {
+  const lowerName = (name || '').toLowerCase();
+  if (lowerName.includes('silver')) return 1;
+  if (lowerName.includes('gold')) return 2;
+  if (lowerName.includes('platinum')) return 3;
+  if (lowerName.includes('diamond')) return 4;
+  return 99;
+};
+
+const sortPlans = (plans) => {
+  return plans.sort((a, b) => {
+    const tierA = getPlanSortValue(a.name);
+    const tierB = getPlanSortValue(b.name);
+    
+    if (tierA !== tierB) return tierA - tierB;
+    if (a.duration !== b.duration) return (a.duration || 0) - (b.duration || 0);
+    if (a.maxDuties !== undefined && b.maxDuties !== undefined && a.maxDuties !== b.maxDuties) {
+      return (a.maxDuties || 0) - (b.maxDuties || 0);
+    }
+    return (a.price || 0) - (b.price || 0);
+  });
+};
+
 export const getSubscriptionPlans = async (req, res) => {
   try {
-    const plans = await prisma.subscriptionPlan.findMany({
-      orderBy: {
-        price: 'asc',   
-      },
-    });
+    const plans = await prisma.subscriptionPlan.findMany();
+    
+    const sortedPlans = sortPlans(plans);
 
-    res.json(plans);
+    res.json(sortedPlans);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -158,13 +179,12 @@ export const getActivePackagesForDrivers = async (req, res) => {
     const packages = await prisma.subscriptionPlan.findMany({
       where: {
         isActive: true
-      },
-      orderBy: {
-        price: 'asc'
       }
     });
 
-    res.json({ success: true, packages });
+    const sortedPackages = sortPlans(packages);
+
+    res.json({ success: true, packages: sortedPackages });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
