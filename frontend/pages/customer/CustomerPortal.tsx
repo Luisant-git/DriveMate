@@ -260,14 +260,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     setIsAiLoading(false);
   };
 
-  const handleEstimate = async () => {
+  const handleEstimate = async (immediateOverride?: boolean) => {
      if(!formData.estimatedUsage) return;
      
      setEstimateLoading(true);
      try {
        const hours = parseDurationToHours(formData.estimatedUsage);
        const isOutstation = serviceType === BookingType.OUTSTATION;
-       const breakdown = await calculateFare(hours, 0, isOutstation);
+       const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
+       const breakdown = await calculateFare(hours, 0, isOutstation, isImmediate);
        
        if (breakdown) {
          setFareBreakdown(breakdown);
@@ -285,14 +286,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
      }
   };
 
-  const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean) => {
+  const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean, immediateOverride?: boolean) => {
      if(!estimatedUsage) return;
      
      setEstimateLoading(true);
      try {
        const hours = parseDurationToHours(estimatedUsage);
        const useOutstation = isOutstation !== undefined ? isOutstation : serviceType === BookingType.OUTSTATION;
-       const breakdown = await calculateFare(hours, 0, useOutstation);
+       const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
+       const breakdown = await calculateFare(hours, 0, useOutstation, isImmediate);
        
        if (breakdown) {
          setFareBreakdown(breakdown);
@@ -788,7 +790,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     }
                   }}
                 />
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport (Max 5MB)</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
               </div>
 
               <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
@@ -828,7 +830,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
           {activeTab === 'BOOK' && (
               <>
-                <div className="p-3 sm:p-4 pb-0">
+                <div className="flex-grow min-h-0 overflow-y-auto px-3 sm:px-4 pt-3 sm:pt-4 pb-8 custom-scrollbar">
                     {/* Main Category Selection */}
                     <div className="grid grid-cols-3 gap-2 mb-4">
                         <button 
@@ -1145,9 +1147,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             {isAiLoading ? '...' : '→'}
                         </button>
                     </div> */}
-                </div>
-
-                <div className="flex-grow overflow-y-auto px-3 sm:px-4 pb-2 custom-scrollbar">
+                    
                     {/* Choose Service Dropdown - Hidden for Weekly/Monthly */}
                     {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
                         <div className="relative mb-3">
@@ -1338,7 +1338,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {['Immediately', 'Schedule'].map((option) => (
                                         <div 
                                             key={option}
-                                            onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
+                                            onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); setTimeout(() => handleEstimate(option === 'Immediately'), 100); }}
                                             className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
                                         >
                                             <h4 className="font-bold text-xs">{option}</h4>
@@ -1806,15 +1806,41 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <>
                                             <div className="p-4">
                                                 <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
-                                                <p className="text-4xl font-bold text-gray-900 mb-2">₹{estimate}</p>
+                                                <div className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                                                    {formData.whenNeeded !== 'Immediately' && fareBreakdown && fareBreakdown.immediateCharge && fareBreakdown.immediateCharge > (estimate || 0) ? (
+                                                        <>
+                                                            <span className="text-2xl text-gray-400 line-through">₹{fareBreakdown.immediateCharge}</span>
+                                                            <span className="text-green-600">₹{estimate}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span>₹{estimate}</span>
+                                                    )}
+                                                </div>
                                                 {fareBreakdown && (
-                                                    <p className="text-xs text-gray-600">{fareBreakdown.description}</p>
+                                                    <div>
+                                                        <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}</p>
+
+                                                    </div>
                                                 )}
                                             </div>
                                             
                                             <div className="border-t border-green-200">
                                                 <div className="px-4 py-3">
-                                                    <p className="text-xs font-bold text-gray-900 uppercase">Extra Per Hour: Rs. 100/-</p>
+                                                    <p className="text-xs font-bold text-gray-900 uppercase flex items-center">
+                                                        <span>Extra Per Hour:</span>
+                                                        {fareBreakdown && (fareBreakdown.extraPerHourSch || fareBreakdown.extraPerHourImm) ? (
+                                                            formData.whenNeeded !== 'Immediately' && fareBreakdown.extraPerHourImm ? (
+                                                                <span className="ml-1 inline-flex gap-1">
+                                                                    <span className="line-through text-gray-400">Rs. {fareBreakdown.extraPerHourImm}/-</span>
+                                                                    <span className="text-green-600">Rs. {fareBreakdown.extraPerHourSch}/-</span>
+                                                                </span>
+                                                            ) : (
+                                                                <span className="ml-1">Rs. {formData.whenNeeded === 'Immediately' ? (fareBreakdown.extraPerHourImm || fareBreakdown.extraPerHourSch) : fareBreakdown.extraPerHourSch}/-</span>
+                                                            )
+                                                        ) : (
+                                                            <span className="ml-1">Rs. 100/-</span>
+                                                        )}
+                                                    </p>
                                                 </div>
                                             </div>
                                             
@@ -1854,15 +1880,41 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <>
                                         <div className="p-4">
                                             <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
-                                            <p className="text-4xl font-bold text-gray-900 mb-2">₹{estimate}</p>
+                                            <div className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                                                {formData.whenNeeded !== 'Immediately' && fareBreakdown && fareBreakdown.immediateCharge && fareBreakdown.immediateCharge > (estimate || 0) ? (
+                                                    <>
+                                                        <span className="text-2xl text-gray-400 line-through">₹{fareBreakdown.immediateCharge}</span>
+                                                        <span className="text-green-600">₹{estimate}</span>
+                                                    </>
+                                                ) : (
+                                                    <span>₹{estimate}</span>
+                                                )}
+                                            </div>
                                             {fareBreakdown && (
-                                                <p className="text-xs text-gray-600">{fareBreakdown.description}</p>
+                                                <div>
+                                                    <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}</p>
+
+                                                </div>
                                             )}
                                         </div>
                                         
                                         <div className="border-t border-green-200">
                                             <div className="px-4 py-3">
-                                                <p className="text-xs font-bold text-gray-900 uppercase">Extra Per Hour: Rs. 100/-</p>
+                                                <p className="text-xs font-bold text-gray-900 uppercase flex items-center">
+                                                    <span>Extra Per Hour:</span>
+                                                    {fareBreakdown && (fareBreakdown.extraPerHourSch || fareBreakdown.extraPerHourImm) ? (
+                                                        formData.whenNeeded !== 'Immediately' && fareBreakdown.extraPerHourImm ? (
+                                                            <span className="ml-1 inline-flex gap-1">
+                                                                <span className="line-through text-gray-400">Rs. {fareBreakdown.extraPerHourImm}/-</span>
+                                                                <span className="text-green-600">Rs. {fareBreakdown.extraPerHourSch}/-</span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="ml-1">Rs. {formData.whenNeeded === 'Immediately' ? (fareBreakdown.extraPerHourImm || fareBreakdown.extraPerHourSch) : fareBreakdown.extraPerHourSch}/-</span>
+                                                        )
+                                                    ) : (
+                                                        <span className="ml-1">Rs. 100/-</span>
+                                                    )}
+                                                </p>
                                             </div>
                                         </div>
                                         
@@ -1949,7 +2001,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           )}
 
           {activeTab === 'TRIPS' && (
-              <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
+              <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
                  <h3 className="text-lg font-bold">Your Bookings</h3>
                  {!isAuthenticated ? (
                     <div className="text-center py-8">
@@ -2282,7 +2334,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           )}
 
           {activeTab === 'PROFILE' && (
-              <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar">
+              <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar">
                  {!isEditingProfile ? (
                      <div className="space-y-6">
                         <div className="flex justify-between items-start">
@@ -2335,7 +2387,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  ) : (
                                      <div className="text-gray-500 text-sm">
                                          <p className="font-bold mb-1">Upload ID Proof</p>
-                                         <p className="text-xs">Aadhar / Voter ID / Passport</p>
+                                         <p className="text-xs">Aadhar / Voter ID / DLL (No PAN Card)</p>
                                      </div>
                                  )}
                              </div>
@@ -2415,6 +2467,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              />
                          </div>
 
+                         {/*
                          <div>
                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Email Address</label>
                              <input 
@@ -2425,6 +2478,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  placeholder="name@example.com"
                              />
                          </div>
+                         */}
 
                          <div>
                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Mobile Number</label>
@@ -2507,7 +2561,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                      }}
                                  />
                              )}
-                             <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / Passport (Max 5MB)</p>
+                             <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
                          </div>
 
                          <div className="flex gap-3 pt-4">
@@ -2555,7 +2609,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     Cash
                   </button>
                   
-                  <button
+                  {/* <button
                     onClick={() => handlePaymentMethodSelect('UPI')}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:from-blue-600 hover:to-blue-700 transition shadow-lg flex items-center justify-center gap-3"
                   >
@@ -2564,7 +2618,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                       <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
                     </svg>
                     UPI
-                  </button>
+                  </button> */}
                 </div>
                 
                 <button
