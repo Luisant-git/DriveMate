@@ -1,5 +1,5 @@
 import express from 'express';
-import { driverRegister, driverLogin } from '../controllers/driver.auth.controller.js';
+import { driverRegister, driverLogin, resetPassword } from '../controllers/driver.auth.controller.js';
 
 const router = express.Router();
 
@@ -116,5 +116,31 @@ router.post('/register', driverRegister);
  *                   $ref: '#/components/schemas/Driver'
  */
 router.post('/login', driverLogin);
+
+/**
+ * @swagger
+ * /api/driver/auth/reset-password:
+ *   post:
+ *     summary: Reset driver password
+ *     tags: [Driver Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *               - password
+ *             properties:
+ *               phone:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ */
+router.post('/reset-password', resetPassword);
 
 export default router;

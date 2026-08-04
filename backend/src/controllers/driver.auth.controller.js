@@ -129,3 +129,31 @@ export const driverLogin = async (req, res) => {
   }
 };
 
+export const resetPassword = async (req, res) => {
+  try {
+    const { phone, password } = req.body;
+    
+    if (!phone || !password) {
+      return res.status(400).json({ error: 'Phone number and new password are required' });
+    }
+    
+    const driver = await prisma.driver.findFirst({
+      where: { phone }
+    });
+
+    if (!driver) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.driver.update({
+      where: { id: driver.id },
+      data: { password: hashedPassword }
+    });
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

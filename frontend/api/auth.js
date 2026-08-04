@@ -110,6 +110,38 @@ export const verifyOTP = async (phoneNumber, otp) => {
   }
 };
 
+// Verify OTP Only function
+export const verifyOTPOnly = async (phoneNumber, otp) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp-only`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ phone: phoneNumber, otp }),
+      credentials: 'include',
+    });
+    const data = await response.json();
+    return { success: response.ok, ...data };
+  } catch (error) {
+    return { success: false, message: 'Network error' };
+  }
+};
+
+// Reset Driver Password
+export const resetDriverPassword = async (phoneNumber, newPassword) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/driver/auth/reset-password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ phone: phoneNumber, password: newPassword }),
+      credentials: 'include',
+    });
+    const data = await response.json();
+    return { success: response.ok, ...data };
+  } catch (error) {
+    return { success: false, message: 'Network error' };
+  }
+};
+
 // Logout function
 export const logout = async () => {
   try {
