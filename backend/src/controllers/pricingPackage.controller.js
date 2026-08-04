@@ -13,14 +13,16 @@ export const getAllPricingPackages = async (req, res) => {
 
 export const createPricingPackage = async (req, res) => {
   try {
-    const { packageType, hours, minimumCharge, minimumKm, extraPerHour, description } = req.body;
+    const { packageType, hours, minimumCharge, immediateCharge, minimumKm, extraPerHour, extraPerHourImm, description } = req.body;
     
     const data = {
       packageType,
       hours: parseInt(hours),
       minimumCharge: parseFloat(minimumCharge),
+      immediateCharge: immediateCharge ? parseFloat(immediateCharge) : null,
       minimumKm: minimumKm && minimumKm !== '' ? parseInt(minimumKm) : null,
-      extraPerHour: parseFloat(extraPerHour)
+      extraPerHour: parseFloat(extraPerHour),
+      extraPerHourImm: extraPerHourImm ? parseFloat(extraPerHourImm) : null
     };
     
     if (description) data.description = description;
@@ -36,13 +38,16 @@ export const createPricingPackage = async (req, res) => {
 export const updatePricingPackage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { minimumCharge, minimumKm, extraPerHour, description, isActive } = req.body;
+    const { minimumCharge, immediateCharge, minimumKm, extraPerHour, extraPerHourImm, description, isActive } = req.body;
     
     const data = {
       minimumCharge: parseFloat(minimumCharge),
       minimumKm: minimumKm && minimumKm !== '' ? parseInt(minimumKm) : null,
       extraPerHour: parseFloat(extraPerHour)
     };
+    
+    if (immediateCharge !== undefined) data.immediateCharge = immediateCharge ? parseFloat(immediateCharge) : null;
+    if (extraPerHourImm !== undefined) data.extraPerHourImm = extraPerHourImm ? parseFloat(extraPerHourImm) : null;
     
     if (description !== undefined) data.description = description;
     if (isActive !== undefined) data.isActive = isActive;
@@ -70,7 +75,7 @@ export const deletePricingPackage = async (req, res) => {
 
 export const getEstimateByPackage = async (req, res) => {
   try {
-    const { packageType, hours, distance } = req.query;
+    const { packageType, hours, distance, isImmediate } = req.query;
     
     // For OUTSTATION with distance, auto-determine hours based on KM
     let queryHours = parseInt(hours);
@@ -104,9 +109,13 @@ export const getEstimateByPackage = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Pricing not found' });
     }
     
+    const finalEstimate = (isImmediate === 'true' && pricing.immediateCharge) 
+      ? pricing.immediateCharge 
+      : pricing.minimumCharge;
+    
     res.json({ 
       success: true, 
-      estimate: pricing.minimumCharge,
+      estimate: finalEstimate,
       pricing
     });
   } catch (error) {

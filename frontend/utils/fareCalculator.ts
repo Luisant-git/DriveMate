@@ -9,30 +9,41 @@ export interface FareBreakdown {
   totalFare: number;
   packageType: 'LOCAL' | 'OUTSTATION';
   description: string;
+  scheduledCharge?: number;
+  immediateCharge?: number;
+  extraPerHourSch?: number;
+  extraPerHourImm?: number;
 }
 
 export async function calculateFare(
   hours: number,
   distance: number = 0,
-  isOutstation: boolean = false
+  isOutstation: boolean = false,
+  isImmediate: boolean = false
 ): Promise<FareBreakdown | null> {
   try {
     const packageType = isOutstation ? 'OUTSTATION' : 'LOCAL_HOURLY';
     const roundedHours = Math.ceil(hours);
     
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType, hours: roundedHours, distance }
+      params: { packageType, hours: roundedHours, distance, isImmediate }
     });
     
     if (response.data.success && response.data.pricing) {
       const pricing = response.data.pricing;
+      const finalEstimate = response.data.estimate || pricing.minimumCharge;
+      
       return {
-        baseFare: pricing.minimumCharge,
+        baseFare: finalEstimate,
         extraHours: 0,
         extraHourCharge: 0,
-        totalFare: pricing.minimumCharge,
+        totalFare: finalEstimate,
         packageType: isOutstation ? 'OUTSTATION' : 'LOCAL',
-        description: pricing.description || `${pricing.hours} Hour Package`
+        description: pricing.description || `${pricing.hours} Hour Package`,
+        scheduledCharge: pricing.minimumCharge,
+        immediateCharge: pricing.immediateCharge,
+        extraPerHourSch: pricing.extraPerHour,
+        extraPerHourImm: pricing.extraPerHourImm
       };
     }
     
@@ -44,7 +55,8 @@ export async function calculateFare(
 }
 
 export async function calculateOutstationFareByDistance(
-  distanceKm: number
+  distanceKm: number,
+  isImmediate: boolean = false
 ): Promise<FareBreakdown | null> {
   try {
     // Determine hours based on distance
@@ -56,18 +68,24 @@ export async function calculateOutstationFareByDistance(
     }
     
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType: 'OUTSTATION', hours, distance: distanceKm }
+      params: { packageType: 'OUTSTATION', hours, distance: distanceKm, isImmediate }
     });
     
     if (response.data.success && response.data.pricing) {
       const pricing = response.data.pricing;
+      const finalEstimate = response.data.estimate || pricing.minimumCharge;
+
       return {
-        baseFare: pricing.minimumCharge,
+        baseFare: finalEstimate,
         extraHours: 0,
         extraHourCharge: 0,
-        totalFare: pricing.minimumCharge,
+        totalFare: finalEstimate,
         packageType: 'OUTSTATION',
-        description: `${pricing.hours} Hours Package (${distanceKm} KM)`
+        description: `${pricing.hours} Hours Package (${distanceKm} KM)`,
+        scheduledCharge: pricing.minimumCharge,
+        immediateCharge: pricing.immediateCharge,
+        extraPerHourSch: pricing.extraPerHour,
+        extraPerHourImm: pricing.extraPerHourImm
       };
     }
     

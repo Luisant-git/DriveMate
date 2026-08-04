@@ -148,7 +148,7 @@ export const adminCreateBooking = async (req, res) => {
 
 export const getEstimate = async (req, res) => {
   try {
-    const { packageType, hours } = req.query;
+    const { packageType, hours, whenNeeded } = req.query;
     
     if (!packageType || !hours) {
       return res.status(400).json({ success: false, error: 'Package type and hours required' });
@@ -168,12 +168,17 @@ export const getEstimate = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Package not found' });
     }
     
+    const finalEstimate = (whenNeeded === 'Immediately' && pkg.immediateCharge) 
+      ? pkg.immediateCharge 
+      : pkg.minimumCharge;
+    
     res.json({
       success: true,
-      estimate: pkg.minimumCharge,
+      estimate: finalEstimate,
       currency: 'INR',
       breakdown: {
         minimumCharge: pkg.minimumCharge,
+        immediateCharge: pkg.immediateCharge,
         hours: pkg.hours,
         extraPerHour: pkg.extraPerHour,
         minimumKm: pkg.minimumKm,

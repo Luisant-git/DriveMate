@@ -495,8 +495,10 @@ model PricingPackage {
   packageType     String   // LOCAL_HOURLY, OUTSTATION
   hours           Int
   minimumCharge   Float
+  immediateCharge Float?
   minimumKm       Int?     // Only for outstation
   extraPerHour    Float    @default(100)
+  extraPerHourImm Float?
   description     String?
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())

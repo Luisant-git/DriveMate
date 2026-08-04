@@ -78,6 +78,7 @@ export const getDriverTrips = async (req, res) => {
         startDate: booking.startDateTime.toISOString().split('T')[0],
         startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
         startDateTime: booking.startDateTime.toISOString(),
+        createdAt: booking.createdAt.toISOString(),
         duration: booking.duration,
         vehicleType: booking.vehicleType,
         estimateAmount: booking.estimateAmount,
