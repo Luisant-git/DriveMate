@@ -1,0 +1,20 @@
+Customer Booking APIs (Immediate vs Scheduled Logic)
+
+1. Get Booking Estimate
+- Endpoint: GET /api/bookings/estimate
+- Summary: Calculates the estimated charge for a booking.
+- Query Parameters: 
+  - `packageType` (string): The package type (e.g., LOCAL).
+  - `hours` (string/number): Duration in hours.
+  - `whenNeeded` (string): Pass `'Immediately'` for immediate bookings, or leave empty/pass another value for scheduled bookings.
+- Logic:
+  - If `whenNeeded === 'Immediately'`, it applies the `immediateCharge` from the pricing package.
+  - Otherwise (for scheduled bookings), it applies the standard `minimumCharge`.
+
+2. Create Booking
+- Endpoint: POST /api/bookings
+- Summary: Create a new customer booking (immediate or scheduled).
+- Request Body Highlights:
+  - `startDateTime` (string/datetime): For immediate bookings, pass the current time. For scheduled bookings, pass the future date and time.
+  - `serviceType`, `tripType`, `pickupLocation`, `dropLocation`, `duration`, `vehicleType`, `estimateAmount`.
+- Description: Submits the booking which will then be auto-routed to drivers.
