@@ -336,6 +336,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       return;
     }
     
+    // Validate Date and Time for scheduled or outstation trips
+    const requiresDateTime = serviceType === BookingType.OUTSTATION || 
+                             serviceType === 'Outstation' ||
+                             (serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule');
+                             
+    if (requiresDateTime) {
+      if (!formData.date) {
+        toast.error('Please select a date for your trip');
+        return;
+      }
+      if (!formData.time) {
+        toast.error('Please select a time for your trip');
+        return;
+      }
+    }
+    
     // Validate pickup location
     if (!formData.pickup) {
       toast.error('Please enter pickup location');

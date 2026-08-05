@@ -98,35 +98,60 @@ export const autoRouteBooking = async (bookingId) => {
       where: { id: { in: config.leadPlanIds } }
     });
 
-    // Group plans by price
+    const getPlanRank = (name) => {
+      const lowerName = (name || '').toLowerCase();
+      if (lowerName.includes('diamond')) return 4;
+      if (lowerName.includes('platinum')) return 3;
+      if (lowerName.includes('gold')) return 2;
+      if (lowerName.includes('silver')) return 1;
+      return 0;
+    };
+
+    // Group plans by rank and price
     const tiersMap = {};
-    for (const p of driverPlans) {
-      if (!tiersMap[p.price]) tiersMap[p.price] = { driverPlanIds: [], leadPlanIds: [] };
-      tiersMap[p.price].driverPlanIds.push(p.id);
-    }
-    for (const p of leadPlans) {
-      if (!tiersMap[p.price]) tiersMap[p.price] = { driverPlanIds: [], leadPlanIds: [] };
-      tiersMap[p.price].leadPlanIds.push(p.id);
+    const allPlans = [
+      ...driverPlans.map(p => ({ ...p, isDriver: true, rank: getPlanRank(p.name) })),
+      ...leadPlans.map(p => ({ ...p, isDriver: false, rank: getPlanRank(p.name) }))
+    ];
+
+    for (const p of allPlans) {
+      const tierKey = `${p.rank}_${p.price}`;
+      
+      if (!tiersMap[tierKey]) {
+        tiersMap[tierKey] = { rank: p.rank, price: p.price, driverPlanIds: [], leadPlanIds: [] };
+      }
+      
+      if (p.isDriver) {
+        tiersMap[tierKey].driverPlanIds.push(p.id);
+      } else {
+        tiersMap[tierKey].leadPlanIds.push(p.id);
+      }
     }
 
-    // Sort prices descending
-    const sortedPrices = Object.keys(tiersMap).map(Number).sort((a, b) => b - a);
-    console.log(`[AutoRoute] Found ${sortedPrices.length} price tiers for routing.`);
+    // Sort the keys based on rank first (descending), then price (descending)
+    const sortedTierKeys = Object.keys(tiersMap).sort((a, b) => {
+      const tierA = tiersMap[a];
+      const tierB = tiersMap[b];
+      if (tierA.rank !== tierB.rank) return tierB.rank - tierA.rank;
+      return tierB.price - tierA.price;
+    });
+
+    console.log(`[AutoRoute] Found ${sortedTierKeys.length} tiers for routing.`);
 
     // Start background processing
-    processTiersInBackground(bookingId, tiersMap, sortedPrices, booking);
+    processTiersInBackground(bookingId, tiersMap, sortedTierKeys, booking);
 
-    return { success: true, message: 'Routing started in background', tiers: sortedPrices.length };
+    return { success: true, message: 'Routing started in background', tiers: sortedTierKeys.length };
   } catch (error) {
     console.error('[AutoRoute] Error:', error.message);
     return { success: false, error: error.message };
   }
 };
 
-const processTiersInBackground = async (bookingId, tiersMap, sortedPrices, booking) => {
-  for (let i = 0; i < sortedPrices.length; i++) {
-    const price = sortedPrices[i];
-    const tier = tiersMap[price];
+const processTiersInBackground = async (bookingId, tiersMap, sortedTierKeys, booking) => {
+  for (let i = 0; i < sortedTierKeys.length; i++) {
+    const tierKey = sortedTierKeys[i];
+    const tier = tiersMap[tierKey];
 
     // Check if booking is still available
     const currentBooking = await prisma.booking.findUnique({
@@ -138,7 +163,7 @@ const processTiersInBackground = async (bookingId, tiersMap, sortedPrices, booki
       break;
     }
 
-    console.log(`[AutoRoute] Processing Tier ${i + 1}/${sortedPrices.length} (Price: ₹${price}) for booking ${bookingId}`);
+    console.log(`[AutoRoute] Processing Tier ${i + 1}/${sortedTierKeys.length} (Rank: ${tier.rank}, Price: ₹${tier.price}) for booking ${bookingId}`);
 
     let driversSent = 0;
     let leadsSent = 0;
@@ -239,7 +264,7 @@ const processTiersInBackground = async (bookingId, tiersMap, sortedPrices, booki
 
     console.log(`[AutoRoute] Tier ${i + 1} sent to ${driversSent} drivers and ${leadsSent} leads.`);
 
-    if ((driversSent > 0 || leadsSent > 0) && i < sortedPrices.length - 1) {
+    if ((driversSent > 0 || leadsSent > 0) && i < sortedTierKeys.length - 1) {
       console.log(`[AutoRoute] Waiting 2 minutes for Tier ${i + 1} responses...`);
       await new Promise(resolve => setTimeout(resolve, 2 * 60 * 1000));
     }
