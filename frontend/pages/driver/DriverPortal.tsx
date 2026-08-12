@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Driver, Trip, Package } from '../../types';
+import { Driver, Trip } from '../../types';
+
+interface SubscriptionPackage {
+  id: string;
+  category: string;
+  name: string;
+  type: string;
+  duration: number;
+  price: number;
+  maxDuties?: number;
+  description?: string;
+  isActive?: boolean;
+}
 import { tripAPI } from '../../api/trip';
 import DriverBookingRequests from './DriverBookingRequests';
 import { API_BASE_URL } from '../../api/config.js';
@@ -65,10 +77,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY' | 'ALLOCATED'>('PENDING');
   const [driver, setDriver] = useState<Driver>(initialDriver);
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [packages, setPackages] = useState<Package[]>([]);
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<SubscriptionPackage | null>(null);
   const [startingTripId, setStartingTripId] = useState<string | null>(null);
   const [tripPhotos, setTripPhotos] = useState<{ front: File | null, back: File | null }>({ front: null, back: null });
   const [isStartingTrip, setIsStartingTrip] = useState(false);
@@ -226,9 +239,37 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   };
 
 
-  const handleSubscriptionBuy = async (pkg: Package) => {
+  const handleSubscriptionBuy = async (pkg: SubscriptionPackage) => {
     setSelectedPackage(pkg);
     setShowPaymentModal(true);
+  };
+
+  const renderPackageCard = (pkg: SubscriptionPackage) => {
+    const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+    const hasActivePlan = currentSubscription && currentSubscription.plan && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+    const isDisabled = hasActivePlan && !isActive;
+    return (
+      <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
+        {isActive && (
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-bold">
+            CURRENT PLAN
+          </div>
+        )}
+        <h3 className="font-bold text-base sm:text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h3>
+        <p className="text-xs sm:text-sm text-gray-600 mt-1">{pkg.name} <span className="text-gray-400">· {pkg.duration} days</span></p>
+        <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
+        <p className="text-[10px] text-black font-extrabold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
+
+        <button
+          onClick={() => handleSubscriptionBuy(pkg)}
+          disabled={isActive || isDisabled}
+          className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+        >
+          {isActive ? 'Active' : 'Choose Package & Pay'}
+        </button>
+      </div>
+    );
   };
 
   const handlePaymentMethodSelect = async (method: string) => {
@@ -1116,35 +1157,25 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     <h2 className="text-lg sm:text-xl font-bold">Driver Packages</h2>
                     <p className="text-sm text-gray-500">Choose a plan to start accepting rides.</p>
                 </div>
-                
+
+                <div className="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
+                    {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${
+                                selectedCategory === cat
+                                    ? 'bg-black text-white'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
                 <div className="space-y-3 sm:space-y-4">
-                    {packages.map(pkg => {
-                        const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
-                        const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
-                        const hasActivePlan = currentSubscription && currentSubscription.plan && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
-                        const isDisabled = hasActivePlan && !isActive;
-                        return (
-                        <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
-                            {isActive && (
-                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-bold">
-                                    CURRENT PLAN
-                                </div>
-                            )}
-                            <h3 className="font-bold text-base sm:text-lg">{pkg.name}</h3>
-                            <p className="text-2xl sm:text-3xl font-extrabold mt-2">₹{pkg.price}<span className="text-xs sm:text-sm font-normal text-gray-500">/{pkg.duration} days</span></p>
-                            <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
-                            <p className="text-[10px] text-black font-extrabold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
-                            
-                            <button 
-                                onClick={() => handleSubscriptionBuy(pkg)}
-                                disabled={isActive || isDisabled}
-                                className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
-                            >
-                                {isActive ? 'Active' : 'Choose Package & Pay'}
-                            </button>
-                        </div>
-                        );
-                    })}
+                    {packages.filter(pkg => selectedCategory === 'All' || (pkg.category || 'Silver') === selectedCategory).map(pkg => renderPackageCard(pkg))}
                 </div>
             </div>
         )}

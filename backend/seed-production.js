@@ -4,29 +4,29 @@ const prisma = new PrismaClient();
 
 const subscriptionPackages = [
   // Silver
-  { name: 'Silver 1 Local (18 Duty - 1 Month)', type: 'LOCAL', duration: 30, price: 1777, maxDuties: 18, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
-  { name: 'Silver 2 Local (23 Duty - 3 Months)', type: 'LOCAL', duration: 90, price: 2234, maxDuties: 23, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
-  { name: 'Silver 3 Local (44 Duty - Unlimited)', type: 'LOCAL', duration: 3650, price: 4350, maxDuties: 44, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
+  { category: 'Silver', name: 'Local (18 Duty - 1 Month)', type: 'LOCAL', duration: 30, price: 1777, maxDuties: 18, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
+  { category: 'Silver', name: 'Local (23 Duty - 3 Months)', type: 'LOCAL', duration: 90, price: 2234, maxDuties: 23, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
+  { category: 'Silver', name: 'Local (44 Duty - Unlimited)', type: 'LOCAL', duration: 3650, price: 4350, maxDuties: 44, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
   
   // Gold
-  { name: 'Gold 1 Local (5 Duty - 15 Days)', type: 'LOCAL', duration: 15, price: 500, maxDuties: 5, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/-' },
-  { name: 'Gold 2 Local (21 Duty - 2 Months)', type: 'LOCAL', duration: 60, price: 1999, maxDuties: 21, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
+  { category: 'Gold', name: 'Local (5 Duty - 15 Days)', type: 'LOCAL', duration: 15, price: 500, maxDuties: 5, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/-' },
+  { category: 'Gold', name: 'Local (21 Duty - 2 Months)', type: 'LOCAL', duration: 60, price: 1999, maxDuties: 21, description: 'LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/- | OUTSTATION: MINI 12 HOUR 900/- EXTRA PER HOUR 90/-' },
   
   // Platinum
-  { name: 'Platinum Local (5 Duty - 15 Days)', type: 'LOCAL', duration: 15, price: 500, maxDuties: 5, description: 'MINIMUM 4 HOUR RS,450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-' },
-  { name: 'Platinum Local (8 Duty - 20 Days)', type: 'LOCAL', duration: 20, price: 700, maxDuties: 8, description: 'MINIMUM 4 HOUR RS,450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-' },
-  { name: 'Platinum Local (18 Duty - 2 Months)', type: 'LOCAL', duration: 60, price: 1700, maxDuties: 18, description: 'MINIMUM 4 HOUR RS,450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-' },
-  { name: 'Platinum Outstation (36 Duty - 4 Months)', type: 'OUTSTATION', duration: 120, price: 3599, maxDuties: 36, description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-' },
-  { name: 'Platinum Outstation (52 Duty - 5 Months)', type: 'OUTSTATION', duration: 150, price: 5000, maxDuties: 52, description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-' },
-  { name: 'Platinum Outstation (63 Duty - 6 Months)', type: 'OUTSTATION', duration: 180, price: 6000, maxDuties: 63, description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-' },
+  { category: 'Platinum', name: 'Local (5 Duty - 15 Days)', type: 'LOCAL', duration: 15, price: 500, maxDuties: 5, description: 'MINIMUM 4 HOUR RS,450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-' },
+  { category: 'Platinum', name: 'Local (8 Duty - 20 Days)', type: 'LOCAL', duration: 20, price: 700, maxDuties: 8, description: 'MINIMUM 4 HOUR RS,450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-' },
+  { category: 'Platinum', name: 'Local (18 Duty - 2 Months)', type: 'LOCAL', duration: 60, price: 1700, maxDuties: 18, description: 'MINIMUM 4 HOUR RS,450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-' },
+  { category: 'Platinum', name: 'Outstation (36 Duty - 4 Months)', type: 'OUTSTATION', duration: 120, price: 3599, maxDuties: 36, description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-' },
+  { category: 'Platinum', name: 'Outstation (52 Duty - 5 Months)', type: 'OUTSTATION', duration: 150, price: 5000, maxDuties: 52, description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-' },
+  { category: 'Platinum', name: 'Outstation (63 Duty - 6 Months)', type: 'OUTSTATION', duration: 180, price: 6000, maxDuties: 63, description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-' },
 
   // Diamond
-  { name: 'Diamond Local (10 Duty - 25 Days)', type: 'LOCAL', duration: 25, price: 900, maxDuties: 10, description: 'MINIMUM 4 HOUR RS, RS,500 OR 550/- EXTRA PER HOUR RS,100/-' },
-  { name: 'Diamond Local (13 Duty - 1 Month)', type: 'LOCAL', duration: 30, price: 1100, maxDuties: 13, description: 'MINIMUM 4 HOUR RS, RS,500 OR 550/- EXTRA PER HOUR RS,100/-' },
-  { name: 'Diamond Local (25 Duty - 3 Months)', type: 'LOCAL', duration: 90, price: 2300, maxDuties: 25, description: 'MINIMUM 4 HOUR RS, RS,500 OR 550/- EXTRA PER HOUR RS,100/-' },
-  { name: 'Diamond Outstation (72 Duty - 8 Months)', type: 'OUTSTATION', duration: 240, price: 6999, maxDuties: 72, description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS,90/- OR 100/-' },
-  { name: 'Diamond Outstation (84 Duty - 10 Months)', type: 'OUTSTATION', duration: 300, price: 7999, maxDuties: 84, description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS,90/- OR 100/-' },
-  { name: 'Diamond Outstation (96 Duty - 12 Months)', type: 'OUTSTATION', duration: 365, price: 8999, maxDuties: 96, description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS,90/- OR 100/-' },
+  { category: 'Diamond', name: 'Local (10 Duty - 25 Days)', type: 'LOCAL', duration: 25, price: 900, maxDuties: 10, description: 'MINIMUM 4 HOUR RS, RS,500 OR 550/- EXTRA PER HOUR RS,100/-' },
+  { category: 'Diamond', name: 'Local (13 Duty - 1 Month)', type: 'LOCAL', duration: 30, price: 1100, maxDuties: 13, description: 'MINIMUM 4 HOUR RS, RS,500 OR 550/- EXTRA PER HOUR RS,100/-' },
+  { category: 'Diamond', name: 'Local (25 Duty - 3 Months)', type: 'LOCAL', duration: 90, price: 2300, maxDuties: 25, description: 'MINIMUM 4 HOUR RS, RS,500 OR 550/- EXTRA PER HOUR RS,100/-' },
+  { category: 'Diamond', name: 'Outstation (72 Duty - 8 Months)', type: 'OUTSTATION', duration: 240, price: 6999, maxDuties: 72, description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS,90/- OR 100/-' },
+  { category: 'Diamond', name: 'Outstation (84 Duty - 10 Months)', type: 'OUTSTATION', duration: 300, price: 7999, maxDuties: 84, description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS,90/- OR 100/-' },
+  { category: 'Diamond', name: 'Outstation (96 Duty - 12 Months)', type: 'OUTSTATION', duration: 365, price: 8999, maxDuties: 96, description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS,90/- OR 100/-' },
 ];
 
 const localPricing = [

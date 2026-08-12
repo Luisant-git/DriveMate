@@ -6,6 +6,7 @@ async function main() {
   const packages = [
     // Monthly Duty
     {
+      category: 'Silver',
       name: 'Monthly Duty Service Charge',
       price: 2300,
       maxDuties: 30, // Assuming 1 duty per day for a month
@@ -15,6 +16,7 @@ async function main() {
     },
     // Spare Driver Weekly Hourly Daily
     {
+      category: 'Silver',
       name: 'Spare Driver - 23 Duties',
       price: 2234,
       maxDuties: 23,
@@ -25,6 +27,7 @@ async function main() {
     
     // LOCAL OLD PACKAGE
     {
+      category: 'Silver',
       name: 'Local Old - 5 Duties',
       price: 500,
       maxDuties: 5,
@@ -33,6 +36,7 @@ async function main() {
       description: 'MINIMUM 4 HOUR RS, 450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-'
     },
     {
+      category: 'Silver',
       name: 'Local Old - 7 Duties',
       price: 700,
       maxDuties: 7,
@@ -41,6 +45,7 @@ async function main() {
       description: 'MINIMUM 4 HOUR RS, 450/- OR 500/- EXTRA PER HOUR RS, 90/- OR 100/-'
     },
     {
+      category: 'Silver',
       name: 'Local Old - 17 Duties',
       price: 1700,
       maxDuties: 17,
@@ -51,6 +56,7 @@ async function main() {
 
     // OUTSTATION OLD PACKAGE
     {
+      category: 'Silver',
       name: 'Outstation Old - 36 Duties',
       price: 3599,
       maxDuties: 36,
@@ -59,6 +65,7 @@ async function main() {
       description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-'
     },
     {
+      category: 'Silver',
       name: 'Outstation Old - 52 Duties',
       price: 5000,
       maxDuties: 52,
@@ -67,6 +74,7 @@ async function main() {
       description: 'MINI 08 OR 10 OR 12 HOURS RS, 900 OR 1000/- FOOD EXTRA PER HOUR RS, 90/-'
     },
     {
+      category: 'Silver',
       name: 'Outstation Old - 63 Duties',
       price: 6000,
       maxDuties: 63,
@@ -77,6 +85,7 @@ async function main() {
 
     // LOCAL NEW PACKAGE
     {
+      category: 'Silver',
       name: 'Local New - 9 Duties',
       price: 900,
       maxDuties: 9,
@@ -85,6 +94,7 @@ async function main() {
       description: 'MINIMUM 4 HOUR RS, 500 OR 550/- EXTRA PER HOUR RS, 100/-'
     },
     {
+      category: 'Silver',
       name: 'Local New - 11 Duties',
       price: 1100,
       maxDuties: 11,
@@ -93,6 +103,7 @@ async function main() {
       description: 'MINIMUM 4 HOUR RS, 500 OR 550/- EXTRA PER HOUR RS, 100/-'
     },
     {
+      category: 'Silver',
       name: 'Local New - 23 Duties',
       price: 2300,
       maxDuties: 23,
@@ -103,6 +114,7 @@ async function main() {
 
     // OUTSTATION NEW PACKAGE
     {
+      category: 'Silver',
       name: 'Outstation New - 72 Duties',
       price: 6999,
       maxDuties: 72,
@@ -111,6 +123,7 @@ async function main() {
       description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS, 90/- OR 100/-'
     },
     {
+      category: 'Silver',
       name: 'Outstation New - 84 Duties',
       price: 7999,
       maxDuties: 84,
@@ -119,6 +132,7 @@ async function main() {
       description: 'MINI 12 HOURS RS, 1000/- OR 1200/- UP RS, 1500/- FOOD EXTRA PER HOUR RS, 90/- OR 100/-'
     },
     {
+      category: 'Silver',
       name: 'Outstation New - 96 Duties',
       price: 8999,
       maxDuties: 96,

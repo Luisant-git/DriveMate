@@ -39,12 +39,16 @@ const updateExpiredSubscriptions = async (driverId = null) => {
   }
 };
 
+const VALID_CATEGORIES = ['Silver', 'Gold', 'Platinum', 'Diamond'];
+
 export const createSubscriptionPlan = async (req, res) => {
   try {
-    const { name, duration, price, description ,type, maxDuties} = req.body;
+    const { category, name, duration, price, description, type, maxDuties } = req.body;
+
+    const planCategory = VALID_CATEGORIES.includes(category) ? category : 'Silver';
 
     const plan = await prisma.subscriptionPlan.create({
-      data: { name, duration, price, description, type, maxDuties: maxDuties || 0 },
+      data: { category: planCategory, name, duration, price, description, type, maxDuties: maxDuties || 0 },
     });
 
     res.status(201).json(plan);
@@ -53,8 +57,8 @@ export const createSubscriptionPlan = async (req, res) => {
   }
 };
 
-const getPlanSortValue = (name) => {
-  const lowerName = (name || '').toLowerCase();
+const getPlanSortValue = (plan) => {
+  const lowerName = (plan.category || plan.name || '').toLowerCase();
   if (lowerName.includes('silver')) return 1;
   if (lowerName.includes('gold')) return 2;
   if (lowerName.includes('platinum')) return 3;
@@ -64,8 +68,8 @@ const getPlanSortValue = (name) => {
 
 const sortPlans = (plans) => {
   return plans.sort((a, b) => {
-    const tierA = getPlanSortValue(a.name);
-    const tierB = getPlanSortValue(b.name);
+    const tierA = getPlanSortValue(a);
+    const tierB = getPlanSortValue(b);
     
     if (tierA !== tierB) return tierA - tierB;
     if (a.duration !== b.duration) return (a.duration || 0) - (b.duration || 0);
@@ -91,9 +95,10 @@ export const getSubscriptionPlans = async (req, res) => {
 export const updateSubscriptionPlan = async (req, res) => {
   try {
     const id = (req.params.id);
-    const { name, duration, price, description, type, isActive, maxDuties } = req.body;
+    const { category, name, duration, price, description, type, isActive, maxDuties } = req.body;
 
     const updateData = {};
+    if (category !== undefined) updateData.category = VALID_CATEGORIES.includes(category) ? category : 'Silver';
     if (name !== undefined) updateData.name = name;
     if (duration !== undefined) updateData.duration = duration;
     if (price !== undefined) updateData.price = price;

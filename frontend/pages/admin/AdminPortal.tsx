@@ -24,6 +24,7 @@ type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'ALL';
 
 interface SubscriptionPlan {
   id: string;
+  category?: string;
   name: string;
   duration: number;
   maxDuties?: number;
@@ -34,6 +35,7 @@ interface SubscriptionPlan {
 }
 
 interface PackageFormState {
+  category: string;
   name: string;
   type: SubscriptionType;
   price: number;
@@ -78,6 +80,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   // Subscription packages (dynamic)
   const [packages, setPackages] = useState<SubscriptionPlan[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
+  const [packageCategoryFilter, setPackageCategoryFilter] = useState<string>('All');
 
   // Modal and form state for Add/Edit package
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
@@ -221,6 +224,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const openAddPackageModal = () => {
     setEditingPackage(null);
     setPackageForm({
+      category: 'Silver',
       name: '',
       type: 'LOCAL',
       price: 0,
@@ -235,6 +239,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const openEditPackageModal = (pkg: SubscriptionPlan) => {
     setEditingPackage(pkg);
     setPackageForm({
+      category: pkg.category || 'Silver',
       name: pkg.name || '',
       type: (pkg.type as SubscriptionType) || 'LOCAL',
       price: pkg.price || 0,
@@ -258,6 +263,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
     try {
       const payload: any = {
+        category: packageForm.category,
         name: packageForm.name,
         duration: packageForm.durationDays,
         maxDuties: packageForm.maxDuties,
@@ -455,50 +461,82 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <p className="text-sm text-gray-500 mb-4">Loading packages...</p>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  {packages.map((pkg) => (
-                    <div
-                      key={pkg.id}
-                      className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setPackageCategoryFilter(cat)}
+                      className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${
+                        packageCategoryFilter === cat
+                          ? 'bg-black text-white'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
+                      }`}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-bold text-lg">{pkg.name}</h4>
-                        </div>
-                        <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
-                          {pkg.type || 'N/A'}
-                        </span>
-                      </div>
-
-                      <p className="text-2xl font-bold mb-2">₹{pkg.price}</p>
-                      <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
-                      <div className="flex justify-between items-center border-t border-gray-100 pt-3">
-                        <p className="text-xs text-gray-500">
-                          Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
-                          {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${
-                              pkg.isActive 
-                                ? 'text-green-600 bg-green-50 hover:bg-green-100' 
-                                : 'text-red-600 bg-red-50 hover:bg-red-100'
-                            }`}
-                            onClick={() => handleTogglePackageStatus(pkg)}
-                          >
-                            {pkg.isActive ? 'Active' : 'Inactive'}
-                          </button>
-                          <button
-                            className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
-                            onClick={() => openEditPackageModal(pkg)}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      {cat}
+                    </button>
                   ))}
                 </div>
+
+                {['Silver', 'Gold', 'Platinum', 'Diamond'].map((category) => {
+                  if (packageCategoryFilter !== 'All' && category !== packageCategoryFilter) return null;
+                  const categoryPackages = packages
+                    .filter((pkg) => (pkg.category || 'Silver') === category)
+                    .sort((a, b) => a.price - b.price);
+
+                  if (categoryPackages.length === 0) return null;
+
+                  return (
+                    <div key={category} className="mb-8">
+                      <h4 className="font-bold text-sm uppercase tracking-wider text-gray-500 mb-3">
+                        {category}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        {categoryPackages.map((pkg) => (
+                          <div
+                            key={pkg.id}
+                            className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-bold text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h4>
+                              </div>
+                              <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
+                                {pkg.type || 'N/A'}
+                              </span>
+                            </div>
+
+                            <p className="text-sm font-semibold text-gray-700 mb-2">{pkg.name}</p>
+                            <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
+                            <div className="flex justify-between items-center border-t border-gray-100 pt-3">
+                              <p className="text-xs text-gray-500">
+                                Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
+                                {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${
+                                    pkg.isActive 
+                                      ? 'text-green-600 bg-green-50 hover:bg-green-100' 
+                                      : 'text-red-600 bg-red-50 hover:bg-red-100'
+                                  }`}
+                                  onClick={() => handleTogglePackageStatus(pkg)}
+                                >
+                                  {pkg.isActive ? 'Active' : 'Inactive'}
+                                </button>
+                                <button
+                                  className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
+                                  onClick={() => openEditPackageModal(pkg)}
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -615,6 +653,26 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               {packageModalError && (
                 <p className="text-xs text-red-500">{packageModalError}</p>
               )}
+
+              <label className="block text-xs font-bold text-gray-500 uppercase">
+                Category
+                <select
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
+                  value={packageForm.category}
+                  onChange={(e) =>
+                    setPackageForm((prev) => ({
+                      ...prev,
+                      category: e.target.value,
+                    }))
+                  }
+                  required
+                >
+                  <option value="Silver">Silver</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Diamond">Diamond</option>
+                </select>
+              </label>
 
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Name

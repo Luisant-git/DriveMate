@@ -138,6 +138,7 @@ model Admin {
 
 model SubscriptionPlan {
   id          String   @id @default(cuid())
+  category    String
   name        String
   duration    Int      // days
   price       Float
