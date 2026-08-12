@@ -46,6 +46,9 @@ export default function CustomerBookingStatus() {
             const startDate = new Date(booking.startDateTime);
             const time = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             const date = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+            const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
+            const returnTime = endDate ? endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+            const returnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
             const assignedPerson = booking.driver || booking.lead;
             const isLead = !!booking.lead;
             
@@ -54,7 +57,10 @@ export default function CustomerBookingStatus() {
                 {/* Header */}
                 <div className="flex flex-row justify-between items-start gap-3 mb-4 flex-wrap sm:flex-nowrap">
                   <div>
-                    <p className="text-sm sm:text-xs text-gray-600">{time}, {date}</p>
+                    <p className="text-sm sm:text-xs text-gray-600">🚗 Going — {date}, {time}</p>
+                    {booking.endDateTime && (
+                      <p className="text-sm sm:text-xs text-gray-600">🏠 Return — {returnDate}, {returnTime}</p>
+                    )}
                     <p className="text-2xl font-bold text-gray-900">₹{booking.estimateAmount}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">

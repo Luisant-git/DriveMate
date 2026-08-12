@@ -452,7 +452,8 @@ export default function BookingWorkflow() {
                 <table className="w-full min-w-[1200px]">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date & Time</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">From Date & Time</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">To Date & Time</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
@@ -468,12 +469,25 @@ export default function BookingWorkflow() {
                       const startDate = new Date(booking.startDateTime);
                       const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
                       const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
+                      const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                      const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                       
                       return (
                         <tr key={booking.id} className="hover:bg-gray-50 transition">
                           <td className="px-4 py-4">
                             <p className="text-sm text-gray-500">{formattedTime}</p>
                             <p className="text-xs text-gray-400">{formattedDate}</p>
+                          </td>
+                          <td className="px-4 py-4">
+                            {booking.endDateTime ? (
+                              <>
+                                <p className="text-sm text-gray-500">{formattedReturnTime}</p>
+                                <p className="text-xs text-gray-400">{formattedReturnDate}</p>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-4">
                             {booking.estimateAmount && (

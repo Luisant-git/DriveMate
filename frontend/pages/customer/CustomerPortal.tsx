@@ -50,6 +50,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     drop: '',
     date: '',
     time: '',
+    returnDate: '',
+    returnTime: '',
     duration: '',
     whenNeeded: 'Immediately',
     carType: 'Manual',
@@ -351,6 +353,18 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         return;
       }
     }
+
+    // Validate Return Date and Time for Round Trip
+    if (formData.tripType === 'Round Trip') {
+      if (!formData.returnDate) {
+        toast.error('Please select the return (to) date for your round trip');
+        return;
+      }
+      if (!formData.returnTime) {
+        toast.error('Please select the return (to) time for your round trip');
+        return;
+      }
+    }
     
     // Validate pickup location
     if (!formData.pickup) {
@@ -446,6 +460,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         driverType: driverType,
         startDateTime: formData.date && formData.time ? 
           `${formData.date}T${formData.time}` : new Date().toISOString(),
+        endDateTime: formData.tripType === 'Round Trip' && formData.returnDate && formData.returnTime ? 
+          `${formData.returnDate}T${formData.returnTime}` : null,
         duration: formData.duration || formData.estimatedUsage,
         carType: formData.carType,
         vehicleType: formData.vehicleType,
@@ -463,6 +479,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           drop: '',
           date: '',
           time: '',
+          returnDate: '',
+          returnTime: '',
           duration: '',
           whenNeeded: 'Immediately',
           carType: 'Manual',
@@ -1498,7 +1516,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
                                     <div className="flex gap-2 sm:gap-3">
                                         <input 
                                             type="date" 
@@ -1530,6 +1548,42 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                     </div>
                                 </div>
+                                {formData.tripType === 'Round Trip' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">To Date & Time (Return)</label>
+                                        <div className="flex gap-2 sm:gap-3">
+                                            <input 
+                                                type="date" 
+                                                min={formData.date || undefined}
+                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                value={formData.returnDate}
+                                                onChange={e => setFormData({...formData, returnDate: e.target.value})}
+                                            />
+                                            <div className="relative flex-1">
+                                                <div 
+                                                    onClick={() => setOpenDropdown(openDropdown === 'returnTimeSlot' ? null : 'returnTimeSlot')}
+                                                    className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                >
+                                                    <span>{formData.returnTime ? getTimeSlots(formData.returnDate).find(s => s.value === formData.returnTime)?.label || formData.returnTime : 'Select time'}</span>
+                                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'returnTimeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                                {openDropdown === 'returnTimeSlot' && (
+                                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                        {getTimeSlots(formData.returnDate).map(slot => (
+                                                            <div 
+                                                                key={slot.value}
+                                                                onClick={() => { setFormData({...formData, returnTime: slot.value}); setOpenDropdown(null); }}
+                                                                className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.returnTime === slot.value ? 'bg-gray-100' : ''}`}
+                                                            >
+                                                                {slot.label}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
                                     <div className="flex gap-2">
@@ -2038,11 +2092,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         const startDate = new Date(booking.startDateTime);
                         const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
                         const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
+                        const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                        const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                         
                         return (
                         <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
                              <div className="flex flex-row justify-between items-center sm:items-start gap-2 mb-3 flex-wrap sm:flex-nowrap">
-                                <span className="text-sm sm:text-xs font-bold sm:mt-1">{formattedTime}, {formattedDate}</span>
+                                <div className="flex flex-col sm:mt-1 space-y-1">
+                                    <span className="text-sm sm:text-xs font-bold">🚗 Going — {formattedDate}, {formattedTime}</span>
+                                    {booking.endDateTime && (
+                                        <span className="text-sm sm:text-xs font-bold">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</span>
+                                    )}
+                                </div>
                                 <div className="flex flex-col items-end gap-2">
                                     <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
                                         booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :

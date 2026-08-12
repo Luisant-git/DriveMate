@@ -524,6 +524,9 @@ const Reports: React.FC = () => {
                               <p><span className="font-bold text-red-600">Extra Time Charge:</span> ₹{booking.finalAmount - booking.estimateAmount}</p>
                             )}
                             <p><span className="font-bold">Start:</span> {booking.actualStartTime ? new Date(booking.actualStartTime).toLocaleString('en-IN') : new Date(booking.startDateTime).toLocaleString('en-IN')}</p>
+                            {booking.endDateTime && (
+                              <p><span className="font-bold">Return:</span> {new Date(booking.endDateTime).toLocaleString('en-IN')}</p>
+                            )}
                             {booking.status === 'COMPLETED' && booking.completedAt && (
                               <p><span className="font-bold text-green-700">Completed:</span> {new Date(booking.completedAt).toLocaleString('en-IN')}</p>
                             )}

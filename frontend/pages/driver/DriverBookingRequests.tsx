@@ -152,13 +152,19 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                 const startDate = new Date(request.booking.startDateTime);
                 const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
                 const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const endDate = request.booking.endDateTime ? new Date(request.booking.endDateTime) : null;
+                const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                 
                 return (
                   <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
                     <div className="p-4 sm:p-5">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">🚗 Going — {formattedDate}, {formattedTime}</p>
+                          {request.booking.endDateTime && (
+                            <p className="text-xs sm:text-sm text-gray-500">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</p>
+                          )}
                           {request.booking.estimateAmount && (
                             <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
                           )}

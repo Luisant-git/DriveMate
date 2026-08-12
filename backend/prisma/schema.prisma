@@ -365,6 +365,7 @@ model Booking {
   tripType        String?     // One Way, Round Trip
   duration        String?
   startDateTime   DateTime
+  endDateTime     DateTime?
   vehicleType     String?
   carType         String?     // Manual/Automatic
   
