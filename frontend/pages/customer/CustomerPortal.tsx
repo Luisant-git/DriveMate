@@ -1934,7 +1934,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                         <div>
                                             <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
-                                            <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}</p>
+                                            <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1963,7 +1963,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 </div>
                                                 {fareBreakdown && (
                                                     <div>
-                                                        <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}</p>
+                                                        <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
 
                                                     </div>
                                                 )}
