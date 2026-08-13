@@ -30,22 +30,32 @@ const subscriptionPackages = [
 ];
 
 const localPricing = [
-  { packageType: 'LOCAL_HOURLY', hours: 4, minimumCharge: 500, immediateCharge: 550, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 5, minimumCharge: 600, immediateCharge: 650, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 6, minimumCharge: 700, immediateCharge: 750, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 7, minimumCharge: 800, immediateCharge: 850, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 8, minimumCharge: 900, immediateCharge: 950, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 9, minimumCharge: 1000, immediateCharge: 1050, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 10, minimumCharge: 1100, immediateCharge: 1150, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 11, minimumCharge: 1200, immediateCharge: 1250, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'LOCAL_HOURLY', hours: 12, minimumCharge: 1300, immediateCharge: 1350, extraPerHour: 90, extraPerHourImm: 100 },
+  { packageType: 'LOCAL_HOURLY', hours: 1, minimumKm: 10, minimumCharge: 450, immediateCharge: 500, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'LOCAL_HOURLY', hours: 2, minimumKm: 20, minimumCharge: 550, immediateCharge: 600, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'LOCAL_HOURLY', hours: 4, minimumKm: 40, minimumCharge: 650, immediateCharge: 700, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'LOCAL_HOURLY', hours: 6, minimumKm: 60, minimumCharge: 750, immediateCharge: 800, extraPerHour: 100, extraPerHourImm: 100 },
 ];
 
 const outstationPricing = [
-  { packageType: 'OUTSTATION', hours: 8, minimumKm: 60, minimumCharge: 850, immediateCharge: 950, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'OUTSTATION', hours: 10, minimumKm: 150, minimumCharge: 950, immediateCharge: 1050, extraPerHour: 90, extraPerHourImm: 100 },
-  { packageType: 'OUTSTATION', hours: 12, minimumKm: 300, minimumCharge: 1000, immediateCharge: 1200, extraPerHour: 90, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 4, minimumKm: 100, minimumCharge: 900, immediateCharge: 1000, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 5, minimumKm: 200, minimumCharge: 1000, immediateCharge: 1200, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 8, minimumKm: 300, minimumCharge: 1200, immediateCharge: 1300, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 10, minimumKm: 400, minimumCharge: 1300, immediateCharge: 1500, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 12, minimumKm: 500, minimumCharge: 1500, immediateCharge: 1800, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 13, minimumKm: 600, minimumCharge: 1800, immediateCharge: 2000, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 14, minimumKm: 700, minimumCharge: 2000, immediateCharge: 2300, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 15, minimumKm: 800, minimumCharge: 2500, immediateCharge: 2800, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 16, minimumKm: 900, minimumCharge: 3000, immediateCharge: 3300, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 17, minimumKm: 1000, minimumCharge: 3500, immediateCharge: 4000, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 18, minimumKm: 1100, minimumCharge: 4300, immediateCharge: 4500, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 19, minimumKm: 1200, minimumCharge: 4800, immediateCharge: 5000, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 20, minimumKm: 1300, minimumCharge: 5300, immediateCharge: 5500, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 21, minimumKm: 1400, minimumCharge: 5800, immediateCharge: 6000, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 22, minimumKm: 1500, minimumCharge: 6300, immediateCharge: 6500, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 23, minimumKm: 1600, minimumCharge: 6800, immediateCharge: 7000, extraPerHour: 100, extraPerHourImm: 100 },
+  { packageType: 'OUTSTATION', hours: 24, minimumKm: 1700, minimumCharge: 7300, immediateCharge: 7500, extraPerHour: 100, extraPerHourImm: 100 },
 ];
+
 
 const monthlyPricing = [
   { vehicleType: 'Luxury Car', hoursPerDay: '12 Hours', daysPerWeek: '1 day', charge5Days: 1000, charge6Days: 1200, extraPerHour: 90 },

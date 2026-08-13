@@ -309,9 +309,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
        console.error('Error calculating fare:', error);
        setEstimate(null);
        setFareBreakdown(null);
-     } finally {
-       setEstimateLoading(false);
-     }
+} finally {
+        setEstimateLoading(false);
+      }
+  };
+
+  const getAutoEstimatedUsage = (durationMinutes: number): string => {
+    const hours = Math.round(durationMinutes / 60 + 2);
+    const final = Math.min(Math.max(hours, 4), 12);
+    return `${final} Hrs`;
   };
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
@@ -1008,9 +1014,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                         setOneWayData({...oneWayData, pickup: value});
                                         setOneWayErrors({...oneWayErrors, pickup: ''});
-                                        // Recalculate fare for local
-                                        if (formData.estimatedUsage) {
-                                            setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                        // Calculate distance for local and auto-set estimated usage
+                                        if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
+                                            const distanceData = await calculateDistance(value, formData.drop);
+                                            if (distanceData) {
+                                                setCalculatedDistance(distanceData.distance);
+                                                setCalculatedDuration(distanceData.duration);
+                                                const autoUsage = getAutoEstimatedUsage(distanceData.duration);
+                                                setFormData({...formData, pickup: value, estimatedUsage: autoUsage});
+                                                setTimeout(() => handleEstimateWithValues(autoUsage, false), 100);
+                                            }
+                                        } else {
+                                            setCalculatedDistance(null);
+                                            setCalculatedDuration(null);
+                                            if (formData.estimatedUsage) {
+                                                setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                            }
                                         }
                                     } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
                                         setRoundTripData({...roundTripData, pickup: value});
@@ -1098,9 +1117,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                                 setOneWayData({...oneWayData, drop: value});
                                                 setOneWayErrors({...oneWayErrors, drop: ''});
-                                                // Recalculate fare for local
-                                                if (formData.estimatedUsage) {
-                                                    setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                                // Calculate distance for local and auto-set estimated usage
+                                                if (formData.pickup && value && formData.pickup.includes(',') && value.includes(',')) {
+                                                    const distanceData = await calculateDistance(formData.pickup, value);
+                                                    if (distanceData) {
+                                                        setCalculatedDistance(distanceData.distance);
+                                                        setCalculatedDuration(distanceData.duration);
+                                                        const autoUsage = getAutoEstimatedUsage(distanceData.duration);
+                                                        setFormData({...formData, drop: value, estimatedUsage: autoUsage});
+                                                        setTimeout(() => handleEstimateWithValues(autoUsage, false), 100);
+                                                    }
+                                                } else {
+                                                    setCalculatedDistance(null);
+                                                    setCalculatedDuration(null);
+                                                    if (formData.estimatedUsage) {
+                                                        setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                                    }
                                                 }
                                             } else if (serviceType === BookingType.OUTSTATION) {
                                                 setOutstationData({...outstationData, drop: value});
@@ -1399,7 +1431,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                         {openDropdown === 'usage' && (
                                             <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                                                {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
                                                     <div 
                                                         key={option}
                                                         onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
@@ -1681,7 +1713,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                         {openDropdown === 'usage' && (
                                             <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                                                {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
                                                     <div 
                                                         key={option}
                                                         onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
@@ -1937,6 +1969,25 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         </div>
                     )}
                     
+                    {/* Distance Display for Local */}
+                    {driverType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && calculatedDistance && (
+                        <div className="mx-4 mb-4">
+                            <div className="bg-gray-50 rounded-2xl p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
+                                        <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Fare Estimate for Local - Show normally */}
                     {driverType !== BookingType.MONTHLY && serviceType !== BookingType.OUTSTATION && (estimate || estimateLoading) && (
                         <div className="mx-4 mb-4">
