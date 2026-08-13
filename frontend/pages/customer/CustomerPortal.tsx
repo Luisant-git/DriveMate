@@ -69,6 +69,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
+  const [outstationDailyFare, setOutstationDailyFare] = useState<number | null>(null);
   const [pickupError, setPickupError] = useState<string>('');
   const [dropError, setDropError] = useState<string>('');
   const [dropKey, setDropKey] = useState(0);
@@ -318,6 +319,27 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const hours = Math.round(durationMinutes / 60 + 2);
     const final = Math.min(Math.max(hours, 4), 12);
     return `${final} Hrs`;
+  };
+
+  const getOutstationDays = (date: string, returnDate: string): number => {
+    if (formData.tripType !== 'Round Trip' || !date || !returnDate) return 1;
+    const from = new Date(date);
+    const to = new Date(returnDate);
+    const diff = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(diff + 1, 1);
+  };
+
+  const applyOutstationDaysEstimate = (dailyFare: number | null = null, date?: string, returnDate?: string) => {
+    const base = dailyFare ?? outstationDailyFare;
+    if (!base) return;
+    const days = getOutstationDays(date ?? formData.date, returnDate ?? formData.returnDate);
+    const total = base * days;
+    setEstimate(total);
+    setFareBreakdown(prev => prev ? {
+      ...prev,
+      totalFare: total,
+      description: days > 1 ? `${prev.description} • ${days} Days` : prev.description.replace(/ • \d+ Days$/, '')
+    } : prev);
   };
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
@@ -1069,7 +1091,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
                                                 if (breakdown) {
                                                     setFareBreakdown(breakdown);
-                                                    setEstimate(breakdown.totalFare);
+                                                    setOutstationDailyFare(breakdown.totalFare);
+                                                    if (formData.tripType === 'Round Trip') {
+                                                        applyOutstationDaysEstimate(breakdown.totalFare);
+                                                    } else {
+                                                        setEstimate(breakdown.totalFare);
+                                                    }
                                                 }
                                             }
                                         }
@@ -1169,7 +1196,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
                                                     if (breakdown) {
                                                         setFareBreakdown(breakdown);
-                                                        setEstimate(breakdown.totalFare);
+                                                        setOutstationDailyFare(breakdown.totalFare);
+                                                        if (formData.tripType === 'Round Trip') {
+                                                            applyOutstationDaysEstimate(breakdown.totalFare);
+                                                        } else {
+                                                            setEstimate(breakdown.totalFare);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1588,7 +1620,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 min={formData.date || undefined}
                                                 className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
                                                 value={formData.returnDate}
-                                                onChange={e => setFormData({...formData, returnDate: e.target.value})}
+                                                onChange={e => {
+                                                    const newReturnDate = e.target.value;
+                                                    setFormData({...formData, returnDate: newReturnDate});
+                                                    if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && newReturnDate) {
+                                                        setTimeout(() => applyOutstationDaysEstimate(null, formData.date, newReturnDate), 100);
+                                                    }
+                                                }}
                                             />
                                             <div className="relative flex-1">
                                                 <div 
@@ -1806,13 +1844,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 {formData.whenNeeded === 'Schedule Later' && (
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-                                        <div className="flex gap-2 sm:gap-3">
-                                            <input 
-                                                type="date" 
-                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                value={formData.date}
-                                                onChange={e => setFormData({...formData, date: e.target.value})}
-                                            />
+<div className="flex gap-2 sm:gap-3">
+                                        <input 
+                                            type="date" 
+                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                            value={formData.date}
+                                            onChange={e => {
+                                                const newDate = e.target.value;
+                                                setFormData({...formData, date: newDate});
+                                                if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip') {
+                                                    setTimeout(() => applyOutstationDaysEstimate(null, newDate, formData.returnDate), 100);
+                                                }
+                                            }}
+                                        />
                                             <input 
                                                 type="time" 
                                                 className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
