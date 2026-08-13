@@ -620,9 +620,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-gray-700">• Extra Pay for One Way Drop Return Ticket</p>
-                {serviceType === BookingType.OUTSTATION && (
-                  <p className="text-sm text-gray-700">• Food Extra</p>
-                )}
+                <p className="text-sm text-gray-700">• Food Extra</p>
+                <p className="text-sm text-gray-700">• Staying Accommodation (Not Mandatory)</p>
               </div>
             </div>
           </div>
