@@ -13,7 +13,7 @@ import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
 import TermsAndConditions from '../../components/TermsAndConditions';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance } from '../../utils/fareCalculator';
+import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance, calculateLocalFareByDistance } from '../../utils/fareCalculator';
 import { calculateDistance, getPackageByDistance, getFilteredDurationOptions } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
 
@@ -1036,15 +1036,18 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                         setOneWayData({...oneWayData, pickup: value});
                                         setOneWayErrors({...oneWayErrors, pickup: ''});
-                                        // Calculate distance for local and auto-set estimated usage
+                                        // Calculate distance for local and auto-set package based on Min KM
                                         if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
                                             const distanceData = await calculateDistance(value, formData.drop);
                                             if (distanceData) {
                                                 setCalculatedDistance(distanceData.distance);
                                                 setCalculatedDuration(distanceData.duration);
-                                                const autoUsage = getAutoEstimatedUsage(distanceData.duration);
-                                                setFormData({...formData, pickup: value, estimatedUsage: autoUsage});
-                                                setTimeout(() => handleEstimateWithValues(autoUsage, false), 100);
+                                                const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
+                                                if (breakdown) {
+                                                    setFareBreakdown(breakdown);
+                                                    setEstimate(breakdown.totalFare);
+                                                    setFormData({...formData, pickup: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}`});
+                                                }
                                             }
                                         } else {
                                             setCalculatedDistance(null);
@@ -1144,15 +1147,18 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                                 setOneWayData({...oneWayData, drop: value});
                                                 setOneWayErrors({...oneWayErrors, drop: ''});
-                                                // Calculate distance for local and auto-set estimated usage
+                                                // Calculate distance for local and auto-set package based on Min KM
                                                 if (formData.pickup && value && formData.pickup.includes(',') && value.includes(',')) {
                                                     const distanceData = await calculateDistance(formData.pickup, value);
                                                     if (distanceData) {
                                                         setCalculatedDistance(distanceData.distance);
                                                         setCalculatedDuration(distanceData.duration);
-                                                        const autoUsage = getAutoEstimatedUsage(distanceData.duration);
-                                                        setFormData({...formData, drop: value, estimatedUsage: autoUsage});
-                                                        setTimeout(() => handleEstimateWithValues(autoUsage, false), 100);
+                                                        const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
+                                                        if (breakdown) {
+                                                            setFareBreakdown(breakdown);
+                                                            setEstimate(breakdown.totalFare);
+                                                            setFormData({...formData, drop: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}`});
+                                                        }
                                                     }
                                                 } else {
                                                     setCalculatedDistance(null);

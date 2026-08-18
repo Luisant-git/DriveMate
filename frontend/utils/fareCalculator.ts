@@ -13,6 +13,8 @@ export interface FareBreakdown {
   immediateCharge?: number;
   extraPerHourSch?: number;
   extraPerHourImm?: number;
+  hours?: number;
+  minimumKm?: number;
 }
 
 export async function calculateFare(
@@ -92,6 +94,42 @@ export async function calculateOutstationFareByDistance(
     return null;
   } catch (error) {
     console.error('Error fetching outstation fare:', error);
+    return null;
+  }
+}
+
+export async function calculateLocalFareByDistance(
+  distanceKm: number,
+  isImmediate: boolean = false
+): Promise<FareBreakdown | null> {
+  try {
+    const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
+      params: { packageType: 'LOCAL_HOURLY', hours: 1, distance: distanceKm, isImmediate }
+    });
+    
+    if (response.data.success && response.data.pricing) {
+      const pricing = response.data.pricing;
+      const finalEstimate = response.data.estimate || pricing.minimumCharge;
+
+      return {
+        baseFare: finalEstimate,
+        extraHours: 0,
+        extraHourCharge: 0,
+        totalFare: finalEstimate,
+        packageType: 'LOCAL',
+        description: pricing.description || `${pricing.hours} Hour${pricing.hours > 1 ? 's' : ''} Package (Min KM ${pricing.minimumKm})`,
+        scheduledCharge: pricing.minimumCharge,
+        immediateCharge: pricing.immediateCharge,
+        extraPerHourSch: pricing.extraPerHour,
+        extraPerHourImm: pricing.extraPerHourImm,
+        hours: pricing.hours,
+        minimumKm: pricing.minimumKm
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching local fare:', error);
     return null;
   }
 }

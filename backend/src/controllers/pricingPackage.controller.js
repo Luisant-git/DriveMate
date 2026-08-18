@@ -95,6 +95,20 @@ export const getEstimateByPackage = async (req, res) => {
       }
     }
     
+    // For LOCAL_HOURLY with distance, auto-determine hours based on Min KM
+    if (packageType === 'LOCAL_HOURLY' && distance && parseInt(distance) > 0) {
+      const distanceKm = parseInt(distance);
+      const localPackages = await prisma.pricingPackage.findMany({
+        where: { packageType: 'LOCAL_HOURLY', isActive: true, minimumKm: { not: null } },
+        orderBy: { minimumKm: 'asc' }
+      });
+      // Pick the smallest package whose Min KM covers the distance; else the largest
+      const matching = localPackages.find(p => distanceKm <= p.minimumKm) || localPackages[localPackages.length - 1];
+      if (matching) {
+        queryHours = matching.hours;
+      }
+    }
+    
     const pricing = await prisma.pricingPackage.findUnique({
       where: { 
         packageType_hours: { 

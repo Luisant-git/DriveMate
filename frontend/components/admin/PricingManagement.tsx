@@ -267,6 +267,7 @@ export default function PricingManagement() {
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Hours</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Min KM</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Min Charge (Sch)</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Imm Charge</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Extra/Hour (Sch)</th>
@@ -277,7 +278,7 @@ export default function PricingManagement() {
           <tbody className="divide-y divide-gray-200">
             {local.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center">
+                <td colSpan={8} className="px-4 py-12 text-center">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -299,6 +300,9 @@ export default function PricingManagement() {
                       </div>
                       <p className="text-sm font-semibold text-gray-900">{pkg.hours} Hour{pkg.hours > 1 ? 's' : ''}</p>
                     </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="text-sm text-gray-900">{pkg.minimumKm ? `${pkg.minimumKm} KM` : '-'}</p>
                   </td>
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-gray-900">₹{pkg.minimumCharge}</p>
@@ -471,12 +475,10 @@ export default function PricingManagement() {
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Immediate Charge (₹)</label>
                   <input type="number" value={formData.immediateCharge} onChange={(e) => setFormData({...formData, immediateCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 550 (Optional)" />
                 </div>
-                {formData.packageType === 'OUTSTATION' && (
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum KM</label>
-                    <input type="number" value={formData.minimumKm} onChange={(e) => setFormData({...formData, minimumKm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 40" />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum KM</label>
+                  <input type="number" value={formData.minimumKm} onChange={(e) => setFormData({...formData, minimumKm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 40" />
+                </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (Scheduled) (₹)</label>
                   <input type="number" value={formData.extraPerHour} onChange={(e) => setFormData({...formData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required placeholder="e.g. 100" />
