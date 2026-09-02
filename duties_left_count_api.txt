@@ -1,0 +1,25 @@
+## Total Duties Left - Complete API Logic
+
+1. Fetching the Duties Count (Frontend)
+-----------------------------
+Endpoint: GET /api/subscriptions/driver
+What it does: This fetches the driver's active subscription package from the server.
+How it calculates Duties Left: 
+Instead of trying to count trips manually, the frontend now uses the true server values:
+`Duties Left = (subscription.maxDuties) - (subscription.dutiesCompleted)`
+
+2. Deducting a Duty on Trip Completion
+-----------------------------
+Endpoint: POST /api/trips/:id/complete
+What it does: When a driver successfully finishes a trip, this API automatically increments `dutiesCompleted` by 1 in the database.
+
+3. Deducting a Duty on Driver Cancellation
+-----------------------------
+Endpoint: POST /api/booking-workflow/admin/:bookingId/reallocate-cancellation
+What it does: When a driver requests a cancellation, the Admin reviews it and clicks "Reallocate". 
+The backend checks: If the cancellation reason was NOT "Requested by Customer", it officially penalizes the driver by incrementing their `dutiesCompleted` by 1 in the database. 
+
+4. Customer Cancellation (No Penalty)
+-----------------------------
+Endpoint: POST /api/trips/:id/cancel (Customer App)
+What it does: If the CUSTOMER cancels the trip, it sets the reason to "Requested by Customer". The backend sees this and DOES NOT increment the driver's `dutiesCompleted`, ensuring they get their duty count back safely!

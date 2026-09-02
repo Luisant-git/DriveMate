@@ -1,0 +1,36 @@
+## Driver Cancellation & Duties API Flow
+
+1. Get Driver Trips (Updated)
+-----------------------------
+Endpoint: GET /api/trips/driver
+Headers: Authorization: Bearer <token>
+Description: Fetches all trips for the driver. 
+Update: Now includes `cancellationRequested` (boolean) and `cancellationReason` (string) in the response so the frontend can properly display "Cancellation Pending" and who cancelled the trip.
+
+2. Request Cancellation (Driver Action)
+-----------------------------
+Endpoint: POST /api/trips/:id/request-cancel
+Headers: Authorization: Bearer <token>
+Description: Called when the driver clicks "Cancel Trip" in the app. This does NOT immediately cancel the trip or deduct a duty. It sets `cancellationRequested = true` and `cancellationReason = 'Requested by Driver'`.
+
+3. Reallocate Cancellation (Admin Action)
+-----------------------------
+Endpoint: POST /api/booking-workflow/admin/:bookingId/reallocate-cancellation
+Headers: Authorization: Bearer <token> (Admin)
+Body: { "driverId": "new_driver_id" }
+Description: Admin approves the driver's cancellation request and assigns the trip to a new driver. 
+Important Logic: This endpoint checks if the cancellation reason is NOT "Requested by Customer". Since the driver requested it, it increments the original driver's `dutiesCompleted` by 1 (deducting a duty as a penalty). It also sets the original driver's booking response status to "CANCELLED".
+
+4. Get True Duties (Driver App)
+-----------------------------
+Endpoint: GET /api/subscriptions/driver
+Headers: Authorization: Bearer <token>
+Description: Fetches the driver's current active subscription. 
+Update: The Driver Portal UI now calls this endpoint every time a trip is completed to get the true server-calculated `dutiesCompleted` count, rather than trying to calculate it manually on the frontend.
+
+5. Request History (Driver App)
+-----------------------------
+Endpoint: GET /api/booking-workflow/driver/pending-requests?type=HISTORY
+Headers: Authorization: Bearer <token>
+Description: Fetches the driver's booking request history.
+Update: The UI now specifically looks for the "CANCELLED" status from this endpoint and styles it in Red, identical to "REJECTED" requests.

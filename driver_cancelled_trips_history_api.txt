@@ -1,0 +1,17 @@
+## Driver Trip History API (Including Cancelled Trips)
+
+Endpoint: GET /api/trips/driver
+Headers: Authorization: Bearer <token>
+
+What Changed:
+--------------
+Previously, this API only returned trips where the `driverId` perfectly matched the current driver. When an Admin reallocated a trip to a NEW driver, the original driver lost all memory of the trip.
+
+Now, the API performs a smarter database query:
+1. It fetches all active trips assigned to the driver.
+2. It ALSO fetches any historical bookings where the driver left a `BookingResponse` with a `CANCELLED` status.
+3. Even if the trip was given to someone else and successfully `COMPLETED`, the backend intercepts it for the ORIGINAL driver and overrides the status so that the original driver sees it exclusively as `CANCELLED` by "Requested by Driver".
+
+Result:
+--------------
+Because the backend now accurately returns these cancelled past trips, the Frontend's `Total trips` length calculation works perfectly and counts cancelled trips towards the total history!

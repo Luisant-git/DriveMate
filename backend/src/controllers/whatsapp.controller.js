@@ -89,6 +89,17 @@ export const customerLoginOtp = async (req, res) => {
 
     console.log(`[WhatsApp] CUSTOMER OTP SUCCESS:`, successLog);
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     res.json({ 
       success: true, 
       message: 'WhatsApp OTP sent successfully',
@@ -201,6 +212,17 @@ export const customerDriverAssigned = async (req, res) => {
 
     console.log(`[WhatsApp] CUSTOMER NOTIFICATION SUCCESS:`, successLog);
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     res.json({ 
       success: true, 
       message: 'WhatsApp customer notification sent successfully',
@@ -314,6 +336,17 @@ export const driverBookingConfirmation = async (req, res) => {
 
     console.log(`[WhatsApp] CONFIRMATION SUCCESS:`, successLog);
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     res.json({ 
       success: true, 
       message: 'WhatsApp confirmation template sent successfully',
@@ -426,6 +459,17 @@ export const driverBookingAssignment = async (req, res) => {
 
     console.log(`[WhatsApp] SUCCESS:`, successLog);
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     res.json({ 
       success: true, 
       message: 'WhatsApp template sent successfully',
@@ -492,6 +536,17 @@ export const sendTripCompletedInternal = async (phone, parameters) => {
       }
     });
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     return { success: true, messageId: response.data.messages?.[0]?.id };
   } catch (error) {
     console.error(`[WhatsApp Internal] ERROR:`, error.response?.data || error.message);
@@ -600,6 +655,17 @@ export const leadBookingAssignment = async (req, res) => {
 
     console.log(`[WhatsApp] LEAD ASSIGNMENT SUCCESS:`, successLog);
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     res.json({ 
       success: true, 
       message: 'WhatsApp lead assignment template sent successfully',
@@ -713,6 +779,17 @@ export const leadBookingConfirmation = async (req, res) => {
 
     console.log(`[WhatsApp] LEAD CONFIRMATION SUCCESS:`, successLog);
 
+    
+    if (response.data.messages?.[0]?.id) {
+      logTemplateToCRM(
+        whatsappConfig,
+        formattedPhone,
+        response.data.messages[0].id,
+        logData.templateName,
+        'N/A',
+        `Template ${logData.templateName} sent`
+      ).catch(e => console.error('[CRM Logging Error]', e));
+    }
     res.json({ 
       success: true, 
       message: 'WhatsApp lead confirmation template sent successfully',
@@ -735,5 +812,33 @@ export const leadBookingConfirmation = async (req, res) => {
       error: 'Failed to send WhatsApp lead confirmation template',
       details: error.response?.data?.error?.message || error.message
     });
+  }
+};
+
+export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId, templateName, orderId, templateContent) => {
+  try {
+    const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
+    const crmApiKey = process.env.EXTERNAL_API_KEY || 'default-secret-key';
+    
+    const payload = {
+      phoneNumberId: whatsappConfig.phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID,
+      customerPhone: customerPhone,
+      messageId: messageId,
+      templateName: templateName,
+      websiteId: 'drivemate',
+      orderId: orderId,
+      templateLanguage: 'en',
+      templateContent: templateContent
+    };
+
+    await axios.post(crmApiUrl, payload, {
+      headers: {
+        'Authorization': `Bearer ${crmApiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log(`[WhatsApp] ✅ Successfully logged template ${templateName} to CRM for ref ${orderId}`);
+  } catch (error) {
+    console.error('[WhatsApp] ❌ Failed to log template to CRM:', error.response?.data || error.message);
   }
 };

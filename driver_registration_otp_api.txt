@@ -1,0 +1,18 @@
+## Driver Registration OTP Flow
+
+1. Send OTP 
+-----------
+Endpoint: POST /api/auth/send-otp
+Body: { "phone": "9876543210" }
+What it does: Sends a WhatsApp OTP using the customer template.
+
+2. Verify OTP 
+-----------
+Endpoint: POST /api/auth/verify-otp-only
+Body: { "phone": "9876543210", "otp": "123456" }
+What it does: Simply checks if the OTP is correct (without creating any customer account).
+
+3. Create Driver 
+-----------
+Endpoint: POST /api/driver/auth/register
+What it does: After OTPs are verified successfully, this saves the driver's details to the database.

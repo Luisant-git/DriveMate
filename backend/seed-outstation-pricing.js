@@ -11,7 +11,7 @@ async function seedOutstationPricing() {
       hours: 8,
       minimumKm: 60,
       minimumCharge: 850,
-      extraPerHour: 100,
+      extraPerHour: 90, extraPerHourImm: 100,
       description: '8 Hours Package (60-150 KM) - Minimum Charge ₹850-950'
     },
     {
@@ -19,7 +19,7 @@ async function seedOutstationPricing() {
       hours: 10,
       minimumKm: 150,
       minimumCharge: 950,
-      extraPerHour: 100,
+      extraPerHour: 90, extraPerHourImm: 100,
       description: '10 Hours Package (151-300 KM) - Minimum Charge ₹950-1000'
     },
     {
@@ -27,7 +27,7 @@ async function seedOutstationPricing() {
       hours: 12,
       minimumKm: 300,
       minimumCharge: 1000,
-      extraPerHour: 100,
+      extraPerHour: 90, extraPerHourImm: 100,
       description: '12 Hours Package (300+ KM) - Minimum Charge ₹1000-1500'
     }
   ];

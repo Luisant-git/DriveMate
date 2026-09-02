@@ -1,0 +1,33 @@
+# Trip Re-verification & 12-Hour Continuation API Logic
+
+This document describes the API behavior changes implemented to support the 12-hour driver re-verification and extra charge logic.
+
+## 1. Get Driver Trips
+**Endpoint:** `GET /api/trips/driver`
+**Description:** Fetches all assigned, upcoming, and ongoing trips for the driver.
+**Changes Made:**
+- Added `startDateTime`: Returns the full ISO string of the scheduled start time, which is used by the frontend to accurately convert UTC to the user's local timezone (e.g., IST).
+- Added `updatedAt`: Returns the last time the booking record was modified in the database.
+
+**Usage in Logic:**
+The frontend uses `updatedAt` (or `actualStartTime` if `updatedAt` is missing) to track how many hours have elapsed since the trip started or was last re-verified. Once 12 hours have elapsed, the frontend enforces a mandatory photo and OTP re-verification.
+
+---
+
+## 2. Start / Re-verify Trip
+**Endpoint:** `POST /api/trips/:tripId/start`
+**Description:** Used to start a new trip, or to re-verify an ongoing trip after 12 hours.
+**Payload:**
+```json
+{
+  "otp": "123456",
+  "carFrontPhoto": "url_string",
+  "carBackPhoto": "url_string"
+}
+```
+**Changes Made:**
+- Preserves Original Time: If the trip's status is already `ONGOING`, the endpoint will **NOT** overwrite the `actualStartTime`. It only processes the valid OTP and updates the new vehicle photos. 
+- Updates Timer: Because Prisma automatically updates the `updatedAt` timestamp whenever a record is modified, saving the new photos implicitly resets the 12-hour countdown timer on the frontend.
+
+**Usage in Logic:**
+By preserving the `actualStartTime`, the system ensures that when the trip is finally completed, the total elapsed time is calculated accurately from the true start time. This guarantees that the ₹100/hr extra charge (calculated for any time exceeding the base package hours) is perfectly preserved.
