@@ -98,7 +98,8 @@ export const customerLoginOtp = async (req, res) => {
         logData.templateName,
         'N/A',
         `Template ${logData.templateName} sent`,
-        [otp]
+        [otp],
+        [{ type: 'COPY_CODE', text: 'Copy code', value: otp }]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -822,7 +823,7 @@ export const leadBookingConfirmation = async (req, res) => {
   }
 };
 
-export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId, templateName, orderId, templateContent, templateParameters) => {
+export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId, templateName, orderId, templateContent, templateParameters, templateButtons = undefined) => {
   try {
     const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
     const crmApiKey = process.env.EXTERNAL_API_KEY || 'default-secret-key';
@@ -836,7 +837,8 @@ export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId,
       orderId: orderId,
       templateLanguage: 'en',
       templateContent: templateContent,
-      templateParameters: templateParameters
+      templateParameters: templateParameters,
+      templateButtons: templateButtons
     };
 
     await axios.post(crmApiUrl, payload, {
