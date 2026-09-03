@@ -97,7 +97,8 @@ export const customerLoginOtp = async (req, res) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [otp]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -220,7 +221,8 @@ export const customerDriverAssigned = async (req, res) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [parameters.customerName, parameters.pickupTime, parameters.driverName, parameters.driverMobile, parameters.bookingType]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -344,7 +346,8 @@ export const driverBookingConfirmation = async (req, res) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [parameters.bookingType, parameters.fareAmount, parameters.pickup, parameters.destination, parameters.pickupTime, parameters.customerContact]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -467,7 +470,8 @@ export const driverBookingAssignment = async (req, res) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [parameters.bookingType, parameters.fareAmount, parameters.pickup, parameters.destination, parameters.tripTime]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -544,7 +548,8 @@ export const sendTripCompletedInternal = async (phone, parameters) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [parameters.customerName, parameters.pickup, parameters.destination, parameters.amount]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     return { success: true, messageId: response.data.messages?.[0]?.id };
@@ -663,7 +668,8 @@ export const leadBookingAssignment = async (req, res) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [parameters.bookingType, parameters.fareAmount, parameters.pickup, parameters.destination, parameters.tripTime]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -787,7 +793,8 @@ export const leadBookingConfirmation = async (req, res) => {
         response.data.messages[0].id,
         logData.templateName,
         'N/A',
-        `Template ${logData.templateName} sent`
+        `Template ${logData.templateName} sent`,
+        [parameters.bookingType, parameters.fareAmount, parameters.pickup, parameters.destination, parameters.pickupTime, parameters.customerContact]
       ).catch(e => console.error('[CRM Logging Error]', e));
     }
     res.json({ 
@@ -815,7 +822,7 @@ export const leadBookingConfirmation = async (req, res) => {
   }
 };
 
-export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId, templateName, orderId, templateContent) => {
+export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId, templateName, orderId, templateContent, templateParameters) => {
   try {
     const crmApiUrl = 'https://whatsapp.api.luisant.cloud/whatsapp/external/log-message';
     const crmApiKey = process.env.EXTERNAL_API_KEY || 'default-secret-key';
@@ -828,7 +835,8 @@ export const logTemplateToCRM = async (whatsappConfig, customerPhone, messageId,
       websiteId: 'drivemate',
       orderId: orderId,
       templateLanguage: 'en',
-      templateContent: templateContent
+      templateContent: templateContent,
+      templateParameters: templateParameters
     };
 
     await axios.post(crmApiUrl, payload, {
