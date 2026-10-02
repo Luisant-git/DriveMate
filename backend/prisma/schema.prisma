@@ -82,6 +82,7 @@ model Lead {
   password                String
   aadharNo                String                @unique
   licenseNo               String                @unique
+  status                  DriverStatus          @default(PENDING)
   photo                   String?
   dlPhoto                 String?
   panPhoto                String?

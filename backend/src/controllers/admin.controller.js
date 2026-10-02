@@ -415,4 +415,8 @@ export const changeDriverPassword = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-};
+};
+export const approveLead = async (req, res) => { try { const lead = await prisma.lead.update({ where: { id: req.params.leadId }, data: { status: 'APPROVED' } }); res.json(lead); } catch (error) { res.status(400).json({ error: error.message }); } };
+export const rejectLead = async (req, res) => { try { const lead = await prisma.lead.update({ where: { id: req.params.leadId }, data: { status: 'REJECTED' } }); res.json(lead); } catch (error) { res.status(400).json({ error: error.message }); } };
+export const updateLeadDocument = async (req, res) => { try { const lead = await prisma.lead.update({ where: { id: req.params.leadId }, data: req.body }); res.json({ success: true, lead }); } catch (error) { res.status(400).json({ error: error.message }); } };
+export const changeLeadPassword = async (req, res) => { try { const bcrypt = await import('bcrypt'); const hashedPassword = await bcrypt.hash(req.body.password, 10); await prisma.lead.update({ where: { id: req.params.leadId }, data: { password: hashedPassword } }); res.json({ success: true }); } catch (error) { res.status(400).json({ error: error.message }); } };

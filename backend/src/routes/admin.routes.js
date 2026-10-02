@@ -1,5 +1,5 @@
 import express from 'express';
-import {
+import { approveLead, rejectLead, updateLeadDocument, changeLeadPassword, 
   getAllDrivers,
   getAllCustomers,
   approveDriver,
@@ -35,6 +35,10 @@ router.put('/drivers/:driverId/active', authenticateToken, toggleDriverActiveSta
 router.put('/drivers/:driverId/status', authenticateToken, updateDriverStatus);
 router.put('/drivers/:driverId/password', authenticateToken, changeDriverPassword);
 router.put('/leads/:leadId/active', authenticateToken, toggleLeadActiveStatus);
+router.put('/leads/:leadId/approve', authenticateToken, approveLead);
+router.put('/leads/:leadId/reject', authenticateToken, rejectLead);
+router.put('/leads/:leadId/document', authenticateToken, updateLeadDocument);
+router.put('/leads/:leadId/password', authenticateToken, changeLeadPassword);
 router.get('/rides', authenticateToken, getAllRides);
 router.get('/analytics', authenticateToken, getAnalytics);
 router.get('/drivers/nearby', authenticateToken, findNearestDrivers);
