@@ -124,9 +124,9 @@ export default function Customer() {
                     {customer.idProof ? (
                       <button 
                         onClick={() => window.open(customer.idProof, '_blank')}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-bold underline"
+                        className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 text-[10px] font-bold rounded"
                       >
-                        Download
+                        View Doc
                       </button>
                     ) : (
                       <span className="text-gray-400 text-[10px] font-bold">Not uploaded</span>
@@ -186,6 +186,12 @@ export default function Customer() {
                       <span className="text-gray-600">Phone:</span>
                       <span className="font-semibold text-gray-900">{selectedCustomer.phone}</span>
                     </div>
+                    {selectedCustomer.whatsappNumber && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">WhatsApp:</span>
+                        <span className="font-semibold text-gray-900">{selectedCustomer.whatsappNumber}</span>
+                      </div>
+                    )}
                     {selectedCustomer.alternatePhone && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Alt Phone:</span>

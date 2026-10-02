@@ -25,6 +25,7 @@ export interface User {
   role: UserRole;
   email: string;
   phone: string;
+  whatsappNumber?: string;
   avatarUrl?: string;
   password?: string; // Mock password for change password feature
 }
