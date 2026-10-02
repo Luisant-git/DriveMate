@@ -28,7 +28,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
   const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
   const [showDriverProfile, setShowDriverProfile] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<any>(null);
+  const [selectedDriverOrLead, setSelectedDriver] = useState<any>(null);
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
@@ -672,7 +672,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           </div>
         </div>
       )}
-      {showDriverProfile && selectedDriver && (
+      {showDriverProfile && selectedDriverOrLead && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
             {/* Header */}
@@ -681,10 +681,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
               <div className="flex flex-col items-center text-white">
-                {(selectedDriver.documents?.photo || selectedDriver.photo) ? (
+                {(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) ? (
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-lg mb-2 sm:mb-3 overflow-hidden bg-white flex items-center justify-center p-1">
                     <img 
-                      src={(selectedDriver.documents?.photo || selectedDriver.photo)?.startsWith('http') ? (selectedDriver.documents?.photo || selectedDriver.photo) : `${API_BASE_URL}${selectedDriver.documents?.photo || selectedDriver.photo}`} 
+                      src={(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo)?.startsWith('http') ? (selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) : `${API_BASE_URL}${selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo}`} 
                       alt="Photo" 
                       className="w-full h-full object-contain rounded-full" 
                       onError={(e) => {
@@ -694,10 +694,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     />
                   </div>
                 ) : null}
-                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${(selectedDriver.documents?.photo || selectedDriver.photo) ? 'hidden' : ''}`}>
-                  {selectedDriver.name?.[0] || 'D'}
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) ? 'hidden' : ''}`}>
+                  {selectedDriverOrLead.name?.[0] || 'D'}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriver.name || 'Driver/Lead'}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriverOrLead.name || 'Driver/Lead'}</h2>
               </div>
             </div>
 
@@ -711,55 +711,55 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Phone Number</p>
-                    <a href={`tel:${selectedDriver.phone}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.phone || 'N/A'}</a>
+                    <a href={`tel:${selectedDriverOrLead.phone}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.phone || 'N/A'}</a>
                   </div>
-                  <a href={`tel:${selectedDriver.phone}`} className="w-9 h-9 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition shadow-lg flex-shrink-0">
+                  <a href={`tel:${selectedDriverOrLead.phone}`} className="w-9 h-9 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition shadow-lg flex-shrink-0">
                     <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                   </a>
                 </div>
-                {(selectedDriver.alternateMobile1 || selectedDriver.alternateMobile2 || selectedDriver.alternateMobile3 || selectedDriver.alternateMobile4) && (
+                {(selectedDriverOrLead.alternateMobile1 || selectedDriverOrLead.alternateMobile2 || selectedDriverOrLead.alternateMobile3 || selectedDriverOrLead.alternateMobile4) && (
                   <div className="pt-2 sm:pt-3 border-t border-gray-200 space-y-2">
-                    {selectedDriver.alternateMobile1 && (
+                    {selectedDriverOrLead.alternateMobile1 && (
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 1</p>
-                          <a href={`tel:${selectedDriver.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile1}</a>
+                          <a href={`tel:${selectedDriverOrLead.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile1}</a>
                         </div>
                       </div>
                     )}
-                    {selectedDriver.alternateMobile2 && (
+                    {selectedDriverOrLead.alternateMobile2 && (
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 2</p>
-                          <a href={`tel:${selectedDriver.alternateMobile2}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile2}</a>
+                          <a href={`tel:${selectedDriverOrLead.alternateMobile2}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile2}</a>
                         </div>
                       </div>
                     )}
-                    {selectedDriver.alternateMobile3 && (
+                    {selectedDriverOrLead.alternateMobile3 && (
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 3</p>
-                          <a href={`tel:${selectedDriver.alternateMobile3}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile3}</a>
+                          <a href={`tel:${selectedDriverOrLead.alternateMobile3}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile3}</a>
                         </div>
                       </div>
                     )}
-                    {selectedDriver.alternateMobile4 && (
+                    {selectedDriverOrLead.alternateMobile4 && (
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 4</p>
-                          <a href={`tel:${selectedDriver.alternateMobile4}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriver.alternateMobile4}</a>
+                          <a href={`tel:${selectedDriverOrLead.alternateMobile4}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile4}</a>
                         </div>
                       </div>
                     )}
@@ -768,7 +768,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
               </div>
 
               {/* License Info */}
-              {selectedDriver.licenseNo && (
+              {selectedDriverOrLead.licenseNo && (
                 <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4">
                   <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                     <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -776,12 +776,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] sm:text-xs text-gray-500 font-medium">License Number</p>
-                      <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{selectedDriver.licenseNo}</p>
+                      <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{selectedDriverOrLead.licenseNo}</p>
                     </div>
                   </div>
-                  {(selectedDriver.documents?.dl || selectedDriver.dlPhoto) && (
+                  {(selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto) && (
                     <img 
-                      src={(selectedDriver.documents?.dl || selectedDriver.dlPhoto)?.startsWith('http') ? (selectedDriver.documents?.dl || selectedDriver.dlPhoto) : `${API_BASE_URL}${selectedDriver.documents?.dl || selectedDriver.dlPhoto}`} 
+                      src={(selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto)?.startsWith('http') ? (selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto) : `${API_BASE_URL}${selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto}`} 
                       alt="License" 
                       className="w-full h-32 sm:h-40 rounded-lg sm:rounded-xl object-contain bg-white border border-gray-200" 
                     />
@@ -2274,7 +2274,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <div className="flex flex-col items-end gap-2">
                                     <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
                                         booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
-                                        (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'bg-green-100 text-green-800' : 
+                                        (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'bg-green-100 text-green-800' : 
                                         booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
                                         booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                         booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
@@ -2282,7 +2282,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     }`}>
                                         {booking.cancellationRequested ? 'CANCELLATION PENDING' :
                                          booking.status === 'CANCELLED' ? 'CANCELLED' :
-                                         (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
+                                         (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
                                     </span>
                                     {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
                                         <button
@@ -2320,7 +2320,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  </div>
                              )}
                              
-                             {booking.status === 'CONFIRMED' && !booking.driverId && !booking.leadId && (
+                             {booking.status === 'CONFIRMED' && !(booking.driverId || booking.leadId) && !booking.leadId && (
                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
                                      <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
                                      <p className="text-xs text-blue-600 mt-1">Request sent to {booking.selectedPackageType} drivers</p>
@@ -2371,27 +2371,27 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              )}
                              
                              {/* Driver Details - Show when driver is allocated */}
-                             {booking.driver && booking.driverId && (
+                             {(booking.driver || booking.lead) && (booking.driverId || booking.leadId) && (
                                  <div className="mt-3 pt-3 border-t border-gray-200">
                                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
                                      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
                                          <div className="flex items-center gap-2.5">
                                              <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
-                                                 {booking.driver.name?.[0] || 'D'}
+                                                 {(booking.driver || booking.lead).name?.[0] || 'D'}
                                              </div>
                                              <div className="flex-grow min-w-0">
-                                                 <p className="font-bold text-sm truncate">{booking.driver.name || 'Driver'}</p>
-                                                 <p className="text-xs text-gray-600">{booking.driver.phone || 'N/A'}</p>
-                                                 {booking.driver.rating > 0 && (
+                                                 <p className="font-bold text-sm truncate">{(booking.driver || booking.lead).name || 'Driver'}</p>
+                                                 <p className="text-xs text-gray-600">{(booking.driver || booking.lead).phone || 'N/A'}</p>
+                                                 {(booking.driver || booking.lead).rating > 0 && (
                                                      <div className="flex items-center gap-1 mt-0.5">
-                                                         <span className="text-[11px] font-bold text-gray-700">{booking.driver.rating.toFixed(1)}</span>
+                                                         <span className="text-[11px] font-bold text-gray-700">{(booking.driver || booking.lead).rating.toFixed(1)}</span>
                                                          <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                         <span className="text-[10px] text-gray-500">({booking.driver.totalRides || 0} rides)</span>
+                                                         <span className="text-[10px] text-gray-500">({(booking.driver || booking.lead).totalRides || 0} rides)</span>
                                                      </div>
                                                  )}
                                              </div>
                                              <a 
-                                                 href={`tel:${booking.driver.phone}`}
+                                                 href={`tel:${(booking.driver || booking.lead).phone}`}
                                                  className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
                                              >
                                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
@@ -2399,7 +2399,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                          </div>
                                          <button
                                              onClick={() => {
-                                               setSelectedDriver(booking.driver);
+                                               setSelectedDriver((booking.driver || booking.lead));
                                                setShowDriverProfile(true);
                                              }}
                                              className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
@@ -2524,19 +2524,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              </div>
                              
                              {/* Driver Details - Show when trip is confirmed/ongoing/completed */}
-                             {trip.driver && (trip.status === 'CONFIRMED' || trip.status === 'ONGOING' || trip.status === 'COMPLETED') && (
+                             {(trip.driver || trip.lead) && (trip.status === 'CONFIRMED' || trip.status === 'ONGOING' || trip.status === 'COMPLETED') && (
                                  <div className="mt-3 pt-3 border-t border-gray-100">
                                      <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Driver Details</p>
                                      <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
                                          <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
-                                             {trip.driver.name?.[0] || 'D'}
+                                             {(trip.driver || trip.lead).name?.[0] || 'D'}
                                          </div>
                                          <div className="flex-grow">
-                                             <p className="font-bold text-sm">{trip.driver.name || 'Driver'}</p>
-                                             <p className="text-xs text-gray-500">{trip.driver.phone || 'N/A'}</p>
+                                             <p className="font-bold text-sm">{(trip.driver || trip.lead).name || 'Driver'}</p>
+                                             <p className="text-xs text-gray-500">{(trip.driver || trip.lead).phone || 'N/A'}</p>
                                          </div>
                                          <a 
-                                             href={`tel:${trip.driver.phone}`}
+                                             href={`tel:${(trip.driver || trip.lead).phone}`}
                                              className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition"
                                          >
                                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
