@@ -1,10 +1,11 @@
 import express from 'express';
-import { getDriverReports, getCustomerReports, getRevenueReport, getDriverTrips, getCustomerTrips, getAllBookingsReport } from '../controllers/reports.controller.js';
+import { getDriverReports, getLeadReports, getCustomerReports, getRevenueReport, getDriverTrips, getCustomerTrips, getAllBookingsReport } from '../controllers/reports.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 router.get('/drivers', authenticateToken, getDriverReports);
+router.get('/leads', authenticateToken, getLeadReports);
 router.get('/drivers/:driverId/trips', authenticateToken, getDriverTrips);
 router.get('/customers', authenticateToken, getCustomerReports);
 router.get('/customers/:customerId/trips', authenticateToken, getCustomerTrips);

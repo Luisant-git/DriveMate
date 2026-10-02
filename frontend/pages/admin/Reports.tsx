@@ -3,8 +3,9 @@ import { getDriverReports, getCustomerReports, getRevenueReport, getDriverTrips,
 import { API_BASE_URL } from '../../api/config.js';
 
 const Reports: React.FC = () => {
-  const [activeReport, setActiveReport] = useState<'DRIVERS' | 'CUSTOMERS' | 'REVENUE' | 'OVERDUE VERIFICATION' | 'ALL BOOKINGS'>('ALL BOOKINGS');
+  const [activeReport, setActiveReport] = useState<'DRIVERS' | 'LEADS' | 'CUSTOMERS' | 'REVENUE' | 'OVERDUE VERIFICATION' | 'ALL BOOKINGS'>('ALL BOOKINGS');
   const [driverReports, setDriverReports] = useState<any[]>([]);
+  const [leadReports, setLeadReports] = useState<any[]>([]);
   const [customerReports, setCustomerReports] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [allBookingsReports, setAllBookingsReports] = useState<any[]>([]);
@@ -35,7 +36,12 @@ const Reports: React.FC = () => {
       } else if (activeReport === 'REVENUE') {
         const res = await getRevenueReport(filters);
         if (res.success) setRevenueData(res.data);
-      } else if (activeReport === 'ALL BOOKINGS') {
+      } else if (activeReport === 'OVERDUE VERIFICATION') {
+          const resD = await getDriverReports(filters);
+          if (resD.success) setDriverReports(resD.data);
+          const resL = await getLeadReports(filters);
+          if (resL.success) setLeadReports(resL.data);
+        } else if (activeReport === 'ALL BOOKINGS') {
         const res = await getAllBookingsReport(filters);
         if (res.success) setAllBookingsReports(res.data || []);
       }
@@ -114,7 +120,7 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
         <h2 className="text-xl md:text-2xl font-bold">Reports</h2>
         <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1">
-          {['ALL BOOKINGS', 'DRIVERS', 'CUSTOMERS', 'REVENUE', 'OVERDUE VERIFICATION'].map((tab) => (
+          {['ALL BOOKINGS', 'DRIVERS', 'LEADS', 'CUSTOMERS', 'REVENUE', 'OVERDUE VERIFICATION'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveReport(tab as any)}
@@ -147,7 +153,8 @@ const Reports: React.FC = () => {
           <button
             onClick={() =>
               exportToCSV(
-                activeReport === 'DRIVERS' ? driverReports : 
+                activeReport === 'DRIVERS' ? driverReports :
+                  activeReport === 'LEADS' ? leadReports : 
                 activeReport === 'CUSTOMERS' ? customerReports : 
                 activeReport === 'ALL BOOKINGS' ? allBookingsReports : [],
                 `${activeReport.toLowerCase().replace(' ', '-')}-report`
@@ -171,6 +178,7 @@ const Reports: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Phone</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Package</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Total Rides</th>
@@ -183,6 +191,7 @@ const Reports: React.FC = () => {
                     {driverReports.map((driver) => (
                       <tr key={driver.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">{driver.name}</td>
+                              <td className="px-6 py-4 text-sm font-medium">{driver.aadharNo ? (driver.upiId ? "Lead" : "Driver") : "Driver"}</td>
                         <td className="px-6 py-4 text-sm">{driver.phone}</td>
                         <td className="px-6 py-4 text-sm">{driver.packageType}</td>
                         <td className="px-6 py-4 text-sm">{driver.totalRides}</td>
@@ -223,7 +232,7 @@ const Reports: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {customerReports.map((customer) => (
-                      <tr key={customer.id} className="hover:bg-gray-50">
+                      <tr key={driver.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">{customer.name}</td>
                         <td className="px-6 py-4 text-sm">{customer.phone}</td>
                         <td className="px-6 py-4 text-sm">{customer.email}</td>
@@ -272,7 +281,7 @@ const Reports: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {allBookingsReports.map((booking: any) => (
-                      <tr key={booking.id} className="hover:bg-gray-50">
+                      <tr key={driver.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">
                           {booking.customer?.name}
                           <p className="text-xs text-gray-500 font-normal">{booking.customer?.phone}</p>
@@ -341,7 +350,7 @@ const Reports: React.FC = () => {
                       const today = new Date();
                       today.setHours(0,0,0,0);
 
-                      const overdueDrivers = driverReports.filter(d => {
+                      const overdueDrivers = [...driverReports, ...leadReports].filter(d => {
                         let isOverdue = false;
                         if (!d.licenseExpiryDate || new Date(d.licenseExpiryDate) <= thirtyDaysFromNow) isOverdue = true;
                         if (!d.policeVerificationExpiryDate || new Date(d.policeVerificationExpiryDate) <= thirtyDaysFromNow) isOverdue = true;
@@ -351,12 +360,12 @@ const Reports: React.FC = () => {
                       if (overdueDrivers.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">No drivers with overdue or missing documents.</td>
+                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">No drivers or leads with overdue or missing documents.</td>
                           </tr>
                         );
                       }
 
-                      return overdueDrivers.map((driver) => {
+                      return overdueDrivers.map((driver, index) => {
                         const isDLExpired = !driver.licenseExpiryDate || new Date(driver.licenseExpiryDate) < today;
                         const isDLExpiring = !isDLExpired && new Date(driver.licenseExpiryDate) <= thirtyDaysFromNow;
                         

@@ -26,6 +26,24 @@ export const getDriverReports = async (filters = {}) => {
   }
 };
 
+export const getLeadReports = async (filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.status) params.append('status', filters.status);
+
+    const response = await fetch(`${API_BASE_URL}/api/reports/leads?${params}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching lead reports:', error);
+    return { success: false, error: 'Failed to fetch lead reports' };
+  }
+};
+
 export const getCustomerReports = async (filters = {}) => {
   try {
     const params = new URLSearchParams();
