@@ -43,16 +43,18 @@ export const getAvailableTrips = async (req, res) => {
 // Get driver's trips (accepted/ongoing)
 export const getDriverTrips = async (req, res) => {
   try {
-    const driverId = req.user.userId || req.user.id;
+    const userId = req.user.userId || req.user.id;
+    const isLead = req.user.type === 'lead';
 
-    console.log('getDriverTrips - driverId:', driverId);
+    console.log('getDriverTrips - userId:', userId, 'isLead:', isLead);
 
-    // Get bookings assigned to this driver, or where the driver cancelled
     const bookings = await prisma.booking.findMany({
       where: {
         OR: [
-          { driverId },
-          { driverResponses: { some: { driverId, status: 'CANCELLED' } } }
+          isLead ? { leadId: userId } : { driverId: userId },
+          isLead 
+            ? { leadResponses: { some: { leadId: userId, status: 'REJECTED' } } }
+            : { driverResponses: { some: { driverId: userId, status: 'CANCELLED' } } }
         ]
       },
       include: {
@@ -61,15 +63,17 @@ export const getDriverTrips = async (req, res) => {
       orderBy: { startDateTime: 'desc' },
     });
 
-    console.log('Found bookings for driver:', bookings.length);
+    console.log('Found bookings for user:', bookings.length);
 
     const trips = bookings.map(booking => {
-      const isCancelledByThisDriver = booking.driverId !== driverId;
+      const isCancelledByThisUser = isLead 
+        ? booking.leadId !== userId
+        : booking.driverId !== userId;
 
       return {
         id: booking.id,
         customerId: booking.customerId,
-        driverId: isCancelledByThisDriver ? driverId : booking.driverId,
+        driverId: isLead ? (isCancelledByThisUser ? userId : booking.leadId) : (isCancelledByThisUser ? userId : booking.driverId),
         customer: booking.customer,
         pickupLocation: booking.pickupLocation,
         dropLocation: booking.dropLocation,

@@ -81,7 +81,7 @@ router.post('/', authenticateToken, requireRole(['CUSTOMER']), createTrip);
  *               items:
  *                 $ref: '#/components/schemas/Trip'
  */
-router.get('/available', authenticateToken, requireRole(['DRIVER']), getAvailableTrips);
+router.get('/available', authenticateToken, requireRole(['DRIVER', 'LEAD']), getAvailableTrips);
 
 /**
  * @swagger
@@ -95,7 +95,7 @@ router.get('/available', authenticateToken, requireRole(['DRIVER']), getAvailabl
  *       200:
  *         description: List of driver trips
  */
-router.get('/driver', authenticateToken, requireRole(['DRIVER']), getDriverTrips);
+router.get('/driver', authenticateToken, requireRole(['DRIVER', 'LEAD']), getDriverTrips);
 
 /**
  * @swagger
@@ -129,7 +129,7 @@ router.get('/customer', authenticateToken, requireRole(['CUSTOMER']), getCustome
  *       200:
  *         description: Trip accepted
  */
-router.post('/:tripId/accept', authenticateToken, requireRole(['DRIVER']), acceptTrip);
+router.post('/:tripId/accept', authenticateToken, requireRole(['DRIVER', 'LEAD']), acceptTrip);
 
 /**
  * @swagger
@@ -200,7 +200,7 @@ router.post('/:tripId/start', authenticateToken, requireRole(['DRIVER', 'LEAD'])
  *       200:
  *         description: Trip cancelled
  */
-router.post('/:tripId/cancel', authenticateToken, requireRole(['DRIVER']), cancelTrip);
+router.post('/:tripId/cancel', authenticateToken, requireRole(['DRIVER', 'LEAD']), cancelTrip);
 
 /**
  * @swagger
@@ -220,7 +220,7 @@ router.post('/:tripId/cancel', authenticateToken, requireRole(['DRIVER']), cance
  *       200:
  *         description: Cancellation requested
  */
-router.post('/:tripId/request-cancel', authenticateToken, requireRole(['DRIVER']), requestCancelTrip);
+router.post('/:tripId/request-cancel', authenticateToken, requireRole(['DRIVER', 'LEAD']), requestCancelTrip);
 
 /**
  * @swagger

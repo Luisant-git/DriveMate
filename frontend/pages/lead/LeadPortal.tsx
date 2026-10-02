@@ -1,65 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import { getLeadData, updateLeadProfile } from '../../api/lead';
-import { getLeadSubscriptions, getAllLeadPlans, purchaseLeadSubscription } from '../../api/leadSubscription';
-import { toast } from 'react-toastify';
+import { Lead, Trip } from '../../types';
+
+interface SubscriptionPackage {
+  id: string;
+  category: string;
+  name: string;
+  type: string;
+  duration: number;
+  price: number;
+  maxDuties?: number;
+  description?: string;
+  isActive?: boolean;
+}
+import { tripAPI } from '../../api/trip';
+import LeadBookingRequests from './LeadBookingRequests';
 import { API_BASE_URL } from '../../api/config.js';
+import { uploadFile } from '../../api/upload.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
+const TripTimer = ({ startTime }: { startTime: string }) => {
+  const [elapsed, setElapsed] = useState('');
+
+  useEffect(() => {
+    if (!startTime) return;
+    const updateTimer = () => {
+      const now = new Date();
+      const start = new Date(startTime);
+      const diff = now.getTime() - start.getTime();
+      
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      
+      setElapsed(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  return <span className="font-mono bg-green-900 px-2 py-0.5 rounded text-sm">{elapsed}</span>;
+};
+
+const formatTimeAMPM = (dateStr: string) => {
+  if (!dateStr) return '';
+  // Check if it's a full date string or just a time string (fallback)
+  if (dateStr.includes('T') || dateStr.includes(' ')) {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  const parts = dateStr.split(':');
+  if (parts.length < 2) return dateStr;
+  const hour = parseInt(parts[0], 10);
+  const minute = parts[1];
+  const ampm = hour >= 12 ? 'pm' : 'am';
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour}:${minute} ${ampm}`;
+};
+
+const formatDateLocal = (dateStr: string) => {
+  if (!dateStr) return '';
+  if (dateStr.includes('T') || dateStr.includes(' ')) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  }
+  return dateStr;
+};
+
 interface LeadPortalProps {
-  onLogout?: () => void;   
+  driver: Driver;
 }
 
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  rating: number;
-  totalRides: number;
-  photo?: string;
-  licenseNo?: string;
-  aadharNo?: string;
-  dlPhoto?: string;
-  panPhoto?: string;
-  aadharPhoto?: string;
-  msmePhoto?: string;
-  rationCardPhoto?: string;
-  policeVerificationPhoto?: string;
-  electricityBillPhoto?: string;
-  rentalAgreementPhoto?: string;
-  creditCardPhoto?: string;
-  debitCardPhoto?: string;
-  alternateMobile1?: string;
-  alternateMobile2?: string;
-  alternateMobile3?: string;
-  alternateMobile4?: string;
-  gpayNo?: string;
-  phonepeNo?: string;
-  vehicleNo?: string;
-  vehicleType?: string;
-}
-
-const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'HOME' | 'REQUESTS' | 'TRIPS' | 'PACKAGES' | 'PROFILE'>('HOME');
-  const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY'>('PENDING');
-  const [lead, setLead] = useState<Lead | null>(null);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [packages, setPackages] = useState<any[]>([]);
-  const [loadingPackages, setLoadingPackages] = useState(false);
+const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead }) => {
+  const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'PROFILE' | 'PACKAGES' | 'REQUESTS'>('REQUESTS');
+  const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY' | 'ALLOCATED'>('PENDING');
+  const [lead, setDriver] = useState<Driver>(initialLead);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [selectedPackage, setSelectedPackage] = useState<any>(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState<any>({});
-  const [imagePreviews, setImagePreviews] = useState<{[key: string]: string}>({});
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [allRequests, setAllRequests] = useState<any[]>([]);
-  const [loadingRequests, setLoadingRequests] = useState(false);
-  const [allocatedBookings, setAllocatedBookings] = useState<any[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
-  const [completedTrips, setCompletedTrips] = useState<any[]>([]);
-  const [loadingTrips, setLoadingTrips] = useState(false);
-
+  const [selectedPackage, setSelectedPackage] = useState<SubscriptionPackage | null>(null);
+  const [startingTripId, setStartingTripId] = useState<string | null>(null);
+  const [tripPhotos, setTripPhotos] = useState<{ front: File | null, back: File | null }>({ front: null, back: null });
+  const [isStartingTrip, setIsStartingTrip] = useState(false);
+  const [startOtp, setStartOtp] = useState('');
+  const [isStartOtpSent, setIsStartOtpSent] = useState(false);
+  const [isSendingStartOtp, setIsSendingStartOtp] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -77,335 +105,310 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
 
   const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
+  // Profile Edit States
+  const [profileData, setProfileData] = useState({
+    ...lead,
+    altPhone: lead.altPhone || [],
+    upiId: lead.upiId || lead.gpayNo || '',
+    photo: lead.photo || '',
+    dlPhoto: lead.dlPhoto || '',
+    panPhoto: lead.panPhoto || '',
+    aadharPhoto: lead.aadharPhoto || '',
+    policeVerificationPhoto: lead.policeVerificationPhoto || '' // New field
+  });
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [password, setPassword] = useState('');
+  const [imagePreviews, setImagePreviews] = useState<{[key: string]: string}>({});
+
+  // Update local driver state when prop changes
   useEffect(() => {
-    const leadData = getLeadData();
-    if (leadData) {
-      setLead(leadData);
-      setProfileData({
-        ...leadData,
-        upiId: leadData.gpayNo || leadData.phonepeNo || '',
-      });
-      loadSubscriptions();
-      loadAllocatedBookings();
-    }
-  }, []);
+    setLead(initialLead);
+    setProfileData({
+      ...initialLead,
+      altPhone: initialLead.altPhone || [],
+      upiId: initialLead.upiId || initialLead.gpayNo || '',
+      photo: initialLead.photo || '',
+      dlPhoto: initialLead.dlPhoto || '',
+      panPhoto: initialLead.panPhoto || '',
+      aadharPhoto: initialLead.aadharPhoto || '',
+      policeVerificationPhoto: initialLead.policeVerificationPhoto || '' // New field
+    });
+  }, [initialLead]);
 
-  useEffect(() => {
-    if (activeTab === 'PACKAGES') {
-      loadPackages();
-    } else if (activeTab === 'REQUESTS') {
-      loadPendingRequests(requestsSubTab);
-    } else if (activeTab === 'TRIPS') {
-      loadCompletedTrips();
-      loadAllocatedBookings();
-    }
-  }, [activeTab, requestsSubTab]);
-
-
-
-  const loadSubscriptions = async () => {
-    const result = await getLeadSubscriptions();
-    if (result.success) {
-      const subs = result.data?.subscriptions || [];
-      setSubscriptions(subs);
-      if (subs.length > 0) {
-        setCurrentSubscription(subs[0]);
-      }
-    }
-  };
-
-  const loadPackages = async () => {
-    setLoadingPackages(true);
-    const result = await getAllLeadPlans();
-    if (result.success) {
-      setPackages(result.data?.plans || []);
-    }
-    setLoadingPackages(false);
-  };
-
-  const loadPendingRequests = async (type = 'PENDING') => {
-    setLoadingRequests(true);
+  const fetchCurrentSubscription = async () => {
     try {
-      const token = localStorage.getItem('leadToken');
-      const response = await fetch(`${API_BASE_URL}/api/booking-workflow/lead/pending-requests?type=${type}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        const reqs = data.requests || [];
-        if (type === 'PENDING') {
-          setPendingRequests(reqs);
-        } else {
-          setAllRequests(reqs);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading requests:', error);
-    }
-    setLoadingRequests(false);
-  };
-
-  const loadAllocatedBookings = async () => {
-    setLoadingBookings(true);
-    try {
-      const token = localStorage.getItem('leadToken');
-      const response = await fetch(`${API_BASE_URL}/api/bookings/lead/allocated`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      console.log('Lead allocated bookings response:', data);
-      if (data.success) {
-        setAllocatedBookings(data.bookings || []);
-      }
-    } catch (error) {
-      console.error('Error loading bookings:', error);
-    }
-    setLoadingBookings(false);
-  };
-
-  const loadCompletedTrips = async () => {
-    setLoadingTrips(true);
-    try {
-      const token = localStorage.getItem('leadToken');
-      const response = await fetch(`${API_BASE_URL}/api/bookings/lead/completed`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCompletedTrips(data.bookings || []);
-      }
-    } catch (error) {
-      console.error('Error loading trips:', error);
-    }
-    setLoadingTrips(false);
-  };
-
-  const handleRequestResponse = async (responseId: string, action: 'ACCEPTED' | 'REJECTED') => {
-    try {
-      const token = localStorage.getItem('leadToken');
-      const response = await fetch(`${API_BASE_URL}/api/booking-workflow/lead/respond/${responseId}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+      const response = await fetch(`${API_BASE_URL}/api/lead-subscriptions/my-subscriptions`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         },
-        body: JSON.stringify({ action })
+        credentials: 'include'
       });
       const data = await response.json();
-      if (data.success) {
-        toast.success(`Request ${action.toLowerCase()}!`);
-        loadPendingRequests();
-        if (action === 'ACCEPTED') {
-          loadAllocatedBookings();
-        }
-      } else {
-        toast.error(data.message || 'Failed to respond');
+      if (response.ok && data) {
+        setCurrentSubscription(data);
       }
     } catch (error) {
-      console.error('Error responding:', error);
-      toast.error('Failed to respond to request');
+      console.error('Error fetching subscription:', error);
     }
   };
 
-  const handleSubscriptionBuy = async (pkg: any) => {
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/lead-packages`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success) {
+          setPackages(data.packages);
+        }
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+      }
+    };
+
+    const fetchTrips = async () => {
+      try {
+        const token = localStorage.getItem('auth-token');
+        if (!token) {
+          console.error('No auth token found');
+          return;
+        }
+        
+        const driverRes = await tripAPI.getDriverTrips();
+        
+        if (driverRes.success) {
+          setTrips(driverRes.trips || []);
+        } else {
+          console.error('Failed to fetch driver trips:', driverRes.error);
+        }
+      } catch (error) {
+        console.error('Error fetching trips:', error);
+      }
+    };
+    
+    fetchPackages();
+    fetchCurrentSubscription();
+    fetchTrips();
+  }, [activeTab, lead.id]);
+
+  const calculateFinalAmount = (trip: any) => {
+    const baseAmount = parseFloat(trip.estimatedCost || trip.estimateAmount || 0);
+    if (!trip.actualStartTime || !trip.duration) return baseAmount;
+
+    const actualStart = new Date(trip.actualStartTime).getTime();
+    const actualEnd = new Date().getTime();
+    const actualHours = Math.floor((actualEnd - actualStart) / (1000 * 60 * 60)); 
+
+    let baseHours = 0;
+    const durationStr = trip.duration.toLowerCase();
+    const durationMatch = durationStr.match(/\d+/);
+    const num = durationMatch ? parseInt(durationMatch[0]) : 0;
+
+    if (durationStr.includes('hour') || durationStr.includes('hr')) {
+      baseHours = num;
+    } else if (durationStr.includes('day')) {
+      baseHours = num * 12; // 1 day = 12 hrs
+    } else if (durationStr.includes('month')) {
+      baseHours = num * 30 * 12; // Assuming 30 days, 12 hrs/day
+    }
+
+    if (baseHours > 0 && actualHours > baseHours) {
+      const extraHours = actualHours - baseHours;
+      
+      // Determine if it was an immediate or scheduled booking
+      let extraPerHour = 90; // Default scheduled
+      if (trip.createdAt && trip.startDateTime) {
+        const created = new Date(trip.createdAt).getTime();
+        const start = new Date(trip.startDateTime).getTime();
+        // If start time is within 15 minutes of creation, it's considered Immediate
+        if (Math.abs(start - created) <= 15 * 60 * 1000) {
+          extraPerHour = 100;
+        }
+      }
+
+      return baseAmount + (extraHours * extraPerHour);
+    }
+    
+    return baseAmount;
+  };
+
+  const handleAcceptTrip = async (tripId: string) => {
+    // This function is no longer used - admin assigns bookings
+    alert('Bookings are assigned by admin. Please wait for assignment.');
+  };
+
+
+  const handleSubscriptionBuy = async (pkg: SubscriptionPackage) => {
     setSelectedPackage(pkg);
     setShowPaymentModal(true);
   };
 
+  const renderPackageCard = (pkg: SubscriptionPackage) => {
+    const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+    const hasActivePlan = currentSubscription && currentSubscription.plan && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
+    const isDisabled = hasActivePlan && !isActive;
+    return (
+      <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
+        {isActive && (
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-bold">
+            CURRENT PLAN
+          </div>
+        )}
+        <h3 className="font-bold text-base sm:text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h3>
+        <p className="text-xs sm:text-sm text-gray-600 mt-1">{pkg.name} <span className="text-gray-400">· {pkg.duration} days</span></p>
+        <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
+        <p className="text-[10px] text-black font-extrabold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
+
+        <button
+          onClick={() => handleSubscriptionBuy(pkg)}
+          disabled={isActive || isDisabled}
+          className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+        >
+          {isActive ? 'Active' : 'Choose Package & Pay'}
+        </button>
+      </div>
+    );
+  };
+
   const handlePaymentMethodSelect = async (method: string) => {
-    if (!selectedPackage || !lead) return;
-    setShowPaymentModal(false);
+    if (!selectedPackage) return;
     
-    const result = await purchaseLeadSubscription(selectedPackage.id, method);
-    if (result.success) {
-      toast.success('Package subscribed successfully!');
-      await loadSubscriptions();
-    } else {
-      toast.error(result.message || 'Failed to subscribe');
+    setShowPaymentModal(false);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/lead-subscriptions/purchase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          planId: selectedPackage.id,
+          paymentMethod: method
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert("Package subscribed successfully!");
+        // Refresh subscription data
+        const subResponse = await fetch(`${API_BASE_URL}/api/lead-subscriptions/my-subscriptions`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          },
+          credentials: 'include'
+        });
+        const subData = await subResponse.json();
+        if (subResponse.ok && subData) {
+          setCurrentSubscription(subData);
+        }
+      } else {
+        alert(data.error || 'Failed to subscribe');
+      }
+    } catch (error) {
+      alert('Error subscribing to package');
     }
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const result = await updateLeadProfile({
-        name: profileData.name,
-        email: profileData.email,
-        phone: profileData.phone,
-        alternateMobile1: profileData.alternateMobile1,
-        alternateMobile2: profileData.alternateMobile2,
-        alternateMobile3: profileData.alternateMobile3,
-        alternateMobile4: profileData.alternateMobile4,
-        gpayNo: profileData.gpayNo,
-        photo: profileData.photo,
-        dlPhoto: profileData.dlPhoto,
-        panPhoto: profileData.panPhoto,
-        aadharPhoto: profileData.aadharPhoto,
-        msmePhoto: profileData.msmePhoto,
-        rationCardPhoto: profileData.rationCardPhoto,
-        policeVerificationPhoto: profileData.policeVerificationPhoto,
-        electricityBillPhoto: profileData.electricityBillPhoto,
-        rentalAgreementPhoto: profileData.rentalAgreementPhoto,
-        creditCardPhoto: profileData.creditCardPhoto,
-        debitCardPhoto: profileData.debitCardPhoto
-      });
+      e.preventDefault();
       
-      console.log('Profile update result:', result);
-      
-      if (result.success && result.data) {
-        // Backend returns { success: true, lead: {...} }
-        // handleResponse wraps it as { success: true, data: { success: true, lead: {...} } }
-        const updatedLeadData = result.data.lead || result.data;
-        const updatedLead = { 
-          ...lead, 
-          ...updatedLeadData,
-          // Ensure we keep the fields we just updated
-          name: profileData.name,
-          email: profileData.email,
-          phone: profileData.phone,
-          alternateMobile1: profileData.alternateMobile1,
-          alternateMobile2: profileData.alternateMobile2,
-          alternateMobile3: profileData.alternateMobile3,
-          alternateMobile4: profileData.alternateMobile4,
-          gpayNo: profileData.upiId,
-          photo: profileData.photo,
-          dlPhoto: profileData.dlPhoto,
-          panPhoto: profileData.panPhoto,
-          aadharPhoto: profileData.aadharPhoto
-        };
-        
-        setLead(updatedLead);
-        localStorage.setItem('leadData', JSON.stringify(updatedLead));
-        setIsEditingProfile(false);
-        toast.success('Profile updated successfully');
-      } else {
-        toast.error(result.message || 'Profile update failed');
+      try {
+          const token = localStorage.getItem('auth-token');
+          const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+              method: 'PUT',
+              headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` })
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                  name: profileData.name,
+                  currentAddress: profileData.currentAddress,
+                  permanentAddress: profileData.permanentAddress,
+                  phone: profileData.phone,
+                  alternateMobile1: lead.alternateMobile1,
+                  alternateMobile2: lead.alternateMobile2,
+                  alternateMobile3: lead.alternateMobile3,
+                  alternateMobile4: lead.alternateMobile4,
+                  upiId: profileData.upiId,
+                  photo: profileData.photo,
+                  dlPhoto: profileData.dlPhoto,
+                  panPhoto: profileData.panPhoto,
+                  aadharPhoto: profileData.aadharPhoto,
+                  policeVerificationPhoto: profileData.policeVerificationPhoto, // New field
+                  password: password // New password
+              })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+              // Update local driver state with new data
+              setLead({
+                  ...lead,
+                  ...data.user,
+                  altPhone: [
+                      data.user.alternateMobile1,
+                      data.user.alternateMobile2,
+                      data.user.alternateMobile3,
+                      data.user.alternateMobile4
+                  ].filter(phone => phone && phone.trim() !== ''),
+                  upiId: data.user.gpayNo,
+                  policeVerificationPhoto: data.user.policeVerificationPhoto // New field
+              });
+              
+              setIsEditingProfile(false);
+              const message = password ? "Profile and Password Updated Successfully" : "Profile Updated Successfully";
+              setPassword(''); // Clear password field after success
+              alert(message);
+          } else {
+              alert(data.error || "Profile update failed");
+          }
+      } catch (error) {
+          alert("Profile update failed. Please try again.");
       }
-    } catch (error) {
-      console.error('Profile update error:', error);
-      toast.error('Profile update failed. Please try again.');
-    }
   };
 
-  if (!lead) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  // Filter for "My Active Jobs" - includes ONGOING trips with null leadId (temporary fix)
+  const activeTrips = trips.filter(t => {
+    const isMyTrip = t.leadId === lead.id || (t.status === 'ONGOING' && t.leadId === null);
+    const hasValidStatus = ['ONGOING', 'CONFIRMED', 'ACCEPTED'].includes(t.status);
+    return isMyTrip && hasValidStatus;
+  }).sort((a, b) => `${a.startDate}T${a.startTime}`.localeCompare(`${b.startDate}T${b.startTime}`));
+
+  
+  // Sort Descending (Newest first) for history
+  const pastTrips = trips.filter(t => t.status === 'COMPLETED' || t.status === 'CANCELLED')
+    .sort((a, b) => `${b.startDate}T${b.startTime}`.localeCompare(`${a.startDate}T${a.startTime}`));
 
   return (
     <div className="max-w-3xl mx-auto h-screen flex flex-col">
       {/* Top Header Bar - Fixed */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
-        <p className="font-bold text-sm leading-none">SNP Lead</p>
-        <div className="flex items-center gap-4">
+          <p className="font-bold text-sm leading-none">SNP Driver</p>
           <p className="text-xs text-gray-400">Welcome, {lead.name}</p>
-          <button 
-            onClick={() => {
-                setConfirmConfig({
-                    isOpen: true,
-                    title: 'Logout',
-                    message: 'Are you sure you want to logout?',
-                    type: 'info',
-                    confirmText: 'Logout',
-                    onConfirm: () => {
-                        closeConfirm();
-                        if (onLogout) onLogout();
-                    }
-                });
-            }}
-            className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full transition-colors"
-          >
-            Logout
-          </button>
-        </div>
       </div>
 
       {/* Tabs - Fixed */}
       <div className="bg-white border-b border-gray-200 flex overflow-x-auto scrollbar-hide">
-        {['HOME', 'REQUESTS', 'TRIPS', 'PACKAGES', 'PROFILE'].map(tab => (
-          <button 
-            key={tab}
-            onClick={() => setActiveTab(tab as any)}
-            className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab ? 'border-black text-black' : 'border-transparent text-gray-400'}`}
-          >
-            {tab}
-          </button>
-        ))}
+          {['HOME', 'REQUESTS', 'TRIPS', 'PACKAGES', 'PROFILE'].map(tab => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab ? 'border-black text-black' : 'border-transparent text-gray-400'}`}
+              >
+                  {tab}
+              </button>
+          ))}
       </div>
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-6">
-        {/* HOME TAB */}
-        {activeTab === 'HOME' && (
-          <div className="space-y-4 sm:space-y-6 animate-fade-in">
-            {allocatedBookings.length > 0 ? (
-              <div>
-                <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Ongoing Trips
-                </h3>
-                {allocatedBookings.map((booking) => {
-                  const startDate = new Date(booking.startDateTime);
-                  return (
-                    <div key={booking.id} className="bg-black text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
-                      <div className="flex justify-between items-center mb-3 sm:mb-4 border-b border-gray-800 pb-2">
-                        <span className="font-bold text-base sm:text-lg">On Trip</span>
-                        <span className="bg-white text-black text-[10px] sm:text-xs font-bold px-2 py-1 rounded">{booking.serviceType || booking.bookingType}</span>
-                      </div>
-                      <div className="space-y-2 mb-3 sm:mb-4">
-                        <p className="text-gray-400 text-xs uppercase">From</p>
-                        <p className="font-bold">{booking.pickupLocation}</p>
-                        <p className="text-gray-400 text-xs uppercase mt-2">To</p>
-                        <p className="font-bold">{booking.dropLocation}</p>
-                      </div>
-                      <div className="space-y-3">
-                        <button 
-                          onClick={async () => {
-                            if (window.confirm('Mark this trip as completed?\n\nCustomer: ' + (booking.customer?.name || 'N/A') + '\nFrom: ' + booking.pickupLocation + '\nTo: ' + booking.dropLocation)) {
-                              try {
-                                const token = localStorage.getItem('leadToken');
-                                const response = await fetch(`${API_BASE_URL}/api/trips/${booking.id}/complete`, {
-                                  method: 'POST',
-                                  headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
-                                  }
-                                });
-                                const data = await response.json();
-                                if (data.success) {
-                                  toast.success('✓ Trip completed successfully!');
-                                  loadAllocatedBookings();
-                                } else {
-                                  toast.error('Failed to complete trip: ' + (data.error || 'Unknown error'));
-                                }
-                              } catch (error) {
-                                console.error('Error completing trip:', error);
-                                toast.error('Error completing trip. Please try again.');
-                              }
-                            }
-                          }}
-                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          Complete Trip
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <p className="text-gray-400 font-medium">No active trips</p>
-                <p className="text-gray-400 text-sm mt-1">Wait for admin to assign bookings</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* REQUESTS TAB */}
+        {/* REQUESTS TAB: Booking Requests */}
         {activeTab === 'REQUESTS' && (
           <div className="space-y-4 animate-fade-in">
             {/* Sub-tabs for Requests */}
@@ -424,724 +427,1509 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
                 </button>
               ))}
             </div>
-
-          <div className="space-y-6">
-            {/* Pending Requests */}
-            {(!requestsSubTab || requestsSubTab === 'PENDING') && (
-            <div>
-              <h3 className="text-lg font-bold mb-3">Pending Requests</h3>
-              {pendingRequests.length === 0 ? (
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 text-sm">No pending requests</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pendingRequests.map((request) => {
-                    const booking = request.booking;
-                    const startDate = new Date(booking.startDateTime);
-                    const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-                    const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    return (
-                      <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
-                        <div className="p-4 sm:p-5">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
-                              {booking.estimateAmount && (
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{booking.estimateAmount}</p>
-                              )}
-                              {booking.paymentMethod && (
-                                <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{booking.paymentMethod}</span></p>
-                              )}
-                              <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{booking.bookingType}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-3 mb-4">
-                            <div className="flex gap-3">
-                              <div className="flex flex-col items-center pt-1">
-                                <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                                <div className="w-0.5 h-8 bg-gray-300"></div>
-                                <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                              </div>
-                              <div className="flex-1 space-y-3">
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-1">Pickup</p>
-                                  <p className="text-sm font-medium text-gray-900">{booking.pickupLocation}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-1">Drop-off</p>
-                                  <p className="text-sm font-medium text-gray-900">{booking.dropLocation}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {booking.customer && (
-                            <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                                  <span className="text-gray-700 font-semibold text-sm">{booking.customer?.name?.charAt(0) || 'C'}</span>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-semibold text-gray-900">{booking.customer?.name || 'N/A'}</p>
-                                  <p className="text-xs text-gray-600">{booking.customer?.phone || 'N/A'}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="flex gap-2 sm:gap-3">
-                            <button 
-                              onClick={() => handleRequestResponse(request.id, 'REJECTED')} 
-                              className="flex-1 bg-gray-100 text-gray-900 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-200 transition active:scale-95"
-                            >
-                              Decline
-                            </button>
-                            <button 
-                              onClick={() => handleRequestResponse(request.id, 'ACCEPTED')} 
-                              className="flex-1 bg-black text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95"
-                            >
-                              Accept
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* Request History */}
-            {requestsSubTab === 'HISTORY' && (
-            <div>
-              <h3 className="text-lg font-bold mb-3">Request History</h3>
-              {allRequests.length === 0 ? (
-                <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-                  <p className="text-gray-500 text-sm">No request history</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {allRequests.map((request) => {
-                    const booking = request.booking;
-                    const startDate = new Date(booking.startDateTime);
-                    const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-                    const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    return (
-                      <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div className="p-4 sm:p-5">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
-                              {booking.estimateAmount && (
-                                <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{booking.estimateAmount}</p>
-                              )}
-                              <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{booking.bookingType}</span>
-                            </div>
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                              request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 
-                              request.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                              request.status === 'EXPIRED' ? 'bg-orange-100 text-orange-700' :
-                              request.status === 'ALLOCATED TO ANOTHER' ? 'bg-purple-100 text-purple-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {request.status}
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div className="flex gap-3">
-                              <div className="flex flex-col items-center pt-1">
-                                <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                                <div className="w-0.5 h-8 bg-gray-300"></div>
-                                <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                              </div>
-                              <div className="flex-1 space-y-3">
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-1">Pickup</p>
-                                  <p className="text-sm font-medium text-gray-900">{booking.pickupLocation}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 mb-1">Drop-off</p>
-                                  <p className="text-sm font-medium text-gray-900">{booking.dropLocation}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            )}
-          </div>
+            
+            <LeadBookingRequests 
+              onNavigateToPackages={() => setActiveTab('PACKAGES')} 
+              activeSubTab={requestsSubTab}
+            />
           </div>
         )}
 
-        {/* TRIPS TAB */}
+        {/* HOME TAB: Active Trips Only */}
+        {activeTab === 'HOME' && (
+            <div className="space-y-4 sm:space-y-6 animate-fade-in">
+                {/* Active Trips */}
+                {activeTrips.length > 0 ? (
+                    <div>
+                        <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            Ongoing Trips
+                        </h3>
+                        {activeTrips.map(trip => (
+                            <div key={trip.id} className="bg-black text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
+                                <div className="flex justify-between items-center mb-3 sm:mb-4 border-b border-gray-800 pb-2">
+                                    <span className="font-bold text-base sm:text-lg flex items-center gap-2">
+                                      {trip.status === 'ONGOING' ? 'On Trip' : 'Upcoming'}
+                                      {trip.status === 'ONGOING' && trip.actualStartTime && (
+                                        <TripTimer startTime={trip.actualStartTime} />
+                                      )}
+                                    </span>
+                                    <span className="bg-white text-black text-[10px] sm:text-xs font-bold px-2 py-1 rounded">{trip.serviceType || trip.type}</span>
+                                </div>
+                                <div className="mb-5 mt-2">
+                                  <div className="flex gap-3 sm:gap-4 items-stretch">
+                                    <div className="flex flex-col items-center mt-1.5 mb-1.5">
+                                      <div className="w-2.5 h-2.5 bg-white rounded-full flex-shrink-0"></div>
+                                      <div className="w-0.5 flex-grow bg-gray-600 my-1"></div>
+                                      <div className="w-2.5 h-2.5 bg-white flex-shrink-0"></div>
+                                    </div>
+                                    <div className="flex-1 space-y-4 sm:space-y-5">
+                                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2.5 sm:gap-3">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Pickup</p>
+                                          <p className="font-bold text-sm text-white leading-tight break-words">{trip.pickupLocation}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 self-start">
+                                          <a 
+                                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(trip.pickupLocation || '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4285F4]/20 text-[#4285F4] rounded-full hover:bg-[#4285F4]/30 transition shadow-sm text-xs font-bold border border-[#4285F4]/10"
+                                            title="Navigate to Pickup"
+                                          >
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                                            To Pickup
+                                          </a>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2.5 sm:gap-3">
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Drop-off</p>
+                                          <p className="font-bold text-sm text-white leading-tight break-words">{trip.dropLocation}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 self-start">
+                                          <a 
+                                            href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(trip.pickupLocation || '')}&destination=${encodeURIComponent(trip.dropLocation || '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 flex items-center gap-1.5 bg-gray-800 text-gray-300 rounded-full hover:bg-gray-700 transition shadow-sm text-xs font-bold border border-gray-700"
+                                            title="Navigate to Drop-off"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                                            To Drop-off
+                                          </a>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-3 mb-4 border border-gray-700 flex flex-col gap-2">
+                                    <div className="flex justify-between items-center pb-2 border-b border-gray-700/50">
+                                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                          Schedule
+                                        </span>
+                                        <span className="text-white font-bold text-[10px] sm:text-xs text-right leading-snug">
+                                          {/* <span className="block sm:inline">{formatDateLocal(trip.startDateTime || trip.startDate)} at {formatTimeAMPM(trip.startDateTime || trip.startTime)}</span> */}
+                                          {trip.duration && <span className="text-blue-400 block sm:inline mt-0.5 sm:mt-0">Estimate ({trip.duration})</span>}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-1">
+                                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wide">Base Amount</span>
+                                        <span className="text-green-400 font-bold text-lg">₹{trip.estimatedCost || trip.estimateAmount || 0}</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    {trip.status === 'ONGOING' ? (
+                                      (() => {
+                                        const lastActivityTime = (trip as any).updatedAt || trip.actualStartTime;
+                                        const hoursSinceLastActivity = lastActivityTime ? Math.ceil((new Date().getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60 * 60)) : 0;
+                                        if (hoursSinceLastActivity > 12 && startingTripId !== trip.id) {
+                                          return (
+                                            <div className="bg-yellow-50 p-4 rounded-xl space-y-4 border border-yellow-200">
+                                              <div className="flex items-start gap-3">
+                                                <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                                                <div>
+                                                  <p className="font-bold text-yellow-900 text-sm">Trip exceeded 12 hours</p>
+                                                  <p className="text-xs text-yellow-700 mt-1">You must re-verify your vehicle photos and OTP to continue the ride.</p>
+                                                </div>
+                                              </div>
+                                              <button 
+                                                onClick={() => setStartingTripId(trip.id)}
+                                                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-bold transition-all duration-200 shadow-md"
+                                              >
+                                                Re-verify & Continue Ride
+                                              </button>
+                                            </div>
+                                          );
+                                        } else if (hoursSinceLastActivity > 12 && startingTripId === trip.id) {
+                                          return (
+                                            <div className="bg-gray-800 p-4 rounded-xl space-y-4">
+                                              <div className="space-y-4">
+                                                <div>
+                                                  <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
+                                                  <div className="relative">
+                                                    <input 
+                                                      type="file" 
+                                                      accept="image/*" 
+                                                      capture="environment"
+                                                      id={`carFront-${trip.id}`}
+                                                      className="hidden"
+                                                      onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))} 
+                                                    />
+                                                    <label 
+                                                      htmlFor={`carFront-${trip.id}`}
+                                                      className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.front ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                                    >
+                                                      {tripPhotos.front ? (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                          Photo Captured
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                          Take Photo
+                                                        </>
+                                                      )}
+                                                    </label>
+                                                  </div>
+                                                </div>
+
+                                                <div>
+                                                  <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
+                                                  <div className="relative">
+                                                    <input 
+                                                      type="file" 
+                                                      accept="image/*" 
+                                                      capture="environment"
+                                                      id={`carBack-${trip.id}`}
+                                                      className="hidden"
+                                                      onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))} 
+                                                    />
+                                                    <label 
+                                                      htmlFor={`carBack-${trip.id}`}
+                                                      className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.back ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                                    >
+                                                      {tripPhotos.back ? (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                          Photo Captured
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                          Take Photo
+                                                        </>
+                                                      )}
+                                                    </label>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              {isStartOtpSent ? (
+                                                <div className="space-y-3 mt-4">
+                                                  <p className="text-green-400 text-sm font-bold text-center">OTP Sent successfully!</p>
+                                                  <input 
+                                                    type="text" 
+                                                    placeholder="Enter OTP from Customer" 
+                                                    className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                                    value={startOtp}
+                                                    onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                  />
+                                                  <div className="flex gap-2">
+                                                    <button 
+                                                      disabled={isStartingTrip}
+                                                      onClick={() => { setStartingTripId(null); setIsStartOtpSent(false); setStartOtp(''); }}
+                                                      className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm"
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                    <button 
+                                                      disabled={startOtp.length < 6 || isStartingTrip}
+                                                      onClick={async () => {
+                                                        setIsStartingTrip(true);
+                                                        try {
+                                                          const formData = new FormData();
+                                                          if (tripPhotos.front) formData.append('carFrontPhoto', tripPhotos.front);
+                                                          if (tripPhotos.back) formData.append('carBackPhoto', tripPhotos.back);
+                                                          
+                                                          let frontUrl = null;
+                                                          let backUrl = null;
+
+                                                          // Upload front photo
+                                                          if (tripPhotos.front) {
+                                                            const frontUpload = new FormData();
+                                                            frontUpload.append('file', tripPhotos.front);
+                                                            const fRes = await uploadFile(frontUpload);
+                                                            if (fRes.success) frontUrl = fRes.fileId;
+                                                          }
+
+                                                          // Upload back photo
+                                                          if (tripPhotos.back) {
+                                                            const backUpload = new FormData();
+                                                            backUpload.append('file', tripPhotos.back);
+                                                            const bRes = await uploadFile(backUpload);
+                                                            if (bRes.success) backUrl = bRes.fileId;
+                                                          }
+
+                                                          const result = await tripAPI.startTrip(trip.id, { 
+                                                            otp: startOtp,
+                                                            ...(frontUrl && { carFrontPhoto: frontUrl }),
+                                                            ...(backUrl && { carBackPhoto: backUrl })
+                                                          });
+                                                          
+                                                          if (result.success) {
+                                                            setStartingTripId(null);
+                                                            setIsStartOtpSent(false);
+                                                            setStartOtp('');
+                                                            const driverRes = await tripAPI.getDriverTrips();
+                                                            if (driverRes.success) setTrips(driverRes.trips || []);
+                                                            
+                                                            setConfirmConfig({
+                                                              isOpen: true,
+                                                              title: 'Verification Successful',
+                                                              message: 'Your vehicle photos and OTP have been verified successfully. You can now continue the ride.',
+                                                              type: 'success',
+                                                              confirmText: 'Continue Ride',
+                                                              onConfirm: () => setConfirmConfig(prev => ({ ...prev, isOpen: false }))
+                                                            });
+                                                          } else {
+                                                            alert('Failed to re-verify trip: ' + (result.error || 'Invalid OTP'));
+                                                          }
+                                                        } catch (error) {
+                                                          console.error('Error re-verifying trip:', error);
+                                                          alert('Error re-verifying trip');
+                                                        } finally {
+                                                          setIsStartingTrip(false);
+                                                        }
+                                                      }}
+                                                      className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50"
+                                                    >
+                                                      {isStartingTrip ? 'Verifying...' : 'Verify & Continue'}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <div className="flex gap-2 mt-3 w-full">
+                                                  <button 
+                                                    disabled={isSendingStartOtp}
+                                                    onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
+                                                    className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                  <button 
+                                                    disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
+                                                    onClick={async () => {
+                                                      setIsSendingStartOtp(true);
+                                                      try {
+                                                        const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
+                                                          method: 'POST',
+                                                          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                          setIsStartOtpSent(true);
+                                                        } else {
+                                                          alert(data.error || 'Failed to send OTP');
+                                                        }
+                                                      } catch (error) {
+                                                        console.error('Send OTP error:', error);
+                                                        alert('Failed to send OTP');
+                                                      } finally {
+                                                        setIsSendingStartOtp(false);
+                                                      }
+                                                    }}
+                                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
+                                                  >
+                                                    {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <button 
+                                              onClick={() => {
+                                                const autoCalculatedAmount = calculateFinalAmount(trip);
+                                                setConfirmConfig({
+                                                  isOpen: true,
+                                                  title: 'Complete Trip',
+                                                  message: (
+                                                    <div className="flex flex-col items-center text-center mt-2">
+                                                      {/* Price Section */}
+                                                      <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 w-full rounded-2xl p-6 mb-5 shadow-sm relative overflow-hidden">
+                                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-200 rounded-full opacity-50 blur-xl"></div>
+                                                        <p className="text-green-800 font-semibold text-xs uppercase tracking-widest mb-1">Final Amount</p>
+                                                        <p className="text-4xl font-black text-green-700 tracking-tight">₹{autoCalculatedAmount}</p>
+                                                        <p className="text-green-600/80 text-[10px] mt-2 font-medium bg-green-200/50 inline-block px-2 py-0.5 rounded-full">*Includes ₹100/hr extra charge after {trip.duration}</p>
+                                                      </div>
+                                                      
+                                                      {/* Route Section */}
+                                                      <div className="w-full text-left bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
+                                                        <div className="flex gap-4">
+                                                          <div className="flex flex-col items-center pt-1.5">
+                                                            <div className="w-2.5 h-2.5 bg-black rounded-full shadow-sm"></div>
+                                                            <div className="w-0.5 h-10 bg-gray-300 rounded-full my-1"></div>
+                                                            <div className="w-2.5 h-2.5 border-2 border-black rounded-full shadow-sm"></div>
+                                                          </div>
+                                                          <div className="flex-1 space-y-4">
+                                                            <div>
+                                                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Pickup</p>
+                                                              <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.pickupLocation}</p>
+                                                            </div>
+                                                            <div>
+                                                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Drop-off</p>
+                                                              <p className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2 mt-0.5">{trip.dropLocation}</p>
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+
+                                                      {/* Customer Section */}
+                                                      <div className="flex items-center gap-3 w-full bg-white border border-gray-100 rounded-xl p-3">
+                                                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
+                                                          {(trip.customer?.name || 'C')[0].toUpperCase()}
+                                                        </div>
+                                                        <div className="text-left">
+                                                          <p className="text-[10px] text-gray-400 font-bold uppercase">Customer</p>
+                                                          <p className="font-bold text-sm text-gray-900">{trip.customer?.name || 'N/A'}</p>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  ),
+                                                  type: 'success',
+                                                  confirmText: 'Complete Trip',
+                                                  onConfirm: async () => {
+                                                    closeConfirm();
+                                                    const finalAmount = autoCalculatedAmount;
+                                                    try {
+                                                      const result = await tripAPI.completeTrip(trip.id, { finalAmount });
+                                                      if (result.success) {
+                                                        alert('✓ Trip completed successfully!');
+                                                        const driverRes = await tripAPI.getDriverTrips();
+                                                        if (driverRes.success) setTrips(driverRes.trips);
+                                                        fetchCurrentSubscription();
+                                                      } else {
+                                                        alert('Failed to complete trip: ' + (result.error || 'Unknown error'));
+                                                      }
+                                                    } catch (error) {
+                                                      console.error('Error completing trip:', error);
+                                                      alert('Error completing trip. Please try again.');
+                                                    }
+                                                  }
+                                                });
+                                              }}
+                                              className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                          >
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                              Complete Trip
+                                          </button>
+                                        );
+                                      })()
+                                    ) : startingTripId === trip.id ? (
+                                      <div className="bg-gray-800 p-4 rounded-xl space-y-4">
+                                        <div className="space-y-4">
+                                          <div>
+                                            <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
+                                            <div className="relative">
+                                              <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                capture="environment"
+                                                id={`carFront-${trip.id}`}
+                                                className="hidden"
+                                                onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))} 
+                                              />
+                                              <label 
+                                                htmlFor={`carFront-${trip.id}`}
+                                                className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.front ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                              >
+                                                {tripPhotos.front ? (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                    Photo Captured
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                    Take Photo
+                                                  </>
+                                                )}
+                                              </label>
+                                            </div>
+                                          </div>
+
+                                          <div>
+                                            <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
+                                            <div className="relative">
+                                              <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                capture="environment"
+                                                id={`carBack-${trip.id}`}
+                                                className="hidden"
+                                                onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))} 
+                                              />
+                                              <label 
+                                                htmlFor={`carBack-${trip.id}`}
+                                                className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.back ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
+                                              >
+                                                {tripPhotos.back ? (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                    Photo Captured
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                    Take Photo
+                                                  </>
+                                                )}
+                                              </label>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {isStartOtpSent ? (
+                                          <div className="space-y-3 mt-4">
+                                            <p className="text-green-400 text-sm font-bold text-center">OTP Sent successfully!</p>
+                                            <input 
+                                              type="text" 
+                                              placeholder="Enter OTP from Customer" 
+                                              className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                              value={startOtp}
+                                              onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            />
+                                            <div className="flex gap-2">
+                                              <button 
+                                                disabled={isStartingTrip}
+                                                onClick={() => { setStartingTripId(null); setIsStartOtpSent(false); setStartOtp(''); }}
+                                                className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm"
+                                              >
+                                                Cancel
+                                              </button>
+                                              <button 
+                                                disabled={startOtp.length < 6 || isStartingTrip}
+                                                onClick={async () => {
+                                                  setIsStartingTrip(true);
+                                                  try {
+                                                    const formData = new FormData();
+                                                    if (tripPhotos.front) formData.append('carFrontPhoto', tripPhotos.front);
+                                                    if (tripPhotos.back) formData.append('carBackPhoto', tripPhotos.back);
+                                                    
+                                                    let frontUrl = null;
+                                                    let backUrl = null;
+
+                                                    // Upload front photo
+                                                    if (tripPhotos.front) {
+                                                      const frontUpload = new FormData();
+                                                      frontUpload.append('file', tripPhotos.front);
+                                                      const fRes = await uploadFile(frontUpload);
+                                                      if (fRes.success) frontUrl = fRes.fileId;
+                                                    }
+
+                                                    // Upload back photo
+                                                    if (tripPhotos.back) {
+                                                      const backUpload = new FormData();
+                                                      backUpload.append('file', tripPhotos.back);
+                                                      const bRes = await uploadFile(backUpload);
+                                                      if (bRes.success) backUrl = bRes.fileId;
+                                                    }
+
+                                                    const result = await tripAPI.startTrip(trip.id, { 
+                                                      otp: startOtp,
+                                                      ...(frontUrl && { carFrontPhoto: frontUrl }),
+                                                      ...(backUrl && { carBackPhoto: backUrl })
+                                                    });
+                                                    
+                                                    if (result.success) {
+                                                      alert('✓ Trip Started successfully!');
+                                                      setStartingTripId(null);
+                                                      setIsStartOtpSent(false);
+                                                      setStartOtp('');
+                                                      const driverRes = await tripAPI.getDriverTrips();
+                                                      if (driverRes.success) setTrips(driverRes.trips || []);
+                                                    } else {
+                                                      alert('Failed to start trip: ' + (result.error || 'Invalid OTP'));
+                                                    }
+                                                  } catch (error) {
+                                                    console.error('Error starting trip:', error);
+                                                    alert('Error starting trip');
+                                                  } finally {
+                                                    setIsStartingTrip(false);
+                                                  }
+                                                }}
+                                                className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50"
+                                              >
+                                                {isStartingTrip ? 'Starting...' : 'Verify & Start'}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="flex gap-2 mt-3 w-full">
+                                            <button 
+                                              disabled={isSendingStartOtp}
+                                              onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
+                                              className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
+                                            >
+                                              Cancel
+                                            </button>
+                                            <button 
+                                              disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
+                                              onClick={async () => {
+                                                setIsSendingStartOtp(true);
+                                                try {
+                                                  const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
+                                                    method: 'POST',
+                                                    headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+                                                  });
+                                                  const data = await res.json();
+                                                  if (data.success) {
+                                                    setIsStartOtpSent(true);
+                                                  } else {
+                                                    alert(data.error || 'Failed to send OTP');
+                                                  }
+                                                } catch (error) {
+                                                  console.error('Send OTP error:', error);
+                                                  alert('Failed to send OTP');
+                                                } finally {
+                                                  setIsSendingStartOtp(false);
+                                                }
+                                              }}
+                                              className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
+                                            >
+                                              {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="flex gap-3">
+                                        {(trip as any).cancellationRequested ? (
+                                          <div className="w-full bg-yellow-50 border border-yellow-200 text-yellow-700 py-3 rounded-lg font-bold text-center flex items-center justify-center gap-2">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            Cancellation Pending
+                                          </div>
+                                        ) : (
+                                          <button 
+                                              onClick={() => setStartingTripId(trip.id)}
+                                              className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                                          >
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                              </svg>
+                                              Start Trip
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Trip Details Summary */}
+                                    {/* <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Customer:</span>
+                                            <span className="font-semibold">{trip.customer?.name || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Earnings:</span>
+                                            <span className="font-bold text-green-400">₹{trip.estimatedCost || trip.estimateAmount || 0}</span>
+                                        </div>
+                                    </div> */}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p className="text-gray-400 font-medium">No active trips</p>
+                        <p className="text-gray-400 text-sm mt-1">Wait for admin to assign bookings</p>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* TRIPS TAB: History & Upcoming */}
         {activeTab === 'TRIPS' && (
-          <div className="space-y-6 sm:space-y-8 animate-fade-in">
-            {/* Upcoming / Active Trips Section */}
-            <div>
-              <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Upcoming & Ongoing Trips
-              </h3>
-              {allocatedBookings.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-                  <p className="text-gray-500 italic text-sm">No upcoming trips scheduled.</p>
-                </div>
-              ) : (
-                allocatedBookings.map(booking => {
-                  const startDate = new Date(booking.startDateTime);
-                  return (
-                    <div key={booking.id} className="bg-gray-50 border-2 border-gray-300 rounded-xl p-4 sm:p-5 mb-3 shadow-md flex flex-col gap-2">
-                      <div className="flex justify-between items-start">
-                        <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{booking.bookingType}</span>
-                        <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded uppercase">ALLOCATED</span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Pickup</p>
-                          <p className="font-bold text-sm text-gray-900">{booking.pickupLocation}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Drop</p>
-                          <p className="font-bold text-sm text-gray-900">{booking.dropLocation}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Date & Time</p>
-                          <p className="font-bold text-sm text-gray-900">{startDate.toLocaleDateString()} at {startDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Est. Earnings</p>
-                          <p className="font-bold text-sm text-gray-900">₹{booking.estimateAmount}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            <div className="space-y-6 sm:space-y-8 animate-fade-in">
+                 {/* Upcoming / Active Trips Section */}
+                 <div>
+                     <h3 className="text-base sm:text-lg font-bold mb-3 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        Upcoming & Ongoing Trips
+                     </h3>
+                     {activeTrips.length === 0 ? (
+                         <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
+                            <p className="text-gray-500 italic text-sm">No upcoming trips scheduled.</p>
+                         </div>
+                     ) : (
+                         activeTrips.map(trip => (
+                             <div key={trip.id} className="bg-gray-50 border-2 border-gray-300 rounded-xl p-4 sm:p-5 mb-3 shadow-md flex flex-col gap-2">
+                                 <div className="flex justify-between items-start">
+                                     <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{trip.serviceType}</span>
+                                     <span className={`text-xs font-bold px-2 py-1 rounded uppercase ${(trip as any).cancellationRequested ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'}`}>{(trip as any).cancellationRequested ? 'Cancellation Pending' : trip.status}</span>
+                                 </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
+                                     <div>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase">Pickup</p>
+                                         <p className="font-bold text-sm text-gray-900">{trip.pickupLocation}</p>
+                                     </div>
+                                     <div>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase">Drop</p>
+                                         <p className="font-bold text-sm text-gray-900">{trip.dropLocation}</p>
+                                     </div>
+                                     <div>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase">Date & Time</p>
+                                         <p className="font-bold text-sm text-gray-900">{trip.startDate} at {trip.startTime}</p>
+                                     </div>
+                                      <div>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase">Est. Earnings</p>
+                                         <p className="font-bold text-sm text-gray-900">₹{trip.estimatedCost}</p>
+                                     </div>
+                                 </div>
+                                 {/* Cancel Action */}
 
-            {/* Completed Trips Section */}
-            <div>
-              <h3 className="text-base sm:text-lg font-bold mb-3 text-gray-400">Completed Trips</h3>
-              {completedTrips.length === 0 ? (
-                <p className="text-gray-500 italic text-sm">No completed trips yet.</p>
-              ) : (
-                completedTrips.map(trip => {
-                  const startDate = new Date(trip.startDateTime);
-                  return (
-                    <div key={trip.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-gray-500">{startDate.toLocaleDateString()} • {startDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded text-green-600 bg-green-50">Completed</span>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 mb-2">
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">From</p>
-                          <p className="font-bold text-sm">{trip.pickupLocation}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">To</p>
-                          <p className="font-bold text-sm">{trip.dropLocation}</p>
-                        </div>
-                      </div>
+                             </div>
+                         ))
+                     )}
+                 </div>
 
-                      <div className="flex justify-between items-end border-t border-gray-100 pt-2 mt-2">
-                        <div>
-                          <p className="text-xs text-gray-500">{trip.bookingType}</p>
-                          {(trip as any).rating && (
-                              <div className="mt-1">
-                                  <p className="text-xs font-bold text-yellow-500">
-                                      {'★'.repeat((trip as any).rating)}
-                                  </p>
-                                  {(trip as any).feedback && (
-                                      <p className="text-xs text-gray-600 italic mt-0.5">"{(trip as any).feedback}"</p>
-                                  )}
-                              </div>
-                          )}
-                        </div>
-                        <p className="font-bold text-lg">₹{trip.finalAmount || trip.estimateAmount}</p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+                 {/* Completed Trips Section */}
+                 <div>
+                     <h3 className="text-base sm:text-lg font-bold mb-3 text-gray-400">Completed Trips</h3>
+                     {pastTrips.length === 0 ? (
+                         <p className="text-gray-500 italic text-sm">No completed trips yet.</p>
+                     ) : (
+                         pastTrips.map(trip => (
+                             <div key={trip.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 shadow-sm mb-4 hover:border-gray-300 transition-colors">
+                                 <div className="flex justify-between items-start mb-2">
+                                     <div className="flex flex-col">
+                                       <span className="text-xs font-bold text-gray-500 mb-0.5">
+                                         Start: {(trip as any).actualStartTime ? new Date((trip as any).actualStartTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : `${trip.startDate} • ${trip.startTime}`}
+                                       </span>
+                                       {trip.status === 'COMPLETED' && (trip as any).completedAt && (
+                                         <span className="text-[10px] font-bold text-green-600">
+                                           Ended: {new Date((trip as any).completedAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                         </span>
+                                       )}
+                                     </div>
+                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${trip.status === 'CANCELLED' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
+                                         {trip.status === 'CANCELLED' ? ((trip as any).cancellationReason === 'Requested by Customer' ? 'Cancelled by Customer' : ((trip as any).cancellationReason === 'Requested by Driver' ? 'Cancelled by Driver' : 'Cancelled')) : 'Completed'}
+                                     </span>
+                                 </div>
+                                 
+                                 <div className="flex flex-col gap-2 mb-2">
+                                     <div>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase">From</p>
+                                         <p className="font-bold text-sm">{trip.pickupLocation}</p>
+                                     </div>
+                                     <div>
+                                         <p className="text-[10px] text-gray-400 font-bold uppercase">To</p>
+                                         <p className="font-bold text-sm">{trip.dropLocation}</p>
+                                     </div>
+                                 </div>
+
+                                 <div className="flex justify-between items-end border-t border-gray-100 pt-2 mt-2">
+                                      <div>
+                                          <div className="flex gap-2 items-center">
+                                             <p className="text-xs text-gray-500">{trip.serviceType}</p>
+                                             {trip.duration && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 rounded-full font-bold">⏱ {trip.duration}</span>}
+                                          </div>
+                                          {(trip as any).rating && (
+                                              <div className="mt-1">
+                                                  <p className="text-xs font-bold text-yellow-500">
+                                                      {'★'.repeat((trip as any).rating)}
+                                                  </p>
+                                                  {(trip as any).feedback && (
+                                                      <p className="text-xs text-gray-600 italic mt-0.5">"{(trip as any).feedback}"</p>
+                                                  )}
+                                              </div>
+                                          )}
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Final Amount</p>
+                                        <p className="font-bold text-lg text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
+                                        {(trip as any).finalAmount > (trip.estimatedCost || 0) && (
+                                          <p className="text-[10px] text-red-500 font-bold mt-1">Includes ₹{(trip as any).finalAmount - (trip.estimatedCost || 0)} Extra</p>
+                                        )}
+                                      </div>
+                                 </div>
+                             </div>
+                         ))
+                     )}
+                 </div>
             </div>
-          </div>
         )}
 
-        {/* PACKAGES TAB */}
+        {/* PACKAGES TAB: Subscription */}
         {activeTab === 'PACKAGES' && (
-          <div className="space-y-4 sm:space-y-6 animate-fade-in">
-            <div className="text-center mb-4 sm:mb-6">
-              <h2 className="text-lg sm:text-xl font-bold">Lead Packages</h2>
-              <p className="text-sm text-gray-500">Choose a plan to start accepting rides.</p>
+            <div className="space-y-4 sm:space-y-6 animate-fade-in">
+                <div className="text-center mb-4 sm:mb-6">
+                    <h2 className="text-lg sm:text-xl font-bold">Driver Packages</h2>
+                    <p className="text-sm text-gray-500">Choose a plan to start accepting rides.</p>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
+                    {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${
+                                selectedCategory === cat
+                                    ? 'bg-black text-white'
+                                    : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="space-y-3 sm:space-y-4">
+                    {packages.filter(pkg => selectedCategory === 'All' || (pkg.category || 'Silver') === selectedCategory).map(pkg => renderPackageCard(pkg))}
+                </div>
             </div>
-            {loadingPackages ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>Loading packages...</p>
-              </div>
-            ) : packages.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>No packages available</p>
-              </div>
-            ) : (
-              <div className="space-y-3 sm:space-y-4">
-                {packages.map(pkg => {
-                  const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
-                  const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
-                  const hasActivePlan = currentSubscription && currentSubscription.plan && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
-                  const isDisabled = hasActivePlan && !isActive;
-                  return (
-                    <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
-                      {isActive && (
-                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-bold">
-                          CURRENT PLAN
-                        </div>
-                      )}
-                      <h3 className="font-bold text-base sm:text-lg">{pkg.name}</h3>
-                      <p className="text-2xl sm:text-3xl font-extrabold mt-2">₹{pkg.price}<span className="text-xs sm:text-sm font-normal text-gray-500">/{pkg.duration} days</span></p>
-                      <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
-                      <button 
-                        onClick={() => handleSubscriptionBuy(pkg)}
-                        disabled={isActive || isDisabled}
-                        className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
-                      >
-                        {isActive ? 'Active' : 'Choose Package & Pay'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         )}
 
         {/* PROFILE TAB */}
         {activeTab === 'PROFILE' && (
-          <div className="animate-fade-in pb-6 sm:pb-10">
-            {!isEditingProfile ? (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="bg-black h-20 sm:h-24 relative">
-                <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
-                    {lead.photo ? (
-                      <img 
-                        src={lead.photo.startsWith('http') ? lead.photo : `${API_BASE_URL}${lead.photo}`} 
-                        alt="Profile Photo" 
-                        className="w-full h-full object-contain rounded-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-300 rounded-full">
-                        <span className="text-gray-600 text-lg font-bold">{lead.name?.charAt(0) || 'L'}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="pt-10 sm:pt-12 px-4 sm:px-6 pb-4 sm:pb-6">
-                <div className="flex justify-between items-start mb-4 sm:mb-6">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold">{lead.name}</h2>
-                    <p className="text-gray-500 text-xs sm:text-sm mt-1">{lead.phone}</p>
-                  </div>
-                  <button onClick={() => setIsEditingProfile(true)} className="text-sm font-bold text-accent hover:underline">Edit Profile</button>
-                </div>
-                
-                {/* Stats */}
-                <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs sm:text-sm text-gray-500">Total trips completed</p>
-                        <p className="text-xl sm:text-2xl font-bold text-black">{completedTrips.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
-                              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 10.101c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                              </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                              <p className="text-xs sm:text-sm text-gray-500">Average Rating</p>
-                              <div className="flex items-baseline gap-2">
-                                  <p className="text-xl sm:text-2xl font-bold text-black">{lead.rating?.toFixed(1) || '0.0'}</p>
-                                  <span className="text-xs text-gray-500">({completedTrips.filter(t => t.rating).length} ratings)</span>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-                </div>
+            <div className="animate-fade-in pb-6 sm:pb-10">
+                {!isEditingProfile ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                         <div className="bg-black h-20 sm:h-24 relative">
+                             <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6">
+                                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
+                                     {lead.photo && lead.photo !== '' ? (
+                                         <img 
+                                             src={lead.photo.startsWith('http') ? lead.photo : `${API_BASE_URL}${lead.photo}`} 
+                                             alt="Profile Photo" 
+                                             className="w-full h-full object-contain rounded-full"
+                                             onError={(e) => {
+                                                 e.currentTarget.style.display = 'none';
+                                                 e.currentTarget.nextElementSibling.style.display = 'flex';
+                                             }}
+                                         />
+                                     ) : null}
+                                     <div className={`w-full h-full ${lead.photo && lead.photo !== '' ? 'hidden' : 'flex'} items-center justify-center bg-gray-300 rounded-full`}>
+                                         <span className="text-gray-600 text-lg font-bold">{lead?.name?.charAt(0) || 'D'}</span>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div className="pt-10 sm:pt-12 px-4 sm:px-6 pb-4 sm:pb-6">
+                             <div className="flex justify-between items-start mb-4 sm:mb-6">
+                                 <div>
+                                     <div className="flex items-center gap-2">
+                                        <h2 className="text-xl sm:text-2xl font-bold">{profileData.name}</h2>
+                                     </div>
+                                     <p className="text-gray-500 text-xs sm:text-sm mt-1">{profileData.phone}</p>
+                                 </div>
+                                 <button onClick={() => setIsEditingProfile(true)} className="text-sm font-bold text-accent hover:underline">Edit Profile</button>
+                             </div>
+                             
+                             {/* Uber-style Stats */}
+                             <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-4">
+                                 <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
+                                     <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
+                                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                                             <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                             </svg>
+                                         </div>
+                                         <div className="flex-1 min-w-0 mt-1 sm:mt-0">
+                                             <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Total trips</p>
+                                             <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{trips.length}</p>
+                                         </div>
+                                     </div>
+                                 </div>
+                                 <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
+                                     <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
+                                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                             <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 10.101c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                             </svg>
+                                         </div>
+                                         <div className="flex-1 min-w-0 mt-1 sm:mt-0">
+                                             <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Avg Rating</p>
+                                             <div className="flex items-baseline gap-1 mt-1">
+                                                 <p className="text-lg sm:text-2xl font-bold text-black leading-none">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
+                                                 <span className="text-[9px] sm:text-xs text-gray-500 truncate">({trips.filter(t => (t as any).rating).length} ratings)</span>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
 
-                {/* Subscription Status */}
-                <div className="mb-6">
-                  {currentSubscription && currentSubscription.plan ? (() => {
-                    const daysLeft = Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-                    const isExpired = daysLeft === 0;
-                    
-                    if (isExpired) {
-                      return (
-                        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
-                              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                              </svg>
+                             {/* Current Subscription */}
+                             {currentSubscription && currentSubscription.plan ? (() => {
+                                 const daysLeft = Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+                                 const isExpired = daysLeft === 0;
+                                 
+                                 if (isExpired) {
+                                     return (
+                                     <div className="mb-6">
+                                         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+                                             <div className="flex items-center gap-2 sm:gap-3">
+                                                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                                     <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                     </svg>
+                                                 </div>
+                                                 <div className="flex-1 min-w-0">
+                                                     <p className="text-xs sm:text-sm text-gray-500">No Active Plan</p>
+                                                     <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
+                                                     <button 
+                                                         onClick={() => setActiveTab('PACKAGES')}
+                                                         className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
+                                                     >
+                                                         Make Plan
+                                                     </button>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     );
+                                 }
+                                 
+                                 return (
+                                 <div className="mb-6">
+                                     <div className="bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm">
+                                         <div className="flex items-center gap-2.5 sm:gap-3">
+                                             <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                                                 <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                                 </svg>
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <div className="flex items-center justify-between gap-2">
+                                                     <p className="text-[10px] sm:text-sm text-gray-500 uppercase font-bold tracking-wide">Current Plan</p>
+                                                     <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-blue-600 border-blue-200 bg-blue-50 font-bold">
+                                                         {currentSubscription.paymentMethod || 'N/A'}
+                                                     </p>
+                                                 </div>
+                                                 <p className="text-xs sm:text-lg md:text-xl font-bold text-black truncate mt-0.5">{currentSubscription.plan.name}</p>
+                                                 <div className="flex flex-wrap gap-2">
+                                                   <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1 font-bold">
+                                                       {daysLeft} days left
+                                                   </p>
+                                                   {(currentSubscription.maxDuties > 0 || (currentSubscription.plan && currentSubscription.plan.maxDuties > 0)) && (() => {
+                                                     const maxLimit = currentSubscription.maxDuties > 0 ? currentSubscription.maxDuties : currentSubscription.plan.maxDuties;
+                                                     const dynamicDutiesUsed = currentSubscription.dutiesCompleted || 0;
+                                                     return (
+                                                       <p className="text-[10px] sm:text-xs px-2 py-0.5 rounded border text-purple-600 border-purple-200 bg-purple-50 inline-block mt-1 font-bold">
+                                                           {Math.max(0, maxLimit - dynamicDutiesUsed)} duties left
+                                                       </p>
+                                                     );
+                                                   })()}
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                                 );
+                             })() : (
+                                 <div className="mb-6">
+                                     <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
+                                         <div className="flex items-center gap-2 sm:gap-3">
+                                             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                 </svg>
+                                             </div>
+                                             <div className="flex-1 min-w-0">
+                                                 <p className="text-xs sm:text-sm text-gray-500">No Active Plan</p>
+                                                 <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
+                                                 <button 
+                                                     onClick={() => setActiveTab('PACKAGES')}
+                                                     className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
+                                                 >
+                                                     Make Plan
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             )}
+
+                             <div className="space-y-4">
+                                 <div className="p-4 bg-gray-50 rounded-xl">
+                                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Documents & Details</p>
+                                     <div className="space-y-2 text-sm">
+                                         <div className="flex justify-between items-center">
+                                             <span className="text-gray-500">License:</span>
+                                             <span className="font-medium text-right break-all">{lead.licenseNo || profileData.licenseNo}</span>
+                                         </div>
+                                         <div className="flex justify-between items-center">
+                                             <span className="text-gray-500">Aadhar:</span>
+                                             <span className="font-medium text-right break-all">{lead.aadharNo || profileData.aadharNo}</span>
+                                         </div>
+                                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-2">
+                                             <span className="text-gray-500 text-xs mb-1">Current Address:</span>
+                                             <span className="font-medium">{lead.currentAddress || 'Not set'}</span>
+                                         </div>
+                                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-2">
+                                             <span className="text-gray-500 text-xs mb-1">Permanent Address:</span>
+                                             <span className="font-medium">{lead.permanentAddress || 'Not set'}</span>
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 <div className="p-4 bg-gray-50 rounded-xl">
+                                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Payment & Contact</p>
+                                     <div className="space-y-2 text-sm">
+                                         <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-200 pb-2">
+                                             <span className="text-gray-500 mb-1 sm:mb-0">Gpay/PhonePe number:</span>
+                                             <span className="font-medium break-all">{lead.upiId || lead.gpayNo || 'Not set'}</span>
+                                         </div>
+                                         <div>
+                                             <span className="text-gray-500 mb-2 block">Alt Phones:</span>
+                                             <div className="space-y-1">
+                                                 {[
+                                                     lead.alternateMobile1,
+                                                     lead.alternateMobile2,
+                                                     lead.alternateMobile3,
+                                                     lead.alternateMobile4
+                                                 ].filter(phone => phone && phone.trim() !== '').length ? 
+                                                     [
+                                                         lead.alternateMobile1,
+                                                         lead.alternateMobile2,
+                                                         lead.alternateMobile3,
+                                                         lead.alternateMobile4
+                                                     ].filter(phone => phone && phone.trim() !== '').map((phone, index) => (
+                                                         <div key={index} className="flex justify-between items-center py-1">
+                                                             <span className="text-gray-400 text-xs">Phone {index + 1}:</span>
+                                                             <span className="font-medium">{phone}</span>
+                                                         </div>
+                                                     )) : 
+                                                     <div className="font-medium text-sm text-gray-400">None</div>
+                                                 }
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 <div className="p-4 bg-gray-50 rounded-xl">
+                                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Document Uploads</p>
+                                     <div className="space-y-2 text-sm">
+                                         <div className="flex justify-between items-center py-1">
+                                             <span className="text-gray-500">Photo:</span>
+                                             <span className={`font-medium text-xs px-2 py-1 rounded ${lead.photo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                 {lead.photo ? '✓ Uploaded' : 'Not uploaded'}
+                                             </span>
+                                         </div>
+                                         <div className="flex flex-col py-1 border-b border-gray-100 pb-2">
+                                             <div className="flex justify-between items-center">
+                                                 <span className="text-gray-500 font-medium">Driving License:</span>
+                                                 <span className={`font-medium text-xs px-2 py-1 rounded ${lead.dlPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                     {lead.dlPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                                                 </span>
+                                             </div>
+                                             <div className="flex items-center mt-1.5 gap-1.5 text-[10px] bg-white border border-gray-100 px-2 py-1.5 rounded-md shadow-sm">
+                                                 <span className="text-gray-400 uppercase font-bold tracking-wide flex-shrink-0">Expiry:</span>
+                                                 {(() => {
+                                                     if (!lead.licenseExpiryDate) return <span className="font-medium text-gray-700 break-words">Not set</span>;
+                                                     const expiry = new Date(lead.licenseExpiryDate);
+                                                     const today = new Date();
+                                                     today.setHours(0,0,0,0);
+                                                     const thirtyDaysFromNow = new Date();
+                                                     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                                                     
+                                                     const isExpired = expiry < today;
+                                                     const isExpiringSoon = !isExpired && expiry <= thirtyDaysFromNow;
+                                                     
+                                                     return (
+                                                         <span className={`font-medium break-words ${isExpired || isExpiringSoon ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+                                                             {expiry.toLocaleDateString('en-GB')} {isExpired ? '(Expired)' : isExpiringSoon ? '(Expiring soon)' : ''}
+                                                         </span>
+                                                     );
+                                                 })()}
+                                             </div>
+                                         </div>
+                                         <div className="flex justify-between items-center py-1">
+                                             <span className="text-gray-500">PAN Card:</span>
+                                             <span className={`font-medium text-xs px-2 py-1 rounded ${lead.panPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                 {lead.panPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                                             </span>
+                                         </div>
+                                         <div className="flex justify-between items-center py-1">
+                                             <span className="text-gray-500">Aadhar Card:</span>
+                                             <span className={`font-medium text-xs px-2 py-1 rounded ${lead.aadharPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                 {lead.aadharPhoto ? '✓ Uploaded' : 'Not uploaded'}
+                                             </span>
+                                         </div>
+                                         
+                                         {/* Police Verification - Updated to show both upload and verification status */}
+                                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-1 space-y-1">
+                                             <div className="flex justify-between items-center">
+                                                 <span className="text-gray-500 font-medium">Police Verification:</span>
+                                                 <div className="flex items-center gap-2">
+                                                     {/* Upload Status */}
+                                                     <span className={`font-medium text-xs px-2 py-1 rounded ${lead.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                         {lead.policeVerificationPhoto ? '✓ Uploaded' : ' Not Uploaded'}
+                                                     </span>
+                                                 </div>
+                                             </div>
+                                             
+                                             <div className="flex items-center mt-1.5 gap-1.5 text-[10px] bg-white border border-gray-100 px-2 py-1.5 rounded-md shadow-sm">
+                                                 <span className="text-gray-400 uppercase font-bold tracking-wide flex-shrink-0">Expiry:</span>
+                                                 {(() => {
+                                                     if (!lead.policeVerificationExpiryDate) return <span className="font-medium text-gray-700 break-words">Not set</span>;
+                                                     const expiry = new Date(lead.policeVerificationExpiryDate);
+                                                     const today = new Date();
+                                                     today.setHours(0,0,0,0);
+                                                     const thirtyDaysFromNow = new Date();
+                                                     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                                                     
+                                                     const isExpired = expiry < today;
+                                                     const isExpiringSoon = !isExpired && expiry <= thirtyDaysFromNow;
+                                                     
+                                                     return (
+                                                         <span className={`font-medium break-words ${isExpired || isExpiringSoon ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+                                                             {expiry.toLocaleDateString('en-GB')} {isExpired ? '(Expired)' : isExpiringSoon ? '(Expiring soon)' : ''}
+                                                         </span>
+                                                     );
+                                                 })()}
+                                             </div>
+                                            
+                                             <div className="text-[10px] text-gray-400 mt-1">
+                                                 Note: Document uploaded successfully. Admin will verify it shortly.
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
+                             
+                             <div className="pt-4 space-y-3">
+                                 <button
+                                     onClick={() => {
+                                         setConfirmConfig({
+                                             isOpen: true,
+                                             title: 'Logout',
+                                             message: 'Are you sure you want to logout?',
+                                             type: 'info',
+                                             confirmText: 'Logout',
+                                             onConfirm: () => {
+                                                 localStorage.removeItem('auth-token');
+                                                 window.location.href = '/';
+                                             }
+                                         });
+                                     }}
+                                     className="w-full bg-white border border-gray-200 text-black py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2"
+                                 >
+                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                     Logout
+                                 </button>
+
+{/* 
+                                 <button
+                                     onClick={() => {
+                                         setConfirmConfig({
+                                             isOpen: true,
+                                             title: 'Delete Account',
+                                             message: 'Are you sure you want to delete your account? This action cannot be undone and will delete your personal data.',
+                                             type: 'danger',
+                                             confirmText: 'Delete',
+                                             onConfirm: async () => {
+                                                 try {
+                                                     const token = localStorage.getItem('auth-token');
+                                                     const res = await fetch(`${API_BASE_URL}/api/auth/delete`, {
+                                                         method: 'DELETE',
+                                                         headers: { 'Authorization': `Bearer ${token}` }
+                                                     });
+                                                     const data = await res.json();
+                                                     if(data.success) {
+                                                         alert('Account deleted successfully');
+                                                         localStorage.removeItem('auth-token');
+                                                         window.location.href = '/';
+                                                     } else {
+                                                         alert(data.error || 'Failed to delete account');
+                                                     }
+                                                 } catch(e) {
+                                                     alert('Error deleting account');
+                                                 }
+                                             }
+                                         });
+                                     }}
+                                     className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold text-sm hover:bg-red-100 transition flex items-center justify-center gap-2"
+                                 >
+                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                     Delete Account
+                                 </button>
+*/}
+                             </div>
+                         </div>
+                    </div>
+                ) : (
+                    <form onSubmit={handleProfileUpdate} className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                        <h3 className="font-bold text-base sm:text-lg mb-4">Edit Profile Details</h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Full Name</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    value={profileData.name}
+                                    onChange={e => setProfileData({...profileData, name: e.target.value})}
+                                />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs sm:text-sm text-gray-500">No Active Plan</p>
-                              <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
-                              <button 
-                                onClick={() => setActiveTab('PACKAGES')}
-                                className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
-                              >
-                                Make Plan
-                              </button>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Phone Number</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    value={profileData.phone}
+                                    onChange={e => setProfileData({...profileData, phone: e.target.value})}
+                                />
                             </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    return (
-                      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs sm:text-sm text-gray-500">Current Plan</p>
-                              <p className="text-xs px-2 py-1 rounded border text-blue-600 border-blue-200 bg-blue-50">
-                                {currentSubscription.paymentMethod || 'N/A'}
-                              </p>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Current Address</label>
+                                <textarea 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm resize-none"
+                                    rows={2}
+                                    value={profileData.currentAddress || ''}
+                                    onChange={e => setProfileData({...profileData, currentAddress: e.target.value})}
+                                />
                             </div>
-                            <p className="text-base sm:text-lg md:text-xl font-bold text-black truncate">{currentSubscription.plan.name}</p>
-                            <p className="text-xs px-2 py-1 rounded border text-green-600 border-green-200 bg-green-50 inline-block mt-1">
-                              {daysLeft} days left
-                            </p>
-                          </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Permanent Address</label>
+                                <textarea 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm resize-none"
+                                    rows={2}
+                                    value={profileData.permanentAddress || ''}
+                                    onChange={e => setProfileData({...profileData, permanentAddress: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 1</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    value={lead.alternateMobile1 || ''}
+                                    onChange={e => {
+                                        setLead({...lead, alternateMobile1: e.target.value});
+                                        setProfileData({...profileData, alternateMobile1: e.target.value});
+                                    }}
+                                />
+                            </div>
+                             <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 2</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    value={lead.alternateMobile2 || ''}
+                                    onChange={e => {
+                                        setLead({...lead, alternateMobile2: e.target.value});
+                                        setProfileData({...profileData, alternateMobile2: e.target.value});
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 3</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    value={lead.alternateMobile3 || ''}
+                                    onChange={e => {
+                                        setLead({...lead, alternateMobile3: e.target.value});
+                                        setProfileData({...profileData, alternateMobile3: e.target.value});
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 4</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    value={lead.alternateMobile4 || ''}
+                                    onChange={e => {
+                                        setLead({...lead, alternateMobile4: e.target.value});
+                                        setProfileData({...profileData, alternateMobile4: e.target.value});
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Gpay/PhonePe number</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                    placeholder="Enter mobile number"
+                                    value={profileData.upiId || ''}
+                                    onChange={e => setProfileData({...profileData, upiId: e.target.value})}
+                                />
+                            </div>
                         </div>
-                      </div>
-                    );
-                  })() : (
-                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 shadow-sm">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm text-gray-500">No Active Plan</p>
-                          <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
-                          <button 
-                            onClick={() => setActiveTab('PACKAGES')}
-                            className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
-                          >
-                            Make Plan
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                <div className="space-y-4">
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-400 font-bold uppercase mb-2">Documents</p>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-500">License:</span>
-                        <span className="font-medium text-right break-all">{lead.licenseNo || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-500">Aadhar:</span>
-                        <span className="font-medium text-right break-all">{lead.aadharNo || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
+                        <div className="pt-4 border-t border-gray-100">
+                             <p className="text-xs font-bold text-gray-500 mb-3 uppercase">Document Uploads</p>
+                             <div className="grid grid-cols-2 gap-3">
+                                 <div className="relative">
+                                     <input 
+                                         type="file"
+                                         accept="image/*"
+                                         id="editPhoto"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, photo: previewUrl});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, photo: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                     <label 
+                                         htmlFor="editPhoto"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
+                                     >
+                                         {imagePreviews.photo || profileData.photo ? (
+                                             <img 
+                                                 src={imagePreviews.photo || (profileData.photo.startsWith('http') ? profileData.photo : `${API_BASE_URL}${profileData.photo}`)} 
+                                                 alt="Photo" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Photo</p>
+                                             </div>
+                                         )}
+                                     </label>
+                                 </div>
+                                 
+                                 <div className="relative">
+                                     <input 
+                                         type="file"
+                                         accept="image/*"
+                                         id="editDlPhoto"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, dlPhoto: previewUrl});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, dlPhoto: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                     <label 
+                                         htmlFor="editDlPhoto"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
+                                     >
+                                         {imagePreviews.dlPhoto || profileData.dlPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.dlPhoto || (profileData.dlPhoto.startsWith('http') ? profileData.dlPhoto : `${API_BASE_URL}${profileData.dlPhoto}`)} 
+                                                 alt="Driving License" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Driving License</p>
+                                             </div>
+                                         )}
+                                     </label>
+                                 </div>
+                                 
+                                 <div className="relative">
+                                     <input 
+                                         type="file"
+                                         accept="image/*"
+                                         id="editPanPhoto"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, panPhoto: previewUrl});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, panPhoto: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                     <label 
+                                         htmlFor="editPanPhoto"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
+                                     >
+                                         {imagePreviews.panPhoto || profileData.panPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.panPhoto || (profileData.panPhoto.startsWith('http') ? profileData.panPhoto : `${API_BASE_URL}${profileData.panPhoto}`)} 
+                                                 alt="PAN Card" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">PAN Card</p>
+                                             </div>
+                                         )}
+                                     </label>
+                                 </div>
+                                 
+                                 <div className="relative">
+                                     <input 
+                                         type="file"
+                                         accept="image/*"
+                                         id="editAadharPhoto"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, aadharPhoto: previewUrl});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, aadharPhoto: result.fileId});
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                     <label 
+                                         htmlFor="editAadharPhoto"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
+                                     >
+                                         {imagePreviews.aadharPhoto || profileData.aadharPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.aadharPhoto || (profileData.aadharPhoto.startsWith('http') ? profileData.aadharPhoto : `${API_BASE_URL}${profileData.aadharPhoto}`)} 
+                                                 alt="Aadhar Card" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Aadhar Card</p>
+                                             </div>
+                                         )}
+                                     </label>
+                                 </div>
 
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-400 font-bold uppercase mb-2">Payment & Contact</p>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-200 pb-2">
-                        <span className="text-gray-500 mb-1 sm:mb-0">UPI ID:</span>
-                        <span className="font-medium break-all">{lead.gpayNo || 'Not set'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500 mb-2 block">Alt Phones:</span>
-                        <div className="space-y-1">
-                          {[
-                            lead.alternateMobile1,
-                            lead.alternateMobile2,
-                            lead.alternateMobile3,
-                            lead.alternateMobile4
-                          ].filter(phone => phone && phone.trim() !== '').length ? 
-                            [
-                              lead.alternateMobile1,
-                              lead.alternateMobile2,
-                              lead.alternateMobile3,
-                              lead.alternateMobile4
-                            ].filter(phone => phone && phone.trim() !== '').map((phone, index) => (
-                              <div key={index} className="flex justify-between items-center py-1">
-                                <span className="text-gray-400 text-xs">Phone {index + 1}:</span>
-                                <span className="font-medium">{phone}</span>
-                              </div>
-                            )) : 
-                            <div className="font-medium text-sm text-gray-400">None</div>
-                          }
+                                 {/* Police Verification Upload - New Field */}
+                                 <div className="relative col-span-2">
+                                     <input 
+                                         type="file"
+                                         accept="image/*"
+                                         id="editPoliceVerificationPhoto"
+                                         className="hidden"
+                                         onChange={async (e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                                 const previewUrl = URL.createObjectURL(file);
+                                                 setImagePreviews({...imagePreviews, policeVerificationPhoto: previewUrl});
+                                                 try {
+                                                     const formData = new FormData();
+                                                     formData.append('file', file);
+                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+                                                         method: 'POST',
+                                                         body: formData
+                                                     });
+                                                     const result = await response.json();
+                                                     if (result.success) {
+                                                         setProfileData({...profileData, policeVerificationPhoto: result.fileId});
+                                                         // Show immediate feedback
+                                                         alert('Police verification document uploaded successfully! Admin will verify it shortly.');
+                                                     }
+                                                 } catch (error) {
+                                                     console.error('Upload failed:', error);
+                                                     alert('Failed to upload document. Please try again.');
+                                                 }
+                                             }
+                                         }}
+                                     />
+                                     <label 
+                                         htmlFor="editPoliceVerificationPhoto"
+                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
+                                     >
+                                         {imagePreviews.policeVerificationPhoto || profileData.policeVerificationPhoto ? (
+                                             <img 
+                                                 src={imagePreviews.policeVerificationPhoto || (profileData.policeVerificationPhoto.startsWith('http') ? profileData.policeVerificationPhoto : `${API_BASE_URL}${profileData.policeVerificationPhoto}`)} 
+                                                 alt="Police Verification" 
+                                                 className="w-full h-full object-contain block"
+                                             />
+                                         ) : (
+                                             <div className="flex flex-col items-center justify-center h-full">
+                                                 <svg className="w-6 h-6 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                 </svg>
+                                                 <p className="text-xs text-gray-500 font-medium">Police Verification</p>
+                                                 <p className="text-[10px] text-gray-400 mt-1">Click to upload verification document</p>
+                                                 {profileData.policeVerificationPhoto && (
+                                                     <p className="text-[10px] text-green-600 mt-1">✓ Document uploaded</p>
+                                                 )}
+                                             </div>
+                                         )}
+                                     </label>
+                                     {profileData.policeVerificationPhoto && (
+                                         <div className="absolute bottom-2 right-2 bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">
+                                             Uploaded
+                                         </div>
+                                     )}
+                                 </div>
+                             </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-400 font-bold uppercase mb-2">Document Uploads</p>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Photo:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.photo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.photo ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Driving License:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.dlPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.dlPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">PAN Card:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.panPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.panPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Aadhar Card:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.aadharPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.aadharPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">MSME Certificate:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.msmePhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.msmePhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Ration Card:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.rationCardPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.rationCardPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Police Verification:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.policeVerificationPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Electricity Bill:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.electricityBillPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.electricityBillPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Rental Agreement:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.rentalAgreementPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.rentalAgreementPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Credit Card:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.creditCardPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.creditCardPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1">
-                        <span className="text-gray-500">Debit Card:</span>
-                        <span className={`font-medium text-xs px-2 py-1 rounded ${lead.debitCardPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                          {lead.debitCardPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                         <div className="pt-4 border-t border-gray-100">
+                             <label className="block text-xs font-bold text-gray-500 mb-1">Change Password</label>
+                             <input 
+                                type="password" 
+                                placeholder="New Password"
+                                className="w-full bg-gray-50 rounded-lg p-3 text-sm"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                             />
+                         </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <button type="button" onClick={() => setIsEditingProfile(false)} className="flex-1 py-3 font-bold text-sm">Cancel</button>
+                            <button type="submit" className="flex-1 bg-black text-white py-3 rounded-lg font-bold text-sm">Save Changes</button>
+                        </div>
+                    </form>
+                )}
             </div>
-            ) : (
-              <form onSubmit={handleProfileUpdate} className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                <h3 className="font-bold text-base sm:text-lg mb-4">Edit Profile Details</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Full Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.name || ''}
-                      onChange={e => setProfileData({...profileData, name: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Phone Number</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.phone || ''}
-                      onChange={e => setProfileData({...profileData, phone: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 1</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.alternateMobile1 || ''}
-                      onChange={e => setProfileData({...profileData, alternateMobile1: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 2</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.alternateMobile2 || ''}
-                      onChange={e => setProfileData({...profileData, alternateMobile2: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 3</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.alternateMobile3 || ''}
-                      onChange={e => setProfileData({...profileData, alternateMobile3: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">Alternate Phone 4</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.alternateMobile4 || ''}
-                      onChange={e => setProfileData({...profileData, alternateMobile4: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">UPI ID (GPay/PhonePe)</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-50 rounded-lg p-3 text-sm"
-                      value={profileData.gpayNo || ''}
-                      onChange={e => setProfileData({...profileData, gpayNo: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <p className="text-xs font-bold text-gray-500 mb-3 uppercase">Document Uploads</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { field: 'photo', label: 'Photo' },
-                      { field: 'dlPhoto', label: 'Driving License' },
-                      { field: 'panPhoto', label: 'PAN Card' },
-                      { field: 'aadharPhoto', label: 'Aadhar Card' },
-                      { field: 'msmePhoto', label: 'MSME Certificate' },
-                      { field: 'rationCardPhoto', label: 'Ration Card' },
-                      { field: 'policeVerificationPhoto', label: 'Police Verification' },
-                      { field: 'electricityBillPhoto', label: 'Electricity Bill' },
-                      { field: 'rentalAgreementPhoto', label: 'Rental Agreement' },
-                      { field: 'creditCardPhoto', label: 'Credit Card' },
-                      { field: 'debitCardPhoto', label: 'Debit Card' }
-                    ].map(({ field, label }) => (
-                      <div key={field} className="relative">
-                        <input 
-                          type="file"
-                          accept="image/*"
-                          id={`edit${field}`}
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const previewUrl = URL.createObjectURL(file);
-                              setImagePreviews({...imagePreviews, [field]: previewUrl});
-                              try {
-                                const formData = new FormData();
-                                formData.append('file', file);
-                                const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-                                  method: 'POST',
-                                  body: formData
-                                });
-                                const result = await response.json();
-                                if (result.success) {
-                                  setProfileData({...profileData, [field]: result.fileId});
-                                }
-                              } catch (error) {
-                                console.error('Upload failed:', error);
-                              }
-                            }
-                          }}
-                        />
-                        <label 
-                          htmlFor={`edit${field}`}
-                          className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
-                        >
-                          {imagePreviews[field] || profileData[field] ? (
-                            <img 
-                              src={imagePreviews[field] || (profileData[field]?.startsWith('http') ? profileData[field] : `${API_BASE_URL}${profileData[field]}`)} 
-                              alt={field} 
-                              className="w-full h-full object-contain block"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center h-full">
-                              <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                              </svg>
-                              <p className="text-xs text-gray-500 font-medium text-center px-1">
-                                {label}
-                              </p>
-                            </div>
-                          )}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsEditingProfile(false)} className="flex-1 py-3 font-bold text-sm">Cancel</button>
-                  <button type="submit" className="flex-1 bg-black text-white py-3 rounded-lg font-bold text-sm">Save Changes</button>
-                </div>
-              </form>
-            )}
-          </div>
         )}
       </div>
 
@@ -1186,6 +1974,118 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ onLogout }) => {
           </div>
         </div>
       )}
+
+      {/* Start Trip OTP Modal */}
+      {isStartOtpSent && startingTripId && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[70] backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl transform transition-all animate-fade-in-up">
+            <div className="p-6 bg-gray-50 border-b border-gray-100 flex flex-col items-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-1">Verify OTP</h3>
+              <p className="text-sm text-gray-500 text-center">Enter the 6-digit code sent to the customer's phone to start the trip.</p>
+            </div>
+            <div className="p-6">
+              <input 
+                type="text" 
+                maxLength={6}
+                placeholder="0 0 0 0 0 0"
+                value={startOtp}
+                onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-gray-100 border border-gray-300 rounded-xl p-4 text-center tracking-[0.5em] text-gray-900 font-bold text-2xl placeholder:tracking-normal placeholder:font-normal placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner mb-4" 
+              />
+              
+              <button
+                disabled={isSendingStartOtp}
+                onClick={async () => {
+                  setIsSendingStartOtp(true);
+                  try {
+                    const res = await fetch(`${API_BASE_URL}/api/trips/${startingTripId}/send-start-otp`, {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert('OTP resent to customer successfully!');
+                    } else {
+                      alert(data.error || 'Failed to resend OTP');
+                    }
+                  } catch (error) {
+                    console.error('Resend OTP error:', error);
+                    alert('Failed to resend OTP');
+                  } finally {
+                    setIsSendingStartOtp(false);
+                  }
+                }}
+                className="w-full text-blue-600 font-bold text-sm hover:text-blue-800 transition mb-6"
+              >
+                {isSendingStartOtp ? 'Resending...' : 'Resend OTP'}
+              </button>
+
+              <div className="flex gap-3">
+                <button 
+                  disabled={isStartingTrip}
+                  onClick={() => { setIsStartOtpSent(false); setStartOtp(''); }}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={isStartingTrip || startOtp.length !== 6 || !tripPhotos.front || !tripPhotos.back}
+                  onClick={async () => {
+                    try {
+                      setIsStartingTrip(true);
+                      let frontUrl = null, backUrl = null;
+                      
+                      if (tripPhotos.front) {
+                        const frontRes = await uploadFile(tripPhotos.front);
+                        if (frontRes.success && frontRes.path) frontUrl = frontRes.path.split('/').pop();
+                      }
+                      if (tripPhotos.back) {
+                        const backRes = await uploadFile(tripPhotos.back);
+                        if (backRes.success && backRes.path) backUrl = backRes.path.split('/').pop();
+                      }
+                      
+                      const result = await tripAPI.startTrip(startingTripId, {
+                        carFrontPhoto: frontUrl,
+                        carBackPhoto: backUrl,
+                        otp: startOtp
+                      });
+                      
+                      if (result.success) {
+                        setStartingTripId(null);
+                        setTripPhotos({ front: null, back: null });
+                        setIsStartOtpSent(false);
+                        setStartOtp('');
+                        const driverRes = await tripAPI.getDriverTrips();
+                        if (driverRes.success) setTrips(driverRes.trips);
+                      } else {
+                        alert('Failed to start trip: ' + result.error);
+                      }
+                    } catch (error) {
+                      console.error('Start trip error:', error);
+                      alert('Failed to start trip');
+                    } finally {
+                      setIsStartingTrip(false);
+                    }
+                  }}
+                  className={`flex-1 text-white py-3.5 rounded-xl font-bold transition active:scale-95 shadow-md ${
+                    isStartingTrip || startOtp.length !== 6 || !tripPhotos.front || !tripPhotos.back
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {isStartingTrip ? 'Starting...' : 'Confirm Start'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
