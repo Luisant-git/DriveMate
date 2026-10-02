@@ -187,3 +187,4 @@ export const checkAuth = async () => {
     return { success: false, authenticated: false };
   }
 };
+export const resetLeadPassword = async (phoneNumber, newPassword) => { try { const response = await fetch(`${API_BASE_URL}/api/leads/auth/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: phoneNumber, password: newPassword }) }); return await response.json(); } catch (error) { console.error('Error resetting lead password:', error); return { error: error.message }; } };

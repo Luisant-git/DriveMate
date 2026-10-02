@@ -1,11 +1,12 @@
 import express from 'express';
-import { registerLead, loginLead, getAllLeads, updateLeadStatus, getLeadProfile, updateLeadProfile, getLeadCountByType, getLeadCountByPackage } from '../controllers/lead.controller.js';
+import { registerLead, loginLead, resetPassword, getAllLeads, updateLeadStatus, getLeadProfile, updateLeadProfile, getLeadCountByType, getLeadCountByPackage } from '../controllers/lead.controller.js';
 import { authenticateLead, authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
 router.post('/register', registerLead);
 router.post('/login', loginLead);
+router.post('/auth/reset-password', resetPassword);
 router.get('/', getAllLeads);
 router.patch('/:id/status', updateLeadStatus);
 router.get('/profile', authenticateLead, getLeadProfile);

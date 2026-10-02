@@ -226,3 +226,5 @@ export const getLeadCountByPackage = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const resetPassword = async (req, res) => { try { const { phone, password } = req.body; const bcrypt = await import('bcrypt'); const hashedPassword = await bcrypt.hash(password, 10); await prisma.lead.update({ where: { phone }, data: { password: hashedPassword } }); res.json({ success: true, message: 'Password updated successfully' }); } catch (error) { res.status(500).json({ success: false, error: error.message }); } };
