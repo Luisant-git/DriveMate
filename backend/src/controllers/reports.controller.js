@@ -105,6 +105,111 @@ export const getDriverReports = async (req, res) => {
   }
 };
 
+export const getLeadReports = async (req, res) => {
+  try {
+    const { startDate, endDate, status } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const leads = await prisma.lead.findMany({
+      where,
+      include: {
+        leadSubscriptions: { 
+          include: { plan: true } 
+        },
+        bookings: {
+          where: { status: 'COMPLETED' },
+        },
+        trips: { 
+          where: { status: 'COMPLETED' },
+        },
+        rides: { 
+          where: { status: 'COMPLETED' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const report = await Promise.all(leads.map(async (lead) => {
+      const activeSubscription = lead.leadSubscriptions.find((s) => s.status === 'ACTIVE');
+
+      // Calculate revenue from bookings
+      let totalRevenue = 0;
+      const bookingIdsWithoutAmount = [];
+
+      // First, sum up all bookings with amounts
+      if (lead.bookings && lead.bookings.length > 0) {
+        lead.bookings.forEach(booking => {
+          const amount = booking.finalAmount || booking.estimateAmount || 0;
+          if (amount > 0) {
+            totalRevenue += Number(amount);
+          } else {
+            // Track bookings without amounts for payment lookup
+            bookingIdsWithoutAmount.push(booking.id);
+          }
+        });
+      }
+
+      // Sum from trips
+      if (lead.trips && lead.trips.length > 0) {
+        lead.trips.forEach(trip => {
+          totalRevenue += Number(trip.totalAmount || 0);
+        });
+      }
+
+      // Sum from rides
+      if (lead.rides && lead.rides.length > 0) {
+        lead.rides.forEach(ride => {
+          totalRevenue += Number(ride.fare || 0);
+        });
+      }
+
+      // If there are bookings without amounts, check payments table
+      if (bookingIdsWithoutAmount.length > 0) {
+        const payments = await prisma.payment.findMany({
+          where: {
+            bookingId: { in: bookingIdsWithoutAmount },
+          }
+        });
+
+        payments.forEach(payment => {
+          totalRevenue += Number(payment.amount || 0);
+        });
+      }
+
+      return {
+        id: lead.id,
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        status: lead.status,
+        packageType: activeSubscription ? activeSubscription.plan.name : 'No Active Plan',
+        totalRides: lead.totalRides || 0,
+        rating: lead.rating || 0,
+        completedBookings: lead.bookings?.length || 0,
+        completedTrips: lead.trips?.length || 0,
+        completedRides: lead.rides?.length || 0,
+        activeSubscriptions: lead.leadSubscriptions.filter((s) => s.status === 'ACTIVE').length,
+        totalRevenue: totalRevenue,
+        joinedDate: lead.createdAt,
+        licenseExpiryDate: lead.licenseExpiryDate,
+        policeVerificationExpiryDate: lead.policeVerificationExpiryDate,
+      };
+    }));
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    console.error('Error fetching lead reports:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch lead reports' });
+  }
+};
+
 export const getCustomerReports = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
