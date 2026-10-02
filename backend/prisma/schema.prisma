@@ -8,119 +8,113 @@ datasource db {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  customerNo Int     @unique @default(autoincrement())
-  name      String?
-  email     String?  @unique
-  phone     String   @unique
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  phone          String    @unique
+  password       String?
+  address        String?
+  idProof        String?
+  advancePayment Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  customerNo     Int       @unique @default(autoincrement())
   whatsappNumber String?
-  password  String?
-  address   String?
-  idProof   String?
-  advancePayment Float @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  rides Ride[]
-  trips Trip[]
-  bookings Booking[]
+  bookings       Booking[]
+  rides          Ride[]
+  trips          Trip[]
 
   @@map("customers")
 }
 
 model Driver {
-  id           String        @id @default(cuid())
-  driverNo     Int           @unique @default(autoincrement())
-  name         String
-  email        String?       @unique
-  phone        String        @unique
-  password     String
-  aadharNo     String        @unique
-  licenseNo    String        @unique
-  licenseExpiryDate String?
-  currentAddress String?
-  permanentAddress String?
-  photo        String?
-  dlPhoto      String?
-  panPhoto     String?
-  aadharPhoto  String?
-  policeVerificationPhoto String? 
+  id                           String            @id @default(cuid())
+  name                         String
+  email                        String?           @unique
+  phone                        String            @unique
+  password                     String
+  aadharNo                     String            @unique
+  licenseNo                    String            @unique
+  photo                        String?
+  dlPhoto                      String?
+  panPhoto                     String?
+  alternateMobile1             String?
+  alternateMobile2             String?
+  alternateMobile3             String?
+  alternateMobile4             String?
+  gpayNo                       String?
+  phonepeNo                    String?
+  vehicleNo                    String?
+  vehicleType                  String?
+  status                       DriverStatus      @default(PENDING)
+  isOnline                     Boolean           @default(false)
+  latitude                     Float?
+  longitude                    Float?
+  rating                       Float             @default(0)
+  totalRides                   Int               @default(0)
+  packageType                  PackageType       @default(LOCAL)
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+  aadharPhoto                  String?
+  isActive                     Boolean           @default(false)
+  lastVerifiedAt               DateTime?
+  nextVerificationDue          DateTime?
+  currentAddress               String?
+  permanentAddress             String?
+  policeVerificationPhoto      String?
+  licenseExpiryDate            String?
   policeVerificationExpiryDate String?
-  alternateMobile1 String?
-  alternateMobile2 String?
-  alternateMobile3 String?
-  alternateMobile4 String?
-  gpayNo       String?
-  phonepeNo    String?
-  vehicleNo    String?
-  vehicleType  String?
-  status       DriverStatus  @default(PENDING)
-  isOnline     Boolean       @default(false)
-  latitude     Float?
-  longitude    Float?
-  rating       Float         @default(0)
-  totalRides   Int           @default(0)
-  packageType  PackageType   @default(LOCAL)
-  isActive     Boolean       @default(false)
-  lastVerifiedAt    DateTime?
-  nextVerificationDue DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  // Relations
-  subscriptions Subscription[]
-  rides        Ride[]
-  trips        Trip[]
-  bookings     Booking[]
-  bookingResponses BookingResponse[]
+  driverNo                     Int               @unique @default(autoincrement())
+  bookingResponses             BookingResponse[]
+  bookings                     Booking[]
+  rides                        Ride[]
+  subscriptions                Subscription[]
+  trips                        Trip[]
 
   @@map("drivers")
 }
 
 model Lead {
-  id           String        @id @default(cuid())
-  name         String
-  email        String        @unique
-  phone        String        @unique
-  password     String
-  aadharNo     String        @unique
-  licenseNo    String        @unique
-  photo        String?
-  dlPhoto      String?
-  panPhoto     String?
-  aadharPhoto  String?
-  msmePhoto    String?
-  rationCardPhoto String?
+  id                      String                @id @default(cuid())
+  name                    String
+  email                   String                @unique
+  phone                   String                @unique
+  password                String
+  aadharNo                String                @unique
+  licenseNo               String                @unique
+  photo                   String?
+  dlPhoto                 String?
+  panPhoto                String?
+  aadharPhoto             String?
+  alternateMobile1        String?
+  alternateMobile2        String?
+  alternateMobile3        String?
+  alternateMobile4        String?
+  gpayNo                  String?
+  phonepeNo               String?
+  vehicleNo               String?
+  vehicleType             String?
+  isOnline                Boolean               @default(false)
+  latitude                Float?
+  longitude               Float?
+  rating                  Float                 @default(0)
+  totalRides              Int                   @default(0)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  creditCardPhoto         String?
+  debitCardPhoto          String?
+  electricityBillPhoto    String?
+  isActive                Boolean               @default(false)
+  lastVerifiedAt          DateTime?
+  msmePhoto               String?
+  nextVerificationDue     DateTime?
   policeVerificationPhoto String?
-  electricityBillPhoto String?
-  rentalAgreementPhoto String?
-  creditCardPhoto String?
-  debitCardPhoto String?
-  alternateMobile1 String?
-  alternateMobile2 String?
-  alternateMobile3 String?
-  alternateMobile4 String?
-  gpayNo       String?
-  phonepeNo    String?
-  vehicleNo    String?
-  vehicleType  String?
-  isOnline     Boolean       @default(false)
-  latitude     Float?
-  longitude    Float?
-  rating       Float         @default(0)
-  totalRides   Int           @default(0)
-  isActive     Boolean       @default(false)
-  lastVerifiedAt    DateTime?
-  nextVerificationDue DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  // Relations
-  leadSubscriptions LeadSubscription[]
-  leadBookings     LeadBooking[]
-  leadBookingResponses LeadBookingResponse[]
-  bookings         Booking[]
+  rationCardPhoto         String?
+  rentalAgreementPhoto    String?
+  bookings                Booking[]
+  leadBookingResponses    LeadBookingResponse[]
+  leadBookings            LeadBooking[]
+  leadSubscriptions       LeadSubscription[]
 
   @@map("leads")
 }
@@ -138,112 +132,101 @@ model Admin {
 }
 
 model SubscriptionPlan {
-  id          String   @id @default(cuid())
-  category    String   @default("GENERAL")
-  name        String
-  duration    Int      // days
-  price       Float
-  description String?
-  type  PackageType 
-  maxDuties   Int?     @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  // Relations
+  id            String         @id @default(cuid())
+  name          String
+  duration      Int
+  price         Float
+  description   String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  type          PackageType
+  maxDuties     Int?           @default(0)
+  advancePayment Float?        @default(0)
+  types         String[]       @default([])
+  category      String         @default("GENERAL")
   subscriptions Subscription[]
 
   @@map("subscription_plans")
 }
 
 model LeadSubscriptionPlan {
-  id          String   @id @default(cuid())
-  name        String
-  duration    Int      // days
-  price       Float
-  description String?
-  type        PackageType 
-  types       String[] @default([])
-  isActive    Boolean  @default(true)
-  
-  // Enhanced package features
-  maxLeads         Int?     @default(0)
-  advancePayment   Float?   @default(0)
-  
-  createdAt   DateTime @default(now())
-
-  // Relations
+  id                String             @id @default(cuid())
+  name              String
+  duration          Int
+  price             Float
+  description       String?
+  type              PackageType
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  advancePayment    Float?             @default(0)
+  maxLeads          Int?               @default(0)
+  types             String[]           @default([])
   leadSubscriptions LeadSubscription[]
 
   @@map("lead_subscription_plans")
 }
 
 model Subscription {
-  id       String           @id @default(cuid())
-  driverId String
-  driver   Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  planId   String
-  plan     SubscriptionPlan @relation(fields: [planId], references: [id])
-  status   SubStatus        @default(ACTIVE)
-  startDate DateTime        @default(now())
-  endDate   DateTime
-  amount    Float
-  paidAmount Float?
+  id              String           @id @default(cuid())
+  driverId        String
+  planId          String
+  status          SubStatus        @default(ACTIVE)
+  startDate       DateTime         @default(now())
+  endDate         DateTime
+  amount          Float
+  isAdminCreated  Boolean          @default(false)
+  paidAmount      Float?
+  paymentMethod   String?
   remainingAmount Float?
-  paymentMethod String?
-  isAdminCreated Boolean      @default(false)
-  dutiesCompleted Int         @default(0)
-  maxDuties       Int?        @default(0)
+  dutiesCompleted Int              @default(0)
+  maxDuties       Int?             @default(0)
+  driver          Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan @relation(fields: [planId], references: [id])
 
   @@map("subscriptions")
 }
 
 model LeadSubscription {
-  id       String           @id @default(cuid())
-  leadId   String
-  lead     Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  planId   String
-  plan     LeadSubscriptionPlan @relation(fields: [planId], references: [id])
-  status   SubStatus        @default(ACTIVE)
-  startDate DateTime        @default(now())
-  endDate   DateTime
-  amount    Float
-  paidAmount Float?
+  id              String               @id @default(cuid())
+  leadId          String
+  planId          String
+  status          SubStatus            @default(ACTIVE)
+  startDate       DateTime             @default(now())
+  endDate         DateTime
+  amount          Float
+  paidAmount      Float?
   remainingAmount Float?
-  paymentMethod String?
-  isAdminCreated Boolean      @default(false)
+  paymentMethod   String?
+  isAdminCreated  Boolean              @default(false)
+  lead            Lead                 @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  plan            LeadSubscriptionPlan @relation(fields: [planId], references: [id])
 
   @@map("lead_subscriptions")
 }
 
 model Ride {
-  id              String     @id @default(cuid())
-  customerId      String
-  customer        Customer   @relation(fields: [customerId], references: [id])
-  driverId        String?
-  driver          Driver?    @relation(fields: [driverId], references: [id])
-  
-  pickupLat       Float
-  pickupLng       Float
-  pickupAddress   String
-  dropoffLat      Float
-  dropoffLng      Float
-  dropoffAddress  String
-  
-  distance        Float?     // km
-  duration        Int?       // minutes
-  fare            Float?
-  status          RideStatus @default(REQUESTED)
-  
-  requestedAt     DateTime   @default(now())
-  assignedAt      DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  
-  rating          Int?       // 1-5
-  feedback        String?
-
-  // Relations
-  trackingPoints  TrackingPoint[]
+  id             String          @id @default(cuid())
+  customerId     String
+  driverId       String?
+  pickupLat      Float
+  pickupLng      Float
+  pickupAddress  String
+  dropoffLat     Float
+  dropoffLng     Float
+  dropoffAddress String
+  distance       Float?
+  duration       Int?
+  fare           Float?
+  status         RideStatus      @default(REQUESTED)
+  requestedAt    DateTime        @default(now())
+  assignedAt     DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  rating         Int?
+  feedback       String?
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  driver         Driver?         @relation(fields: [driverId], references: [id])
+  trackingPoints TrackingPoint[]
 
   @@map("rides")
 }
@@ -251,12 +234,259 @@ model Ride {
 model TrackingPoint {
   id        String   @id @default(cuid())
   rideId    String
-  ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
   latitude  Float
   longitude Float
   timestamp DateTime @default(now())
+  ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
 
   @@map("tracking_points")
+}
+
+model Package {
+  id          String      @id @default(cuid())
+  name        String
+  type        PackageType
+  duration    String
+  price       Float
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  @@map("packages")
+}
+
+model Trip {
+  id           String      @id @default(cuid())
+  customerId   String
+  driverId     String?
+  fromLocation String
+  toLocation   String
+  packageType  PackageType
+  duration     String
+  startDate    DateTime
+  endDate      DateTime?
+  status       TripStatus  @default(UPCOMING)
+  totalAmount  Float?
+  paidAmount   Float       @default(0)
+  createdAt    DateTime    @default(now())
+  completedAt  DateTime?
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  driver       Driver?     @relation(fields: [driverId], references: [id])
+
+  @@map("trips")
+}
+
+model Booking {
+  id                    String                @id @default(cuid())
+  customerId            String
+  pickupLocation        String
+  dropLocation          String
+  duration              String?
+  startDateTime         DateTime
+  vehicleType           String?
+  carType               String?
+  estimateAmount        Float?
+  finalAmount           Float?
+  status                BookingStatus         @default(PENDING)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  serviceType           String?
+  driverId              String?
+  adminReviewedAt       DateTime?
+  allocatedAt           DateTime?
+  selectedPackageType   PackageType?
+  leadId                String?
+  paymentMethod         String?
+  selectedLeadPackageId String?
+  driverType            String?
+  paymentStatus         String                @default("UNPAID")
+  tripType              String?
+  feedback              String?
+  rating                Int?
+  actualStartTime       DateTime?
+  carBackPhoto          String?
+  carFrontPhoto         String?
+  completedAt           DateTime?
+  cancellationRequested Boolean               @default(false)
+  cancellationReason    String?
+  endDateTime           DateTime?
+  driverResponses       BookingResponse[]
+  customer              Customer              @relation(fields: [customerId], references: [id])
+  driver                Driver?               @relation(fields: [driverId], references: [id])
+  lead                  Lead?                 @relation(fields: [leadId], references: [id])
+  leadResponses         LeadBookingResponse[]
+
+  @@map("bookings")
+}
+
+model LeadBooking {
+  id                  String        @id @default(cuid())
+  customerId          String
+  leadId              String?
+  pickupLocation      String
+  dropLocation        String
+  bookingType         String
+  serviceType         String?
+  duration            String?
+  startDateTime       DateTime
+  endDateTime         DateTime?
+  vehicleType         String?
+  carType             String?
+  estimateAmount      Float?
+  finalAmount         Float?
+  advancePayment      Float         @default(0)
+  paymentMethod       String?
+  status              BookingStatus @default(PENDING)
+  adminReviewedAt     DateTime?
+  selectedPackageType PackageType?
+  allocatedLeadId     String?
+  allocatedAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  actualStartTime     DateTime?
+  carBackPhoto        String?
+  carFrontPhoto       String?
+  lead                Lead?         @relation(fields: [leadId], references: [id])
+
+  @@map("lead_bookings")
+}
+
+model BookingResponse {
+  id          String    @id @default(cuid())
+  bookingId   String
+  driverId    String
+  status      String    @default("PENDING")
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, driverId])
+  @@map("booking_responses")
+}
+
+model LeadBookingResponse {
+  id          String    @id @default(cuid())
+  bookingId   String
+  leadId      String
+  status      String    @default("PENDING")
+  respondedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, leadId])
+  @@map("lead_booking_responses")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  bookingId   String?
+  tripId      String?
+  amount      Float
+  paymentType PaymentType
+  status      PaymentStatus @default(PENDING)
+  gatewayRef  String?
+  createdAt   DateTime      @default(now())
+
+  @@map("payments")
+}
+
+model PricingPackage {
+  id              String   @id @default(cuid())
+  packageType     String
+  hours           Int
+  minimumCharge   Float
+  minimumKm       Int?
+  extraPerHour    Float    @default(100)
+  description     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  immediateCharge Float?
+  extraPerHourImm Float?
+
+  @@unique([packageType, hours])
+  @@map("pricing_packages")
+}
+
+model ServiceArea {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  state     String
+  radius    Float
+  latitude  Float
+  longitude Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_areas")
+}
+
+model MonthlyPricing {
+  id           String   @id @default(cuid())
+  vehicleType  String
+  hoursPerDay  String
+  daysPerWeek  String
+  charge5Days  Float?
+  charge6Days  Float?
+  extraPerHour Float    @default(90)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([vehicleType, hoursPerDay, daysPerWeek])
+  @@map("monthly_pricing")
+}
+
+model Session {
+  sid    String   @id
+  sess   Json
+  expire DateTime
+
+  @@map("session")
+}
+
+model VerificationRecord {
+  id         String   @id @default(cuid())
+  entityId   String
+  entityType String
+  status     String
+  notes      String?
+  verifiedAt DateTime @default(now())
+
+  @@map("verification_records")
+}
+
+model BookingRoutingConfig {
+  id            String   @id @default(cuid())
+  serviceType   String
+  tripType      String
+  driverPlanIds String[] @default([])
+  leadPlanIds   String[] @default([])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([serviceType, tripType])
+  @@map("booking_routing_configs")
+}
+
+model DeletedAccountArchive {
+  id         String   @id @default(cuid())
+  originalId String
+  role       String
+  name       String?
+  phone      String?
+  email      String?
+  data       Json
+  deletedAt  DateTime @default(now())
+
+  @@map("deleted_account_archives")
 }
 
 enum DriverStatus {
@@ -314,276 +544,4 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
-}
-model Package {
-  id          String      @id @default(cuid())
-  name        String
-  type        PackageType
-  duration    String      // "hourly", "daily", "weekly", "monthly"
-  price       Float
-  description String?
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-
-  @@map("packages")
-}
-
-model Trip {
-  id              String     @id @default(cuid())
-  customerId      String
-  customer        Customer   @relation(fields: [customerId], references: [id])
-  driverId        String?
-  driver          Driver?    @relation(fields: [driverId], references: [id])
-  
-  fromLocation    String
-  toLocation      String
-  packageType     PackageType
-  duration        String     // "2 days", "5 hours", etc.
-  startDate       DateTime
-  endDate         DateTime?
-  status          TripStatus @default(UPCOMING)
-  
-  totalAmount     Float?
-  paidAmount      Float      @default(0)
-  
-  createdAt       DateTime   @default(now())
-  completedAt     DateTime?
-
-  @@map("trips")
-}
-
-model Booking {
-  id              String      @id @default(cuid())
-  customerId      String
-  customer        Customer    @relation(fields: [customerId], references: [id])
-  driverId        String?
-  driver          Driver?     @relation(fields: [driverId], references: [id])
-  
-  pickupLocation  String
-  dropLocation    String
-  driverType      String?     // Acting Driver, Spare Driver, etc.
-  serviceType     String?     // Local - Hourly, Outstation
-  tripType        String?     // One Way, Round Trip
-  duration        String?
-  startDateTime   DateTime
-  endDateTime     DateTime?
-  vehicleType     String?
-  carType         String?     // Manual/Automatic
-  
-  estimateAmount  Float?
-  finalAmount     Float?
-  paymentMethod   String?     // CASH, UPI
-  paymentStatus   String      @default("UNPAID") // PAID, UNPAID
-  status          BookingStatus @default(PENDING)
-  
-  // Trip execution fields
-  actualStartTime DateTime?
-  completedAt     DateTime?
-  carFrontPhoto   String?
-  carBackPhoto    String?
-  
-  // Admin workflow fields
-  adminReviewedAt DateTime?
-  cancellationRequested Boolean @default(false)
-  cancellationReason    String?
-  selectedPackageType PackageType?
-  selectedLeadPackageId String?
-  
-  // Driver responses
-  driverResponses BookingResponse[]
-  allocatedAt     DateTime?
-  
-  // Lead responses
-  leadResponses LeadBookingResponse[]
-  leadId          String?
-  lead            Lead?       @relation(fields: [leadId], references: [id])
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  rating          Int?
-  feedback        String?
-
-  @@map("bookings")
-}
-
-model LeadBooking {
-  id              String      @id @default(cuid())
-  customerId      String
-  leadId          String?
-  lead            Lead?       @relation(fields: [leadId], references: [id])
-  
-  pickupLocation  String
-  dropLocation    String
-  bookingType     String
-  serviceType     String?
-  duration        String?
-  startDateTime   DateTime
-  endDateTime     DateTime?
-  vehicleType     String?
-  carType         String?
-  
-  estimateAmount  Float?
-  finalAmount     Float?
-  advancePayment  Float       @default(0)
-  paymentMethod   String?
-  status          BookingStatus @default(PENDING)
-  
-  // Trip execution fields
-  actualStartTime DateTime?
-  carFrontPhoto   String?
-  carBackPhoto    String?
-  
-  adminReviewedAt DateTime?
-  selectedPackageType PackageType?
-  
-  allocatedLeadId String?
-  allocatedAt     DateTime?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  @@map("lead_bookings")
-}
-
-model BookingResponse {
-  id              String      @id @default(cuid())
-  bookingId       String
-  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  driverId        String
-  driver          Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  
-  status          String      @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  respondedAt     DateTime?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  @@unique([bookingId, driverId])
-  @@map("booking_responses")
-}
-
-model LeadBookingResponse {
-  id              String      @id @default(cuid())
-  bookingId       String
-  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  leadId          String
-  lead            Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  
-  status          String      @default("PENDING")
-  respondedAt     DateTime?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
-  @@unique([bookingId, leadId])
-  @@map("lead_booking_responses")
-}
-
-model Payment {
-  id          String      @id @default(cuid())
-  bookingId   String?
-  tripId      String?
-  amount      Float
-  paymentType PaymentType
-  status      PaymentStatus @default(PENDING)
-  gatewayRef  String?
-  createdAt   DateTime    @default(now())
-
-  @@map("payments")
-}
-
-model PricingPackage {
-  id              String   @id @default(cuid())
-  packageType     String   // LOCAL_HOURLY, OUTSTATION
-  hours           Int
-  minimumCharge   Float
-  immediateCharge Float?
-  minimumKm       Int?     // Only for outstation
-  extraPerHour    Float    @default(100)
-  extraPerHourImm Float?
-  description     String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@unique([packageType, hours])
-  @@map("pricing_packages")
-}
-
-model ServiceArea {
-  id          String   @id @default(cuid())
-  name        String   // "Bangalore", "Mysore"
-  city        String
-  state       String
-  radius      Float    // in kilometers
-  latitude    Float
-  longitude   Float
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("service_areas")
-}
-
-model MonthlyPricing {
-  id              String   @id @default(cuid())
-  vehicleType     String   // Mini, Sedan, SUV/MPV, Luxury Car
-  hoursPerDay     String   // 8, 10, 12, 1 day
-  daysPerWeek     String   // 5, 6, 12 (for 1 day)
-  charge5Days     Float?   // Charge for 5 days per week
-  charge6Days     Float?   // Charge for 6 days per week
-  extraPerHour    Float    @default(90)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@unique([vehicleType, hoursPerDay, daysPerWeek])
-  @@map("monthly_pricing")
-}
-
-model Session {
-  sid    String   @id
-  sess   Json
-  expire DateTime
-
-  @@map("session")
-}
-
-model VerificationRecord {
-  id         String   @id @default(cuid())
-  entityId   String
-  entityType String
-  status     String
-  notes      String?
-  verifiedAt DateTime @default(now())
-
-  @@map("verification_records")
-}
-
-model BookingRoutingConfig {
-  id          String   @id @default(cuid())
-  serviceType String   // "Local - Hourly" or "Outstation"
-  tripType    String   // "One Way" or "Round Trip"
-  driverPlanIds String[] @default([])  // SubscriptionPlan IDs
-  leadPlanIds   String[] @default([])  // LeadSubscriptionPlan IDs
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([serviceType, tripType])
-  @@map("booking_routing_configs")
-}
-
-model DeletedAccountArchive {
-  id          String   @id @default(cuid())
-  originalId  String
-  role        String   // 'CUSTOMER', 'DRIVER', 'LEAD'
-  name        String?
-  phone       String?
-  email       String?
-  data        Json     // Stores the full original record
-  deletedAt   DateTime @default(now())
-
-  @@map("deleted_account_archives")
 }
