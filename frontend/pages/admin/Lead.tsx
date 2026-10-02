@@ -149,7 +149,7 @@ export default function Lead() {
         gpayNo: addLeadForm.upiId
       };
       
-      const response = await apiClient.post('/lead/auth/register', payload);
+      const response = await apiClient.post('/leads/register', payload);
       if (response.data) {
         setShowAddLeadModal(false);
         setIsSameAddress(false);
