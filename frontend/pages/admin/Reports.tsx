@@ -213,6 +213,49 @@ const Reports: React.FC = () => {
             </div>
           )}
 
+{activeReport === 'LEADS' && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Phone</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Package</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Total Rides</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Completed</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Revenue</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {leadReports.map((lead) => (
+                      <tr key={lead.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm font-medium">{lead.name}</td>
+                              <td className="px-6 py-4 text-sm font-medium">{lead.aadharNo ? (lead.upiId ? "Lead" : "Driver") : "Driver"}</td>
+                        <td className="px-6 py-4 text-sm">{lead.phone}</td>
+                        <td className="px-6 py-4 text-sm">{lead.packageType}</td>
+                        <td className="px-6 py-4 text-sm">{lead.totalRides}</td>
+                        <td className="px-6 py-4 text-sm">{lead.completedBookings}</td>
+                        <td className="px-6 py-4 text-sm font-bold">₹{Number(lead.totalRevenue || 0).toFixed(2)}</td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => viewTrips(lead, 'lead')}
+                            className="text-xs font-bold text-blue-600 hover:underline"
+                          >
+                            View Trips
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+
           {activeReport === 'CUSTOMERS' && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -232,7 +275,7 @@ const Reports: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {customerReports.map((customer) => (
-                      <tr key={driver.id} className="hover:bg-gray-50">
+                      <tr key={customer.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">{customer.name}</td>
                         <td className="px-6 py-4 text-sm">{customer.phone}</td>
                         <td className="px-6 py-4 text-sm">{customer.email}</td>
@@ -281,7 +324,7 @@ const Reports: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {allBookingsReports.map((booking: any) => (
-                      <tr key={driver.id} className="hover:bg-gray-50">
+                      <tr key={booking.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">
                           {booking.customer?.name}
                           <p className="text-xs text-gray-500 font-normal">{booking.customer?.phone}</p>
