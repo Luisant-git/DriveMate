@@ -13,6 +13,7 @@ model Customer {
   name      String?
   email     String?  @unique
   phone     String   @unique
+  whatsappNumber String?
   password  String?
   address   String?
   idProof   String?
@@ -138,7 +139,7 @@ model Admin {
 
 model SubscriptionPlan {
   id          String   @id @default(cuid())
-  category    String
+  category    String   @default("GENERAL")
   name        String
   duration    Int      // days
   price       Float

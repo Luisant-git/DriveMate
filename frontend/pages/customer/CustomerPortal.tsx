@@ -154,6 +154,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     name: initialCustomer.name,
     email: initialCustomer.email,
     phone: initialCustomer.phone,
+    whatsappNumber: initialCustomer.whatsappNumber || '',
+    phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === initialCustomer.whatsappNumber),
     address: initialCustomer.address || '',
     idProof: initialCustomer.idProof || null
   });
@@ -163,6 +165,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [registrationData, setRegistrationData] = useState({
     name: '',
     email: '',
+    phone: '',
+    whatsappNumber: '',
+    phoneSameAsWhatsapp: true,
     address: '',
     idProof: null as string | null
   });
@@ -222,6 +227,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         name: initialCustomer.name,
         email: initialCustomer.email,
         phone: initialCustomer.phone,
+        whatsappNumber: (initialCustomer as any).whatsappNumber || '',
+        phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber),
         address: initialCustomer.address || ''
       });
       
@@ -243,6 +250,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         setRegistrationData({
           name: initialCustomer.name,
           email: initialCustomer.email || '',
+          phone: initialCustomer.phone || '',
+          whatsappNumber: (initialCustomer as any).whatsappNumber || '',
+          phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber) ? true : false,
           address: initialCustomer.address || '',
           idProof: initialCustomer.idProof || null
         });
@@ -571,6 +581,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         const response = await updateCustomerProfile({
           name: editProfileData.name,
           email: editProfileData.email,
+          phone: editProfileData.phone,
+          whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
           address: editProfileData.address,
           idProof: editProfileData.idProof
         });
@@ -581,6 +593,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             name: editProfileData.name, 
             email: editProfileData.email,
             phone: editProfileData.phone,
+            whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
             address: editProfileData.address,
             idProof: editProfileData.idProof
           };
@@ -601,6 +614,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         const response = await updateCustomerProfile({
           name: registrationData.name,
           email: registrationData.email,
+          phone: registrationData.phone,
+          whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
           address: registrationData.address,
           idProof: registrationData.idProof
         });
@@ -610,6 +625,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             ...customer, 
             name: registrationData.name,
             email: registrationData.email,
+            phone: registrationData.phone,
+            whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
             address: registrationData.address,
             idProof: registrationData.idProof
           };
@@ -820,6 +837,55 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                   placeholder="name@example.com"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Phone Number</label>
+                <input 
+                  type="tel"
+                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                  value={registrationData.phone}
+                  onChange={(e) => {
+                    const newPhone = e.target.value;
+                    setRegistrationData(prev => ({
+                      ...prev, 
+                      phone: newPhone,
+                      ...(prev.phoneSameAsWhatsapp && { whatsappNumber: newPhone })
+                    }));
+                  }}
+                  required
+                />
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="regPhoneSameAsWhatsapp"
+                  className="mr-2 rounded border-gray-300 text-black focus:ring-black"
+                  checked={registrationData.phoneSameAsWhatsapp}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setRegistrationData(prev => ({
+                      ...prev,
+                      phoneSameAsWhatsapp: isChecked,
+                      ...(isChecked && { whatsappNumber: prev.phone })
+                    }));
+                  }}
+                />
+                <label htmlFor="regPhoneSameAsWhatsapp" className="text-xs font-medium text-gray-700">Phone same as WhatsApp number</label>
+              </div>
+
+              {!registrationData.phoneSameAsWhatsapp && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">WhatsApp Number</label>
+                  <input 
+                    type="tel"
+                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                    value={registrationData.whatsappNumber}
+                    onChange={(e) => setRegistrationData({...registrationData, whatsappNumber: e.target.value})}
+                    required={!registrationData.phoneSameAsWhatsapp}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Address</label>
@@ -2659,15 +2725,53 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                          */}
 
                          <div>
-                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Mobile Number</label>
+                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Phone Number</label>
                              <input 
                                  type="tel"
                                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
                                  value={editProfileData.phone}
-                                 onChange={(e) => setEditProfileData({...editProfileData, phone: e.target.value})}
+                                 onChange={(e) => {
+                                   const newPhone = e.target.value;
+                                   setEditProfileData(prev => ({
+                                     ...prev,
+                                     phone: newPhone,
+                                     ...(prev.phoneSameAsWhatsapp && { whatsappNumber: newPhone })
+                                   }));
+                                 }}
                                  required
                              />
                          </div>
+
+                         <div className="flex items-center">
+                             <input
+                                 type="checkbox"
+                                 id="editPhoneSameAsWhatsapp"
+                                 className="mr-2 rounded border-gray-300 text-black focus:ring-black"
+                                 checked={editProfileData.phoneSameAsWhatsapp}
+                                 onChange={(e) => {
+                                     const isChecked = e.target.checked;
+                                     setEditProfileData(prev => ({
+                                         ...prev,
+                                         phoneSameAsWhatsapp: isChecked,
+                                         ...(isChecked && { whatsappNumber: prev.phone })
+                                     }));
+                                 }}
+                             />
+                             <label htmlFor="editPhoneSameAsWhatsapp" className="text-xs font-medium text-gray-700">Phone same as WhatsApp number</label>
+                         </div>
+
+                         {!editProfileData.phoneSameAsWhatsapp && (
+                             <div>
+                                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">WhatsApp Number</label>
+                                 <input 
+                                     type="tel"
+                                     className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                     value={editProfileData.whatsappNumber}
+                                     onChange={(e) => setEditProfileData({...editProfileData, whatsappNumber: e.target.value})}
+                                     required={!editProfileData.phoneSameAsWhatsapp}
+                                 />
+                             </div>
+                         )}
 
                          <div>
                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Address</label>
