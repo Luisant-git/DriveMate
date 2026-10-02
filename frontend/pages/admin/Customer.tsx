@@ -86,8 +86,8 @@ export default function Customer() {
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">S.No</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Customer ID</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">WhatsApp</th>
 
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">ID Proof</th>
                 <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Joined</th>
@@ -114,10 +114,10 @@ export default function Customer() {
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    <p className="text-xs text-gray-700">{customer.email || 'N/A'}</p>
+                    <p className="text-xs text-gray-700">{customer.phone}</p>
                   </td>
                   <td className="px-3 py-3">
-                    <p className="text-xs text-gray-700">{customer.phone}</p>
+                    <p className="text-xs text-gray-700">{customer.whatsappNumber || 'N/A'}</p>
                   </td>
 
                   <td className="px-3 py-3">
