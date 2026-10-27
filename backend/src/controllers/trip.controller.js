@@ -44,7 +44,7 @@ export const getAvailableTrips = async (req, res) => {
 export const getDriverTrips = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const isLead = req.user.type === 'lead';
+    const isLead = req.user.role === 'LEAD' || req.user.type === 'lead';
 
     console.log('getDriverTrips - userId:', userId, 'isLead:', isLead);
 
@@ -69,6 +69,7 @@ export const getDriverTrips = async (req, res) => {
       const isCancelledByThisUser = isLead 
         ? booking.leadId !== userId
         : booking.driverId !== userId;
+      const isCancelledByThisDriver = isCancelledByThisUser;
 
       return {
         id: booking.id,
@@ -79,22 +80,22 @@ export const getDriverTrips = async (req, res) => {
         dropLocation: booking.dropLocation,
         type: booking.bookingType,
         serviceType: booking.serviceType,
-        startDate: booking.startDateTime.toISOString().split('T')[0],
-        startTime: booking.startDateTime.toISOString().split('T')[1].substring(0, 5),
-        startDateTime: booking.startDateTime.toISOString(),
-        createdAt: booking.createdAt.toISOString(),
+        startDate: booking.startDateTime ? booking.startDateTime.toISOString().split('T')[0] : '',
+        startTime: booking.startDateTime ? booking.startDateTime.toISOString().split('T')[1].substring(0, 5) : '',
+        startDateTime: booking.startDateTime ? booking.startDateTime.toISOString() : null,
+        createdAt: booking.createdAt ? booking.createdAt.toISOString() : new Date().toISOString(),
         duration: booking.duration,
         vehicleType: booking.vehicleType,
         estimateAmount: booking.estimateAmount,
         estimatedCost: booking.estimateAmount,
-        status: isCancelledByThisDriver ? 'CANCELLED' : booking.status,
+        status: isCancelledByThisUser ? 'CANCELLED' : booking.status,
         rating: booking.rating,
         feedback: booking.feedback,
         actualStartTime: booking.actualStartTime,
         completedAt: booking.completedAt || (booking.status === 'COMPLETED' ? booking.updatedAt : null),
         finalAmount: booking.finalAmount,
-        cancellationRequested: isCancelledByThisDriver ? false : booking.cancellationRequested,
-        cancellationReason: isCancelledByThisDriver ? 'Requested by Driver' : booking.cancellationReason,
+        cancellationRequested: isCancelledByThisUser ? false : booking.cancellationRequested,
+        cancellationReason: isCancelledByThisUser ? (isLead ? 'Requested by Lead' : 'Requested by Driver') : booking.cancellationReason,
         updatedAt: booking.updatedAt,
       };
     });
@@ -144,7 +145,7 @@ export const completeTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
     const userId = req.user.userId || req.user.id;
-    const isLead = req.user.type === 'lead';
+    const isLead = req.user.role === 'LEAD' || req.user.type === 'lead';
 
     console.log('Complete trip - userId:', userId, 'tripId:', tripId, 'isLead:', isLead);
 
@@ -316,7 +317,7 @@ export const startTrip = async (req, res) => {
     const { tripId } = req.params;
     const { carFrontPhoto, carBackPhoto, otp } = req.body;
     const userId = req.user.userId || req.user.id;
-    const isLead = req.user.type === 'lead';
+    const isLead = req.user.role === 'LEAD' || req.user.type === 'lead';
 
     if (!otp) {
       return res.status(400).json({ success: false, error: 'OTP is required' });
