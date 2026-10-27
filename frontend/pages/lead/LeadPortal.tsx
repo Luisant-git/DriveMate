@@ -140,15 +140,17 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
 
   const fetchCurrentSubscription = async () => {
     try {
+      const token = localStorage.getItem('auth-token') || localStorage.getItem('leadToken');
       const response = await fetch(`${API_BASE_URL}/api/lead-subscriptions/my-subscriptions`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include'
       });
       const data = await response.json();
       if (response.ok && data) {
-        setCurrentSubscription(data);
+        const activeSub = data.subscription || (data.subscriptions?.find((s: any) => s.status === 'ACTIVE')) || (data.plan ? data : null);
+        setCurrentSubscription(activeSub);
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
@@ -162,9 +164,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
           credentials: 'include'
         });
         const data = await response.json();
-        if (data.success) {
-          setPackages(data.packages);
-        }
+        const pkgs = Array.isArray(data) ? data : (data.packages || []);
+        setPackages(pkgs);
       } catch (error) {
         console.error('Error fetching packages:', error);
       }
@@ -172,7 +173,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
 
     const fetchTrips = async () => {
       try {
-        const token = localStorage.getItem('auth-token');
+        const token = localStorage.getItem('auth-token') || localStorage.getItem('leadToken');
         if (!token) {
           console.error('No auth token found');
           return;
@@ -247,11 +248,22 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
     setShowPaymentModal(true);
   };
 
+  const getPkgCategory = (pkg: any) => {
+    if (pkg.category) return pkg.category;
+    const n = (pkg.name || '').toLowerCase();
+    if (n.includes('silver')) return 'Silver';
+    if (n.includes('gold')) return 'Gold';
+    if (n.includes('platinum')) return 'Platinum';
+    if (n.includes('diamond')) return 'Diamond';
+    return pkg.name || 'Plan';
+  };
+
   const renderPackageCard = (pkg: SubscriptionPackage) => {
     const daysLeft = currentSubscription && currentSubscription.plan ? Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
     const isActive = currentSubscription && currentSubscription.plan && currentSubscription.plan.id === pkg.id && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
     const hasActivePlan = currentSubscription && currentSubscription.plan && currentSubscription.status === 'ACTIVE' && daysLeft > 0;
     const isDisabled = hasActivePlan && !isActive;
+    const categoryName = getPkgCategory(pkg);
     return (
       <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
         {isActive && (
@@ -259,7 +271,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
             CURRENT PLAN
           </div>
         )}
-        <h3 className="font-bold text-base sm:text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h3>
+        <h3 className="font-bold text-base sm:text-lg">{categoryName} ₹{pkg.price}</h3>
         <p className="text-xs sm:text-sm text-gray-600 mt-1">{pkg.name} <span className="text-gray-400">· {pkg.duration} days</span></p>
         <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
         <p className="text-[10px] text-black font-extrabold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
@@ -280,11 +292,12 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
     
     setShowPaymentModal(false);
     try {
+      const token = localStorage.getItem('auth-token') || localStorage.getItem('leadToken');
       const response = await fetch(`${API_BASE_URL}/api/lead-subscriptions/purchase`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         credentials: 'include',
         body: JSON.stringify({ 
@@ -300,13 +313,14 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
         // Refresh subscription data
         const subResponse = await fetch(`${API_BASE_URL}/api/lead-subscriptions/my-subscriptions`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+            ...(token && { 'Authorization': `Bearer ${token}` })
           },
           credentials: 'include'
         });
         const subData = await subResponse.json();
         if (subResponse.ok && subData) {
-          setCurrentSubscription(subData);
+          const activeSub = subData.subscription || (subData.subscriptions?.find((s: any) => s.status === 'ACTIVE')) || subData;
+          setCurrentSubscription(activeSub);
         }
       } else {
         alert(data.error || 'Failed to subscribe');
@@ -320,7 +334,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
       e.preventDefault();
       
       try {
-          const token = localStorage.getItem('auth-token');
+          const token = localStorage.getItem('auth-token') || localStorage.getItem('leadToken');
           const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
               method: 'PUT',
               headers: {
@@ -403,7 +417,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
     <div className="max-w-3xl mx-auto h-screen flex flex-col">
       {/* Top Header Bar - Fixed */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
-          <p className="font-bold text-sm leading-none">SNP Driver</p>
+          <p className="font-bold text-sm leading-none">SNP Lead</p>
           <p className="text-xs text-gray-400">Welcome, {lead.name}</p>
       </div>
 
@@ -1168,8 +1182,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
         {activeTab === 'PACKAGES' && (
             <div className="space-y-4 sm:space-y-6 animate-fade-in">
                 <div className="text-center mb-4 sm:mb-6">
-                    <h2 className="text-lg sm:text-xl font-bold">Driver Packages</h2>
-                    <p className="text-sm text-gray-500">Choose a plan to start accepting rides.</p>
+                    <h2 className="text-lg sm:text-xl font-bold">Lead Packages</h2>
+                    <p className="text-sm text-gray-500">Choose a plan to start receiving duty leads.</p>
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
@@ -1189,7 +1203,21 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">
-                    {packages.filter(pkg => selectedCategory === 'All' || (pkg.category || 'Silver') === selectedCategory).map(pkg => renderPackageCard(pkg))}
+                    {packages.filter(pkg => {
+                      if (selectedCategory === 'All') return true;
+                      const cat = getPkgCategory(pkg);
+                      return cat.toLowerCase() === selectedCategory.toLowerCase();
+                    }).length === 0 ? (
+                      <div className="text-center py-10 bg-white rounded-xl border border-gray-100">
+                        <p className="text-gray-500 text-sm">No packages available for {selectedCategory}.</p>
+                      </div>
+                    ) : (
+                      packages.filter(pkg => {
+                        if (selectedCategory === 'All') return true;
+                        const cat = getPkgCategory(pkg);
+                        return cat.toLowerCase() === selectedCategory.toLowerCase();
+                      }).map(pkg => renderPackageCard(pkg))
+                    )}
                 </div>
             </div>
         )}

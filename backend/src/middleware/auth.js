@@ -18,11 +18,15 @@ export const authenticateToken = async (req, res, next) => {
       if (!driver || !driver.isActive) {
         return res.status(401).json({ error: 'Account is deactivated. Logout required.' });
       }
-    } else if (user.type === 'lead') {
-      const lead = await prisma.lead.findUnique({ where: { id: user.id } });
+    } else if (user.type === 'lead' || user.role === 'LEAD') {
+      const leadId = user.id || user.userId;
+      const lead = await prisma.lead.findUnique({ where: { id: leadId } });
       if (!lead || !lead.isActive) {
         return res.status(401).json({ error: 'Lead account is deactivated. Logout required.' });
       }
+      user.id = leadId;
+      user.userId = leadId;
+      user.role = 'LEAD';
     }
 
     req.user = user;
@@ -43,16 +47,17 @@ export const authenticateLead = async (req, res, next) => {
 
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.type !== 'lead') {
+    if (user.type !== 'lead' && user.role !== 'LEAD') {
       return res.status(403).json({ error: 'Invalid token type' });
     }
 
-    const lead = await prisma.lead.findUnique({ where: { id: user.id } });
+    const leadId = user.id || user.userId;
+    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead || !lead.isActive) {
       return res.status(401).json({ error: 'Account is deactivated.' });
     }
 
-    req.user = user;
+    req.user = { ...user, id: leadId, userId: leadId, role: 'LEAD', type: 'lead' };
     next();
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' });

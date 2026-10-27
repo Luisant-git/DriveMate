@@ -193,6 +193,8 @@ router.post('/:id/rate', authenticateToken, rateBooking);
 router.post('/:id/cancel', authenticateToken, customerCancelBooking);
 
 router.get('/lead/allocated', authenticateLead, getLeadBookings);
+router.get('/lead-bookings', authenticateLead, getLeadBookings);
+router.get('/lead/bookings', authenticateLead, getLeadBookings);
 router.get('/lead/completed', authenticateLead, getLeadCompletedTrips);
 
 export default router;

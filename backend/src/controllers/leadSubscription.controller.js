@@ -117,15 +117,22 @@ export const createLeadSubscription = async (req, res) => {
 
 export const getLeadSubscriptions = async (req, res) => {
   try {
-    const leadId = req.user.id;
+    const leadId = req.user.id || req.user.userId;
     
     const subscriptions = await prisma.leadSubscription.findMany({
       where: { leadId },
       include: { plan: true },
       orderBy: { startDate: 'desc' }
     });
+
+    const active = subscriptions.find(s => s.status === 'ACTIVE' && new Date(s.endDate) > new Date()) || subscriptions[0] || null;
     
-    res.json({ success: true, subscriptions });
+    res.json({
+      success: true,
+      subscriptions,
+      subscription: active,
+      ...(active ? { ...active } : {})
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -133,7 +140,7 @@ export const getLeadSubscriptions = async (req, res) => {
 
 export const purchaseLeadSubscription = async (req, res) => {
   try {
-    const leadId = req.user.id;
+    const leadId = req.user.id || req.user.userId;
     const { planId, paymentMethod } = req.body;
     
     const plan = await prisma.leadSubscriptionPlan.findUnique({ where: { id: planId } });
