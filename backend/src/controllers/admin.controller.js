@@ -417,5 +417,52 @@ export const changeDriverPassword = async (req, res) => {
 };
 export const approveLead = async (req, res) => { try { const lead = await prisma.lead.update({ where: { id: req.params.leadId }, data: { status: 'APPROVED' } }); res.json(lead); } catch (error) { res.status(400).json({ error: error.message }); } };
 export const rejectLead = async (req, res) => { try { const lead = await prisma.lead.update({ where: { id: req.params.leadId }, data: { status: 'REJECTED' } }); res.json(lead); } catch (error) { res.status(400).json({ error: error.message }); } };
-export const updateLeadDocument = async (req, res) => { try { const lead = await prisma.lead.update({ where: { id: req.params.leadId }, data: req.body }); res.json({ success: true, lead }); } catch (error) { res.status(400).json({ error: error.message }); } };
+export const updateLeadDocument = async (req, res) => {
+  try {
+    const { leadId } = req.params;
+    const { documentType, documentUrl, expiryDate } = req.body;
+
+    if (!documentType) {
+      return res.status(400).json({ success: false, error: 'documentType is required' });
+    }
+
+    const allowedDocs = [
+      'photo', 'dlPhoto', 'aadharPhoto', 'panPhoto',
+      'policeVerificationPhoto', 'msmePhoto', 'rationCardPhoto',
+      'rentalAgreementPhoto', 'electricityBillPhoto', 'creditCardPhoto', 'debitCardPhoto'
+    ];
+
+    if (!allowedDocs.includes(documentType)) {
+      return res.status(400).json({ success: false, error: `Unsupported document type: ${documentType}` });
+    }
+
+    const data = {};
+    if (documentType === 'policeVerificationPhoto') {
+      data.policeVerificationPhoto = documentUrl || null;
+      if (documentUrl) {
+        if (expiryDate) data.policeVerificationExpiryDate = new Date(expiryDate).toISOString();
+      } else {
+        data.policeVerificationExpiryDate = null;
+      }
+    } else if (documentType === 'dlPhoto') {
+      data.dlPhoto = documentUrl || null;
+      if (documentUrl) {
+        if (expiryDate) data.licenseExpiryDate = new Date(expiryDate).toISOString();
+      } else {
+        data.licenseExpiryDate = null;
+      }
+    } else {
+      data[documentType] = documentUrl || null;
+    }
+
+    const lead = await prisma.lead.update({
+      where: { id: leadId },
+      data
+    });
+
+    res.json({ success: true, lead });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 export const changeLeadPassword = async (req, res) => { try { const hashedPassword = await bcrypt.hash(req.body.password, 10); await prisma.lead.update({ where: { id: req.params.leadId }, data: { password: hashedPassword } }); res.json({ success: true }); } catch (error) { res.status(400).json({ error: error.message }); } };

@@ -112,6 +112,8 @@ model Lead {
   policeVerificationPhoto String?
   rationCardPhoto         String?
   rentalAgreementPhoto    String?
+  licenseExpiryDate       String?
+  policeVerificationExpiryDate String?
   bookings                Booking[]
   leadBookingResponses    LeadBookingResponse[]
   leadBookings            LeadBooking[]
