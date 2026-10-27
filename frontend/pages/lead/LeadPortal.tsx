@@ -69,13 +69,14 @@ const formatDateLocal = (dateStr: string) => {
 };
 
 interface LeadPortalProps {
-  driver: Driver;
+  lead?: any;
+  onLogout?: () => void;
 }
 
-const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead }) => {
+const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'PROFILE' | 'PACKAGES' | 'REQUESTS'>('REQUESTS');
   const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY' | 'ALLOCATED'>('PENDING');
-  const [lead, setDriver] = useState<Driver>(initialLead);
+  const [lead, setLead] = useState<any>(initialLead || {});
   const [trips, setTrips] = useState<Trip[]>([]);
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -107,32 +108,34 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead }) => {
 
   // Profile Edit States
   const [profileData, setProfileData] = useState({
-    ...lead,
-    altPhone: lead.altPhone || [],
-    upiId: lead.upiId || lead.gpayNo || '',
-    photo: lead.photo || '',
-    dlPhoto: lead.dlPhoto || '',
-    panPhoto: lead.panPhoto || '',
-    aadharPhoto: lead.aadharPhoto || '',
-    policeVerificationPhoto: lead.policeVerificationPhoto || '' // New field
+    ...(initialLead || {}),
+    altPhone: initialLead?.altPhone || [],
+    upiId: initialLead?.upiId || initialLead?.gpayNo || '',
+    photo: initialLead?.photo || '',
+    dlPhoto: initialLead?.dlPhoto || '',
+    panPhoto: initialLead?.panPhoto || '',
+    aadharPhoto: initialLead?.aadharPhoto || '',
+    policeVerificationPhoto: initialLead?.policeVerificationPhoto || '' // New field
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [password, setPassword] = useState('');
   const [imagePreviews, setImagePreviews] = useState<{[key: string]: string}>({});
 
-  // Update local driver state when prop changes
+  // Update local lead state when prop changes
   useEffect(() => {
-    setLead(initialLead);
-    setProfileData({
-      ...initialLead,
-      altPhone: initialLead.altPhone || [],
-      upiId: initialLead.upiId || initialLead.gpayNo || '',
-      photo: initialLead.photo || '',
-      dlPhoto: initialLead.dlPhoto || '',
-      panPhoto: initialLead.panPhoto || '',
-      aadharPhoto: initialLead.aadharPhoto || '',
-      policeVerificationPhoto: initialLead.policeVerificationPhoto || '' // New field
-    });
+    if (initialLead) {
+      setLead(initialLead);
+      setProfileData({
+        ...initialLead,
+        altPhone: initialLead.altPhone || [],
+        upiId: initialLead.upiId || initialLead.gpayNo || '',
+        photo: initialLead.photo || '',
+        dlPhoto: initialLead.dlPhoto || '',
+        panPhoto: initialLead.panPhoto || '',
+        aadharPhoto: initialLead.aadharPhoto || '',
+        policeVerificationPhoto: initialLead.policeVerificationPhoto || '' // New field
+      });
+    }
   }, [initialLead]);
 
   const fetchCurrentSubscription = async () => {
@@ -347,18 +350,29 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead }) => {
           const data = await response.json();
           
           if (data.success) {
-              // Update local driver state with new data
-              setLead({
+              const updatedUser = data.user || {};
+              const newLead = {
                   ...lead,
-                  ...data.user,
+                  ...updatedUser,
                   altPhone: [
-                      data.user.alternateMobile1,
-                      data.user.alternateMobile2,
-                      data.user.alternateMobile3,
-                      data.user.alternateMobile4
-                  ].filter(phone => phone && phone.trim() !== ''),
-                  upiId: data.user.gpayNo,
-                  policeVerificationPhoto: data.user.policeVerificationPhoto // New field
+                      updatedUser.alternateMobile1,
+                      updatedUser.alternateMobile2,
+                      updatedUser.alternateMobile3,
+                      updatedUser.alternateMobile4
+                  ].filter((phone: any) => phone && phone.trim() !== ''),
+                  upiId: updatedUser.gpayNo || updatedUser.upiId,
+                  policeVerificationPhoto: updatedUser.policeVerificationPhoto
+              };
+              setLead(newLead);
+              setProfileData({
+                  ...newLead,
+                  altPhone: newLead.altPhone || [],
+                  upiId: newLead.upiId || newLead.gpayNo || '',
+                  photo: newLead.photo || '',
+                  dlPhoto: newLead.dlPhoto || '',
+                  panPhoto: newLead.panPhoto || '',
+                  aadharPhoto: newLead.aadharPhoto || '',
+                  policeVerificationPhoto: newLead.policeVerificationPhoto || ''
               });
               
               setIsEditingProfile(false);
@@ -1209,9 +1223,9 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead }) => {
                              <div className="flex justify-between items-start mb-4 sm:mb-6">
                                  <div>
                                      <div className="flex items-center gap-2">
-                                        <h2 className="text-xl sm:text-2xl font-bold">{profileData.name}</h2>
+                                        <h2 className="text-xl sm:text-2xl font-bold">{lead.name || profileData.name}</h2>
                                      </div>
-                                     <p className="text-gray-500 text-xs sm:text-sm mt-1">{profileData.phone}</p>
+                                     <p className="text-gray-500 text-xs sm:text-sm mt-1">{lead.phone || profileData.phone}</p>
                                  </div>
                                  <button onClick={() => setIsEditingProfile(true)} className="text-sm font-bold text-accent hover:underline">Edit Profile</button>
                              </div>
@@ -1241,7 +1255,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead }) => {
                                          <div className="flex-1 min-w-0 mt-1 sm:mt-0">
                                              <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Avg Rating</p>
                                              <div className="flex items-baseline gap-1 mt-1">
-                                                 <p className="text-lg sm:text-2xl font-bold text-black leading-none">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
+                                                 <p className="text-lg sm:text-2xl font-bold text-black leading-none">{(lead as any)?.rating?.toFixed(1) || '0.0'}</p>
                                                  <span className="text-[9px] sm:text-xs text-gray-500 truncate">({trips.filter(t => (t as any).rating).length} ratings)</span>
                                              </div>
                                          </div>

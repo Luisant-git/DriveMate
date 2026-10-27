@@ -128,7 +128,7 @@ export const loginLead = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Your lead account is not active. Please contact admin.' });
     }
     
-    const token = jwt.sign({ id: lead.id, type: 'lead' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: lead.id, userId: lead.id, role: 'LEAD', type: 'lead' }, process.env.JWT_SECRET, { expiresIn: '7d' });
     
     res.json({ success: true, token, lead });
   } catch (error) {

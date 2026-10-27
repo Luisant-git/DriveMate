@@ -1,7 +1,7 @@
 import { API_BASE_URL } from './config.js';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('leadToken');
+  const token = localStorage.getItem('leadToken') || localStorage.getItem('auth-token');
   return {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -101,7 +101,13 @@ export const getLeadProfile = async () => {
       headers: getAuthHeaders(),
       credentials: 'include',
     });
-    return await handleResponse(res);
+    if (res.status === 401) {
+      localStorage.removeItem('leadToken');
+      localStorage.removeItem('leadData');
+      return { success: false, status: 401, message: 'Account deactivated.' };
+    }
+    const data = await res.json();
+    return { success: res.ok, ...data };
   } catch {
     return { success: false, message: 'Network error' };
   }

@@ -34,10 +34,14 @@ const LeadLogin: React.FC<LeadLoginProps> = ({ onLogin }) => {
         credentials: 'include',
       });
       const data = await response.json();
-      if (data.token) localStorage.setItem('auth-token', data.token);
+      if (data.token) {
+        localStorage.setItem('auth-token', data.token);
+        localStorage.setItem('leadToken', data.token);
+        localStorage.setItem('leadData', JSON.stringify(data.lead));
+      }
       
       if (response.ok) {
-        onLogin({ ...data.lead, role: 'DRIVER' });
+        onLogin({ ...data.lead, role: 'LEAD' });
       } else {
         setErrorModal({ isOpen: true, message: data.error || data.message || 'Invalid credentials' });
       }

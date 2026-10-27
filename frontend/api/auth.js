@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 console.log('API_BASE_URL:', API_BASE_URL);
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('auth-token');
+  const token = localStorage.getItem('auth-token') || localStorage.getItem('leadToken');
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` })
@@ -151,10 +151,14 @@ export const logout = async () => {
       credentials: 'include',
     });
     localStorage.removeItem('auth-token');
+    localStorage.removeItem('leadToken');
+    localStorage.removeItem('leadData');
     const data = await response.json();
     return { success: response.ok, ...data };
   } catch (error) {
     localStorage.removeItem('auth-token');
+    localStorage.removeItem('leadToken');
+    localStorage.removeItem('leadData');
     return { success: false, message: 'Network error' };
   }
 };

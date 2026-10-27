@@ -321,13 +321,17 @@ export const logout = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     let user = null;
+    const role = req.user.role || (req.user.type === 'lead' ? 'LEAD' : null);
+    const userId = req.user.userId || req.user.id;
     
-    if (req.user.role === 'CUSTOMER') {
-      user = await prisma.customer.findUnique({ where: { id: req.user.userId } });
-    } else if (req.user.role === 'DRIVER') {
-      user = await prisma.driver.findUnique({ where: { id: req.user.userId } });
-    } else if (req.user.role === 'ADMIN') {
-      user = await prisma.admin.findUnique({ where: { id: req.user.userId } });
+    if (role === 'CUSTOMER') {
+      user = await prisma.customer.findUnique({ where: { id: userId } });
+    } else if (role === 'DRIVER') {
+      user = await prisma.driver.findUnique({ where: { id: userId } });
+    } else if (role === 'ADMIN') {
+      user = await prisma.admin.findUnique({ where: { id: userId } });
+    } else if (role === 'LEAD') {
+      user = await prisma.lead.findUnique({ where: { id: userId } });
     }
 
     if (!user) {
@@ -338,8 +342,8 @@ export const getProfile = async (req, res) => {
       success: true, 
       user: { 
         ...user, 
-        role: req.user.role,
-        ...(req.user.role === 'DRIVER' && { packageType: user.packageType })
+        role,
+        ...(role === 'DRIVER' && { packageType: user.packageType })
       } 
     });
   } catch (error) {
@@ -349,7 +353,7 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, idProof, phone, whatsappNumber, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, password } = req.body;
+    const { name, email, address, currentAddress, permanentAddress, idProof, phone, whatsappNumber, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, password } = req.body;
     
     let user = null;
     let hashedPassword = null;
@@ -357,9 +361,12 @@ export const updateProfile = async (req, res) => {
       hashedPassword = await bcrypt.hash(password, 10);
     }
     
-    if (req.user.role === 'CUSTOMER') {
+    const role = req.user.role || (req.user.type === 'lead' ? 'LEAD' : null);
+    const userId = req.user.userId || req.user.id;
+
+    if (role === 'CUSTOMER') {
       user = await prisma.customer.update({
-        where: { id: req.user.userId },
+        where: { id: userId },
         data: {
           name,
           email,
@@ -370,13 +377,15 @@ export const updateProfile = async (req, res) => {
           ...(hashedPassword && { password: hashedPassword })
         }
       });
-    } else if (req.user.role === 'DRIVER') {
+    } else if (role === 'DRIVER') {
       user = await prisma.driver.update({
-        where: { id: req.user.userId },
+        where: { id: userId },
         data: {
           name,
           email,
           ...(phone && { phone }),
+          ...(currentAddress !== undefined && { currentAddress }),
+          ...(permanentAddress !== undefined && { permanentAddress }),
           ...(alternateMobile1 !== undefined && { alternateMobile1: alternateMobile1 || null }),
           ...(alternateMobile2 !== undefined && { alternateMobile2: alternateMobile2 || null }),
           ...(alternateMobile3 !== undefined && { alternateMobile3: alternateMobile3 || null }),
@@ -391,9 +400,32 @@ export const updateProfile = async (req, res) => {
           ...(hashedPassword && { password: hashedPassword })
         }
       });
-    } else if (req.user.role === 'ADMIN') {
+    } else if (role === 'LEAD') {
+      user = await prisma.lead.update({
+        where: { id: userId },
+        data: {
+          name,
+          email,
+          ...(phone && { phone }),
+          ...(currentAddress !== undefined && { currentAddress }),
+          ...(permanentAddress !== undefined && { permanentAddress }),
+          ...(alternateMobile1 !== undefined && { alternateMobile1: alternateMobile1 || null }),
+          ...(alternateMobile2 !== undefined && { alternateMobile2: alternateMobile2 || null }),
+          ...(alternateMobile3 !== undefined && { alternateMobile3: alternateMobile3 || null }),
+          ...(alternateMobile4 !== undefined && { alternateMobile4: alternateMobile4 || null }),
+          ...(upiId !== undefined && { gpayNo: upiId, phonepeNo: upiId }),
+          ...(photo !== undefined && { photo }),
+          ...(dlPhoto !== undefined && { dlPhoto }),
+          ...(panPhoto !== undefined && { panPhoto }),
+          ...(aadharPhoto !== undefined && { aadharPhoto }),
+          ...(policeVerificationPhoto !== undefined && { policeVerificationPhoto }),
+          ...(policeVerificationExpiryDate !== undefined && { policeVerificationExpiryDate }),
+          ...(hashedPassword && { password: hashedPassword })
+        }
+      });
+    } else if (role === 'ADMIN') {
       user = await prisma.admin.update({
-        where: { id: req.user.userId },
+        where: { id: userId },
         data: {
           name,
           email,
@@ -402,11 +434,15 @@ export const updateProfile = async (req, res) => {
       });
     }
 
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
     res.json({ 
       success: true, 
       user: { 
         ...user, 
-        role: req.user.role 
+        role 
       } 
     });
   } catch (error) {

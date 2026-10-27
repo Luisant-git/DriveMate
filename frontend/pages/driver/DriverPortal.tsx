@@ -347,18 +347,29 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           const data = await response.json();
           
           if (data.success) {
-              // Update local driver state with new data
-              setDriver({
+              const updatedUser = data.user || {};
+              const newDriver = {
                   ...driver,
-                  ...data.user,
+                  ...updatedUser,
                   altPhone: [
-                      data.user.alternateMobile1,
-                      data.user.alternateMobile2,
-                      data.user.alternateMobile3,
-                      data.user.alternateMobile4
+                      updatedUser.alternateMobile1,
+                      updatedUser.alternateMobile2,
+                      updatedUser.alternateMobile3,
+                      updatedUser.alternateMobile4
                   ].filter(phone => phone && phone.trim() !== ''),
-                  upiId: data.user.gpayNo,
-                  policeVerificationPhoto: data.user.policeVerificationPhoto // New field
+                  upiId: updatedUser.gpayNo || updatedUser.upiId,
+                  policeVerificationPhoto: updatedUser.policeVerificationPhoto
+              };
+              setDriver(newDriver);
+              setProfileData({
+                  ...newDriver,
+                  altPhone: newDriver.altPhone || [],
+                  upiId: newDriver.upiId || newDriver.gpayNo || '',
+                  photo: newDriver.photo || '',
+                  dlPhoto: newDriver.dlPhoto || '',
+                  panPhoto: newDriver.panPhoto || '',
+                  aadharPhoto: newDriver.aadharPhoto || '',
+                  policeVerificationPhoto: newDriver.policeVerificationPhoto || ''
               });
               
               setIsEditingProfile(false);
@@ -1209,9 +1220,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                              <div className="flex justify-between items-start mb-4 sm:mb-6">
                                  <div>
                                      <div className="flex items-center gap-2">
-                                        <h2 className="text-xl sm:text-2xl font-bold">{profileData.name}</h2>
+                                        <h2 className="text-xl sm:text-2xl font-bold">{driver.name || profileData.name}</h2>
                                      </div>
-                                     <p className="text-gray-500 text-xs sm:text-sm mt-1">{profileData.phone}</p>
+                                     <p className="text-gray-500 text-xs sm:text-sm mt-1">{driver.phone || profileData.phone}</p>
                                  </div>
                                  <button onClick={() => setIsEditingProfile(true)} className="text-sm font-bold text-accent hover:underline">Edit Profile</button>
                              </div>
