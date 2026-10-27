@@ -11,20 +11,80 @@ export const registerLead = async (req, res) => {
       msmePhoto, rationCardPhoto, policeVerificationPhoto,
       electricityBillPhoto, rentalAgreementPhoto, creditCardPhoto, debitCardPhoto
     } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Full name is required' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+    const cleanPhone = phone ? phone.toString().trim() : '';
+    if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
+      return res.status(400).json({ success: false, error: 'Valid 10-digit phone number is required' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    }
+    const cleanAadhar = aadharNo ? aadharNo.toString().trim() : '';
+    if (!cleanAadhar || !/^\d{12}$/.test(cleanAadhar)) {
+      return res.status(400).json({ success: false, error: 'Valid 12-digit Aadhar number is required' });
+    }
+    const cleanLicense = licenseNo ? licenseNo.toString().trim() : '';
+    if (!cleanLicense || cleanLicense.length < 6) {
+      return res.status(400).json({ success: false, error: 'Valid license number is required' });
+    }
+
+    // For public registrations (no admin auth header), require mandatory documents
+    const isAdmin = Boolean(req.headers.authorization);
+    if (!isAdmin && (!photo || !dlPhoto || !aadharPhoto || !panPhoto)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Please upload all 4 required documents: Profile Photo, Driving License, Aadhar Card, and PAN Card' 
+      });
+    }
+
+    // Check for duplicate leads
+    const existingLead = await prisma.lead.findFirst({
+      where: {
+        OR: [
+          { phone: cleanPhone },
+          { email: email.trim() },
+          { aadharNo: cleanAadhar },
+          { licenseNo: cleanLicense }
+        ]
+      }
+    });
+
+    if (existingLead) {
+      if (existingLead.phone === cleanPhone) {
+        return res.status(400).json({ success: false, error: 'Lead with this phone number already exists' });
+      }
+      if (existingLead.email === email.trim()) {
+        return res.status(400).json({ success: false, error: 'Lead with this email already exists' });
+      }
+      if (existingLead.aadharNo === cleanAadhar) {
+        return res.status(400).json({ success: false, error: 'Lead with this Aadhar number already exists' });
+      }
+      if (existingLead.licenseNo === cleanLicense) {
+        return res.status(400).json({ success: false, error: 'Lead with this License number already exists' });
+      }
+    }
     
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Clean data - convert empty strings to null
-    const cleanData = (value) => value === '' ? null : value;
+    const cleanData = (value) => (value === '' || value === undefined) ? null : value;
     
     const lead = await prisma.lead.create({
       data: {
-        name,
-        email,
-        phone,
+        name: name.trim(),
+        email: email.trim(),
+        phone: cleanPhone,
         password: hashedPassword,
-        aadharNo,
-        licenseNo,
+        aadharNo: cleanAadhar,
+        licenseNo: cleanLicense,
+        status: 'PENDING',
+        isActive: false,
         alternateMobile1: cleanData(alternateMobile1),
         alternateMobile2: cleanData(alternateMobile2),
         alternateMobile3: cleanData(alternateMobile3),
@@ -79,6 +139,11 @@ export const loginLead = async (req, res) => {
 export const getAllLeads = async (req, res) => {
   try {
     const leads = await prisma.lead.findMany({
+      where: {
+        NOT: {
+          email: { startsWith: 'deleted_' }
+        }
+      },
       include: {
         leadSubscriptions: {
           include: { plan: true },

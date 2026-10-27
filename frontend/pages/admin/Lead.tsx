@@ -84,21 +84,28 @@ export default function Lead() {
 
   const fetchSubscriptionPlans = async () => {
     try {
-      const res = await apiClient.get('/subscriptions/plans');
-      setSubscriptionPlans(res.data || []);
+      let res;
+      try {
+        res = await apiClient.get('/lead-subscriptions/plans');
+      } catch {
+        res = await apiClient.get('/subscriptions/plans');
+      }
+      const plans = Array.isArray(res.data) ? res.data : (res.data?.plans || []);
+      setSubscriptionPlans(plans);
     } catch (e) {
       console.error(e);
+      setSubscriptionPlans([]);
     }
   };
-
 
   const fetchLeads = async () => {
     try {
       setLoading(true);
       const res = await apiClient.get('/admin/leads');
-      const data = (res.data || []).map(lead => ({
+      const leadsList = Array.isArray(res.data) ? res.data : (res.data?.leads || []);
+      const data = leadsList.map(lead => ({
         ...lead,
-        activeSubscription: lead.subscriptions?.find(sub => sub.status === 'ACTIVE'),
+        activeSubscription: (lead.leadSubscriptions || lead.subscriptions)?.find(sub => sub.status === 'ACTIVE') || lead.leadSubscriptions?.[0],
       }));
       setLeads(data);
     } catch (error) {
@@ -189,7 +196,7 @@ export default function Lead() {
     try {
       await apiClient.post('/admin/verification', {
         entityId: verifyLead.id,
-        entityType: 'DRIVER',
+        entityType: 'LEAD',
         status,
         notes: verifyNotes,
       });
@@ -197,8 +204,9 @@ export default function Lead() {
       const res = await apiClient.get(`/admin/verification/${verifyLead.id}/history`);
       setVerifyHistory(res.data?.records || []);
       const leadsRes = await apiClient.get('/admin/leads');
-      const updated = (leadsRes.data || []).find(d => d.id === verifyLead.id);
-      if (updated) setVerifyLead({ ...updated, activeSubscription: updated.subscriptions?.find(s => s.status === 'ACTIVE') });
+      const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
+      const updated = leadsList.find(d => d.id === verifyLead.id);
+      if (updated) setVerifyLead({ ...updated, activeSubscription: (updated.leadSubscriptions || updated.subscriptions)?.find(s => s.status === 'ACTIVE') || updated.leadSubscriptions?.[0] });
       setShowVerifyForm(false);
       setVerifyNotes('');
     } catch (e) {
@@ -246,9 +254,10 @@ export default function Lead() {
           setVerifyLead({ ...verifyLead, policeVerificationPhoto: updatedLead.policeVerificationPhoto, policeVerificationExpiryDate: updatedLead.policeVerificationExpiryDate });
           
           const leadsRes = await apiClient.get('/admin/leads');
-          const data = (leadsRes.data || []).map(d => ({
+          const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
+          const data = leadsList.map(d => ({
             ...d,
-            activeSubscription: d.subscriptions?.find(sub => sub.status === 'ACTIVE'),
+            activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
           }));
           setLeads(data);
           
@@ -303,9 +312,10 @@ export default function Lead() {
           setVerifyLead({ ...verifyLead, dlPhoto: updatedLead.dlPhoto, licenseExpiryDate: updatedLead.licenseExpiryDate });
           
           const leadsRes = await apiClient.get('/admin/leads');
-          const data = (leadsRes.data || []).map(d => ({
+          const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
+          const data = leadsList.map(d => ({
             ...d,
-            activeSubscription: d.subscriptions?.find(sub => sub.status === 'ACTIVE'),
+            activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
           }));
           setLeads(data);
           
@@ -337,9 +347,10 @@ export default function Lead() {
         setVerifyPoliceExpiry('');
         
         const leadsRes = await apiClient.get('/admin/leads');
-        const data = (leadsRes.data || []).map(d => ({
+        const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
+        const data = leadsList.map(d => ({
           ...d,
-          activeSubscription: d.subscriptions?.find(sub => sub.status === 'ACTIVE'),
+          activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
         }));
         setLeads(data);
       }
@@ -364,9 +375,10 @@ export default function Lead() {
         setVerifyLicenseExpiry('');
         
         const leadsRes = await apiClient.get('/admin/leads');
-        const data = (leadsRes.data || []).map(d => ({
+        const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
+        const data = leadsList.map(d => ({
           ...d,
-          activeSubscription: d.subscriptions?.find(sub => sub.status === 'ACTIVE'),
+          activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
         }));
         setLeads(data);
       }
@@ -399,7 +411,7 @@ export default function Lead() {
     let matchesSearch = true;
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase().trim();
-      const leadIdFormatted = `drv-${d.leadNo ? d.leadNo.toString().padStart(4, '0') : 'xxxx'}`;
+      const leadIdFormatted = `led-${d.leadNo ? d.leadNo.toString().padStart(4, '0') : (d.id ? d.id.slice(-6).toLowerCase() : 'xxxx')}`;
       matchesSearch = 
         (d.phone && d.phone.toLowerCase().includes(q)) ||
         (d.name && d.name.toLowerCase().includes(q)) ||
@@ -428,7 +440,7 @@ export default function Lead() {
       if (!updatePackageForm.planId || !updatePackageForm.paidAmount) {
         throw new Error('Please select a plan and enter the paid amount.');
       }
-      const response = await apiClient.post('/subscriptions/admin/create', {
+      const response = await apiClient.post('/lead-subscriptions/admin/create', {
         leadId: selectedLead.id,
         planId: updatePackageForm.planId,
         paidAmount: parseFloat(updatePackageForm.paidAmount),
@@ -551,7 +563,7 @@ export default function Lead() {
                     <td className="px-3 py-3"><p className="text-xs font-bold text-gray-900">{index + 1}</p></td>
                     <td className="px-3 py-3">
                       <p className="text-xs font-bold text-gray-900">
-                        DRV-{lead.leadNo ? lead.leadNo.toString().padStart(4, '0') : 'XXXX'}
+                        LED-{lead.leadNo ? lead.leadNo.toString().padStart(4, '0') : (lead.id ? lead.id.slice(-6).toUpperCase() : 'XXXX')}
                       </p>
                     </td>
                     <td className="px-3 py-3">
