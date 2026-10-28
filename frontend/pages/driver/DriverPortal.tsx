@@ -333,9 +333,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     const isActive = Boolean(activeSub && daysLeft > 0);
 
     return (
-      <div key={pkg.id} className={`border-2 rounded-2xl p-4 sm:p-6 relative transition-all duration-300 ${isActive ? 'border-emerald-500 bg-emerald-50/20 shadow-md ring-2 ring-emerald-500/20' : 'border-gray-100 bg-white hover:border-gray-300 hover:shadow-sm'}`}>
+      <div key={pkg.id} className={`border-2 rounded-2xl p-4 sm:p-6 relative transition-all duration-300 ${isActive ? 'border-black bg-white shadow-xl ring-2 ring-black/10' : 'border-gray-200 bg-white hover:border-black/40 hover:shadow-md'}`}>
         {isActive && (
-          <div className="absolute -top-3 left-4 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+          <div className="absolute -top-3 left-4 bg-black text-white px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md border border-zinc-800">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
             ACTIVE SUBSCRIBED
           </div>
@@ -347,11 +347,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           </div>
           {isActive && (
             <div className="text-right">
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">
+              <span className="text-[11px] font-extrabold text-white bg-black px-3 py-1 rounded-md shadow-xs">
                 {daysLeft} days left
               </span>
               {activeSub?.maxDuties > 0 && (
-                <p className="text-[10px] font-semibold text-gray-500 mt-1">
+                <p className="text-[11px] font-bold text-zinc-600 mt-1">
                   {Math.max(0, activeSub.maxDuties - (activeSub.dutiesCompleted || 0))} duties left
                 </p>
               )}
@@ -363,13 +363,16 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
         <button
           onClick={() => handleSubscriptionBuy(pkg)}
-          className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 ${
-            isActive 
-              ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 hover:bg-emerald-500/20 cursor-pointer' 
-              : 'bg-black text-white hover:bg-gray-800 cursor-pointer shadow-sm'
-          }`}
+          className="w-full mt-4 sm:mt-6 py-2.5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-black text-white hover:bg-zinc-800 transition-all duration-200 shadow-md cursor-pointer flex items-center justify-center gap-2 tracking-wide"
         >
-          {isActive ? '✓ Subscribed (Click to Extend / Renew)' : '+ Choose Package & Pay'}
+          {isActive ? (
+            <>
+              <span className="font-black text-white">✓</span>
+              <span>Subscribed (Click to Extend / Renew)</span>
+            </>
+          ) : (
+            '+ Choose Package & Pay'
+          )}
         </button>
       </div>
     );
@@ -397,17 +400,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       
       if (response.ok) {
         alert("Package subscribed successfully!");
-        // Refresh subscription data
-        const subResponse = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-          },
-          credentials: 'include'
-        });
-        const subData = await subResponse.json();
-        if (subResponse.ok && subData) {
-          setCurrentSubscription(subData);
-        }
+        // Refresh all active subscriptions immediately
+        await fetchCurrentSubscription();
       } else {
         alert(data.error || 'Failed to subscribe');
       }
@@ -1286,22 +1280,22 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
                 {/* Multi-Package Active Summary Banner */}
                 {activeSubscriptions.length > 0 && (
-                  <div className="bg-gradient-to-r from-gray-900 to-black text-white p-4 rounded-2xl mb-4 shadow-lg border border-gray-800">
+                  <div className="bg-black text-white p-4 sm:p-5 rounded-2xl mb-4 shadow-xl border border-zinc-800">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                          <p className="text-xs text-emerald-400 font-extrabold uppercase tracking-wider">
+                          <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                          <p className="text-xs text-white font-extrabold uppercase tracking-wider">
                             Your Active Packages ({activeSubscriptions.length})
                           </p>
                         </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="flex flex-wrap gap-2 mt-2.5">
                           {activeSubscriptions.map((sub, idx) => (
-                            <span key={sub.id || idx} className="bg-white/10 border border-white/20 text-white text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-xs">
-                              <span className="text-emerald-400 font-black">✓</span>
+                            <span key={sub.id || idx} className="bg-zinc-900 border border-zinc-700 text-white text-xs px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-sm">
+                              <span className="text-white font-black">✓</span>
                               {sub.plan?.category || sub.plan?.name || 'Package'} ({sub.plan?.name})
                               {sub.maxDuties > 0 && (
-                                <span className="text-purple-300 text-[10px] ml-1">
+                                <span className="text-zinc-400 text-[10px] ml-1">
                                   • {Math.max(0, sub.maxDuties - (sub.dutiesCompleted || 0))} duties left
                                 </span>
                               )}
@@ -1309,7 +1303,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                           ))}
                         </div>
                       </div>
-                      <p className="text-[11px] text-gray-400 sm:text-right max-w-xs leading-relaxed">
+                      <p className="text-[11px] text-zinc-400 sm:text-right max-w-xs leading-relaxed">
                         Multi-Package Active: You will receive customer trips for all subscribed packages!
                       </p>
                     </div>
@@ -1444,11 +1438,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                              </div>
                                              <p className="text-sm sm:text-base font-bold text-black truncate mt-1">{sub.plan?.name}</p>
                                              <div className="flex flex-wrap gap-2 mt-1.5">
-                                               <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-emerald-700 border-emerald-300 bg-emerald-50 font-bold">
+                                               <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full text-white bg-black font-bold shadow-xs">
                                                  {daysLeft} days left
                                                </span>
                                                {dutiesLeft !== null && (
-                                                 <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-purple-700 border-purple-300 bg-purple-50 font-bold">
+                                                 <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border border-gray-300 text-gray-800 bg-white font-bold">
                                                    {dutiesLeft} duties left
                                                  </span>
                                                )}
