@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
+import CustomerSosModal from '../../components/customer/CustomerSosModal';
 
 export default function CustomerBookingStatus() {
   const [bookings, setBookings] = useState([]);
@@ -135,6 +136,15 @@ export default function CustomerBookingStatus() {
           })}
         </div>
       )}
+
+      {/* SOS Modal */}
+      <CustomerSosModal
+        isOpen={showSosModal}
+        onClose={() => setShowSosModal(false)}
+        customer={customer}
+        activeTrip={selectedSosBooking}
+        allTrips={bookings}
+      />
 
       {/* Custom Cancel Confirmation Modal */}
       {cancelModalBookingId && (

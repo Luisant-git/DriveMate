@@ -11,8 +11,11 @@ import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
+import CustomerSosModal from '../../components/customer/CustomerSosModal';
 import TermsAndConditions from '../../components/TermsAndConditions';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import UberLanguageSelector from '../../components/common/UberLanguageSelector';
+import { useLanguage } from '../../context/LanguageContext';
 import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance, calculateLocalFareByDistance } from '../../utils/fareCalculator';
 import { calculateDistance, getPackageByDistance, getFilteredDurationOptions } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
@@ -22,12 +25,15 @@ interface CustomerPortalProps {
 }
 
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
   const [customer, setCustomer] = useState<Customer>(initialCustomer);
   const [myTrips, setMyTrips] = useState<any[]>([]);
   const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
   const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
   const [showDriverProfile, setShowDriverProfile] = useState(false);
+  const [showSosModal, setShowSosModal] = useState<boolean>(false);
+  const [sosTargetTrip, setSosTargetTrip] = useState<any>(null);
   const [selectedDriverOrLead, setSelectedDriver] = useState<any>(null);
   
   // Authentication state
@@ -152,7 +158,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editProfileData, setEditProfileData] = useState({
     name: initialCustomer.name,
-    email: initialCustomer.email,
+    alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
     phone: initialCustomer.phone,
     whatsappNumber: initialCustomer.whatsappNumber || '',
     phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === initialCustomer.whatsappNumber),
@@ -164,7 +170,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationData, setRegistrationData] = useState({
     name: '',
-    email: '',
+    alternateMobile: '',
     phone: '',
     whatsappNumber: '',
     phoneSameAsWhatsapp: true,
@@ -225,7 +231,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       setCustomer(initialCustomer);
       setEditProfileData({
         name: initialCustomer.name,
-        email: initialCustomer.email,
+        alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
         phone: initialCustomer.phone,
         whatsappNumber: (initialCustomer as any).whatsappNumber || '',
         phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber),
@@ -239,17 +245,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       fetchBookings();
       
       // Show registration modal if customer has incomplete profile
-      const hasEmail = initialCustomer.email && initialCustomer.email.trim() !== '';
       const hasAddress = initialCustomer.address && initialCustomer.address.trim() !== '';
       const hasIdProof = initialCustomer.idProof && initialCustomer.idProof.trim() !== '';
-      
-      console.log('Profile check:', { hasEmail, hasAddress, hasIdProof }); // Debug log
-      
-      if (!hasEmail || !hasAddress || !hasIdProof) {
+      console.log('Profile check:', { hasAddress, hasIdProof });
+      if (!hasAddress || !hasIdProof) {
         setShowRegistrationModal(true);
         setRegistrationData({
           name: initialCustomer.name,
-          email: initialCustomer.email || '',
+          alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
           phone: initialCustomer.phone || '',
           whatsappNumber: (initialCustomer as any).whatsappNumber || '',
           phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber) ? true : false,
@@ -357,12 +360,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     
     // Check if customer profile is complete
     const hasName = customer.name && customer.name.trim() !== '';
-    const hasEmail = customer.email && customer.email.trim() !== '';
     const hasPhone = customer.phone && customer.phone.trim() !== '';
     const hasAddress = customer.address && customer.address.trim() !== '';
     const hasIdProof = customer.idProof && customer.idProof.trim() !== '';
-    
-    if (!hasName || !hasEmail || !hasPhone || !hasAddress || !hasIdProof) {
+    if (!hasName || !hasPhone || !hasAddress || !hasIdProof) {
       toast.error('Please complete your profile before booking');
       setActiveTab('PROFILE');
       return;
@@ -376,9 +377,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       return;
     }
     
-    // Validate Date and Time for scheduled or outstation trips
-    const requiresDateTime = serviceType === BookingType.OUTSTATION || 
-                             serviceType === 'Outstation' ||
+    // Validate Date and Time only if Schedule is selected
+    const requiresDateTime = (serviceType === BookingType.OUTSTATION && formData.whenNeeded === 'Schedule') || 
+                             (serviceType === 'Outstation' && formData.whenNeeded === 'Schedule') ||
                              (serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule');
                              
     if (requiresDateTime) {
@@ -580,7 +581,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       try {
         const response = await updateCustomerProfile({
           name: editProfileData.name,
-          email: editProfileData.email,
+          alternateMobile: editProfileData.alternateMobile,
           phone: editProfileData.phone,
           whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
           address: editProfileData.address,
@@ -588,10 +589,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         });
         
         if (response.success) {
-          const updatedCustomer = { 
-            ...customer, 
-            name: editProfileData.name, 
-            email: editProfileData.email,
+          const updatedCustomer = {
+            ...customer,
+            name: editProfileData.name,
+            alternateMobile: editProfileData.alternateMobile,
             phone: editProfileData.phone,
             whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
             address: editProfileData.address,
@@ -613,7 +614,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
       try {
         const response = await updateCustomerProfile({
           name: registrationData.name,
-          email: registrationData.email,
+          alternateMobile: registrationData.alternateMobile,
           phone: registrationData.phone,
           whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
           address: registrationData.address,
@@ -621,10 +622,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         });
         
         if (response.success) {
-          const updatedCustomer = { 
-            ...customer, 
+          const updatedCustomer = {
+            ...customer,
             name: registrationData.name,
-            email: registrationData.email,
+            alternateMobile: registrationData.alternateMobile,
             phone: registrationData.phone,
             whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
             address: registrationData.address,
@@ -827,14 +828,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Email Address</label>
+                            <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Alternate Mobile Number (Optional)</label>
                 <input 
-                  type="email"
+                  type="tel"
+                  maxLength={10}
                   className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                  value={registrationData.email}
-                  onChange={(e) => setRegistrationData({...registrationData, email: e.target.value})}
-                  placeholder="name@example.com"
+                  value={registrationData.alternateMobile || ''}
+                  onChange={(e) => setRegistrationData({...registrationData, alternateMobile: e.target.value.replace(/\D/g, '')})}
+                  placeholder="10-digit mobile number"
                 />
               </div>
 
@@ -949,6 +951,21 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
               <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
               <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
+                  {/* SOS button near Book button commented out as requested */}
+                  {/* <button 
+                    type="button"
+                    onClick={() => {
+                      setSosTargetTrip(null);
+                      setShowSosModal(true);
+                    }} 
+                    className="px-2.5 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5 shadow-md transition font-black tracking-wide animate-pulse"
+                    title="Emergency SOS"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                    <span>SOS</span>
+                  </button> */}
                   <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
                   <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Trips</button>
                   <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Profile</button>
@@ -1491,8 +1508,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         </>
                     )}
 
-                    {/* When Needed Dropdown - Show for LOCAL_HOURLY */}
-                    {driverType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && (
+                    {/* When Needed Dropdown - Show for LOCAL_HOURLY and OUTSTATION */}
+                    {driverType !== BookingType.MONTHLY && (serviceType === BookingType.LOCAL_HOURLY || serviceType === BookingType.OUTSTATION) && (
                         <div className="relative mb-3">
                             <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
                             <div 
@@ -1650,39 +1667,55 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
-                                    <div className="flex gap-2 sm:gap-3">
-                                        <input 
-                                            type="date" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.date}
-                                            onChange={e => setFormData({...formData, date: e.target.value})}
-                                        />
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
-                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'timeSlot' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {getTimeSlots(formData.date).map(slot => (
-                                                        <div 
-                                                            key={slot.value}
-                                                            onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {slot.label}
-                                                        </div>
-                                                    ))}
+                                {formData.whenNeeded === 'Schedule' ? (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
+                                        <div className="flex gap-2 sm:gap-3">
+                                            <input 
+                                                type="date" 
+                                                min={new Date().toISOString().split('T')[0]}
+                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                value={formData.date}
+                                                onChange={e => setFormData({...formData, date: e.target.value})}
+                                            />
+                                            <div className="relative flex-1">
+                                                <div 
+                                                    onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
+                                                    className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                >
+                                                    <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                                 </div>
-                                            )}
+                                                {openDropdown === 'timeSlot' && (
+                                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                        {getTimeSlots(formData.date).map(slot => (
+                                                            <div 
+                                                                key={slot.value}
+                                                                onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
+                                                                className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
+                                                            >
+                                                                {slot.label}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                                            <div>
+                                                <p className="text-xs font-extrabold text-emerald-900">⚡ Immediate Outstation Departure</p>
+                                                <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Dispatched to nearby drivers right away.</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] bg-emerald-600 text-white font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                            Instant
+                                        </span>
+                                    </div>
+                                )}
                                 {formData.tripType === 'Round Trip' && (
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-2">To Date & Time (Return)</label>
@@ -2475,7 +2508,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
           )}
 
           {false && activeTab === 'TRIPS' && (
-              <CustomerBookingStatus />
+              <CustomerBookingStatus customer={customer} />
           )}
 
           {false && activeTab === 'TRIPS' && (
@@ -2589,7 +2622,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  <div>
                                      <h3 className="text-lg sm:text-xl font-bold">{customer.name}</h3>
                                      <p className="text-xs sm:text-sm text-gray-500">{customer.phone}</p>
-                                     {customer.email && <p className="text-xs text-gray-400">{customer.email}</p>}
+                                     {customer.alternateMobile && <p className="text-xs text-gray-500 font-medium">Alt Mobile: {customer.alternateMobile}</p>}
                                  </div>
                              </div>
                              <button 
@@ -2598,6 +2631,31 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              >
                                  Edit
                              </button>
+                        </div>
+
+                                                {/* Contact Information Card */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2 text-xs">
+                            <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">Contact Details</h4>
+                            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                                <span className="text-gray-500 font-medium">Primary Phone:</span>
+                                <span className="font-bold text-gray-900">{customer.phone}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                                <span className="text-gray-500 font-medium">Alternate Mobile:</span>
+                                <span className="font-bold text-gray-900">{customer.alternateMobile || 'Not provided'}</span>
+                            </div>
+                            {customer.whatsappNumber && (
+                                <div className="flex justify-between items-center py-1">
+                                    <span className="text-gray-500 font-medium">WhatsApp:</span>
+                                    <span className="font-bold text-gray-900">{customer.whatsappNumber}</span>
+                                </div>
+                            )}
+                        </div>
+
+                                                {/* Language Preferences Card */}
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2">
+                            <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">{t('profile.settings', 'Settings & Preferences')}</h4>
+                            <UberLanguageSelector variant="inline" />
                         </div>
 
                         {/* Address Section */}
@@ -2615,26 +2673,60 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                          </div> */}
 
                          <div className="space-y-2">
-                             <h4 className="font-bold text-sm">ID Proof</h4>
-                             <div className="border border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 cursor-pointer">
-                                 {customer.idProof ? (
-                                     <div className="text-green-600 font-bold text-sm flex flex-col items-center gap-2">
-                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                         <span>ID Proof Uploaded</span>
-                                         <button 
-                                             onClick={() => window.open(customer.idProof?.startsWith('http') ? customer.idProof : `${API_BASE_URL}${customer.idProof}`, '_blank')}
-                                             className="mt-2 px-3 py-1 bg-green-600 text-white text-xs font-bold rounded hover:bg-green-700"
-                                         >
-                                             View Document
-                                         </button>
+                             <div className="flex items-center justify-between">
+                                 <h4 className="font-bold text-sm">ID Proof</h4>
+                                 {customer.idProof && (
+                                     <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                                         Verified Document
+                                     </span>
+                                 )}
+                             </div>
+                             {customer.idProof ? (() => {
+                                 const fullUrl = customer.idProof.startsWith('http') ? customer.idProof : `${API_BASE_URL}${customer.idProof.startsWith('/') ? '' : '/'}${customer.idProof}`;
+                                 const isPdf = customer.idProof.toLowerCase().endsWith('.pdf');
+
+                                 return (
+                                     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-gray-50 shadow-sm">
+                                         <div className="p-3 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                             <div className="flex items-center gap-2">
+                                                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                                 <span className="text-xs font-bold text-emerald-800">ID Proof Uploaded</span>
+                                             </div>
+                                             <button 
+                                                 onClick={() => window.open(fullUrl, '_blank')}
+                                                 className="text-xs font-extrabold text-black hover:underline flex items-center gap-1"
+                                             >
+                                                 View Full Size ↗
+                                             </button>
+                                         </div>
+                                         {!isPdf ? (
+                                             <div className="p-3 flex justify-center bg-black/5">
+                                                 <img 
+                                                     src={fullUrl} 
+                                                     alt="ID Proof" 
+                                                     className="max-h-52 w-auto object-contain rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition"
+                                                     onClick={() => window.open(fullUrl, '_blank')}
+                                                 />
+                                             </div>
+                                         ) : (
+                                             <div className="p-6 text-center">
+                                                 <span className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-bold mb-2">PDF Document</span>
+                                                 <p className="text-xs text-gray-600">ID Proof Document (Click 'View Full Size' to inspect)</p>
+                                             </div>
+                                         )}
                                      </div>
-                                 ) : (
+                                 );
+                             })() : (
+                                 <div 
+                                     onClick={() => setIsEditingProfile(true)}
+                                     className="border border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 cursor-pointer"
+                                 >
                                      <div className="text-gray-500 text-sm">
                                          <p className="font-bold mb-1">Upload ID Proof</p>
                                          <p className="text-xs">Aadhar / Voter ID / DLL (No PAN Card)</p>
                                      </div>
-                                 )}
-                             </div>
+                                 </div>
+                             )}
                          </div>
 
                          <div className="pt-4 space-y-3">
@@ -2711,18 +2803,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              />
                          </div>
 
-                         {/*
-                         <div>
-                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Email Address</label>
-                             <input 
-                                 type="email"
-                                 className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                                 value={editProfileData.email}
-                                 onChange={(e) => setEditProfileData({...editProfileData, email: e.target.value})}
-                                 placeholder="name@example.com"
-                             />
-                         </div>
-                         */}
+                                                   <div>
+                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Alternate Mobile Number</label>
+                              <input 
+                                  type="tel"
+                                  maxLength={10}
+                                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                  value={editProfileData.alternateMobile || ''}
+                                  onChange={(e) => setEditProfileData({...editProfileData, alternateMobile: e.target.value.replace(/\D/g, '')})}
+                                  placeholder="10-digit mobile number"
+                              />
+                          </div>
 
                          <div>
                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Phone Number</label>
@@ -2785,66 +2876,116 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                          </div>
 
                          <div>
-                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
-                             {customer.idProof ? (
-                                 <div className="space-y-2">
-                                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                                         <div className="flex items-center gap-2">
-                                             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                             <span className="text-sm font-medium text-green-800">ID Proof Uploaded</span>
-                                         </div>
-                                         <button 
-                                             type="button"
-                                             onClick={() => {
-                                                 if (confirm('Replace existing ID proof?')) {
-                                                     document.getElementById('idProofInput')?.click();
-                                                 }
-                                             }}
-                                             className="text-xs font-bold text-green-600 hover:text-green-800"
-                                         >
-                                             Replace
-                                         </button>
-                                     </div>
-                                     <input 
-                                         id="idProofInput"
-                                         type="file"
-                                         accept="image/*,.pdf,.doc,.docx,.txt"
-                                         className="hidden"
-                                         onChange={async (e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                                 const uploadResponse = await uploadFile(file);
-                                                 if (uploadResponse.success) {
-                                                     setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
-                                                     toast.success('New ID proof uploaded successfully!');
-                                                 } else {
-                                                     toast.error(uploadResponse.error || 'Failed to upload file');
-                                                 }
-                                             }
-                                         }}
-                                     />
-                                 </div>
-                             ) : (
-                                 <input 
-                                     type="file"
-                                     accept="image/*,.pdf,.doc,.docx,.txt"
-                                     className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
-                                     onChange={async (e) => {
-                                         const file = e.target.files?.[0];
-                                         if (file) {
-                                             const uploadResponse = await uploadFile(file);
-                                             if (uploadResponse.success) {
-                                                 setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
-                                                 toast.success('ID proof uploaded successfully!');
-                                             } else {
-                                                 toast.error(uploadResponse.error || 'Failed to upload file');
-                                             }
-                                         }
-                                     }}
-                                 />
-                             )}
-                             <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
-                         </div>
+                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
+                              {(editProfileData.idProof || customer.idProof) ? (
+                                  <div className="space-y-3">
+                                      <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                                          <div className="flex items-center gap-2">
+                                              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                              <span className="text-xs sm:text-sm font-bold text-emerald-800">ID Proof Uploaded</span>
+                                          </div>
+                                          <button 
+                                              type="button"
+                                              onClick={() => document.getElementById('idProofInput')?.click()}
+                                              className="text-xs font-extrabold text-black bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition shadow-xs cursor-pointer"
+                                          >
+                                              Replace
+                                          </button>
+                                      </div>
+
+                                      {/* Visible Image Preview on Screen */}
+                                      {(() => {
+                                          const idProofVal = editProfileData.idProof || customer.idProof;
+                                          const fullUrl = idProofVal ? (idProofVal.startsWith('http') ? idProofVal : `${API_BASE_URL}${idProofVal.startsWith('/') ? '' : '/'}${idProofVal}`) : null;
+                                          const isPdf = idProofVal && idProofVal.toLowerCase().endsWith('.pdf');
+
+                                          if (isPdf) {
+                                              return (
+                                                  <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50 flex items-center justify-between">
+                                                      <div className="flex items-center gap-3">
+                                                          <span className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center font-black text-xs">PDF</span>
+                                                          <div>
+                                                              <p className="text-xs font-bold text-gray-800">ID Proof Document (PDF)</p>
+                                                              <p className="text-[10px] text-gray-500">Click to view in new tab</p>
+                                                          </div>
+                                                      </div>
+                                                      <button
+                                                          type="button"
+                                                          onClick={() => window.open(fullUrl!, '_blank')}
+                                                          className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
+                                                      >
+                                                          View PDF
+                                                      </button>
+                                                  </div>
+                                              );
+                                          }
+
+                                          return (
+                                              <div className="border-2 border-gray-200 rounded-2xl overflow-hidden bg-gray-50 shadow-xs group">
+                                                  <div className="p-2.5 flex justify-center bg-black/5">
+                                                      <img 
+                                                          src={fullUrl!} 
+                                                          alt="ID Proof Preview" 
+                                                          className="max-h-56 w-auto object-contain rounded-xl shadow-xs cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
+                                                          onClick={() => window.open(fullUrl!, '_blank')}
+                                                      />
+                                                  </div>
+                                                  <div className="p-2.5 bg-white border-t border-gray-100 flex items-center justify-between">
+                                                      <span className="text-[11px] text-gray-500 font-semibold truncate">Current Document Preview</span>
+                                                      <button
+                                                          type="button"
+                                                          onClick={() => window.open(fullUrl!, '_blank')}
+                                                          className="text-xs font-bold text-black hover:underline flex items-center gap-1"
+                                                      >
+                                                          Open Full Size ↗
+                                                      </button>
+                                                  </div>
+                                              </div>
+                                          );
+                                      })()}
+
+                                      <input 
+                                          id="idProofInput"
+                                          type="file"
+                                          accept="image/*,.pdf,.doc,.docx,.txt"
+                                          className="hidden"
+                                          onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) {
+                                                  const uploadResponse = await uploadFile(file);
+                                                  if (uploadResponse.success) {
+                                                      setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
+                                                      setCustomer(prev => ({ ...prev, idProof: uploadResponse.fileId }));
+                                                      toast.success('New ID proof uploaded successfully!');
+                                                  } else {
+                                                      toast.error(uploadResponse.error || 'Failed to upload file');
+                                                  }
+                                              }
+                                          }}
+                                      />
+                                  </div>
+                              ) : (
+                                  <input 
+                                      type="file"
+                                      accept="image/*,.pdf,.doc,.docx,.txt"
+                                      className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                                      onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                              const uploadResponse = await uploadFile(file);
+                                              if (uploadResponse.success) {
+                                                  setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
+                                                  setCustomer(prev => ({ ...prev, idProof: uploadResponse.fileId }));
+                                                  toast.success('ID proof uploaded successfully!');
+                                              } else {
+                                                  toast.error(uploadResponse.error || 'Failed to upload file');
+                                              }
+                                          }
+                                      }}
+                                  />
+                              )}
+                              <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
+                          </div>
 
                          <div className="flex gap-3 pt-4">
                              <button 
@@ -2947,6 +3088,36 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         </div>
       )}
       
+      
+      {/* Floating SOS Emergency Button (Uber-style persistent safety button) */}
+      <button
+        type="button"
+        onClick={() => {
+          setSosTargetTrip(null);
+          setShowSosModal(true);
+        }}
+        className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-700 hover:to-red-800 text-white font-black px-4 py-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/90 ring-4 ring-red-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 group cursor-pointer"
+        title="Emergency SOS & Safety Toolkit"
+      >
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+        </span>
+        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2 10h-4v-2h4v2zm0-4h-4V9h4v4z"/>
+        </svg>
+        <span className="text-xs sm:text-sm font-black tracking-wider uppercase">SOS</span>
+      </button>
+
+      {/* SOS Modal */}
+      <CustomerSosModal
+        isOpen={showSosModal}
+        onClose={() => setShowSosModal(false)}
+        customer={customer}
+        activeTrip={sosTargetTrip}
+        allTrips={myTrips}
+      />
+
       <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );

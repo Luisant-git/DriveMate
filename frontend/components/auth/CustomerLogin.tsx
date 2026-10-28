@@ -16,9 +16,8 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Sending OTP to your mobile number');
-    if (phoneNumber.length < 10) {
-      alert("Please enter a valid 10-digit mobile number");
+    if (!phoneNumber || phoneNumber.trim().length < 10) {
+      toast.warning("Please enter a valid 10-digit mobile number");
       return;
     }
     
@@ -29,10 +28,10 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
         setStep('OTP');
         toast.success(`OTP sent to ${phoneNumber} via WhatsApp`);
       } else {
-        alert(response.error || response.message || 'Failed to send OTP');
+        toast.error(response.error || response.message || 'Failed to send OTP');
       }
     } catch (error) {
-      alert('Error sending OTP. Please try again.');
+      toast.error('Error sending OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -40,8 +39,8 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length !== 6) {
-      alert("Please enter a valid 6-digit OTP");
+    if (!otp || otp.trim().length !== 6) {
+      toast.warning("Please enter a valid 6-digit OTP");
       return;
     }
     
