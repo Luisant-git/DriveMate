@@ -1667,7 +1667,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </div>
                                     </div>
                                 </div>
-                                {formData.whenNeeded === 'Schedule' ? (
+                                {formData.whenNeeded === 'Schedule' && (
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
                                         <div className="flex gap-2 sm:gap-3">
@@ -1702,20 +1702,21 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-                                            <div>
-                                                <p className="text-xs font-extrabold text-emerald-900">⚡ Immediate Outstation Departure</p>
-                                                <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Dispatched to nearby drivers right away.</p>
-                                            </div>
-                                        </div>
-                                        <span className="text-[10px] bg-emerald-600 text-white font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
-                                            Instant
-                                        </span>
-                                    </div>
                                 )}
+                                {/* Commented out Immediate Outstation Departure banner as requested
+                                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+                                        <div>
+                                            <p className="text-xs font-extrabold text-emerald-900">⚡ Immediate Outstation Departure</p>
+                                            <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Dispatched to nearby drivers right away.</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] bg-emerald-600 text-white font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                        Instant
+                                    </span>
+                                </div>
+                                */}
                                 {formData.tripType === 'Round Trip' && (
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-2">To Date & Time (Return)</label>
