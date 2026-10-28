@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
 import ConfirmModal from './common/ConfirmModal';
+import UberLanguageSelector from './common/UberLanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +12,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwitchRole }) => {
+  const { t } = useLanguage();
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -38,10 +41,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <UberLanguageSelector variant="navbar" />
               {currentUser && (
                 <>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                      <span className="hidden md:block text-sm font-medium">{currentUser.name || 'User'}</span>
                      <div className="h-8 w-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-sm">
                        {currentUser.name?.[0] || 'U'}
@@ -51,19 +55,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
                     onClick={() => {
                         setConfirmConfig({
                             isOpen: true,
-                            title: 'Logout',
+                            title: t('nav.logout', 'Logout'),
                             message: 'Are you sure you want to logout?',
                             type: 'info',
-                            confirmText: 'Logout',
+                            confirmText: t('nav.logout', 'Logout'),
                             onConfirm: () => {
                                 closeConfirm();
                                 onLogout();
                             }
                         });
                     }}
-                    className="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full transition-colors"
+                    className="text-xs sm:text-sm bg-gray-800 hover:bg-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors font-medium"
                   >
-                     Logout
+                     {t('nav.logout', 'Logout')}
                   </button>
                 </>
               )}

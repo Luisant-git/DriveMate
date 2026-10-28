@@ -18,6 +18,7 @@ import { getLeadProfile } from './api/lead';
 import LandingPage from './pages/LandingPage';
 import PrivacyPage from './pages/privacy';
 import TermsPage from './pages/terms';
+import { LanguageProvider } from './context/LanguageContext';
 
 const AuthLayout: React.FC<{ children: React.ReactNode, wide?: boolean }> = ({ children, wide }) => (
   <div
@@ -33,7 +34,6 @@ const AuthLayout: React.FC<{ children: React.ReactNode, wide?: boolean }> = ({ c
         {children}
       </div>
     </div>
-    <Toast />
   </div>
 );
 
@@ -149,7 +149,6 @@ const App: React.FC = () => {
             {currentUser.role === UserRole.DRIVER && <DriverPortal driver={currentUser as any} />}
             {currentUser.role === UserRole.LEAD && <LeadPortal lead={currentUser as any} onLogout={handleLogout} />}
             {currentUser.role === UserRole.ADMIN && <AdminPortal onLogout={handleLogout} />}
-            <Toast />
           </Layout>
         ) : (
           <Navigate to="/customer/login" />
@@ -162,7 +161,10 @@ const App: React.FC = () => {
 
 const AppWrapper: React.FC = () => (
   <Router>
-    <App />
+    <LanguageProvider>
+      <App />
+      <Toast />
+    </LanguageProvider>
   </Router>
 );
 

@@ -23,7 +23,7 @@ export interface User {
   id: string;
   name: string;
   role: UserRole;
-  email: string;
+  email?: string;
   phone: string;
   whatsappNumber?: string;
   avatarUrl?: string;
@@ -33,6 +33,7 @@ export interface User {
 export interface Driver extends User {
   aadharNo: string;
   licenseNo: string;
+  policeVerificationNo?: string;
   altPhone: string[]; // Up to 4 numbers
   upiId?: string; // GPay/PhonePe
   isVerified: boolean;
@@ -51,6 +52,7 @@ export interface Driver extends User {
 export interface Lead extends User {
   aadharNo: string;
   licenseNo: string;
+  policeVerificationNo?: string;
   altPhone: string[];
   upiId?: string;
   isVerified: boolean;
@@ -70,6 +72,9 @@ export interface Customer extends User {
   advancePaymentBalance: number;
   addressProofUrl?: string; // Any address id proof
   address?: string;
+  alternateMobile?: string;
+  alternatePhone?: string;
+  customerNo?: number;
 }
 
 export interface Trip {
