@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
+import DocumentViewerModal from '../../components/admin/DocumentViewerModal';
 
 type EntityType = 'DRIVER' | 'LEAD';
 
@@ -53,11 +54,29 @@ export default function QuarterlyVerification() {
   const [leads, setLeads] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
+  const [activeDoc, setActiveDoc] = useState<{ title: string; url: string } | null>(null);
   const [history, setHistory] = useState<VerificationRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showVerifyForm, setShowVerifyForm] = useState(false);
+
+  const handleDownload = async (url: string, name: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const bUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = bUrl;
+      a.download = `${name.replace(/\s+/g, '_')}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(bUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
 
   useEffect(() => {
     fetchAll();
@@ -244,10 +263,10 @@ export default function QuarterlyVerification() {
             </div>
 
             <div className="p-5 space-y-5">
-              {/* Documents */}
+              {/* Documents - Ultra-Short & Compact */}
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase mb-2">Documents</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col space-y-1 max-h-60 overflow-y-auto pr-0.5">
                   {[
                     { label: 'Photo', url: docUrl(selectedEntity.photo) },
                     { label: 'DL Photo', url: docUrl(selectedEntity.dlPhoto) },
@@ -255,20 +274,84 @@ export default function QuarterlyVerification() {
                     { label: 'Aadhar Photo', url: docUrl(selectedEntity.aadharPhoto) },
                     { label: 'MSME', url: docUrl((selectedEntity as any).msmePhoto) },
                     { label: 'Police Verification', url: docUrl((selectedEntity as any).policeVerificationPhoto) },
-                  ].filter(d => d.url).map(doc => (
-                    <button
-                      key={doc.label}
-                      onClick={() => window.open(doc.url!, '_blank')}
-                      className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition text-left"
-                    >
-                      <span className="text-xs font-medium text-gray-700">{doc.label}</span>
-                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    </button>
-                  ))}
+                  ].map(doc => {
+                    const hasUrl = Boolean(doc.url);
+                    return (
+                      <div
+                        key={doc.label}
+                        className={`h-9 px-2.5 rounded-lg border transition-all flex items-center justify-between gap-2 flex-nowrap ${
+                          hasUrl ? 'bg-gray-50/70 hover:bg-gray-100/60 border-gray-200/90' : 'bg-neutral-50/40 border-dashed border-gray-200 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-nowrap">
+                          {hasUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => setActiveDoc({ title: `${doc.label} - ${selectedEntity.name}`, url: doc.url! })}
+                              className="w-6 h-6 rounded-md overflow-hidden bg-gray-200 border border-gray-300 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-black/20 transition"
+                              title={`Preview ${doc.label}`}
+                            >
+                              <img
+                                src={doc.url!}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            </button>
+                          ) : (
+                            <div className="w-6 h-6 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+
+                          <span className="text-xs font-bold text-gray-900 truncate">{doc.label}</span>
+                          {hasUrl ? (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full inline-flex items-center gap-1 flex-shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Uploaded
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 border border-gray-200 px-1.5 py-0.2 rounded-full inline-flex items-center gap-1 flex-shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                              Not Uploaded
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-shrink-0 flex-nowrap">
+                          <button
+                            type="button"
+                            disabled={!hasUrl}
+                            onClick={() => hasUrl && setActiveDoc({ title: `${doc.label} - ${selectedEntity.name}`, url: doc.url! })}
+                            className={`h-6 px-2 rounded-md text-[11px] font-bold inline-flex items-center gap-1 transition whitespace-nowrap ${
+                              hasUrl ? 'bg-white hover:bg-gray-100 text-gray-800 border border-gray-300 shadow-2xs active:scale-95' : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                            }`}
+                            title={hasUrl ? 'View document' : 'Not uploaded'}
+                          >
+                            <svg className="w-3 h-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            <span>View</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!hasUrl}
+                            onClick={() => hasUrl && handleDownload(doc.url!, `${selectedEntity.name}_${doc.label}`)}
+                            className={`h-6 px-2 rounded-md text-[11px] font-bold inline-flex items-center gap-1 transition whitespace-nowrap ${
+                              hasUrl ? 'bg-black hover:bg-neutral-800 text-white shadow-2xs active:scale-95' : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                            }`}
+                            title={hasUrl ? 'Download file' : 'Not uploaded'}
+                          >
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            <span>Download</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                {![selectedEntity.photo, selectedEntity.dlPhoto, selectedEntity.panPhoto, selectedEntity.aadharPhoto].some(Boolean) && (
-                  <p className="text-xs text-gray-400">No documents uploaded</p>
-                )}
               </div>
 
               {/* Verification status */}
@@ -354,6 +437,16 @@ export default function QuarterlyVerification() {
             </div>
           </div>
         </div>
+      {/* Document Viewer Lightbox Modal */}
+      {activeDoc && (
+        <DocumentViewerModal
+          isOpen={true}
+          onClose={() => setActiveDoc(null)}
+          title={activeDoc.title}
+          url={activeDoc.url}
+          entityName={selectedEntity?.name}
+          onDownload={() => handleDownload(activeDoc.url, activeDoc.title)}
+        />
       )}
     </div>
   );

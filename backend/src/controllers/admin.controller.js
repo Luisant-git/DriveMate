@@ -10,18 +10,70 @@ export const getAllCustomers = async (req, res) => {
           { email: { not: { startsWith: 'deleted_' } } }
         ]
       },
+      include: {
+        bookings: {
+          select: {
+            id: true,
+            status: true,
+            serviceType: true,
+            driverType: true,
+            tripType: true,
+            estimateAmount: true,
+            finalAmount: true,
+            startDateTime: true,
+            pickupLocation: true,
+            dropLocation: true,
+            createdAt: true,
+            paymentMethod: true,
+            paymentStatus: true,
+            cancellationRequested: true,
+            driver: { select: { id: true, name: true, phone: true } },
+            lead: { select: { id: true, name: true, phone: true } }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 20
+        }
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Manually fetch customerNo since Prisma client is stale
+    // Manually fetch customerNo, alternateMobile, whatsappNumber, address, idProof in case raw DB has fresh fields
     try {
-      const customerNos = await prisma.$queryRawUnsafe('SELECT id, "customerNo" FROM customers');
-      const customerNoMap = {};
-      customerNos.forEach(c => { customerNoMap[c.id] = c.customerNo; });
-      const mappedCustomers = customers.map(c => ({
-        ...c,
-        customerNo: customerNoMap[c.id]
-      }));
+      const rawCustomers = await prisma.$queryRawUnsafe(
+        'SELECT id, "customerNo", "alternateMobile", "whatsappNumber", "address", "idProof", "advancePayment" FROM customers'
+      );
+      const rawMap = {};
+      rawCustomers.forEach(c => { rawMap[c.id] = c; });
+      const mappedCustomers = customers.map(c => {
+        const raw = rawMap[c.id] || {};
+        const bookings = c.bookings || [];
+        const completedTrips = bookings.filter(b => b.status === 'COMPLETED').length;
+        const cancelledBookings = bookings.filter(b => b.status === 'CANCELLED').length;
+        const totalSpent = bookings
+          .filter(b => b.status === 'COMPLETED')
+          .reduce((sum, b) => sum + (b.finalAmount || b.estimateAmount || 0), 0);
+
+        // Sanitize email: if email is temporary placeholder (ends with @temp.com or contains temp/placeholder), hide it
+        const hasTempEmail = c.email && (c.email.endsWith('@temp.com') || c.email.includes('placeholder') || c.email.includes('@temp.'));
+        const sanitizedEmail = hasTempEmail ? null : c.email;
+
+        return {
+          ...c,
+          email: sanitizedEmail,
+          customerNo: raw.customerNo || c.customerNo,
+          alternateMobile: raw.alternateMobile || c.alternateMobile || null,
+          alternatePhone: raw.alternateMobile || c.alternatePhone || null,
+          whatsappNumber: raw.whatsappNumber || c.whatsappNumber || null,
+          address: raw.address || c.address || null,
+          idProof: raw.idProof || c.idProof || null,
+          advancePayment: raw.advancePayment !== undefined ? raw.advancePayment : (c.advancePayment || 0),
+          totalBookings: bookings.length,
+          completedTrips,
+          cancelledBookings,
+          totalSpent,
+          bookings
+        };
+      });
       return res.json({ customers: mappedCustomers });
     } catch (e) {
       return res.json({ customers });
@@ -46,14 +98,15 @@ export const getAllDrivers = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Manually fetch driverNo since Prisma client is stale
+    // Manually fetch driverNo & policeVerificationNo since Prisma client is cached
     try {
-      const driverNos = await prisma.$queryRawUnsafe('SELECT id, "driverNo" FROM drivers');
-      const driverNoMap = {};
-      driverNos.forEach(d => { driverNoMap[d.id] = d.driverNo; });
+      const driverCols = await prisma.$queryRawUnsafe('SELECT id, "driverNo", "policeVerificationNo" FROM drivers');
+      const driverMap = {};
+      driverCols.forEach(d => { driverMap[d.id] = d; });
       const mappedDrivers = drivers.map(d => ({
         ...d,
-        driverNo: driverNoMap[d.id]
+        driverNo: driverMap[d.id]?.driverNo || d.driverNo,
+        policeVerificationNo: driverMap[d.id]?.policeVerificationNo || d.policeVerificationNo || null
       }));
       return res.json(mappedDrivers);
     } catch (e) {
@@ -224,7 +277,20 @@ export const getAllLeads = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-    res.json({ success: true, leads });
+
+    try {
+      const leadCols = await prisma.$queryRawUnsafe('SELECT id, "leadNo", "policeVerificationNo" FROM leads');
+      const leadMap = {};
+      leadCols.forEach(l => { leadMap[l.id] = l; });
+      const mappedLeads = leads.map(l => ({
+        ...l,
+        leadNo: leadMap[l.id]?.leadNo || l.leadNo,
+        policeVerificationNo: leadMap[l.id]?.policeVerificationNo || l.policeVerificationNo || null
+      }));
+      return res.json({ success: true, leads: mappedLeads });
+    } catch (e) {
+      return res.json({ success: true, leads });
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -347,7 +413,7 @@ export const getVerificationHistory = async (req, res) => {
 export const updateDriverDocument = async (req, res) => {
   try {
     const { driverId } = req.params;
-    const { documentType, documentUrl, expiryDate } = req.body;
+    const { documentType, documentUrl, expiryDate, certificateNo, policeVerificationNo } = req.body;
     
     if (!documentType) {
       return res.status(400).json({ success: false, error: 'documentType is required' });
@@ -356,6 +422,10 @@ export const updateDriverDocument = async (req, res) => {
     const data = {};
     if (documentType === 'policeVerificationPhoto') {
       data.policeVerificationPhoto = documentUrl || null;
+      const certNo = certificateNo !== undefined ? certificateNo : policeVerificationNo;
+      if (certNo !== undefined) {
+        data.policeVerificationNo = certNo ? certNo.trim() : null;
+      }
       if (documentUrl) {
         if (expiryDate) data.policeVerificationExpiryDate = new Date(expiryDate).toISOString();
       } else {
@@ -420,7 +490,7 @@ export const rejectLead = async (req, res) => { try { const lead = await prisma.
 export const updateLeadDocument = async (req, res) => {
   try {
     const { leadId } = req.params;
-    const { documentType, documentUrl, expiryDate } = req.body;
+    const { documentType, documentUrl, expiryDate, certificateNo, policeVerificationNo } = req.body;
 
     if (!documentType) {
       return res.status(400).json({ success: false, error: 'documentType is required' });
@@ -439,6 +509,10 @@ export const updateLeadDocument = async (req, res) => {
     const data = {};
     if (documentType === 'policeVerificationPhoto') {
       data.policeVerificationPhoto = documentUrl || null;
+      const certNo = certificateNo !== undefined ? certificateNo : policeVerificationNo;
+      if (certNo !== undefined) {
+        data.policeVerificationNo = certNo ? certNo.trim() : null;
+      }
       if (documentUrl) {
         if (expiryDate) data.policeVerificationExpiryDate = new Date(expiryDate).toISOString();
       } else {

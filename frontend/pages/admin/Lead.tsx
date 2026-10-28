@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
+import UberDriverDetailsModal from '../../components/admin/UberDriverDetailsModal';
+import UberPackageUpdateModal from '../../components/admin/UberPackageUpdateModal';
 
 const getVerificationStatus = (lead) => {
   if (!lead.lastVerifiedAt) return 'NEVER';
@@ -37,6 +39,7 @@ export default function Lead() {
   const [showVerifyForm, setShowVerifyForm] = useState(false);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [verifyPoliceExpiry, setVerifyPoliceExpiry] = useState('');
+  const [verifyPoliceNo, setVerifyPoliceNo] = useState('');
   const [verifyLicenseExpiry, setVerifyLicenseExpiry] = useState('');
 
   // Add lead modal state
@@ -70,6 +73,7 @@ export default function Lead() {
     alternateMobile4: '',
     upiId: '',
     policeVerificationExpiryDate: '',
+    policeVerificationNo: '',
     photo: null,
     dlPhoto: null,
     panPhoto: null,
@@ -161,7 +165,7 @@ export default function Lead() {
         setShowAddLeadModal(false);
         setIsSameAddress(false);
         setAddLeadForm({ 
-          name: '', phone: '', email: '', password: '', licenseNo: '', licenseExpiryDate: '', aadharNo: '', currentAddress: '', permanentAddress: '', alternateMobile1: '', alternateMobile2: '', alternateMobile3: '', alternateMobile4: '', upiId: '', policeVerificationExpiryDate: '', photo: null, dlPhoto: null, panPhoto: null, aadharPhoto: null, policeVerificationPhoto: null
+          name: '', phone: '', email: '', password: '', licenseNo: '', licenseExpiryDate: '', aadharNo: '', currentAddress: '', permanentAddress: '', alternateMobile1: '', alternateMobile2: '', alternateMobile3: '', alternateMobile4: '', upiId: '', policeVerificationExpiryDate: '', policeVerificationNo: '', photo: null, dlPhoto: null, panPhoto: null, aadharPhoto: null, policeVerificationPhoto: null
         });
         fetchLeads();
       }
@@ -179,6 +183,7 @@ export default function Lead() {
     setVerifyNotes('');
     setVerifyHistoryLoading(true);
     setVerifyPoliceExpiry(lead.policeVerificationExpiryDate ? lead.policeVerificationExpiryDate.split('T')[0] : '');
+    setVerifyPoliceNo(lead.policeVerificationNo || '');
     setVerifyLicenseExpiry(lead.licenseExpiryDate ? lead.licenseExpiryDate.split('T')[0] : '');
     try {
       const res = await apiClient.get(`/admin/verification/${lead.id}/history`);
@@ -216,6 +221,33 @@ export default function Lead() {
     }
   };
 
+  
+  const handleSavePoliceCertificateNo = async () => {
+    if (!verifyLead) return;
+    try {
+      const res = await apiClient.put(`/admin/leads/${verifyLead.id}/document`, {
+        documentType: 'policeVerificationPhoto',
+        documentUrl: verifyLead.policeVerificationPhoto,
+        expiryDate: verifyPoliceExpiry || verifyLead.policeVerificationExpiryDate,
+        certificateNo: verifyPoliceNo
+      });
+      if (res.data?.success) {
+        setVerifyLead({ ...verifyLead, policeVerificationNo: verifyPoliceNo });
+        const leadsRes = await apiClient.get('/admin/leads');
+        const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
+        const data = leadsList.map(d => ({
+          ...d,
+          activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
+        }));
+        setLeads(data);
+        alert('Police Verification Certificate No saved successfully!');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save certificate number');
+    }
+  };
+
   const handleUploadPoliceVerification = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !verifyLead) return;
@@ -246,12 +278,13 @@ export default function Lead() {
         const res = await apiClient.put(`/admin/leads/${verifyLead.id}/document`, {
           documentType: 'policeVerificationPhoto',
           documentUrl: url,
-          expiryDate: verifyPoliceExpiry
+          expiryDate: verifyPoliceExpiry,
+          certificateNo: verifyPoliceNo
         });
         
         if (res.data.success) {
           const updatedLead = res.data.lead;
-          setVerifyLead({ ...verifyLead, policeVerificationPhoto: updatedLead.policeVerificationPhoto, policeVerificationExpiryDate: updatedLead.policeVerificationExpiryDate });
+          setVerifyLead({ ...verifyLead, policeVerificationPhoto: updatedLead.policeVerificationPhoto, policeVerificationExpiryDate: updatedLead.policeVerificationExpiryDate, policeVerificationNo: updatedLead.policeVerificationNo || verifyPoliceNo });
           
           const leadsRes = await apiClient.get('/admin/leads');
           const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
@@ -433,18 +466,17 @@ export default function Lead() {
 
   if (loading) return <div className="px-6 py-6 flex items-center justify-center"><div className="text-gray-500">Loading leads...</div></div>;
 
-  const handleUpdatePackageSubmit = async (e) => {
-    e.preventDefault();
+  const handleUpdatePackageSubmit = async ({ planId, paidAmount, paymentMethod }: { planId: string; paidAmount: number; paymentMethod: string }) => {
     setIsUpdatingPackage(true);
     try {
-      if (!updatePackageForm.planId || !updatePackageForm.paidAmount) {
+      if (!planId || !paidAmount) {
         throw new Error('Please select a plan and enter the paid amount.');
       }
       const response = await apiClient.post('/lead-subscriptions/admin/create', {
         leadId: selectedLead.id,
-        planId: updatePackageForm.planId,
-        paidAmount: parseFloat(updatePackageForm.paidAmount),
-        paymentMethod: 'CASH'
+        planId,
+        paidAmount,
+        paymentMethod: paymentMethod || 'CASH'
       });
       if (response.data.success) {
         setShowUpdatePackageModal(false);
@@ -455,9 +487,11 @@ export default function Lead() {
           activeSubscription: response.data.subscription,
           subscriptions: [...(prev.subscriptions || []), response.data.subscription]
         }));
+        alert('Lead package updated successfully!');
       }
-    } catch (error) {
+    } catch (error: any) {
       alert(error.response?.data?.error || error.message || 'Failed to update package');
+      throw error;
     } finally {
       setIsUpdatingPackage(false);
     }
@@ -781,6 +815,16 @@ export default function Lead() {
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verification Expiry</label>
                       <input type="date" value={addLeadForm.policeVerificationExpiryDate} onChange={e => setAddLeadForm({...addLeadForm, policeVerificationExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none h-[calc(100%-1.5rem)]" />
                     </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verif. Certificate No</label>
+                      <input 
+                        type="text" 
+                        value={addLeadForm.policeVerificationNo || ''} 
+                        onChange={e => setAddLeadForm({...addLeadForm, policeVerificationNo: e.target.value})} 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none font-mono" 
+                        placeholder="e.g. POL-VER-2026-XXXX" 
+                      />
+                    </div>
                   </div>
                 </div>
               </form>
@@ -794,136 +838,38 @@ export default function Lead() {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* Uber Lead Details Modal */}
       {selectedLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">{selectedLead.name}</h2>
-                <p className="text-xs text-gray-500">{selectedLead.phone} · {selectedLead.licenseNo}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setShowPasswordModal(true)} className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition">
-                  Change Password
-                </button>
-                <button onClick={() => setSelectedLead(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-3">Personal Information</h3>
-                  <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Name:</span> {selectedLead.name}</div>
-                    <div><span className="font-medium">Phone:</span> {selectedLead.phone}</div>
-                    <div><span className="font-medium">Aadhar No:</span> {selectedLead.aadharNo}</div>
-                    <div><span className="font-medium">Driving License:</span> {selectedLead.licenseNo}</div>
-                    <div><span className="font-medium">DL Expiry:</span> {selectedLead.licenseExpiryDate ? new Date(selectedLead.licenseExpiryDate).toLocaleDateString('en-GB') : 'N/A'}</div>
-                    <div><span className="font-medium">Police Verif. Expiry:</span> {selectedLead.policeVerificationExpiryDate ? new Date(selectedLead.policeVerificationExpiryDate).toLocaleDateString('en-GB') : 'N/A'}</div>
-                    <div><span className="font-medium">Current Address:</span> {selectedLead.currentAddress || 'N/A'}</div>
-                    <div><span className="font-medium">Permanent Address:</span> {selectedLead.permanentAddress || 'N/A'}</div>
-                  </div>
-                  <h3 className="text-sm font-bold text-gray-900 mt-4 mb-3">Documents</h3>
-                  <div className="space-y-2">
-                    {[
-                      { label: 'Photo', path: selectedLead.photo },
-                      { label: 'DL Photo', path: selectedLead.dlPhoto },
-                      { label: 'PAN Photo', path: selectedLead.panPhoto },
-                      { label: 'Aadhar Photo', path: selectedLead.aadharPhoto },
-                      { label: 'MSME', path: selectedLead?.msmePhoto },
-{ label: 'Ration Card', path: selectedLead?.rationCardPhoto },
-{ label: 'Police Verification', path: selectedLead?.policeVerificationPhoto },
-{ label: 'Electricity Bill', path: selectedLead?.electricityBillPhoto },
-{ label: 'Rental Agreement', path: selectedLead?.rentalAgreementPhoto },
-{ label: 'Credit Card', path: selectedLead?.creditCardPhoto },
-{ label: 'Debit Card', path: selectedLead?.debitCardPhoto } // <-- ADDED HERE
-                    ].filter(d => d.path).map(doc => (
-                      <div key={doc.label} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium text-gray-900">{doc.label}</span>
-                        <button onClick={() => window.open(docUrl(doc.path), '_blank')} className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-3">Contact & Vehicle</h3>
-                  <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Alt Mobile 1:</span> {selectedLead.alternateMobile1 || 'N/A'}</div>
-                    <div><span className="font-medium">Alt Mobile 2:</span> {selectedLead.alternateMobile2 || 'N/A'}</div>
-                    <div><span className="font-medium">Alt Mobile 3:</span> {selectedLead.alternateMobile3 || 'N/A'}</div>
-                    <div><span className="font-medium">Alt Mobile 4:</span> {selectedLead.alternateMobile4 || 'N/A'}</div>
-                    <div><span className="font-medium">Gpay/PhonePe number:</span> {selectedLead.gpayNo || selectedLead.phonepeNo || 'N/A'}</div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">Package:</span> 
-                      <span className="flex-1 font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-xs">{selectedLead.activeSubscription?.plan?.name || 'No Active Package'}</span>
-                      <button onClick={() => {
-                        setUpdatePackageForm({ planId: '', paidAmount: '' });
-                        setShowUpdatePackageModal(true);
-                      }} className="bg-black text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-800 transition shadow-sm ml-auto">
-                        Update
-                      </button>
-                    </div>
-                    <div><span className="font-medium">Total Rides:</span> {selectedLead.totalRides}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <UberDriverDetailsModal
+          driver={selectedLead}
+          isLead={true}
+          onClose={() => setSelectedLead(null)}
+          onOpenUpdatePackage={() => setShowUpdatePackageModal(true)}
+          onOpenChangePassword={() => setShowPasswordModal(true)}
+          docUrl={docUrl}
+          extraDocs={[
+            { label: 'MSME', path: selectedLead?.msmePhoto },
+            { label: 'Ration Card', path: selectedLead?.rationCardPhoto },
+            { label: 'Electricity Bill', path: selectedLead?.electricityBillPhoto },
+            { label: 'Rental Agreement', path: selectedLead?.rentalAgreementPhoto },
+            { label: 'Credit Card', path: selectedLead?.creditCardPhoto },
+            { label: 'Debit Card', path: selectedLead?.debitCardPhoto }
+          ]}
+        />
       )}
 
-      {/* Update Package Modal */}
-      {showUpdatePackageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-base font-bold text-gray-900">Update Package</h3>
-              <button onClick={() => setShowUpdatePackageModal(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <form onSubmit={handleUpdatePackageSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Select Package</label>
-                <select 
-                  value={updatePackageForm.planId}
-                  onChange={(e) => setUpdatePackageForm({...updatePackageForm, planId: e.target.value})}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                  required
-                >
-                  <option value="">-- Choose Package --</option>
-                  {subscriptionPlans.map(plan => (
-                    <option key={plan.id} value={plan.id}>{plan.name} - ₹{plan.price}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Paid Amount (₹)</label>
-                <input 
-                  type="number"
-                  min="0"
-                  value={updatePackageForm.paidAmount}
-                  onChange={(e) => setUpdatePackageForm({...updatePackageForm, paidAmount: e.target.value})}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="e.g. 500"
-                  required
-                />
-              </div>
-              <button 
-                type="submit" 
-                disabled={isUpdatingPackage}
-                className="w-full py-2 bg-black text-white rounded-lg font-bold text-sm hover:bg-gray-800 disabled:opacity-50 transition"
-              >
-                {isUpdatingPackage ? 'Updating...' : 'Confirm Update'}
-              </button>
-            </form>
-          </div>
-        </div>
+      {/* Uber Update Package Modal */}
+      {showUpdatePackageModal && selectedLead && (
+        <UberPackageUpdateModal
+          isOpen={showUpdatePackageModal}
+          onClose={() => setShowUpdatePackageModal(false)}
+          entityName={selectedLead.name}
+          entityIdentifier={`LED-${selectedLead.leadNo ? selectedLead.leadNo.toString().padStart(4, '0') : selectedLead.id.slice(-6).toUpperCase()}`}
+          currentPackageName={selectedLead.activeSubscription?.plan?.name}
+          subscriptionPlans={subscriptionPlans}
+          onSubmit={handleUpdatePackageSubmit}
+          isLoading={isUpdatingPackage}
+        />
       )}
 
       {/* Verification Modal */}
@@ -1042,6 +988,29 @@ export default function Lead() {
                       onChange={e => setVerifyPoliceExpiry(e.target.value)}
                       className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none shadow-sm"
                     />
+                  </div>
+                  <div className="flex-1 w-full">
+                    <label className="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      Certificate No
+                    </label>
+                    <div className="flex gap-1.5">
+                      <input 
+                        type="text"
+                        value={verifyPoliceNo}
+                        onChange={e => setVerifyPoliceNo(e.target.value)}
+                        placeholder="e.g. POL-VER-2026-XXXX"
+                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-black outline-none shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSavePoliceCertificateNo}
+                        className="px-2.5 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition shadow-sm active:scale-95 flex-shrink-0"
+                        title="Save Certificate Number"
+                      >
+                        Save
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="flex gap-2 w-full sm:w-auto">
