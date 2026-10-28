@@ -17,6 +17,10 @@ import LeadBookingRequests from './LeadBookingRequests';
 import { API_BASE_URL } from '../../api/config.js';
 import { uploadFile } from '../../api/upload.js';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import DocumentViewerModal from '../../components/admin/DocumentViewerModal';
+import ImageCropperModal from '../../components/common/ImageCropperModal';
+import UberLanguageSelector from '../../components/common/UberLanguageSelector';
+import { useLanguage } from '../../context/LanguageContext';
 
 const TripTimer = ({ startTime }: { startTime: string }) => {
   const [elapsed, setElapsed] = useState('');
@@ -74,6 +78,7 @@ interface LeadPortalProps {
 }
 
 const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'HOME' | 'TRIPS' | 'PROFILE' | 'PACKAGES' | 'REQUESTS'>('REQUESTS');
   const [requestsSubTab, setRequestsSubTab] = useState<'PENDING' | 'HISTORY' | 'ALLOCATED'>('PENDING');
   const [lead, setLead] = useState<any>(initialLead || {});
@@ -106,6 +111,73 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
 
   const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
 
+  // Document Viewer State
+  const [viewingDoc, setViewingDoc] = useState<{ title: string; url: string } | null>(null);
+
+  const getDocUrl = (path?: string | null) => {
+    if (!path) return null;
+    return path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  };
+
+  // Image Cropper State
+  const [croppingConfig, setCroppingConfig] = useState<{
+    isOpen: boolean;
+    imageSrc: string;
+    originalFile?: File;
+    documentTitle: string;
+    field: 'photo' | 'dlPhoto' | 'panPhoto' | 'aadharPhoto' | 'policeVerificationPhoto';
+    defaultAspectRatio: '1:1' | '4:3' | '3:2' | 'free';
+  } | null>(null);
+
+  const handleUploadFileDirect = async (
+    fileOrBlob: File | Blob, 
+    field: 'photo' | 'dlPhoto' | 'panPhoto' | 'aadharPhoto' | 'policeVerificationPhoto',
+    filename = 'document.jpg'
+  ) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', fileOrBlob, filename);
+      const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+      if (result.success) {
+        setProfileData(prev => ({ ...prev, [field]: result.fileId }));
+        if (field === 'policeVerificationPhoto') {
+          alert('Police verification document uploaded successfully! Admin will verify it shortly.');
+        }
+        return result.fileId;
+      } else {
+        alert(result.error || 'Failed to upload document');
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Failed to upload document. Please try again.');
+    }
+  };
+
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: 'photo' | 'dlPhoto' | 'panPhoto' | 'aadharPhoto' | 'policeVerificationPhoto',
+    documentTitle: string,
+    defaultAspectRatio: '1:1' | '4:3' | '3:2' | 'free' = '4:3'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+    setCroppingConfig({
+      isOpen: true,
+      imageSrc: previewUrl,
+      originalFile: file,
+      documentTitle,
+      field,
+      defaultAspectRatio
+    });
+    e.target.value = '';
+  };
+
   // Profile Edit States
   const [profileData, setProfileData] = useState({
     ...(initialLead || {}),
@@ -115,7 +187,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
     dlPhoto: initialLead?.dlPhoto || '',
     panPhoto: initialLead?.panPhoto || '',
     aadharPhoto: initialLead?.aadharPhoto || '',
-    policeVerificationPhoto: initialLead?.policeVerificationPhoto || '' // New field
+    policeVerificationPhoto: initialLead?.policeVerificationPhoto || '',
+    policeVerificationNo: initialLead?.policeVerificationNo || ''
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [password, setPassword] = useState('');
@@ -133,7 +206,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
         dlPhoto: initialLead.dlPhoto || '',
         panPhoto: initialLead.panPhoto || '',
         aadharPhoto: initialLead.aadharPhoto || '',
-        policeVerificationPhoto: initialLead.policeVerificationPhoto || '' // New field
+        policeVerificationPhoto: initialLead.policeVerificationPhoto || '',
+        policeVerificationNo: initialLead.policeVerificationNo || ''
       });
     }
   }, [initialLead]);
@@ -356,7 +430,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                   dlPhoto: profileData.dlPhoto,
                   panPhoto: profileData.panPhoto,
                   aadharPhoto: profileData.aadharPhoto,
-                  policeVerificationPhoto: profileData.policeVerificationPhoto, // New field
+                  policeVerificationPhoto: profileData.policeVerificationPhoto,
+                  policeVerificationNo: profileData.policeVerificationNo,
                   password: password // New password
               })
           });
@@ -375,7 +450,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                       updatedUser.alternateMobile4
                   ].filter((phone: any) => phone && phone.trim() !== ''),
                   upiId: updatedUser.gpayNo || updatedUser.upiId,
-                  policeVerificationPhoto: updatedUser.policeVerificationPhoto
+                  policeVerificationPhoto: updatedUser.policeVerificationPhoto,
+                  policeVerificationNo: updatedUser.policeVerificationNo || profileData.policeVerificationNo
               };
               setLead(newLead);
               setProfileData({
@@ -386,7 +462,8 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                   dlPhoto: newLead.dlPhoto || '',
                   panPhoto: newLead.panPhoto || '',
                   aadharPhoto: newLead.aadharPhoto || '',
-                  policeVerificationPhoto: newLead.policeVerificationPhoto || ''
+                  policeVerificationPhoto: newLead.policeVerificationPhoto || '',
+                  policeVerificationNo: newLead.policeVerificationNo || ''
               });
               
               setIsEditingProfile(false);
@@ -418,12 +495,21 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
       {/* Top Header Bar - Fixed */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
           <p className="font-bold text-sm leading-none">SNP Lead</p>
-          <p className="text-xs text-gray-400">Welcome, {lead.name}</p>
+          <div className="flex items-center gap-2">
+            <UberLanguageSelector variant="navbar" />
+            <p className="text-xs text-gray-400">Welcome, {lead.name}</p>
+          </div>
       </div>
 
       {/* Tabs - Fixed */}
       <div className="bg-white border-b border-gray-200 flex overflow-x-auto scrollbar-hide">
-          {['HOME', 'REQUESTS', 'TRIPS', 'PACKAGES', 'PROFILE'].map(tab => (
+          {[
+            { id: 'HOME', label: t('nav.home', 'HOME') },
+            { id: 'REQUESTS', label: t('nav.requests', 'REQUESTS') },
+            { id: 'TRIPS', label: t('nav.trips', 'TRIPS') },
+            { id: 'PACKAGES', label: t('nav.packages', 'PACKAGES') },
+            { id: 'PROFILE', label: t('nav.profile', 'PROFILE') }
+          ].map(tab => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -1442,18 +1528,69 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                  <div className="p-4 bg-gray-50 rounded-xl">
                                      <p className="text-xs text-gray-400 font-bold uppercase mb-2">Document Uploads</p>
                                      <div className="space-y-2 text-sm">
+                                         {/* Photo */}
                                          <div className="flex justify-between items-center py-1">
-                                             <span className="text-gray-500">Photo:</span>
-                                             <span className={`font-medium text-xs px-2 py-1 rounded ${lead.photo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                 {lead.photo ? '✓ Uploaded' : 'Not uploaded'}
-                                             </span>
+                                             <span className="text-gray-500 font-medium">Photo:</span>
+                                             <div className="flex items-center gap-1.5">
+                                                 <button
+                                                     type="button"
+                                                     disabled={!lead.photo}
+                                                     onClick={() => lead.photo && setViewingDoc({ title: 'Photo', url: getDocUrl(lead.photo)! })}
+                                                     className={`font-medium text-xs px-2 py-1 rounded transition flex items-center gap-1 ${
+                                                         lead.photo 
+                                                             ? 'bg-green-100 hover:bg-green-200 text-green-700 cursor-pointer active:scale-95' 
+                                                             : 'bg-gray-100 text-gray-500 cursor-default'
+                                                     }`}
+                                                 >
+                                                     <span>{lead.photo ? '✓ Uploaded' : 'Not uploaded'}</span>
+                                                 </button>
+                                                 {lead.photo && (
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => setViewingDoc({ title: 'Photo', url: getDocUrl(lead.photo)! })}
+                                                         className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                                         title="View Photo"
+                                                     >
+                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                         </svg>
+                                                     </button>
+                                                 )}
+                                             </div>
                                          </div>
+
+                                         {/* Driving License */}
                                          <div className="flex flex-col py-1 border-b border-gray-100 pb-2">
                                              <div className="flex justify-between items-center">
                                                  <span className="text-gray-500 font-medium">Driving License:</span>
-                                                 <span className={`font-medium text-xs px-2 py-1 rounded ${lead.dlPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                     {lead.dlPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                                                 </span>
+                                                 <div className="flex items-center gap-1.5">
+                                                     <button
+                                                         type="button"
+                                                         disabled={!lead.dlPhoto}
+                                                         onClick={() => lead.dlPhoto && setViewingDoc({ title: 'Driving License', url: getDocUrl(lead.dlPhoto)! })}
+                                                         className={`font-medium text-xs px-2 py-1 rounded transition flex items-center gap-1 ${
+                                                             lead.dlPhoto 
+                                                                 ? 'bg-green-100 hover:bg-green-200 text-green-700 cursor-pointer active:scale-95' 
+                                                                 : 'bg-gray-100 text-gray-500 cursor-default'
+                                                         }`}
+                                                     >
+                                                         <span>{lead.dlPhoto ? '✓ Uploaded' : 'Not uploaded'}</span>
+                                                     </button>
+                                                     {lead.dlPhoto && (
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => setViewingDoc({ title: 'Driving License', url: getDocUrl(lead.dlPhoto)! })}
+                                                             className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                                             title="View Driving License"
+                                                         >
+                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                             </svg>
+                                                         </button>
+                                                     )}
+                                                 </div>
                                              </div>
                                              <div className="flex items-center mt-1.5 gap-1.5 text-[10px] bg-white border border-gray-100 px-2 py-1.5 rounded-md shadow-sm">
                                                  <span className="text-gray-400 uppercase font-bold tracking-wide flex-shrink-0">Expiry:</span>
@@ -1475,29 +1612,106 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                                      );
                                                  })()}
                                              </div>
+                                             <div className="flex items-center mt-1.5 gap-1.5 text-[10px] bg-white border border-gray-100 px-2 py-1.5 rounded-md shadow-sm">
+                                                 <span className="text-gray-400 uppercase font-bold tracking-wide flex-shrink-0">Certificate No:</span>
+                                                 <span className="font-mono font-bold text-gray-800 break-words">{lead.policeVerificationNo || 'Not set'}</span>
+                                             </div>
                                          </div>
+
+                                         {/* PAN Card */}
                                          <div className="flex justify-between items-center py-1">
-                                             <span className="text-gray-500">PAN Card:</span>
-                                             <span className={`font-medium text-xs px-2 py-1 rounded ${lead.panPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                 {lead.panPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                                             </span>
+                                             <span className="text-gray-500 font-medium">PAN Card:</span>
+                                             <div className="flex items-center gap-1.5">
+                                                 <button
+                                                     type="button"
+                                                     disabled={!lead.panPhoto}
+                                                     onClick={() => lead.panPhoto && setViewingDoc({ title: 'PAN Card', url: getDocUrl(lead.panPhoto)! })}
+                                                     className={`font-medium text-xs px-2 py-1 rounded transition flex items-center gap-1 ${
+                                                         lead.panPhoto 
+                                                             ? 'bg-green-100 hover:bg-green-200 text-green-700 cursor-pointer active:scale-95' 
+                                                             : 'bg-gray-100 text-gray-500 cursor-default'
+                                                     }`}
+                                                 >
+                                                     <span>{lead.panPhoto ? '✓ Uploaded' : 'Not uploaded'}</span>
+                                                 </button>
+                                                 {lead.panPhoto && (
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => setViewingDoc({ title: 'PAN Card', url: getDocUrl(lead.panPhoto)! })}
+                                                         className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                                         title="View PAN Card"
+                                                     >
+                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                         </svg>
+                                                     </button>
+                                                 )}
+                                             </div>
                                          </div>
+
+                                         {/* Aadhar Card */}
                                          <div className="flex justify-between items-center py-1">
-                                             <span className="text-gray-500">Aadhar Card:</span>
-                                             <span className={`font-medium text-xs px-2 py-1 rounded ${lead.aadharPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                 {lead.aadharPhoto ? '✓ Uploaded' : 'Not uploaded'}
-                                             </span>
+                                             <span className="text-gray-500 font-medium">Aadhar Card:</span>
+                                             <div className="flex items-center gap-1.5">
+                                                 <button
+                                                     type="button"
+                                                     disabled={!lead.aadharPhoto}
+                                                     onClick={() => lead.aadharPhoto && setViewingDoc({ title: 'Aadhar Card', url: getDocUrl(lead.aadharPhoto)! })}
+                                                     className={`font-medium text-xs px-2 py-1 rounded transition flex items-center gap-1 ${
+                                                         lead.aadharPhoto 
+                                                             ? 'bg-green-100 hover:bg-green-200 text-green-700 cursor-pointer active:scale-95' 
+                                                             : 'bg-gray-100 text-gray-500 cursor-default'
+                                                     }`}
+                                                 >
+                                                     <span>{lead.aadharPhoto ? '✓ Uploaded' : 'Not uploaded'}</span>
+                                                 </button>
+                                                 {lead.aadharPhoto && (
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => setViewingDoc({ title: 'Aadhar Card', url: getDocUrl(lead.aadharPhoto)! })}
+                                                         className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                                         title="View Aadhar Card"
+                                                     >
+                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                         </svg>
+                                                     </button>
+                                                 )}
+                                             </div>
                                          </div>
                                          
                                          {/* Police Verification - Updated to show both upload and verification status */}
                                          <div className="flex flex-col border-t border-gray-200 pt-2 mt-1 space-y-1">
                                              <div className="flex justify-between items-center">
                                                  <span className="text-gray-500 font-medium">Police Verification:</span>
-                                                 <div className="flex items-center gap-2">
-                                                     {/* Upload Status */}
-                                                     <span className={`font-medium text-xs px-2 py-1 rounded ${lead.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                                         {lead.policeVerificationPhoto ? '✓ Uploaded' : ' Not Uploaded'}
-                                                     </span>
+                                                 <div className="flex items-center gap-1.5">
+                                                     <button
+                                                         type="button"
+                                                         disabled={!lead.policeVerificationPhoto}
+                                                         onClick={() => lead.policeVerificationPhoto && setViewingDoc({ title: 'Police Verification', url: getDocUrl(lead.policeVerificationPhoto)! })}
+                                                         className={`font-medium text-xs px-2 py-1 rounded transition flex items-center gap-1 ${
+                                                             lead.policeVerificationPhoto 
+                                                                 ? 'bg-green-100 hover:bg-green-200 text-green-700 cursor-pointer active:scale-95' 
+                                                                 : 'bg-gray-100 text-gray-500 cursor-default'
+                                                         }`}
+                                                     >
+                                                         <span>{lead.policeVerificationPhoto ? '✓ Uploaded' : ' Not Uploaded'}</span>
+                                                     </button>
+                                                     {lead.policeVerificationPhoto && (
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => setViewingDoc({ title: 'Police Verification', url: getDocUrl(lead.policeVerificationPhoto)! })}
+                                                             className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                                             title="View Police Verification"
+                                                         >
+                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                             </svg>
+                                                         </button>
+                                                     )}
                                                  </div>
                                              </div>
                                              
@@ -1530,10 +1744,16 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                  </div>
                              </div>
                              
-                             <div className="pt-4 space-y-3">
-                                 <button
-                                     onClick={() => {
-                                         setConfirmConfig({
+                                                           {/* Language Preferences Card */}
+                              <div className="p-4 bg-gray-50 rounded-xl space-y-2">
+                                  <p className="text-xs text-gray-400 font-bold uppercase mb-2">Settings & Language</p>
+                                  <UberLanguageSelector variant="inline" />
+                              </div>
+
+                              <div className="pt-4 space-y-3">
+                                  <button
+                                      onClick={() => {
+                                          setConfirmConfig({
                                              isOpen: true,
                                              title: 'Logout',
                                              message: 'Are you sure you want to logout?',
@@ -1689,269 +1909,136 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                     onChange={e => setProfileData({...profileData, upiId: e.target.value})}
                                 />
                             </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Police Verification Certificate No</label>
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-gray-50 rounded-lg p-3 text-sm font-mono"
+                                    placeholder="e.g. POL-VER-2026-XXXX"
+                                    value={profileData.policeVerificationNo || ''}
+                                    onChange={e => setProfileData({...profileData, policeVerificationNo: e.target.value})}
+                                />
+                            </div>
                         </div>
 
                         <div className="pt-4 border-t border-gray-100">
-                             <p className="text-xs font-bold text-gray-500 mb-3 uppercase">Document Uploads</p>
-                             <div className="grid grid-cols-2 gap-3">
-                                 <div className="relative">
-                                     <input 
-                                         type="file"
-                                         accept="image/*"
-                                         id="editPhoto"
-                                         className="hidden"
-                                         onChange={async (e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                                 const previewUrl = URL.createObjectURL(file);
-                                                 setImagePreviews({...imagePreviews, photo: previewUrl});
-                                                 try {
-                                                     const formData = new FormData();
-                                                     formData.append('file', file);
-                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-                                                         method: 'POST',
-                                                         body: formData
-                                                     });
-                                                     const result = await response.json();
-                                                     if (result.success) {
-                                                         setProfileData({...profileData, photo: result.fileId});
-                                                     }
-                                                 } catch (error) {
-                                                     console.error('Upload failed:', error);
-                                                 }
-                                             }
-                                         }}
-                                     />
-                                     <label 
-                                         htmlFor="editPhoto"
-                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
-                                     >
-                                         {imagePreviews.photo || profileData.photo ? (
-                                             <img 
-                                                 src={imagePreviews.photo || (profileData.photo.startsWith('http') ? profileData.photo : `${API_BASE_URL}${profileData.photo}`)} 
-                                                 alt="Photo" 
-                                                 className="w-full h-full object-contain block"
-                                             />
-                                         ) : (
-                                             <div className="flex flex-col items-center justify-center h-full">
-                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                 </svg>
-                                                 <p className="text-xs text-gray-500 font-medium">Photo</p>
-                                             </div>
-                                         )}
-                                     </label>
-                                 </div>
-                                 
-                                 <div className="relative">
-                                     <input 
-                                         type="file"
-                                         accept="image/*"
-                                         id="editDlPhoto"
-                                         className="hidden"
-                                         onChange={async (e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                                 const previewUrl = URL.createObjectURL(file);
-                                                 setImagePreviews({...imagePreviews, dlPhoto: previewUrl});
-                                                 try {
-                                                     const formData = new FormData();
-                                                     formData.append('file', file);
-                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-                                                         method: 'POST',
-                                                         body: formData
-                                                     });
-                                                     const result = await response.json();
-                                                     if (result.success) {
-                                                         setProfileData({...profileData, dlPhoto: result.fileId});
-                                                     }
-                                                 } catch (error) {
-                                                     console.error('Upload failed:', error);
-                                                 }
-                                             }
-                                         }}
-                                     />
-                                     <label 
-                                         htmlFor="editDlPhoto"
-                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
-                                     >
-                                         {imagePreviews.dlPhoto || profileData.dlPhoto ? (
-                                             <img 
-                                                 src={imagePreviews.dlPhoto || (profileData.dlPhoto.startsWith('http') ? profileData.dlPhoto : `${API_BASE_URL}${profileData.dlPhoto}`)} 
-                                                 alt="Driving License" 
-                                                 className="w-full h-full object-contain block"
-                                             />
-                                         ) : (
-                                             <div className="flex flex-col items-center justify-center h-full">
-                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                 </svg>
-                                                 <p className="text-xs text-gray-500 font-medium">Driving License</p>
-                                             </div>
-                                         )}
-                                     </label>
-                                 </div>
-                                 
-                                 <div className="relative">
-                                     <input 
-                                         type="file"
-                                         accept="image/*"
-                                         id="editPanPhoto"
-                                         className="hidden"
-                                         onChange={async (e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                                 const previewUrl = URL.createObjectURL(file);
-                                                 setImagePreviews({...imagePreviews, panPhoto: previewUrl});
-                                                 try {
-                                                     const formData = new FormData();
-                                                     formData.append('file', file);
-                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-                                                         method: 'POST',
-                                                         body: formData
-                                                     });
-                                                     const result = await response.json();
-                                                     if (result.success) {
-                                                         setProfileData({...profileData, panPhoto: result.fileId});
-                                                     }
-                                                 } catch (error) {
-                                                     console.error('Upload failed:', error);
-                                                 }
-                                             }
-                                         }}
-                                     />
-                                     <label 
-                                         htmlFor="editPanPhoto"
-                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
-                                     >
-                                         {imagePreviews.panPhoto || profileData.panPhoto ? (
-                                             <img 
-                                                 src={imagePreviews.panPhoto || (profileData.panPhoto.startsWith('http') ? profileData.panPhoto : `${API_BASE_URL}${profileData.panPhoto}`)} 
-                                                 alt="PAN Card" 
-                                                 className="w-full h-full object-contain block"
-                                             />
-                                         ) : (
-                                             <div className="flex flex-col items-center justify-center h-full">
-                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                                                 </svg>
-                                                 <p className="text-xs text-gray-500 font-medium">PAN Card</p>
-                                             </div>
-                                         )}
-                                     </label>
-                                 </div>
-                                 
-                                 <div className="relative">
-                                     <input 
-                                         type="file"
-                                         accept="image/*"
-                                         id="editAadharPhoto"
-                                         className="hidden"
-                                         onChange={async (e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                                 const previewUrl = URL.createObjectURL(file);
-                                                 setImagePreviews({...imagePreviews, aadharPhoto: previewUrl});
-                                                 try {
-                                                     const formData = new FormData();
-                                                     formData.append('file', file);
-                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-                                                         method: 'POST',
-                                                         body: formData
-                                                     });
-                                                     const result = await response.json();
-                                                     if (result.success) {
-                                                         setProfileData({...profileData, aadharPhoto: result.fileId});
-                                                     }
-                                                 } catch (error) {
-                                                     console.error('Upload failed:', error);
-                                                 }
-                                             }
-                                         }}
-                                     />
-                                     <label 
-                                         htmlFor="editAadharPhoto"
-                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
-                                     >
-                                         {imagePreviews.aadharPhoto || profileData.aadharPhoto ? (
-                                             <img 
-                                                 src={imagePreviews.aadharPhoto || (profileData.aadharPhoto.startsWith('http') ? profileData.aadharPhoto : `${API_BASE_URL}${profileData.aadharPhoto}`)} 
-                                                 alt="Aadhar Card" 
-                                                 className="w-full h-full object-contain block"
-                                             />
-                                         ) : (
-                                             <div className="flex flex-col items-center justify-center h-full">
-                                                 <svg className="w-4 h-4 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                 </svg>
-                                                 <p className="text-xs text-gray-500 font-medium">Aadhar Card</p>
-                                             </div>
-                                         )}
-                                     </label>
-                                 </div>
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <p className="text-xs font-bold text-gray-800 uppercase tracking-wide">Document Uploads</p>
+                                    <p className="text-[11px] text-gray-400 font-medium">Clear document titles with interactive crop to upload</p>
+                                </div>
+                            </div>
 
-                                 {/* Police Verification Upload - New Field */}
-                                 <div className="relative col-span-2">
-                                     <input 
-                                         type="file"
-                                         accept="image/*"
-                                         id="editPoliceVerificationPhoto"
-                                         className="hidden"
-                                         onChange={async (e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                                 const previewUrl = URL.createObjectURL(file);
-                                                 setImagePreviews({...imagePreviews, policeVerificationPhoto: previewUrl});
-                                                 try {
-                                                     const formData = new FormData();
-                                                     formData.append('file', file);
-                                                     const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
-                                                         method: 'POST',
-                                                         body: formData
-                                                     });
-                                                     const result = await response.json();
-                                                     if (result.success) {
-                                                         setProfileData({...profileData, policeVerificationPhoto: result.fileId});
-                                                         // Show immediate feedback
-                                                         alert('Police verification document uploaded successfully! Admin will verify it shortly.');
-                                                     }
-                                                 } catch (error) {
-                                                     console.error('Upload failed:', error);
-                                                     alert('Failed to upload document. Please try again.');
-                                                 }
-                                             }
-                                         }}
-                                     />
-                                     <label 
-                                         htmlFor="editPoliceVerificationPhoto"
-                                         className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition overflow-hidden"
-                                     >
-                                         {imagePreviews.policeVerificationPhoto || profileData.policeVerificationPhoto ? (
-                                             <img 
-                                                 src={imagePreviews.policeVerificationPhoto || (profileData.policeVerificationPhoto.startsWith('http') ? profileData.policeVerificationPhoto : `${API_BASE_URL}${profileData.policeVerificationPhoto}`)} 
-                                                 alt="Police Verification" 
-                                                 className="w-full h-full object-contain block"
-                                             />
-                                         ) : (
-                                             <div className="flex flex-col items-center justify-center h-full">
-                                                 <svg className="w-6 h-6 mb-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                 </svg>
-                                                 <p className="text-xs text-gray-500 font-medium">Police Verification</p>
-                                                 <p className="text-[10px] text-gray-400 mt-1">Click to upload verification document</p>
-                                                 {profileData.policeVerificationPhoto && (
-                                                     <p className="text-[10px] text-green-600 mt-1">✓ Document uploaded</p>
-                                                 )}
-                                             </div>
-                                         )}
-                                     </label>
-                                     {profileData.policeVerificationPhoto && (
-                                         <div className="absolute bottom-2 right-2 bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">
-                                             Uploaded
-                                         </div>
-                                     )}
-                                 </div>
-                             </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                {[
+                                    { field: 'photo' as const, title: 'Profile Photo', ratio: '1:1' as const, span: 'col-span-1' },
+                                    { field: 'dlPhoto' as const, title: 'Driving License (DL)', ratio: '4:3' as const, span: 'col-span-1' },
+                                    { field: 'panPhoto' as const, title: 'PAN Card', ratio: '3:2' as const, span: 'col-span-1' },
+                                    { field: 'aadharPhoto' as const, title: 'Aadhar Card', ratio: '4:3' as const, span: 'col-span-1' },
+                                    { field: 'policeVerificationPhoto' as const, title: 'Police Verification', ratio: '4:3' as const, span: 'col-span-1 sm:col-span-2' },
+                                ].map((item) => {
+                                    const rawVal = profileData[item.field];
+                                    const previewVal = imagePreviews[item.field];
+                                    const hasImage = Boolean(previewVal || rawVal);
+                                    const currentImgUrl = previewVal || (rawVal ? (rawVal.startsWith('http') ? rawVal : `${API_BASE_URL}${rawVal}`) : '');
+
+                                    return (
+                                        <div key={item.field} className={`p-3 bg-gray-50/80 border border-gray-200/90 rounded-xl space-y-2 ${item.span}`}>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="text-xs font-bold text-gray-900 truncate">
+                                                        {item.title}
+                                                    </span>
+                                                    {hasImage && (
+                                                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full inline-flex items-center gap-1">
+                                                            <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
+                                                            Uploaded
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {hasImage && (
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (!currentImgUrl) return;
+                                                                setCroppingConfig({
+                                                                    isOpen: true,
+                                                                    imageSrc: currentImgUrl,
+                                                                    documentTitle: item.title,
+                                                                    field: item.field,
+                                                                    defaultAspectRatio: item.ratio
+                                                                });
+                                                            }}
+                                                            className="px-2 py-0.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 text-[10px] font-bold rounded-md shadow-2xs transition active:scale-95 flex items-center gap-1"
+                                                            title={`Crop / Adjust ${item.title}`}
+                                                        >
+                                                            <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            <span>Crop</span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (!currentImgUrl) return;
+                                                                setViewingDoc({ title: item.title, url: currentImgUrl });
+                                                            }}
+                                                            className="p-1 text-gray-600 hover:text-black hover:bg-gray-200/80 rounded-md transition"
+                                                            title={`View ${item.title}`}
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <label
+                                                htmlFor={`edit_${item.field}`}
+                                                className="block w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition overflow-hidden relative group"
+                                            >
+                                                {hasImage ? (
+                                                    <>
+                                                        <img
+                                                            src={currentImgUrl}
+                                                            alt={item.title}
+                                                            className="w-full h-full object-contain block"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                                            </svg>
+                                                            <span>Change {item.title}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center h-full text-center p-3">
+                                                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 mb-1">
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                            </svg>
+                                                        </div>
+                                                        <p className="text-xs text-gray-700 font-bold">{item.title}</p>
+                                                        <p className="text-[10px] text-gray-400">Click to upload & crop</p>
+                                                    </div>
+                                                )}
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                id={`edit_${item.field}`}
+                                                className="hidden"
+                                                onChange={(e) => handleFileSelect(e, item.field, item.title, item.ratio)}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                          <div className="pt-4 border-t border-gray-100">
@@ -2126,6 +2213,58 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Document Viewer Modal for Lead Portal */}
+      {viewingDoc && (
+        <DocumentViewerModal
+          isOpen={Boolean(viewingDoc)}
+          onClose={() => setViewingDoc(null)}
+          title={viewingDoc.title}
+          url={viewingDoc.url}
+          entityName={lead.name}
+          onDownload={() => {
+            if (!viewingDoc?.url) return;
+            const link = document.createElement('a');
+            link.href = viewingDoc.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.download = `${lead.name || 'lead'}_${viewingDoc.title}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+        />
+      )}
+
+      {/* Image Cropper Modal */}
+      {croppingConfig && (
+        <ImageCropperModal
+          isOpen={croppingConfig.isOpen}
+          imageSrc={croppingConfig.imageSrc}
+          documentTitle={croppingConfig.documentTitle}
+          defaultAspectRatio={croppingConfig.defaultAspectRatio}
+          onClose={() => setCroppingConfig(null)}
+          onCropComplete={async (croppedBlob, croppedPreviewUrl) => {
+            if (!croppingConfig) return;
+            setImagePreviews(prev => ({ ...prev, [croppingConfig.field]: croppedPreviewUrl }));
+            await handleUploadFileDirect(
+              croppedBlob, 
+              croppingConfig.field, 
+              `${croppingConfig.field}_cropped.jpg`
+            );
+            setCroppingConfig(null);
+          }}
+          onUploadOriginal={croppingConfig.originalFile ? async () => {
+            if (!croppingConfig || !croppingConfig.originalFile) return;
+            await handleUploadFileDirect(
+              croppingConfig.originalFile, 
+              croppingConfig.field, 
+              croppingConfig.originalFile.name
+            );
+            setCroppingConfig(null);
+          } : undefined}
+        />
       )}
 
       <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />

@@ -11,6 +11,7 @@ import {
   rejectSubscription,
   adminCreateSubscription,
   updateSubscriptionPayment,
+  getDriverAllActiveSubscriptions,
 } from '../controllers/subscription.controller.js';
 import { getLeadSubscriptions } from '../controllers/leadSubscription.controller.js';
 import { authenticateToken, authenticateLead, requireRole } from '../middleware/auth.js';
@@ -207,6 +208,7 @@ router.get('/active-packages', getActivePackagesForDrivers);
 router.put('/reject/:id', authenticateToken, requireRole(['ADMIN']), rejectSubscription);
 
 router.get('/driver', authenticateToken, requireRole(['DRIVER']), getDriverSubscription);
+router.get('/driver/active-list', authenticateToken, requireRole(['DRIVER']), getDriverAllActiveSubscriptions);
 router.get('/lead', authenticateLead, getLeadSubscriptions);
 
 router.post('/admin/create', authenticateToken, requireRole(['ADMIN']), adminCreateSubscription);

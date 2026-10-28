@@ -149,10 +149,11 @@ export const purchaseSubscription = async (req, res) => {
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000);
 
-    // Cancel existing active subscriptions
+    // Cancel existing active subscription of the same planId if any (allows holding multiple different packages)
     await prisma.subscription.updateMany({
       where: { 
         driverId,
+        planId,
         status: 'ACTIVE'
       },
       data: { status: 'CANCELLED' },
@@ -252,17 +253,48 @@ export const getDriverSubscription = async (req, res) => {
     // Update expired subscriptions for this driver
     await updateExpiredSubscriptions(driverId);
 
-    const subscription = await prisma.subscription.findFirst({
+    const activeSubscriptions = await prisma.subscription.findMany({
       where: {
         driverId,
         status: 'ACTIVE',
+        endDate: { gte: new Date() }
       },
       include: { plan: true },
+      orderBy: { startDate: 'desc' }
     });
 
-    res.json(subscription);
+    if (activeSubscriptions.length === 0) {
+      return res.json(null);
+    }
+
+    // Attach all active subscriptions list while keeping primary fields top-level
+    const responsePayload = {
+      ...activeSubscriptions[0],
+      activeSubscriptions
+    };
+
+    res.json(responsePayload);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const getDriverAllActiveSubscriptions = async (req, res) => {
+  try {
+    const driverId = req.user.userId;
+    await updateExpiredSubscriptions(driverId);
+    const activeSubscriptions = await prisma.subscription.findMany({
+      where: {
+        driverId,
+        status: 'ACTIVE',
+        endDate: { gte: new Date() }
+      },
+      include: { plan: true },
+      orderBy: { startDate: 'desc' }
+    });
+    res.json({ success: true, subscriptions: activeSubscriptions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -287,9 +319,9 @@ export const adminCreateSubscription = async (req, res) => {
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000);
 
-    // Cancel existing active subscriptions
+    // Cancel existing active subscription of the same planId for this driver
     await prisma.subscription.updateMany({
-      where: { driverId, status: 'ACTIVE' },
+      where: { driverId, planId, status: 'ACTIVE' },
       data: { status: 'CANCELLED' }
     });
 

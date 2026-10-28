@@ -346,8 +346,8 @@ export const getDriverPendingRequests = async (req, res) => {
       });
     });
 
-    // Get current driver's active subscription
-    const driverSubscription = await prisma.subscription.findFirst({
+    // Get all of current driver's active subscriptions (supports multiple packages like Silver + Diamond)
+    const driverSubscriptions = await prisma.subscription.findMany({
       where: {
         driverId: userId,
         status: 'ACTIVE',
@@ -372,12 +372,16 @@ export const getDriverPendingRequests = async (req, res) => {
         else if (isExpired) finalStatus = 'EXPIRED';
       }
 
-      // Calculate Priority Delay
+      // Calculate Priority Delay across all driver's active subscriptions (best tier wins)
       let driverTier = 999;
-      if (driverSubscription && driverSubscription.plan) {
-        const type = response.booking.selectedPackageType || driverSubscription.plan.type;
-        if (planTiers[type] && planTiers[type][driverSubscription.plan.id] !== undefined) {
-          driverTier = planTiers[type][driverSubscription.plan.id];
+      for (const sub of driverSubscriptions) {
+        if (!sub.plan) continue;
+        const type = response.booking.selectedPackageType || sub.plan.type;
+        if (planTiers[type] && planTiers[type][sub.plan.id] !== undefined) {
+          const tier = planTiers[type][sub.plan.id];
+          if (tier < driverTier) {
+            driverTier = tier;
+          }
         }
       }
       

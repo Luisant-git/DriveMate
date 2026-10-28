@@ -174,16 +174,28 @@ const processTiersInBackground = async (bookingId, tiersMap, sortedTierKeys, boo
         where: {
           isActive: true,
           subscriptions: { some: { status: 'ACTIVE', planId, endDate: { gte: new Date() } } }
+        },
+        include: {
+          subscriptions: {
+            where: { status: 'ACTIVE', planId, endDate: { gte: new Date() } }
+          }
         }
       });
-      if (drivers.length === 0) continue;
+      // Filter out drivers who have exhausted duties on this plan
+      const availableDrivers = drivers.filter(d => {
+        const sub = d.subscriptions && d.subscriptions[0];
+        if (!sub) return false;
+        if (sub.maxDuties > 0 && sub.dutiesCompleted >= sub.maxDuties) return false;
+        return true;
+      });
+      if (availableDrivers.length === 0) continue;
 
       const existing = await prisma.bookingResponse.findMany({
-        where: { bookingId, driverId: { in: drivers.map(d => d.id) } },
+        where: { bookingId, driverId: { in: availableDrivers.map(d => d.id) } },
         select: { driverId: true }
       });
       const existingIds = new Set(existing.map(r => r.driverId));
-      const newDrivers = drivers.filter(d => !existingIds.has(d.id));
+      const newDrivers = availableDrivers.filter(d => !existingIds.has(d.id));
 
       if (newDrivers.length > 0) {
         await prisma.bookingResponse.createMany({

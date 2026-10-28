@@ -6,7 +6,8 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
   const [requests, setRequests] = useState([]);
   const [allRequests, setAllRequests] = useState([]);
   const [allocatedBookings, setAllocatedBookings] = useState([]);
-  const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [successModal, setSuccessModal] = useState({ isOpen: false, title: '', message: '' });
@@ -28,6 +29,11 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
       console.log('Subscription response:', res.data);
       if (res.data && res.data.plan) {
         setCurrentSubscription(res.data);
+        if (res.data.activeSubscriptions && Array.isArray(res.data.activeSubscriptions)) {
+          setActiveSubscriptions(res.data.activeSubscriptions);
+        } else {
+          setActiveSubscriptions([res.data]);
+        }
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);
@@ -110,19 +116,50 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-      {/* Active Package Card */}
-      <div className="bg-white rounded-lg sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-5">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+      {/* Active Package Card(s) - Supports Multiple Packages */}
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 sm:w-9 sm:h-9 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs text-emerald-600 font-extrabold uppercase tracking-wider">
+                Active Subscriptions ({activeSubscriptions.length > 0 ? activeSubscriptions.length : 1})
+              </p>
+              <p className="text-xs text-gray-500">Receiving trips matching your active packages</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wide mb-0.5">Active Package</p>
-            <p className="text-xs sm:text-base font-bold text-gray-900 truncate">{currentSubscription.plan.name}</p>
-          </div>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-gray-100">
+          {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).map((sub, idx) => {
+            const daysLeft = Math.max(0, Math.ceil((new Date(sub.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+            const dutiesLeft = sub.maxDuties > 0 ? Math.max(0, sub.maxDuties - (sub.dutiesCompleted || 0)) : null;
+            return (
+              <div key={sub.id || idx} className="bg-gray-50 border border-gray-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-black bg-white px-2 py-0.5 rounded border border-gray-200 inline-block mb-1">
+                    {sub.plan?.category || 'Package'}
+                  </span>
+                  <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{sub.plan?.name}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full block">
+                    {daysLeft}d left
+                  </span>
+                  {dutiesLeft !== null && (
+                    <span className="text-[10px] font-semibold text-purple-700 mt-0.5 block">
+                      {dutiesLeft} duties
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

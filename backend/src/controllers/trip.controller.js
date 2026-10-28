@@ -210,11 +210,41 @@ export const completeTrip = async (req, res) => {
         },
       });
 
-      // Increment dutiesCompleted for active subscriptions
-      await prisma.subscription.updateMany({
-        where: { driverId: userId, status: 'ACTIVE' },
-        data: { dutiesCompleted: { increment: 1 } },
+      // Increment dutiesCompleted for the matching active subscription
+      const driverSubs = await prisma.subscription.findMany({
+        where: { driverId: userId, status: 'ACTIVE', endDate: { gte: new Date() } },
+        include: { plan: true },
+        orderBy: { startDate: 'desc' }
       });
+
+      if (driverSubs.length > 0) {
+        const bType = ((booking && (booking.selectedPackageType || booking.serviceType || booking.tripType)) || '').toLowerCase();
+        let targetSub = driverSubs.find(s => {
+          if (!s.plan) return false;
+          const pType = (s.plan.type || '').toLowerCase();
+          const pName = (s.plan.name || '').toLowerCase();
+          const pCat = (s.plan.category || '').toLowerCase();
+          return (bType.includes('outstation') && (pType.includes('outstation') || pName.includes('outstation'))) ||
+                 (bType.includes('local') && (pType.includes('local') || pName.includes('local'))) ||
+                 (pCat && bType.includes(pCat));
+        });
+
+        if (!targetSub) {
+          targetSub = driverSubs.find(s => !s.maxDuties || s.maxDuties === 0 || s.dutiesCompleted < s.maxDuties) || driverSubs[0];
+        }
+
+        if (targetSub) {
+          const updatedDuties = (targetSub.dutiesCompleted || 0) + 1;
+          const isNowExpired = targetSub.maxDuties > 0 && updatedDuties >= targetSub.maxDuties;
+          await prisma.subscription.update({
+            where: { id: targetSub.id },
+            data: {
+              dutiesCompleted: { increment: 1 },
+              status: isNowExpired ? 'EXPIRED' : 'ACTIVE'
+            }
+          });
+        }
+      }
     }
 
     // Transform to trip format
@@ -431,10 +461,26 @@ export const cancelTrip = async (req, res) => {
         data: { totalRides: { increment: 1 } },
       });
     } else {
-      await prisma.subscription.updateMany({
-        where: { driverId: userId, status: 'ACTIVE' },
-        data: { dutiesCompleted: { increment: 1 } },
+      const driverSubs = await prisma.subscription.findMany({
+        where: { driverId: userId, status: 'ACTIVE', endDate: { gte: new Date() } },
+        include: { plan: true },
+        orderBy: { startDate: 'desc' }
       });
+
+      if (driverSubs.length > 0) {
+        let targetSub = driverSubs.find(s => !s.maxDuties || s.maxDuties === 0 || s.dutiesCompleted < s.maxDuties) || driverSubs[0];
+        if (targetSub) {
+          const updatedDuties = (targetSub.dutiesCompleted || 0) + 1;
+          const isNowExpired = targetSub.maxDuties > 0 && updatedDuties >= targetSub.maxDuties;
+          await prisma.subscription.update({
+            where: { id: targetSub.id },
+            data: {
+              dutiesCompleted: { increment: 1 },
+              status: isNowExpired ? 'EXPIRED' : 'ACTIVE'
+            }
+          });
+        }
+      }
 
       // Also increment their total trips count to reflect the consumed duty
       await prisma.driver.update({
