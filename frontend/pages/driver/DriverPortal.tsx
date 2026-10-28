@@ -523,11 +523,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
             { id: 'PROFILE', label: t('nav.profile', 'PROFILE') }
           ].map(tab => (
               <button 
-                key={tab}
-                onClick={() => setActiveTab(tab as any)}
-                className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab ? 'border-black text-black' : 'border-transparent text-gray-400'}`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400'}`}
               >
-                  {tab}
+                  {tab.label}
               </button>
           ))}
       </div>
