@@ -33,7 +33,8 @@ const DriverRegister: React.FC = () => {
     panPhoto: null,
     aadharPhoto: null,
     policeVerificationPhoto: null, // <-- ADD THIS
-    policeVerificationExpiryDate: ''
+    policeVerificationExpiryDate: '',
+    policeVerificationNo: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -136,7 +137,8 @@ const DriverRegister: React.FC = () => {
         panPhoto: uploadedUrls.panPhoto,
         aadharPhoto: uploadedUrls.aadharPhoto,
         policeVerificationPhoto: uploadedUrls.policeVerificationPhoto,
-        policeVerificationExpiryDate: registerData.policeVerificationExpiryDate
+        policeVerificationExpiryDate: registerData.policeVerificationExpiryDate,
+        policeVerificationNo: registerData.policeVerificationNo
       });
       
       if (response.token) {
@@ -637,6 +639,16 @@ const DriverRegister: React.FC = () => {
                   value={registerData.policeVerificationExpiryDate}
                   onChange={(e) => setRegisterData({...registerData, policeVerificationExpiryDate: e.target.value})}
                   required
+                />
+              </div>
+              <div className="col-span-2 mt-2">
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Police Verification Certificate No</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. POL-VER-2026-XXXX"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm font-mono"
+                  value={registerData.policeVerificationNo || ''}
+                  onChange={(e) => setRegisterData({...registerData, policeVerificationNo: e.target.value})}
                 />
               </div>
             </div>

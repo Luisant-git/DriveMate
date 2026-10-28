@@ -8,7 +8,7 @@ export const driverRegister = async (req, res) => {
       name, phone, password, aadharNo, licenseNo, licenseExpiryDate,
       currentAddress, permanentAddress,
       altPhone, upiId, photo, dlPhoto, panPhoto, aadharPhoto,
-      policeVerificationPhoto, policeVerificationExpiryDate
+      policeVerificationPhoto, policeVerificationExpiryDate, policeVerificationNo
     } = req.body;
     
     // Check if driver already exists
@@ -41,7 +41,8 @@ export const driverRegister = async (req, res) => {
       ...(panPhoto && { panPhoto }),
       ...(aadharPhoto && { aadharPhoto }),
       ...(policeVerificationPhoto && { policeVerificationPhoto }),
-      ...(policeVerificationExpiryDate && { policeVerificationExpiryDate })
+      ...(policeVerificationExpiryDate && { policeVerificationExpiryDate }),
+      ...(policeVerificationNo && { policeVerificationNo })
     };
 
     const driver = await prisma.driver.create({

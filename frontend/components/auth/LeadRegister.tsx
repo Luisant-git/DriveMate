@@ -43,6 +43,7 @@ const LeadRegister: React.FC = () => {
     msmePhoto: '',
     rationCardPhoto: '',
     policeVerificationPhoto: '',
+    policeVerificationNo: '',
     electricityBillPhoto: '',
     rentalAgreementPhoto: '',
     creditCardPhoto: '',
@@ -467,6 +468,16 @@ const LeadRegister: React.FC = () => {
 
                 {showOptionalDocs && (
                   <div className="p-3 border-t border-gray-200 grid grid-cols-2 gap-2 bg-gray-50/50">
+                    <div className="col-span-2 pt-2 pb-1">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Police Verification Certificate No (Optional)</label>
+                      <input 
+                        type="text" 
+                        value={formData.policeVerificationNo || ''} 
+                        onChange={(e) => setFormData({ ...formData, policeVerificationNo: e.target.value })} 
+                        placeholder="e.g. POL-VER-2026-XXXX"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm font-mono bg-white" 
+                      />
+                    </div>
                     {OPTIONAL_DOCS.map((doc) => {
                       const isUploaded = Boolean(formData[doc.key as keyof typeof formData]);
                       const isUploading = uploadingFields[doc.key];

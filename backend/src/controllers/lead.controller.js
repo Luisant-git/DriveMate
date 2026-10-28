@@ -8,7 +8,7 @@ export const registerLead = async (req, res) => {
       name, email, phone, password, aadharNo, licenseNo,
       alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4,
       gpayNo, photo, dlPhoto, panPhoto, aadharPhoto,
-      msmePhoto, rationCardPhoto, policeVerificationPhoto,
+      msmePhoto, rationCardPhoto, policeVerificationPhoto, policeVerificationNo,
       electricityBillPhoto, rentalAgreementPhoto, creditCardPhoto, debitCardPhoto
     } = req.body;
 
@@ -97,6 +97,7 @@ export const registerLead = async (req, res) => {
         msmePhoto: cleanData(msmePhoto),
         rationCardPhoto: cleanData(rationCardPhoto),
         policeVerificationPhoto: cleanData(policeVerificationPhoto),
+        policeVerificationNo: cleanData(policeVerificationNo),
         electricityBillPhoto: cleanData(electricityBillPhoto),
         rentalAgreementPhoto: cleanData(rentalAgreementPhoto),
         creditCardPhoto: cleanData(creditCardPhoto),

@@ -20,6 +20,7 @@ model Customer {
   updatedAt      DateTime  @updatedAt
   customerNo     Int       @unique @default(autoincrement())
   whatsappNumber String?
+  alternateMobile String?
   bookings       Booking[]
   rides          Ride[]
   trips          Trip[]
@@ -62,6 +63,7 @@ model Driver {
   currentAddress               String?
   permanentAddress             String?
   policeVerificationPhoto      String?
+  policeVerificationNo         String?
   licenseExpiryDate            String?
   policeVerificationExpiryDate String?
   driverNo                     Int               @unique @default(autoincrement())
@@ -110,6 +112,7 @@ model Lead {
   msmePhoto               String?
   nextVerificationDue     DateTime?
   policeVerificationPhoto String?
+  policeVerificationNo    String?
   rationCardPhoto         String?
   rentalAgreementPhoto    String?
   licenseExpiryDate       String?

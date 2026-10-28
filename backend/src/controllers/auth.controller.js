@@ -326,6 +326,15 @@ export const getProfile = async (req, res) => {
     
     if (role === 'CUSTOMER') {
       user = await prisma.customer.findUnique({ where: { id: userId } });
+      if (user) {
+        try {
+          const raw = await prisma.$queryRawUnsafe('SELECT "alternateMobile" FROM customers WHERE id = $1', userId);
+          if (raw && raw[0]) {
+            user.alternateMobile = raw[0].alternateMobile;
+            user.alternatePhone = raw[0].alternateMobile;
+          }
+        } catch (_) {}
+      }
     } else if (role === 'DRIVER') {
       user = await prisma.driver.findUnique({ where: { id: userId } });
     } else if (role === 'ADMIN') {
@@ -353,7 +362,7 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, currentAddress, permanentAddress, idProof, phone, whatsappNumber, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, password } = req.body;
+    const { name, email, address, currentAddress, permanentAddress, idProof, phone, whatsappNumber, alternateMobile, alternatePhone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, policeVerificationNo, password } = req.body;
     
     let user = null;
     let hashedPassword = null;
@@ -365,11 +374,11 @@ export const updateProfile = async (req, res) => {
     const userId = req.user.userId || req.user.id;
 
     if (role === 'CUSTOMER') {
+      const altNumber = alternateMobile || alternatePhone || null;
       user = await prisma.customer.update({
         where: { id: userId },
         data: {
           name,
-          email,
           phone,
           whatsappNumber,
           address,
@@ -377,6 +386,13 @@ export const updateProfile = async (req, res) => {
           ...(hashedPassword && { password: hashedPassword })
         }
       });
+      if (altNumber !== undefined) {
+        try {
+          await prisma.$executeRawUnsafe('UPDATE customers SET "alternateMobile" = $1 WHERE id = $2', altNumber, userId);
+          user.alternateMobile = altNumber;
+          user.alternatePhone = altNumber;
+        } catch (_) {}
+      }
     } else if (role === 'DRIVER') {
       user = await prisma.driver.update({
         where: { id: userId },
@@ -397,6 +413,7 @@ export const updateProfile = async (req, res) => {
           ...(aadharPhoto !== undefined && { aadharPhoto }),
           ...(policeVerificationPhoto !== undefined && { policeVerificationPhoto }),
           ...(policeVerificationExpiryDate !== undefined && { policeVerificationExpiryDate }),
+          ...(policeVerificationNo !== undefined && { policeVerificationNo: policeVerificationNo || null }),
           ...(hashedPassword && { password: hashedPassword })
         }
       });
@@ -420,6 +437,7 @@ export const updateProfile = async (req, res) => {
           ...(aadharPhoto !== undefined && { aadharPhoto }),
           ...(policeVerificationPhoto !== undefined && { policeVerificationPhoto }),
           ...(policeVerificationExpiryDate !== undefined && { policeVerificationExpiryDate }),
+          ...(policeVerificationNo !== undefined && { policeVerificationNo: policeVerificationNo || null }),
           ...(hashedPassword && { password: hashedPassword })
         }
       });
