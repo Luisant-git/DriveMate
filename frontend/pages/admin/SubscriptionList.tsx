@@ -154,8 +154,8 @@ const SubscriptionList: React.FC = () => {
     }
   };
 
-  const filteredDrivers = drivers.filter(d => 
-    d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredDrivers = drivers.filter(d =>
+    d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.phone.includes(searchTerm)
   );
 
@@ -289,13 +289,12 @@ const SubscriptionList: React.FC = () => {
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-bold text-gray-900">{sub.driver.name}</span>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-1 rounded ${
-                  sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' : 
+                <span className={`text-[10px] font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
                   sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
-                  sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
-                  sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
-                  'text-gray-600 bg-gray-50'
-                }`}>
+                    sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
+                      sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
+                        'text-gray-600 bg-gray-50'
+                  }`}>
                   {sub.status}
                 </span>
                 {sub.status === 'ACTIVE' && (
@@ -315,6 +314,21 @@ const SubscriptionList: React.FC = () => {
                 Period: {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
               </p>
               <p className="font-bold text-lg">₹{sub.amount}</p>
+              {sub.paidAmount !== undefined && sub.paidAmount !== null && (
+                <p className="text-xs text-gray-500">Paid: ₹{sub.paidAmount}</p>
+              )}
+              {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && (
+                <p className="text-xs font-bold text-orange-600">Remaining: ₹{sub.remainingAmount}</p>
+              )}
+              {sub.paymentStatus && (
+                <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${sub.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
+                  sub.paymentStatus === 'OVERDUE' ? 'bg-red-100 text-red-700' :
+                    'bg-orange-100 text-orange-700'
+                  }`}>{sub.paymentStatus}</span>
+              )}
+              {sub.paymentDueDate && sub.paymentStatus === 'PARTIAL' && (
+                <p className="text-[10px] text-gray-500">Due: {new Date(sub.paymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+              )}
             </div>
           </div>
         ))}
@@ -347,7 +361,7 @@ const SubscriptionList: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filteredSubscriptions.map((sub) => (
-              <tr key={sub.id} className="hover:bg-gray-50/50">
+              <tr key={sub.id} className={`hover:bg-gray-50/50 ${sub.paymentStatus === 'OVERDUE' ? 'bg-red-50/40' : sub.paymentStatus === 'PARTIAL' ? 'bg-orange-50/30' : ''}`}>
                 <td className="px-8 py-5 text-sm">
                   <div>
                     <p className="font-medium">{sub.driver.name}</p>
@@ -374,13 +388,12 @@ const SubscriptionList: React.FC = () => {
                   {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
                 </td>
                 <td className="px-8 py-5 text-right">
-                  <span className={`text-xs font-bold px-2 py-1 rounded ${
-                    sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' : 
+                  <span className={`text-xs font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
                     sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
-                    sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
-                    sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
-                    'text-gray-600 bg-gray-50'
-                  }`}>
+                      sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
+                        sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
+                          'text-gray-600 bg-gray-50'
+                    }`}>
                     {sub.status}
                   </span>
                 </td>
@@ -424,7 +437,7 @@ const SubscriptionList: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Create Subscription</h2>
-            
+
             {/* Driver Search */}
             <div className="mb-4 relative">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Select Driver</label>
@@ -509,17 +522,15 @@ const SubscriptionList: React.FC = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPaymentMethod('CASH')}
-                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${
-                    paymentMethod === 'CASH' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${paymentMethod === 'CASH' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   Cash
                 </button>
                 <button
                   onClick={() => setPaymentMethod('UPI')}
-                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${
-                    paymentMethod === 'UPI' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${paymentMethod === 'UPI' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   UPI
                 </button>

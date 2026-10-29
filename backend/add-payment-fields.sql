@@ -1,0 +1,2 @@
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "paymentStatus" TEXT NOT NULL DEFAULT 'PAID';
+ALTER TABLE "subscriptions" ADD COLUMN IF NOT EXISTS "paymentDueDate" TIMESTAMP;
