@@ -45,7 +45,7 @@ export default function Lead() {
   // Add lead modal state
   const [showAddLeadModal, setShowAddLeadModal] = useState(false);
   const [showUpdatePackageModal, setShowUpdatePackageModal] = useState(false);
-  
+
   // Password modal state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -81,8 +81,8 @@ export default function Lead() {
     policeVerificationPhoto: null
   });
 
-  useEffect(() => { 
-    fetchLeads(); 
+  useEffect(() => {
+    fetchLeads();
     fetchSubscriptionPlans();
   }, []);
 
@@ -126,7 +126,7 @@ export default function Lead() {
     try {
       const uploadFile = async (file, fieldName) => {
         if (!file) return '';
-        const formData = new FormData(); 
+        const formData = new FormData();
         formData.append('file', file);
         const response = await fetch(`${API_BASE_URL}/api/upload/file`, { method: 'POST', body: formData });
         const result = await response.json();
@@ -159,12 +159,12 @@ export default function Lead() {
         policeVerificationPhoto: policeVerificationPhotoUrl,
         gpayNo: addLeadForm.upiId
       };
-      
+
       const response = await apiClient.post('/leads/register', payload);
       if (response.data) {
         setShowAddLeadModal(false);
         setIsSameAddress(false);
-        setAddLeadForm({ 
+        setAddLeadForm({
           name: '', phone: '', email: '', password: '', licenseNo: '', licenseExpiryDate: '', aadharNo: '', currentAddress: '', permanentAddress: '', alternateMobile1: '', alternateMobile2: '', alternateMobile3: '', alternateMobile4: '', upiId: '', policeVerificationExpiryDate: '', policeVerificationNo: '', photo: null, dlPhoto: null, panPhoto: null, aadharPhoto: null, policeVerificationPhoto: null
         });
         fetchLeads();
@@ -221,7 +221,7 @@ export default function Lead() {
     }
   };
 
-  
+
   const handleSavePoliceCertificateNo = async () => {
     if (!verifyLead) return;
     try {
@@ -251,7 +251,7 @@ export default function Lead() {
   const handleUploadPoliceVerification = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !verifyLead) return;
-    
+
     if (!verifyPoliceExpiry) {
       alert('Please select an expiry date for the document.');
       e.target.value = '';
@@ -259,20 +259,20 @@ export default function Lead() {
     }
     const expiryDateObj = new Date(verifyPoliceExpiry);
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     if (expiryDateObj <= today) {
       alert('Expiry date must be in the future.');
       e.target.value = '';
       return;
     }
-    
+
     setIsUploadingDoc(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload/file`, { method: 'POST', body: formData });
       const uploadData = await uploadRes.json();
-      
+
       if (uploadData.success) {
         const url = uploadData.fileId;
         const res = await apiClient.put(`/admin/leads/${verifyLead.id}/document`, {
@@ -281,11 +281,11 @@ export default function Lead() {
           expiryDate: verifyPoliceExpiry,
           certificateNo: verifyPoliceNo
         });
-        
+
         if (res.data.success) {
           const updatedLead = res.data.lead;
           setVerifyLead({ ...verifyLead, policeVerificationPhoto: updatedLead.policeVerificationPhoto, policeVerificationExpiryDate: updatedLead.policeVerificationExpiryDate, policeVerificationNo: updatedLead.policeVerificationNo || verifyPoliceNo });
-          
+
           const leadsRes = await apiClient.get('/admin/leads');
           const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
           const data = leadsList.map(d => ({
@@ -293,7 +293,7 @@ export default function Lead() {
             activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
           }));
           setLeads(data);
-          
+
           alert('Police Verification document uploaded successfully!');
         }
       } else {
@@ -310,7 +310,7 @@ export default function Lead() {
   const handleUploadLicense = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !verifyLead) return;
-    
+
     if (!verifyLicenseExpiry) {
       alert('Please select an expiry date for the document.');
       e.target.value = '';
@@ -318,20 +318,20 @@ export default function Lead() {
     }
     const expiryDateObj = new Date(verifyLicenseExpiry);
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     if (expiryDateObj <= today) {
       alert('Expiry date must be in the future.');
       e.target.value = '';
       return;
     }
-    
+
     setIsUploadingDoc(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
       const uploadRes = await fetch(`${API_BASE_URL}/api/upload/file`, { method: 'POST', body: formData });
       const uploadData = await uploadRes.json();
-      
+
       if (uploadData.success) {
         const url = uploadData.fileId;
         const res = await apiClient.put(`/admin/leads/${verifyLead.id}/document`, {
@@ -339,11 +339,11 @@ export default function Lead() {
           documentUrl: url,
           expiryDate: verifyLicenseExpiry
         });
-        
+
         if (res.data.success) {
           const updatedLead = res.data.lead;
           setVerifyLead({ ...verifyLead, dlPhoto: updatedLead.dlPhoto, licenseExpiryDate: updatedLead.licenseExpiryDate });
-          
+
           const leadsRes = await apiClient.get('/admin/leads');
           const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
           const data = leadsList.map(d => ({
@@ -351,7 +351,7 @@ export default function Lead() {
             activeSubscription: (d.leadSubscriptions || d.subscriptions)?.find(sub => sub.status === 'ACTIVE') || d.leadSubscriptions?.[0],
           }));
           setLeads(data);
-          
+
           alert('Driving License uploaded successfully!');
         }
       } else {
@@ -368,17 +368,17 @@ export default function Lead() {
   const handleDeletePoliceVerification = async () => {
     if (!verifyLead) return;
     if (!window.confirm('Are you sure you want to remove this document?')) return;
-    
+
     try {
       const res = await apiClient.put(`/admin/leads/${verifyLead.id}/document`, {
         documentType: 'policeVerificationPhoto',
         documentUrl: null
       });
-      
+
       if (res.data.success) {
         setVerifyLead({ ...verifyLead, policeVerificationPhoto: null, policeVerificationExpiryDate: null });
         setVerifyPoliceExpiry('');
-        
+
         const leadsRes = await apiClient.get('/admin/leads');
         const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
         const data = leadsList.map(d => ({
@@ -396,17 +396,17 @@ export default function Lead() {
   const handleDeleteLicense = async () => {
     if (!verifyLead) return;
     if (!window.confirm('Are you sure you want to remove this document?')) return;
-    
+
     try {
       const res = await apiClient.put(`/admin/leads/${verifyLead.id}/document`, {
         documentType: 'dlPhoto',
         documentUrl: null
       });
-      
+
       if (res.data.success) {
         setVerifyLead({ ...verifyLead, dlPhoto: null, licenseExpiryDate: null });
         setVerifyLicenseExpiry('');
-        
+
         const leadsRes = await apiClient.get('/admin/leads');
         const leadsList = Array.isArray(leadsRes.data) ? leadsRes.data : (leadsRes.data?.leads || []);
         const data = leadsList.map(d => ({
@@ -445,7 +445,7 @@ export default function Lead() {
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase().trim();
       const leadIdFormatted = `led-${d.leadNo ? d.leadNo.toString().padStart(4, '0') : (d.id ? d.id.slice(-6).toLowerCase() : 'xxxx')}`;
-      matchesSearch = 
+      matchesSearch =
         (d.phone && d.phone.toLowerCase().includes(q)) ||
         (d.name && d.name.toLowerCase().includes(q)) ||
         (d.id && d.id.toLowerCase().includes(q)) ||
@@ -522,8 +522,8 @@ export default function Lead() {
     <div className="px-6 py-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-gray-900">All Leads</h2>
-        <button 
-          onClick={() => setShowAddLeadModal(true)} 
+        <button
+          onClick={() => setShowAddLeadModal(true)}
           className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-gray-800 transition flex items-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -535,30 +535,29 @@ export default function Lead() {
         <div className="flex flex-wrap gap-2">
           {[
             { key: 'ALL', label: 'All' },
-          /* { key: 'OVERDUE', label: 'Overdue' },
-          { key: 'DUE_SOON', label: 'Due Soon' }, */
-          { key: 'NEVER', label: 'Never Verified' },
-          { key: 'OK', label: 'Verified' },
-        ].map(f => (
-          <button
-            key={f.key}
-            onClick={() => setVerifyFilter(f.key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold transition border ${
-              verifyFilter === f.key ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {f.label}
-            <span className="ml-1.5 text-[10px] opacity-70">({filterCounts[f.key]})</span>
-          </button>
-        ))}
+            /* { key: 'OVERDUE', label: 'Overdue' },
+            { key: 'DUE_SOON', label: 'Due Soon' }, */
+            { key: 'NEVER', label: 'Never Verified' },
+            { key: 'OK', label: 'Verified' },
+          ].map(f => (
+            <button
+              key={f.key}
+              onClick={() => setVerifyFilter(f.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition border ${verifyFilter === f.key ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              {f.label}
+              <span className="ml-1.5 text-[10px] opacity-70">({filterCounts[f.key]})</span>
+            </button>
+          ))}
         </div>
-        
+
         <div className="w-full sm:w-64">
           <div className="relative">
             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input 
-              type="text" 
-              placeholder="Search by name, phone or ID..." 
+            <input
+              type="text"
+              placeholder="Search by name, phone or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black transition shadow-sm"
@@ -593,47 +592,47 @@ export default function Lead() {
                   const vs = getVerificationStatus(lead);
                   const rowBg = vs === 'OVERDUE' ? 'bg-red-50 hover:bg-red-100' : vs === 'DUE_SOON' ? 'bg-yellow-50 hover:bg-yellow-100' : vs === 'NEVER' ? 'bg-gray-50 hover:bg-gray-100' : 'bg-green-50 hover:bg-green-100';
                   return (
-                  <tr key={lead.id} className={`${rowBg} transition`}>
-                    <td className="px-3 py-3"><p className="text-xs font-bold text-gray-900">{index + 1}</p></td>
-                    <td className="px-3 py-3">
-                      <p className="text-xs font-bold text-gray-900">
-                        LED-{lead.leadNo ? lead.leadNo.toString().padStart(4, '0') : (lead.id ? lead.id.slice(-6).toUpperCase() : 'XXXX')}
-                      </p>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-gray-800 text-white rounded-full flex items-center justify-center font-bold text-[10px]">
-                          {lead.name ? lead.name[0] : 'D'}
+                    <tr key={lead.id} className={`${rowBg} transition`}>
+                      <td className="px-3 py-3"><p className="text-xs font-bold text-gray-900">{index + 1}</p></td>
+                      <td className="px-3 py-3">
+                        <p className="text-xs font-bold text-gray-900">
+                          LED-{lead.leadNo ? lead.leadNo.toString().padStart(4, '0') : (lead.id ? lead.id.slice(-6).toUpperCase() : 'XXXX')}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 bg-gray-800 text-white rounded-full flex items-center justify-center font-bold text-[10px]">
+                            {lead.name ? lead.name[0] : 'D'}
+                          </div>
+                          <p className="text-xs font-bold text-gray-900 truncate max-w-[120px]">{lead.name}</p>
                         </div>
-                        <p className="text-xs font-bold text-gray-900 truncate max-w-[120px]">{lead.name}</p>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3"><p className="text-xs text-gray-700">{lead.phone}</p></td>
+                      </td>
+                      <td className="px-3 py-3"><p className="text-xs text-gray-700">{lead.phone}</p></td>
 
 
-                    <td className="px-3 py-3">
-                      <VerificationBadge lead={lead} onClick={() => openVerifyModal(lead)} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <button
-                        onClick={() => toggleActiveStatus(lead.id, lead.isActive)}
-                        className={`px-2 py-1 rounded-full text-[10px] font-bold transition ${lead.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
-                      >
-                        {lead.isActive ? 'Active' : 'Deactive'}
-                      </button>
-                    </td>
-                    <td className="px-3 py-3">
-                      <button
-                        onClick={() => setSelectedLead(lead)}
-                        className="w-7 h-7 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
+                      <td className="px-3 py-3">
+                        <VerificationBadge lead={lead} onClick={() => openVerifyModal(lead)} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => toggleActiveStatus(lead.id, lead.isActive)}
+                          className={`px-2 py-1 rounded-full text-[10px] font-bold transition ${lead.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                        >
+                          {lead.isActive ? 'Active' : 'Deactive'}
+                        </button>
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => setSelectedLead(lead)}
+                          className="w-7 h-7 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -654,60 +653,60 @@ export default function Lead() {
             </div>
             <div className="overflow-y-auto p-5 flex-grow custom-scrollbar">
               <form id="addLeadForm" onSubmit={handleAddLeadSubmit} className="space-y-6">
-                
+
                 {/* Personal Details */}
                 <div>
                   <h4 className="text-sm font-bold border-b pb-2 mb-3">Personal Details</h4>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name *</label>
-                      <input required type="text" value={addLeadForm.name} onChange={e => setAddLeadForm({...addLeadForm, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Enter full name" />
+                      <input required type="text" value={addLeadForm.name} onChange={e => setAddLeadForm({ ...addLeadForm, name: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Enter full name" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                      <input type="email" value={addLeadForm.email} onChange={e => setAddLeadForm({...addLeadForm, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Optional email" />
+                      <input type="email" value={addLeadForm.email} onChange={e => setAddLeadForm({ ...addLeadForm, email: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Optional email" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primary Phone *</label>
-                      <input required type="tel" maxLength={10} value={addLeadForm.phone} onChange={e => setAddLeadForm({...addLeadForm, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="10-digit number" />
+                      <input required type="tel" maxLength={10} value={addLeadForm.phone} onChange={e => setAddLeadForm({ ...addLeadForm, phone: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="10-digit number" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Initial Password *</label>
-                      <input required type="text" value={addLeadForm.password} onChange={e => setAddLeadForm({...addLeadForm, password: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Set a password" />
+                      <input required type="text" value={addLeadForm.password} onChange={e => setAddLeadForm({ ...addLeadForm, password: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Set a password" />
                     </div>
                   </div>
                   <div className="mb-3">
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Permanent Address *</label>
-                    <textarea 
-                      required 
-                      value={addLeadForm.permanentAddress} 
+                    <textarea
+                      required
+                      value={addLeadForm.permanentAddress}
                       onChange={e => {
                         const newAddress = e.target.value;
                         if (isSameAddress) {
-                          setAddLeadForm({...addLeadForm, permanentAddress: newAddress, currentAddress: newAddress});
+                          setAddLeadForm({ ...addLeadForm, permanentAddress: newAddress, currentAddress: newAddress });
                         } else {
-                          setAddLeadForm({...addLeadForm, permanentAddress: newAddress});
+                          setAddLeadForm({ ...addLeadForm, permanentAddress: newAddress });
                         }
-                      }} 
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none resize-none" 
-                      rows={2} 
+                      }}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none resize-none"
+                      rows={2}
                       placeholder="Lead's permanent address"
                     ></textarea>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 mb-3">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       id="adminSameAddress"
                       checked={isSameAddress}
                       onChange={(e) => {
                         setIsSameAddress(e.target.checked);
                         if (e.target.checked) {
-                          setAddLeadForm({...addLeadForm, currentAddress: addLeadForm.permanentAddress});
+                          setAddLeadForm({ ...addLeadForm, currentAddress: addLeadForm.permanentAddress });
                         } else {
-                          setAddLeadForm({...addLeadForm, currentAddress: ''});
+                          setAddLeadForm({ ...addLeadForm, currentAddress: '' });
                         }
                       }}
                       className="w-4 h-4 text-black bg-gray-50 border-gray-300 rounded focus:ring-black focus:ring-2 cursor-pointer"
@@ -720,12 +719,12 @@ export default function Lead() {
                   {!isSameAddress && (
                     <div className="mb-3">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Current Address *</label>
-                      <textarea 
-                        required 
-                        value={addLeadForm.currentAddress} 
-                        onChange={e => setAddLeadForm({...addLeadForm, currentAddress: e.target.value})} 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none resize-none" 
-                        rows={2} 
+                      <textarea
+                        required
+                        value={addLeadForm.currentAddress}
+                        onChange={e => setAddLeadForm({ ...addLeadForm, currentAddress: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none resize-none"
+                        rows={2}
                         placeholder="Lead's current address"
                       ></textarea>
                     </div>
@@ -737,38 +736,38 @@ export default function Lead() {
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">License Number *</label>
-                      <input required type="text" value={addLeadForm.licenseNo} onChange={e => setAddLeadForm({...addLeadForm, licenseNo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="DL Number" />
+                      <input required type="text" value={addLeadForm.licenseNo} onChange={e => setAddLeadForm({ ...addLeadForm, licenseNo: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="DL Number" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">License Expiry *</label>
-                      <input required type="date" value={addLeadForm.licenseExpiryDate} onChange={e => setAddLeadForm({...addLeadForm, licenseExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
+                      <input required type="date" value={addLeadForm.licenseExpiryDate} onChange={e => setAddLeadForm({ ...addLeadForm, licenseExpiryDate: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Aadhar Number *</label>
-                      <input required type="text" maxLength={12} value={addLeadForm.aadharNo} onChange={e => setAddLeadForm({...addLeadForm, aadharNo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="12-digit Aadhar" />
+                      <input required type="text" maxLength={12} value={addLeadForm.aadharNo} onChange={e => setAddLeadForm({ ...addLeadForm, aadharNo: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="12-digit Aadhar" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">UPI ID (Optional)</label>
-                      <input type="text" value={addLeadForm.upiId} onChange={e => setAddLeadForm({...addLeadForm, upiId: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="GPay / PhonePe" />
+                      <input type="text" value={addLeadForm.upiId} onChange={e => setAddLeadForm({ ...addLeadForm, upiId: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="GPay / PhonePe" />
                     </div>
                   </div>
-                  
+
                   <div className="pt-2">
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Alternate Contacts (Optional)</label>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile1} onChange={e => setAddLeadForm({...addLeadForm, alternateMobile1: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 1" />
+                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile1} onChange={e => setAddLeadForm({ ...addLeadForm, alternateMobile1: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 1" />
                       </div>
                       <div>
-                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile2} onChange={e => setAddLeadForm({...addLeadForm, alternateMobile2: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 2" />
+                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile2} onChange={e => setAddLeadForm({ ...addLeadForm, alternateMobile2: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 2" />
                       </div>
                       <div>
-                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile3} onChange={e => setAddLeadForm({...addLeadForm, alternateMobile3: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 3" />
+                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile3} onChange={e => setAddLeadForm({ ...addLeadForm, alternateMobile3: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 3" />
                       </div>
                       <div>
-                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile4} onChange={e => setAddLeadForm({...addLeadForm, alternateMobile4: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 4" />
+                        <input type="tel" maxLength={10} value={addLeadForm.alternateMobile4} onChange={e => setAddLeadForm({ ...addLeadForm, alternateMobile4: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="Alternate Phone 4" />
                       </div>
                     </div>
                   </div>
@@ -785,7 +784,7 @@ export default function Lead() {
                       { id: 'aadharPhoto', label: 'Aadhar Card' }
                     ].map(doc => (
                       <div key={doc.id} className="relative">
-                        <input type="file" accept="image/*" id={`admin_${doc.id}`} className="hidden" onChange={e => setAddLeadForm({...addLeadForm, [doc.id]: e.target.files?.[0] || null})} />
+                        <input type="file" accept="image/*" id={`admin_${doc.id}`} className="hidden" onChange={e => setAddLeadForm({ ...addLeadForm, [doc.id]: e.target.files?.[0] || null })} />
                         <label htmlFor={`admin_${doc.id}`} className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer transition ${addLeadForm[doc.id] ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
                           <div className="flex flex-col items-center justify-center pt-2 pb-2">
                             <svg className={`w-5 h-5 mb-1 ${addLeadForm[doc.id] ? 'text-green-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -801,7 +800,7 @@ export default function Lead() {
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <div className="relative">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verification</label>
-                      <input type="file" accept="image/*" id="admin_policeVerificationPhoto" className="hidden" onChange={e => setAddLeadForm({...addLeadForm, policeVerificationPhoto: e.target.files?.[0] || null})} />
+                      <input type="file" accept="image/*" id="admin_policeVerificationPhoto" className="hidden" onChange={e => setAddLeadForm({ ...addLeadForm, policeVerificationPhoto: e.target.files?.[0] || null })} />
                       <label htmlFor="admin_policeVerificationPhoto" className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-xl cursor-pointer transition ${addLeadForm.policeVerificationPhoto ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
                         <div className="flex flex-col items-center justify-center pt-2 pb-2">
                           <svg className={`w-5 h-5 mb-1 ${addLeadForm.policeVerificationPhoto ? 'text-green-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -813,16 +812,16 @@ export default function Lead() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verification Expiry</label>
-                      <input type="date" value={addLeadForm.policeVerificationExpiryDate} onChange={e => setAddLeadForm({...addLeadForm, policeVerificationExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none h-[calc(100%-1.5rem)]" />
+                      <input type="date" value={addLeadForm.policeVerificationExpiryDate} onChange={e => setAddLeadForm({ ...addLeadForm, policeVerificationExpiryDate: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none h-[calc(100%-1.5rem)]" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verif. Certificate No</label>
-                      <input 
-                        type="text" 
-                        value={addLeadForm.policeVerificationNo || ''} 
-                        onChange={e => setAddLeadForm({...addLeadForm, policeVerificationNo: e.target.value})} 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none font-mono" 
-                        placeholder="e.g. POL-VER-2026-XXXX" 
+                      <input
+                        type="text"
+                        value={addLeadForm.policeVerificationNo || ''}
+                        onChange={e => setAddLeadForm({ ...addLeadForm, policeVerificationNo: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none font-mono"
+                        placeholder="e.g. POL-VER-2026-XXXX"
                       />
                     </div>
                   </div>
@@ -852,8 +851,6 @@ export default function Lead() {
             { label: 'Ration Card', path: selectedLead?.rationCardPhoto },
             { label: 'Electricity Bill', path: selectedLead?.electricityBillPhoto },
             { label: 'Rental Agreement', path: selectedLead?.rentalAgreementPhoto },
-            { label: 'Credit Card', path: selectedLead?.creditCardPhoto },
-            { label: 'Debit Card', path: selectedLead?.debitCardPhoto }
           ]}
         />
       )}
@@ -899,7 +896,7 @@ export default function Lead() {
                   <p className="text-sm font-bold">{verifyLead.nextVerificationDue ? new Date(verifyLead.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
                 </div>
                 <div className="ml-auto">
-                  <VerificationBadge lead={verifyLead} onClick={() => {}} />
+                  <VerificationBadge lead={verifyLead} onClick={() => { }} />
                 </div>
               </div>
 
@@ -911,14 +908,14 @@ export default function Lead() {
                     {verifyLead.dlPhoto ? '✅ Uploaded' : '❌ Not Uploaded'}
                   </span>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3 items-end">
                   <div className="flex-1 w-full">
                     <label className="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       Expiry Date *
                     </label>
-                    <input 
+                    <input
                       type="date"
                       min={new Date().toISOString().split('T')[0]}
                       value={verifyLicenseExpiry}
@@ -926,17 +923,17 @@ export default function Lead() {
                       className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none shadow-sm"
                     />
                   </div>
-                  
+
                   <div className="flex gap-2 w-full sm:w-auto">
                     {verifyLead.dlPhoto && (
                       <div className="flex gap-1.5 flex-1 sm:flex-none">
-                        <button 
+                        <button
                           onClick={() => window.open(docUrl(verifyLead.dlPhoto), '_blank')}
                           className="flex-1 text-xs bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition font-bold"
                         >
                           View
                         </button>
-                        <button 
+                        <button
                           onClick={handleDeleteLicense}
                           className="px-2.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg transition"
                           title="Remove Document"
@@ -946,16 +943,16 @@ export default function Lead() {
                       </div>
                     )}
                     <div className="relative flex-1 sm:flex-none">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        id="updateLicense" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="updateLicense"
+                        className="hidden"
                         onChange={handleUploadLicense}
                         disabled={isUploadingDoc}
                       />
-                      <label 
-                        htmlFor="updateLicense" 
+                      <label
+                        htmlFor="updateLicense"
                         className={`flex items-center justify-center gap-1.5 w-full text-xs bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
@@ -974,14 +971,14 @@ export default function Lead() {
                     {verifyLead.policeVerificationPhoto ? '✅ Uploaded' : '❌ Not Uploaded'}
                   </span>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3 items-end">
                   <div className="flex-1 w-full">
                     <label className="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       Expiry Date *
                     </label>
-                    <input 
+                    <input
                       type="date"
                       min={new Date().toISOString().split('T')[0]}
                       value={verifyPoliceExpiry}
@@ -995,7 +992,7 @@ export default function Lead() {
                       Certificate No
                     </label>
                     <div className="flex gap-1.5">
-                      <input 
+                      <input
                         type="text"
                         value={verifyPoliceNo}
                         onChange={e => setVerifyPoliceNo(e.target.value)}
@@ -1012,17 +1009,17 @@ export default function Lead() {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2 w-full sm:w-auto">
                     {verifyLead.policeVerificationPhoto && (
                       <div className="flex gap-1.5 flex-1 sm:flex-none">
-                        <button 
+                        <button
                           onClick={() => window.open(docUrl(verifyLead.policeVerificationPhoto), '_blank')}
                           className="flex-1 text-xs bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition font-bold"
                         >
                           View
                         </button>
-                        <button 
+                        <button
                           onClick={handleDeletePoliceVerification}
                           className="px-2.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg transition"
                           title="Remove Document"
@@ -1032,16 +1029,16 @@ export default function Lead() {
                       </div>
                     )}
                     <div className="relative flex-1 sm:flex-none">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        id="updatePoliceVerif" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="updatePoliceVerif"
+                        className="hidden"
                         onChange={handleUploadPoliceVerification}
                         disabled={isUploadingDoc}
                       />
-                      <label 
-                        htmlFor="updatePoliceVerif" 
+                      <label
+                        htmlFor="updatePoliceVerif"
                         className={`flex items-center justify-center gap-1.5 w-full text-xs bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>

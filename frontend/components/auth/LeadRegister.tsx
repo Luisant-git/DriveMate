@@ -17,8 +17,6 @@ const OPTIONAL_DOCS = [
   { key: 'rationCardPhoto', label: 'Ration Card', desc: 'Family ration card photo' },
   { key: 'electricityBillPhoto', label: 'Electricity Bill', desc: 'Address proof electricity bill' },
   { key: 'rentalAgreementPhoto', label: 'Rental Agreement', desc: 'Current rental agreement' },
-  { key: 'creditCardPhoto', label: 'Credit Card', desc: 'Front photo (hide CVV)' },
-  { key: 'debitCardPhoto', label: 'Debit Card', desc: 'Front photo (hide CVV)' }
 ];
 
 const LeadRegister: React.FC = () => {
@@ -46,8 +44,6 @@ const LeadRegister: React.FC = () => {
     policeVerificationNo: '',
     electricityBillPhoto: '',
     rentalAgreementPhoto: '',
-    creditCardPhoto: '',
-    debitCardPhoto: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -159,9 +155,9 @@ const LeadRegister: React.FC = () => {
       <form onSubmit={handleSubmit} className="animate-fade-in flex-grow flex flex-col w-full max-w-lg mx-auto overflow-y-auto">
         {/* Header navigation & progress */}
         <div className="flex justify-between items-center mb-4 px-1">
-          <button 
-            type="button" 
-            onClick={() => step === 1 ? navigate('/lead/login') : prevStep()} 
+          <button
+            type="button"
+            onClick={() => step === 1 ? navigate('/lead/login') : prevStep()}
             className="text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold transition"
           >
             &larr; {step === 1 ? 'Back to Login' : 'Back'}
@@ -179,11 +175,11 @@ const LeadRegister: React.FC = () => {
             {step === 1 ? 'Personal Details' : step === 2 ? 'Alternate Contacts' : 'Document Uploads'}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {step === 1 
-              ? 'Enter your basic profile information to get started.' 
-              : step === 2 
-              ? 'Provide any alternate contact numbers and UPI ID.' 
-              : 'Upload required identity documents so admin can verify your account.'}
+            {step === 1
+              ? 'Enter your basic profile information to get started.'
+              : step === 2
+                ? 'Provide any alternate contact numbers and UPI ID.'
+                : 'Upload required identity documents so admin can verify your account.'}
           </p>
         </div>
 
@@ -194,25 +190,25 @@ const LeadRegister: React.FC = () => {
             <div className="space-y-3 animate-fade-in py-1">
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Full Name *</label>
-                <input 
-                  type="text" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="Enter full name"
-                  required 
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Email *</label>
-                <input 
-                  type="email" 
-                  value={formData.email} 
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="name@example.com"
-                  required 
+                  required
                 />
                 {formData.email && !isValidEmail(formData.email) && (
                   <p className="text-[10px] text-red-500 mt-0.5">Please enter a valid email address.</p>
@@ -221,14 +217,14 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Phone Number (10 digits) *</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   maxLength={10}
-                  value={formData.phone} 
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="10-digit primary phone"
-                  required 
+                  required
                 />
                 {formData.phone && !isValidPhone(formData.phone) && (
                   <p className="text-[10px] text-red-500 mt-0.5">Phone number must be exactly 10 digits.</p>
@@ -237,13 +233,13 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Password (min 6 characters) *</label>
-                <input 
-                  type="password" 
-                  value={formData.password} 
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="••••••••"
-                  required 
+                  required
                 />
                 {formData.password && formData.password.length < 6 && (
                   <p className="text-[10px] text-red-500 mt-0.5">Password must be at least 6 characters.</p>
@@ -252,14 +248,14 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Aadhar Number (12 digits) *</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   maxLength={12}
-                  value={formData.aadharNo} 
-                  onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value.replace(/\D/g, '') })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                  value={formData.aadharNo}
+                  onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="12-digit Aadhar number"
-                  required 
+                  required
                 />
                 {formData.aadharNo && !isValidAadhar(formData.aadharNo) && (
                   <p className="text-[10px] text-red-500 mt-0.5">Aadhar number must be exactly 12 digits.</p>
@@ -268,13 +264,13 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Driving License Number *</label>
-                <input 
-                  type="text" 
-                  value={formData.licenseNo} 
-                  onChange={(e) => setFormData({ ...formData, licenseNo: e.target.value.toUpperCase() })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                <input
+                  type="text"
+                  value={formData.licenseNo}
+                  onChange={(e) => setFormData({ ...formData, licenseNo: e.target.value.toUpperCase() })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="DL Number"
-                  required 
+                  required
                 />
                 {formData.licenseNo && formData.licenseNo.trim().length < 6 && (
                   <p className="text-[10px] text-red-500 mt-0.5">Please enter a valid Driving License number.</p>
@@ -294,12 +290,12 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Alternate Phone 1 (Optional)</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   maxLength={10}
-                  value={formData.alternateMobile1} 
-                  onChange={(e) => setFormData({ ...formData, alternateMobile1: e.target.value.replace(/\D/g, '') })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                  value={formData.alternateMobile1}
+                  onChange={(e) => setFormData({ ...formData, alternateMobile1: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile1 && !isValidPhone(formData.alternateMobile1) && (
@@ -309,12 +305,12 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Alternate Phone 2 (Optional)</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   maxLength={10}
-                  value={formData.alternateMobile2} 
-                  onChange={(e) => setFormData({ ...formData, alternateMobile2: e.target.value.replace(/\D/g, '') })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                  value={formData.alternateMobile2}
+                  onChange={(e) => setFormData({ ...formData, alternateMobile2: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile2 && !isValidPhone(formData.alternateMobile2) && (
@@ -324,12 +320,12 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Alternate Phone 3 (Optional)</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   maxLength={10}
-                  value={formData.alternateMobile3} 
-                  onChange={(e) => setFormData({ ...formData, alternateMobile3: e.target.value.replace(/\D/g, '') })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                  value={formData.alternateMobile3}
+                  onChange={(e) => setFormData({ ...formData, alternateMobile3: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile3 && !isValidPhone(formData.alternateMobile3) && (
@@ -339,12 +335,12 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Alternate Phone 4 (Optional)</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   maxLength={10}
-                  value={formData.alternateMobile4} 
-                  onChange={(e) => setFormData({ ...formData, alternateMobile4: e.target.value.replace(/\D/g, '') })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                  value={formData.alternateMobile4}
+                  onChange={(e) => setFormData({ ...formData, alternateMobile4: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile4 && !isValidPhone(formData.alternateMobile4) && (
@@ -354,11 +350,11 @@ const LeadRegister: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">UPI ID (GPay / PhonePe) (Optional)</label>
-                <input 
-                  type="text" 
-                  value={formData.gpayNo} 
-                  onChange={(e) => setFormData({ ...formData, gpayNo: e.target.value })} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm" 
+                <input
+                  type="text"
+                  value={formData.gpayNo}
+                  onChange={(e) => setFormData({ ...formData, gpayNo: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm"
                   placeholder="e.g. 9876543210 or yourname@upi"
                 />
                 {formData.gpayNo && !isValidUpi(formData.gpayNo) && (
@@ -392,14 +388,14 @@ const LeadRegister: React.FC = () => {
                   const isUploaded = Boolean(formData[doc.key as keyof typeof formData]);
                   const isUploading = uploadingFields[doc.key];
                   const preview = imagePreviews[doc.key] || (formData[doc.key as keyof typeof formData] ? (
-                    String(formData[doc.key as keyof typeof formData]).startsWith('http') 
-                      ? String(formData[doc.key as keyof typeof formData]) 
+                    String(formData[doc.key as keyof typeof formData]).startsWith('http')
+                      ? String(formData[doc.key as keyof typeof formData])
                       : `${API_BASE_URL}${formData[doc.key as keyof typeof formData]}`
                   ) : null);
 
                   return (
                     <div key={doc.key} className="relative">
-                      <input 
+                      <input
                         type="file"
                         accept="image/*"
                         id={`file_${doc.key}`}
@@ -409,15 +405,14 @@ const LeadRegister: React.FC = () => {
                           if (file) handleFileUpload(doc.key, file);
                         }}
                       />
-                      <label 
+                      <label
                         htmlFor={`file_${doc.key}`}
-                        className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition overflow-hidden relative ${
-                          isUploaded 
-                            ? 'border-green-500 bg-green-50/50' 
-                            : isUploading 
-                            ? 'border-blue-400 bg-blue-50' 
+                        className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition overflow-hidden relative ${isUploaded
+                          ? 'border-green-500 bg-green-50/50'
+                          : isUploading
+                            ? 'border-blue-400 bg-blue-50'
                             : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-black'
-                        }`}
+                          }`}
                       >
                         {isUploading ? (
                           <div className="flex flex-col items-center justify-center p-2 text-blue-600">
@@ -470,26 +465,26 @@ const LeadRegister: React.FC = () => {
                   <div className="p-3 border-t border-gray-200 grid grid-cols-2 gap-2 bg-gray-50/50">
                     <div className="col-span-2 pt-2 pb-1">
                       <label className="block text-xs font-bold text-gray-700 mb-1">Police Verification Certificate No (Optional)</label>
-                      <input 
-                        type="text" 
-                        value={formData.policeVerificationNo || ''} 
-                        onChange={(e) => setFormData({ ...formData, policeVerificationNo: e.target.value })} 
+                      <input
+                        type="text"
+                        value={formData.policeVerificationNo || ''}
+                        onChange={(e) => setFormData({ ...formData, policeVerificationNo: e.target.value })}
                         placeholder="e.g. POL-VER-2026-XXXX"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm font-mono bg-white" 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black text-sm font-mono bg-white"
                       />
                     </div>
                     {OPTIONAL_DOCS.map((doc) => {
                       const isUploaded = Boolean(formData[doc.key as keyof typeof formData]);
                       const isUploading = uploadingFields[doc.key];
                       const preview = imagePreviews[doc.key] || (formData[doc.key as keyof typeof formData] ? (
-                        String(formData[doc.key as keyof typeof formData]).startsWith('http') 
-                          ? String(formData[doc.key as keyof typeof formData]) 
+                        String(formData[doc.key as keyof typeof formData]).startsWith('http')
+                          ? String(formData[doc.key as keyof typeof formData])
                           : `${API_BASE_URL}${formData[doc.key as keyof typeof formData]}`
                       ) : null);
 
                       return (
                         <div key={doc.key} className="relative">
-                          <input 
+                          <input
                             type="file"
                             accept="image/*"
                             id={`file_${doc.key}`}
@@ -499,15 +494,14 @@ const LeadRegister: React.FC = () => {
                               if (file) handleFileUpload(doc.key, file);
                             }}
                           />
-                          <label 
+                          <label
                             htmlFor={`file_${doc.key}`}
-                            className={`flex flex-col items-center justify-center w-full h-24 border border-dashed rounded-lg cursor-pointer transition overflow-hidden ${
-                              isUploaded 
-                                ? 'border-green-500 bg-green-50' 
-                                : isUploading 
-                                ? 'border-blue-400 bg-blue-50' 
+                            className={`flex flex-col items-center justify-center w-full h-24 border border-dashed rounded-lg cursor-pointer transition overflow-hidden ${isUploaded
+                              ? 'border-green-500 bg-green-50'
+                              : isUploading
+                                ? 'border-blue-400 bg-blue-50'
                                 : 'border-gray-300 bg-white hover:bg-gray-100'
-                            }`}
+                              }`}
                           >
                             {isUploading ? (
                               <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -538,18 +532,18 @@ const LeadRegister: React.FC = () => {
         {/* Footer Buttons */}
         <div className="mt-2 pt-2 border-t border-gray-100">
           {step < 3 ? (
-            <button 
-              type="button" 
-              onClick={nextStep} 
-              disabled={step === 1 ? !isStep1Valid : !isStep2Valid} 
+            <button
+              type="button"
+              onClick={nextStep}
+              disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
               className="w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
             >
               Continue to Step {step + 1}
             </button>
           ) : (
-            <button 
-              type="submit" 
-              disabled={loading || !isStep3Valid} 
+            <button
+              type="submit"
+              disabled={loading || !isStep3Valid}
               className="w-full bg-black text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2"
             >
               {loading ? (
