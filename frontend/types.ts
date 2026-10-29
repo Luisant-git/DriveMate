@@ -47,6 +47,7 @@ export interface Driver extends User {
   };
   rating: number;
   completedTrips: number;
+  languagesKnown?: string[];
 }
 
 export interface Lead extends User {
@@ -75,6 +76,7 @@ export interface Customer extends User {
   alternateMobile?: string;
   alternatePhone?: string;
   customerNo?: number;
+  languagesKnown?: string[];
 }
 
 export interface Trip {

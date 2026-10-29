@@ -362,7 +362,7 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, currentAddress, permanentAddress, idProof, phone, whatsappNumber, alternateMobile, alternatePhone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, policeVerificationNo, password } = req.body;
+    const { name, email, address, currentAddress, permanentAddress, idProof, phone, whatsappNumber, alternateMobile, alternatePhone, alternateMobile1, alternateMobile2, alternateMobile3, alternateMobile4, upiId, photo, dlPhoto, panPhoto, aadharPhoto, policeVerificationPhoto, policeVerificationExpiryDate, policeVerificationNo, password, languagesKnown } = req.body;
     
     let user = null;
     let hashedPassword = null;
@@ -383,6 +383,7 @@ export const updateProfile = async (req, res) => {
           whatsappNumber,
           address,
           idProof,
+          ...(languagesKnown !== undefined && { languagesKnown: Array.isArray(languagesKnown) ? languagesKnown : [] }),
           ...(hashedPassword && { password: hashedPassword })
         }
       });
@@ -414,6 +415,7 @@ export const updateProfile = async (req, res) => {
           ...(policeVerificationPhoto !== undefined && { policeVerificationPhoto }),
           ...(policeVerificationExpiryDate !== undefined && { policeVerificationExpiryDate }),
           ...(policeVerificationNo !== undefined && { policeVerificationNo: policeVerificationNo || null }),
+          ...(languagesKnown !== undefined && { languagesKnown: Array.isArray(languagesKnown) ? languagesKnown : [] }),
           ...(hashedPassword && { password: hashedPassword })
         }
       });

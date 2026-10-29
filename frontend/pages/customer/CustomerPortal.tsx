@@ -21,938 +21,966 @@ import { calculateDistance, getPackageByDistance, getFilteredDurationOptions } f
 import { checkServiceAvailability } from '../../api/serviceArea';
 
 interface CustomerPortalProps {
-  customer: Customer;
+    customer: Customer;
 }
 
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
-  const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
-  const [customer, setCustomer] = useState<Customer>(initialCustomer);
-  const [myTrips, setMyTrips] = useState<any[]>([]);
-  const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
-  const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
-  const [showDriverProfile, setShowDriverProfile] = useState(false);
-  const [showSosModal, setShowSosModal] = useState<boolean>(false);
-  const [sosTargetTrip, setSosTargetTrip] = useState<any>(null);
-  const [selectedDriverOrLead, setSelectedDriver] = useState<any>(null);
-  
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [authChecking, setAuthChecking] = useState<boolean>(false);
-  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
-  const [showTerms, setShowTerms] = useState<boolean>(false);
-  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
-  const [showEstimateWarning, setShowEstimateWarning] = useState<boolean>(false);
-  // AI & Booking States
-  const [aiQuery, setAiQuery] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiRecommendation, setAiRecommendation] = useState<{ recommendedType: BookingType, reason: string } | null>(null);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [showExtraChargesModal, setShowExtraChargesModal] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    pickup: '',
-    drop: '',
-    date: '',
-    time: '',
-    returnDate: '',
-    returnTime: '',
-    duration: '',
-    whenNeeded: 'Immediately',
-    carType: 'Manual',
-    vehicleType: 'Hatchback',
-    tripType: 'One Way',
-    estimatedUsage: '4 Hrs',
-    hoursPerDay: '8',
-    daysPerWeek: '6',
-  });
-  const [oneWayData, setOneWayData] = useState({ pickup: '', drop: '' });
-  const [roundTripData, setRoundTripData] = useState({ pickup: '', drop: '' });
-  const [outstationData, setOutstationData] = useState({ pickup: '', drop: '' });
-  const [estimate, setEstimate] = useState<number | null>(null);
-  const [estimateLoading, setEstimateLoading] = useState(false);
-  const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
-  const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
-  const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
-  const [outstationDailyFare, setOutstationDailyFare] = useState<number | null>(null);
-  const [pickupError, setPickupError] = useState<string>('');
-  const [dropError, setDropError] = useState<string>('');
-  const [dropKey, setDropKey] = useState(0);
-  const [oneWayErrors, setOneWayErrors] = useState({ pickup: '', drop: '' });
-  const [roundTripErrors, setRoundTripErrors] = useState({ pickup: '', drop: '' });
-  const [outstationErrors, setOutstationErrors] = useState({ pickup: '', drop: '' });
-  const [ratingData, setRatingData] = useState<{ [key: string]: { rating: number, feedback: string } }>({});
-  const [cancelModalBookingId, setCancelModalBookingId] = useState<string | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-  
-  const [confirmConfig, setConfirmConfig] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string | React.ReactNode;
-    type: 'danger' | 'success' | 'info';
-    confirmText?: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-    onConfirm: () => {}
-  });
+    const { t } = useLanguage();
+    const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
+    const [customer, setCustomer] = useState<Customer>(initialCustomer);
+    const [myTrips, setMyTrips] = useState<any[]>([]);
+    const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
+    const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
+    const [showDriverProfile, setShowDriverProfile] = useState(false);
+    const [showSosModal, setShowSosModal] = useState<boolean>(false);
+    const [sosTargetTrip, setSosTargetTrip] = useState<any>(null);
+    const [selectedDriverOrLead, setSelectedDriver] = useState<any>(null);
 
-  const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+    // Authentication state
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+    const [authChecking, setAuthChecking] = useState<boolean>(false);
+    const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
+    const [showTerms, setShowTerms] = useState<boolean>(false);
+    const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+    const [showEstimateWarning, setShowEstimateWarning] = useState<boolean>(false);
+    // AI & Booking States
+    const [aiQuery, setAiQuery] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [aiRecommendation, setAiRecommendation] = useState<{ recommendedType: BookingType, reason: string } | null>(null);
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [showExtraChargesModal, setShowExtraChargesModal] = useState(false);
 
-  // Get minimum time (15 minutes from now)
-  const getMinDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 15);
-    return {
-      date: now.toISOString().split('T')[0],
-      time: now.toTimeString().slice(0, 5)
+    const [formData, setFormData] = useState({
+        pickup: '',
+        drop: '',
+        date: '',
+        time: '',
+        returnDate: '',
+        returnTime: '',
+        duration: '',
+        whenNeeded: 'Immediately',
+        carType: 'Manual',
+        vehicleType: 'Hatchback',
+        tripType: 'One Way',
+        estimatedUsage: '4 Hrs',
+        hoursPerDay: '8',
+        daysPerWeek: '6',
+    });
+    const [oneWayData, setOneWayData] = useState({ pickup: '', drop: '' });
+    const [roundTripData, setRoundTripData] = useState({ pickup: '', drop: '' });
+    const [outstationData, setOutstationData] = useState({ pickup: '', drop: '' });
+    const [estimate, setEstimate] = useState<number | null>(null);
+    const [estimateLoading, setEstimateLoading] = useState(false);
+    const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
+    const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+    const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
+    const [outstationDailyFare, setOutstationDailyFare] = useState<number | null>(null);
+    const [pickupError, setPickupError] = useState<string>('');
+    const [dropError, setDropError] = useState<string>('');
+    const [dropKey, setDropKey] = useState(0);
+    const [oneWayErrors, setOneWayErrors] = useState({ pickup: '', drop: '' });
+    const [roundTripErrors, setRoundTripErrors] = useState({ pickup: '', drop: '' });
+    const [outstationErrors, setOutstationErrors] = useState({ pickup: '', drop: '' });
+    const [ratingData, setRatingData] = useState<{ [key: string]: { rating: number, feedback: string } }>({});
+    const [cancelModalBookingId, setCancelModalBookingId] = useState<string | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string | React.ReactNode;
+        type: 'danger' | 'success' | 'info';
+        confirmText?: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onConfirm: () => { }
+    });
+
+    const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+
+    // Get minimum time (15 minutes from now)
+    const getMinDateTime = () => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 15);
+        return {
+            date: now.toISOString().split('T')[0],
+            time: now.toTimeString().slice(0, 5)
+        };
     };
-  };
 
-  // Generate time slots with 30-minute intervals
-  const getTimeSlots = (selectedDate?: string) => {
-    const slots = [];
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const isToday = !selectedDate || selectedDate === today;
-    
-    let startTime: Date;
-    const interval = 30;
-    
-    if (isToday) {
-      startTime = new Date();
-      startTime.setMinutes(startTime.getMinutes() + 30);
-      const minutes = startTime.getMinutes();
-      const roundedMinutes = Math.ceil(minutes / 30) * 30;
-      startTime.setMinutes(roundedMinutes);
-      startTime.setSeconds(0);
-    } else {
-      startTime = new Date();
-      startTime.setHours(0, 0, 0, 0);
-    }
-    
-    const totalSlots = 48;
-    for (let i = 0; i < totalSlots; i++) {
-      const time = new Date(startTime.getTime() + i * interval * 60000);
-      const hours = time.getHours();
-      const mins = time.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      const displayMins = mins.toString().padStart(2, '0');
-      const timeValue = `${hours.toString().padStart(2, '0')}:${displayMins}`;
-      
-      slots.push({
-        value: timeValue,
-        label: `${displayHours}:${displayMins} ${ampm}`
-      });
-    }
-    
-    return slots;
-  };
+    // Generate time slots with 30-minute intervals
+    const getTimeSlots = (selectedDate?: string) => {
+        const slots = [];
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const isToday = !selectedDate || selectedDate === today;
 
-  // Profile Edit States
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editProfileData, setEditProfileData] = useState({
-    name: initialCustomer.name,
-    alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
-    phone: initialCustomer.phone,
-    whatsappNumber: initialCustomer.whatsappNumber || '',
-    phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === initialCustomer.whatsappNumber),
-    address: initialCustomer.address || '',
-    idProof: initialCustomer.idProof || null
-  });
+        let startTime: Date;
+        const interval = 30;
 
-  // Registration Modal State
-  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [registrationData, setRegistrationData] = useState({
-    name: '',
-    alternateMobile: '',
-    phone: '',
-    whatsappNumber: '',
-    phoneSameAsWhatsapp: true,
-    address: '',
-    idProof: null as string | null
-  });
+        if (isToday) {
+            startTime = new Date();
+            startTime.setMinutes(startTime.getMinutes() + 30);
+            const minutes = startTime.getMinutes();
+            const roundedMinutes = Math.ceil(minutes / 30) * 30;
+            startTime.setMinutes(roundedMinutes);
+            startTime.setSeconds(0);
+        } else {
+            startTime = new Date();
+            startTime.setHours(0, 0, 0, 0);
+        }
 
-  const checkAuthStatus = async () => {
-    setAuthChecking(true);
-    try {
-      const authStatus = await checkAuth();
-      setIsAuthenticated(authStatus.authenticated);
-      if (!authStatus.authenticated) {
-        console.log('Authentication check failed');
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setIsAuthenticated(false);
-    } finally {
-      setAuthChecking(false);
-    }
-  };
+        const totalSlots = 48;
+        for (let i = 0; i < totalSlots; i++) {
+            const time = new Date(startTime.getTime() + i * interval * 60000);
+            const hours = time.getHours();
+            const mins = time.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            const displayMins = mins.toString().padStart(2, '0');
+            const timeValue = `${hours.toString().padStart(2, '0')}:${displayMins}`;
 
-  const fetchBookings = async () => {
-    try {
-      const response = await getCustomerBookings();
-      if (response.success) {
-        setMyTrips(response.bookings);
-      } else {
-        console.log('Failed to fetch bookings:', response.error);
-      }
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-    }
-  };
+            slots.push({
+                value: timeValue,
+                label: `${displayHours}:${displayMins} ${ampm}`
+            });
+        }
 
-  const confirmCancel = async () => {
-    if (!cancelModalBookingId) return;
-    setIsCancelling(true);
-    try {
-      const response = await cancelBooking(cancelModalBookingId);
-      if (response.success) {
-        toast.success('Cancellation request submitted to Admin for approval');
-        fetchBookings();
-      } else {
-        toast.error(response.error || 'Failed to cancel booking');
-      }
-    } catch (error) {
-      toast.error('Failed to cancel booking');
-    } finally {
-      setIsCancelling(false);
-      setCancelModalBookingId(null);
-    }
-  };
+        return slots;
+    };
 
-  useEffect(() => {
-      console.log('Customer data:', initialCustomer); // Debug log
-      setCustomer(initialCustomer);
-      setEditProfileData({
+    // Profile Edit States
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [editProfileData, setEditProfileData] = useState({
         name: initialCustomer.name,
         alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
         phone: initialCustomer.phone,
-        whatsappNumber: (initialCustomer as any).whatsappNumber || '',
-        phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber),
-        address: initialCustomer.address || ''
-      });
-      
-      // Since user is already authenticated at app level, set to true
-      setIsAuthenticated(true);
-      
-      // Fetch real bookings
-      fetchBookings();
-      
-      // Show registration modal if customer has incomplete profile
-      const hasAddress = initialCustomer.address && initialCustomer.address.trim() !== '';
-      const hasIdProof = initialCustomer.idProof && initialCustomer.idProof.trim() !== '';
-      console.log('Profile check:', { hasAddress, hasIdProof });
-      if (!hasAddress || !hasIdProof) {
-        setShowRegistrationModal(true);
-        setRegistrationData({
-          name: initialCustomer.name,
-          alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
-          phone: initialCustomer.phone || '',
-          whatsappNumber: (initialCustomer as any).whatsappNumber || '',
-          phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber) ? true : false,
-          address: initialCustomer.address || '',
-          idProof: initialCustomer.idProof || null
-        });
-      }
-      
-      // Calculate initial fare estimate
-      handleEstimateWithValues('4 Hrs');
-  }, [initialCustomer]);
-
-  const handleAiAssist = async () => {
-    if (!aiQuery) return;
-    setIsAiLoading(true);
-    const result = await getRecommendedPackage(aiQuery);
-    if (result) {
-      setAiRecommendation(result);
-      setBookingType(result.recommendedType);
-    }
-    setIsAiLoading(false);
-  };
-
-  const handleEstimate = async (immediateOverride?: boolean) => {
-     if(!formData.estimatedUsage) return;
-     
-     setEstimateLoading(true);
-     try {
-       const hours = parseDurationToHours(formData.estimatedUsage);
-       const isOutstation = serviceType === BookingType.OUTSTATION;
-       const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
-       const breakdown = await calculateFare(hours, 0, isOutstation, isImmediate);
-       
-       if (breakdown) {
-         setFareBreakdown(breakdown);
-         setEstimate(breakdown.totalFare);
-       } else {
-         setEstimate(null);
-         setFareBreakdown(null);
-       }
-     } catch (error) {
-       console.error('Error calculating fare:', error);
-       setEstimate(null);
-       setFareBreakdown(null);
-     } finally {
-       setEstimateLoading(false);
-     }
-  };
-
-  const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean, immediateOverride?: boolean) => {
-     if(!estimatedUsage) return;
-     
-     setEstimateLoading(true);
-     try {
-       const hours = parseDurationToHours(estimatedUsage);
-       const useOutstation = isOutstation !== undefined ? isOutstation : serviceType === BookingType.OUTSTATION;
-       const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
-       const breakdown = await calculateFare(hours, 0, useOutstation, isImmediate);
-       
-       if (breakdown) {
-         setFareBreakdown(breakdown);
-         setEstimate(breakdown.totalFare);
-       } else {
-         setEstimate(null);
-         setFareBreakdown(null);
-       }
-     } catch (error) {
-       console.error('Error calculating fare:', error);
-       setEstimate(null);
-       setFareBreakdown(null);
-} finally {
-        setEstimateLoading(false);
-      }
-  };
-
-  const getAutoEstimatedUsage = (durationMinutes: number): string => {
-    const hours = Math.round(durationMinutes / 60 + 2);
-    const final = Math.min(Math.max(hours, 4), 12);
-    return `${final} Hrs`;
-  };
-
-  const getOutstationDays = (date: string, returnDate: string): number => {
-    if (formData.tripType !== 'Round Trip' || !date || !returnDate) return 1;
-    const from = new Date(date);
-    const to = new Date(returnDate);
-    const diff = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(diff + 1, 1);
-  };
-
-  const applyOutstationDaysEstimate = (dailyFare: number | null = null, date?: string, returnDate?: string) => {
-    const base = dailyFare ?? outstationDailyFare;
-    if (!base) return;
-    const days = getOutstationDays(date ?? formData.date, returnDate ?? formData.returnDate);
-    const total = base * days;
-    setEstimate(total);
-    setFareBreakdown(prev => prev ? {
-      ...prev,
-      totalFare: total,
-      description: days > 1 ? `${prev.description} • ${days} Days` : prev.description.replace(/ • \d+ Days$/, '')
-    } : prev);
-  };
-
-  const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Check if customer profile is complete
-    const hasName = customer.name && customer.name.trim() !== '';
-    const hasPhone = customer.phone && customer.phone.trim() !== '';
-    const hasAddress = customer.address && customer.address.trim() !== '';
-    const hasIdProof = customer.idProof && customer.idProof.trim() !== '';
-    if (!hasName || !hasPhone || !hasAddress || !hasIdProof) {
-      toast.error('Please complete your profile before booking');
-      setActiveTab('PROFILE');
-      return;
-    }
-    
-    // Check if estimate is available
-    if (!estimate || estimate <= 0) {
-      toast.error('Please wait for fare estimation before booking or try any other near location');
-      setShowEstimateWarning(true);
-      setTimeout(() => setShowEstimateWarning(false), 5000);
-      return;
-    }
-    
-    // Validate Date and Time only if Schedule is selected
-    const requiresDateTime = (serviceType === BookingType.OUTSTATION && formData.whenNeeded === 'Schedule') || 
-                             (serviceType === 'Outstation' && formData.whenNeeded === 'Schedule') ||
-                             (serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule');
-                             
-    if (requiresDateTime) {
-      if (!formData.date) {
-        toast.error('Please select a date for your trip');
-        return;
-      }
-      if (!formData.time) {
-        toast.error('Please select a time for your trip');
-        return;
-      }
-    }
-
-    // Validate Return Date and Time for Round Trip
-    if (formData.tripType === 'Round Trip') {
-      if (!formData.returnDate) {
-        toast.error('Please select the return (to) date for your round trip');
-        return;
-      }
-      if (!formData.returnTime) {
-        toast.error('Please select the return (to) time for your round trip');
-        return;
-      }
-    }
-    
-    // Validate pickup location
-    if (!formData.pickup) {
-      toast.error('Please enter pickup location');
-      return;
-    }
-
-    // For Round Trip, drop location is not required
-    const isRoundTrip = formData.tripType === 'Round Trip';
-    
-    // Validate drop location only for One Way trips
-    if (!isRoundTrip && !formData.drop) {
-      toast.error('Please enter drop location');
-      return;
-    }
-
-    // Validate that pickup location is complete
-    if (!formData.pickup.includes(',')) {
-      toast.error('Please select complete pickup location from the suggestions');
-      return;
-    }
-    
-    // Validate drop location completeness only for One Way trips
-    if (!isRoundTrip && !formData.drop.includes(',')) {
-      toast.error('Please select complete drop location from the suggestions');
-      return;
-    }
-
-    // Show payment modal instead of directly submitting
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentMethodSelect = async (method: string) => {
-    setSelectedPaymentMethod(method);
-    setShowPaymentModal(false);
-    
-    // Skip service area validation for Outstation bookings
-    const isOutstationBooking = serviceType === 'Outstation' || 
-                                 serviceType === BookingType.OUTSTATION || 
-                                 serviceType?.toLowerCase().includes('outstation');
-    
-    console.log('Service Type Check:', {
-      serviceType,
-      BookingTypeOUTSTATION: BookingType.OUTSTATION,
-      isOutstationBooking,
-      willSkipValidation: isOutstationBooking
+        whatsappNumber: initialCustomer.whatsappNumber || '',
+        phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === initialCustomer.whatsappNumber),
+        address: initialCustomer.address || '',
+        idProof: initialCustomer.idProof || null,
+        languagesKnown: (initialCustomer as any).languagesKnown || [] as string[]
     });
-    
-    if (!isOutstationBooking) {
-      // Check service availability for pickup location
-      const pickupResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
-      );
-      const pickupData = await pickupResponse.json();
-      
-      if (pickupData.results && pickupData.results[0]) {
-        const pickupLocation = pickupData.results[0].geometry.location;
-        console.log('Pickup coordinates:', pickupLocation);
-        const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
-        console.log('Pickup availability:', pickupAvailability);
-        
-        if (!pickupAvailability.available) {
-          toast.error('Sorry, service not available in pickup area');
-          return;
+
+    // Registration Modal State
+    const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+    const [registrationData, setRegistrationData] = useState({
+        name: '',
+        alternateMobile: '',
+        phone: '',
+        whatsappNumber: '',
+        phoneSameAsWhatsapp: true,
+        address: '',
+        idProof: null as string | null
+    });
+
+    const checkAuthStatus = async () => {
+        setAuthChecking(true);
+        try {
+            const authStatus = await checkAuth();
+            setIsAuthenticated(authStatus.authenticated);
+            if (!authStatus.authenticated) {
+                console.log('Authentication check failed');
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            setIsAuthenticated(false);
+        } finally {
+            setAuthChecking(false);
         }
-      }
+    };
 
-      // Check service availability for drop location
-      const dropResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.drop)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
-      );
-      const dropData = await dropResponse.json();
-      
-      if (dropData.results && dropData.results[0]) {
-        const dropLocation = dropData.results[0].geometry.location;
-        console.log('Drop coordinates:', dropLocation);
-        const dropAvailability = await checkServiceAvailability(dropLocation.lat, dropLocation.lng);
-        console.log('Drop availability:', dropAvailability);
-        
-        if (!dropAvailability.available) {
-          toast.error('Sorry, service not available in drop area');
-          return;
+    const fetchBookings = async () => {
+        try {
+            const response = await getCustomerBookings();
+            if (response.success) {
+                setMyTrips(response.bookings);
+            } else {
+                console.log('Failed to fetch bookings:', response.error);
+            }
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
         }
-      }
-    }
+    };
 
-    try {
-      const bookingData = {
-        pickupLocation: formData.pickup,
-        dropLocation: formData.drop,
-        serviceType: serviceType,
-        tripType: formData.tripType,
-        driverType: driverType,
-        startDateTime: formData.date && formData.time ? 
-          `${formData.date}T${formData.time}` : new Date().toISOString(),
-        endDateTime: formData.tripType === 'Round Trip' && formData.returnDate && formData.returnTime ? 
-          `${formData.returnDate}T${formData.returnTime}` : null,
-        duration: formData.duration || formData.estimatedUsage,
-        carType: formData.carType,
-        vehicleType: formData.vehicleType,
-        estimateAmount: estimate,
-        paymentMethod: method
-      };
+    const confirmCancel = async () => {
+        if (!cancelModalBookingId) return;
+        setIsCancelling(true);
+        try {
+            const response = await cancelBooking(cancelModalBookingId);
+            if (response.success) {
+                toast.success('Cancellation request submitted to Admin for approval');
+                fetchBookings();
+            } else {
+                toast.error(response.error || 'Failed to cancel booking');
+            }
+        } catch (error) {
+            toast.error('Failed to cancel booking');
+        } finally {
+            setIsCancelling(false);
+            setCancelModalBookingId(null);
+        }
+    };
 
-      const response = await createBooking(bookingData);
-      
-      if (response.success) {
-        toast.success(response.message || 'Request sent to drivers!');
-        // Reset form
-        setFormData({
-          pickup: '',
-          drop: '',
-          date: '',
-          time: '',
-          returnDate: '',
-          returnTime: '',
-          duration: '',
-          whenNeeded: 'Immediately',
-          carType: 'Manual',
-          vehicleType: 'Hatchback',
-          tripType: 'One Way',
-          estimatedUsage: '4 Hrs',
+    useEffect(() => {
+        console.log('Customer data:', initialCustomer); // Debug log
+        setCustomer(initialCustomer);
+        setEditProfileData({
+            name: initialCustomer.name,
+            alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
+            phone: initialCustomer.phone,
+            whatsappNumber: (initialCustomer as any).whatsappNumber || '',
+            phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber),
+            address: initialCustomer.address || '',
+            idProof: (initialCustomer as any).idProof || null,
+            languagesKnown: (initialCustomer as any).languagesKnown || []
         });
-        setEstimate(null);
-        setTermsAccepted(false);
-        // Refresh bookings
+
+        // Since user is already authenticated at app level, set to true
+        setIsAuthenticated(true);
+
+        // Fetch real bookings
         fetchBookings();
-        setActiveTab('TRIPS');
-      } else {
-        toast.error(response.error || 'Failed to send request');
-      }
-    } catch (error) {
-      console.error('Booking error:', error);
-      toast.error('Error sending request. Please try again.');
-    }
-  };
 
-  const handleRating = (tripId: string, rating: number) => {
-    setRatingData(prev => ({
-      ...prev,
-      [tripId]: { ...prev[tripId], rating, feedback: prev[tripId]?.feedback || '' }
-    }));
-  };
-
-  const handleFeedbackChange = (tripId: string, feedback: string) => {
-    setRatingData(prev => ({
-      ...prev,
-      [tripId]: { ...prev[tripId], rating: prev[tripId]?.rating || 0, feedback }
-    }));
-  };
-
-  const submitRating = async (tripId: string) => {
-    const data = ratingData[tripId];
-    if (!data || !data.rating) {
-      toast.error('Please select a rating');
-      return;
-    }
-    try {
-      const response = await rateBooking(tripId, data.rating, data.feedback);
-      if (response.success) {
-        toast.success('Rating submitted successfully!');
-        // Refresh bookings to show the new rating
-        fetchBookings();
-      } else {
-        toast.error(response.error || 'Failed to submit rating');
-      }
-    } catch (error) {
-      console.error('Rating error:', error);
-      toast.error('Error submitting rating');
-    }
-  };
-
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-      e.preventDefault();
-      try {
-        const response = await updateCustomerProfile({
-          name: editProfileData.name,
-          alternateMobile: editProfileData.alternateMobile,
-          phone: editProfileData.phone,
-          whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
-          address: editProfileData.address,
-          idProof: editProfileData.idProof
-        });
-        
-        if (response.success) {
-          const updatedCustomer = {
-            ...customer,
-            name: editProfileData.name,
-            alternateMobile: editProfileData.alternateMobile,
-            phone: editProfileData.phone,
-            whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
-            address: editProfileData.address,
-            idProof: editProfileData.idProof
-          };
-          setCustomer(updatedCustomer);
-          setIsEditingProfile(false);
-          toast.success("Profile updated successfully!");
-        } else {
-          alert(response.error || 'Failed to update profile');
+        // Show registration modal if customer has incomplete profile
+        const hasAddress = initialCustomer.address && initialCustomer.address.trim() !== '';
+        const hasIdProof = initialCustomer.idProof && initialCustomer.idProof.trim() !== '';
+        console.log('Profile check:', { hasAddress, hasIdProof });
+        if (!hasAddress || !hasIdProof) {
+            setShowRegistrationModal(true);
+            setRegistrationData({
+                name: initialCustomer.name,
+                alternateMobile: initialCustomer.alternateMobile || (initialCustomer as any).alternatePhone || '',
+                phone: initialCustomer.phone || '',
+                whatsappNumber: (initialCustomer as any).whatsappNumber || '',
+                phoneSameAsWhatsapp: (initialCustomer.phone && initialCustomer.phone === (initialCustomer as any).whatsappNumber) ? true : false,
+                address: initialCustomer.address || '',
+                idProof: initialCustomer.idProof || null
+            });
         }
-      } catch (error) {
-        alert('Error updating profile. Please try again.');
-      }
-  };
 
-  const handleRegistrationSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      try {
-        const response = await updateCustomerProfile({
-          name: registrationData.name,
-          alternateMobile: registrationData.alternateMobile,
-          phone: registrationData.phone,
-          whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
-          address: registrationData.address,
-          idProof: registrationData.idProof
-        });
-        
-        if (response.success) {
-          const updatedCustomer = {
-            ...customer,
-            name: registrationData.name,
-            alternateMobile: registrationData.alternateMobile,
-            phone: registrationData.phone,
-            whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
-            address: registrationData.address,
-            idProof: registrationData.idProof
-          };
-          setCustomer(updatedCustomer);
-          setShowRegistrationModal(false);
-          toast.success("Registration completed successfully!");
-        } else {
-          alert(response.error || 'Failed to update profile');
+        // Calculate initial fare estimate
+        handleEstimateWithValues('4 Hrs');
+    }, [initialCustomer]);
+
+    const handleAiAssist = async () => {
+        if (!aiQuery) return;
+        setIsAiLoading(true);
+        const result = await getRecommendedPackage(aiQuery);
+        if (result) {
+            setAiRecommendation(result);
+            setBookingType(result.recommendedType);
         }
-      } catch (error) {
-        alert('Error updating profile. Please try again.');
-      }
-  };
+        setIsAiLoading(false);
+    };
 
-  const handleSkipRegistration = () => {
-      setShowRegistrationModal(false);
-  };
+    const handleEstimate = async (immediateOverride?: boolean) => {
+        if (!formData.estimatedUsage) return;
 
-  return (
-    <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
-      {/* Extra Charges Modal */}
-      {showExtraChargesModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowExtraChargesModal(false)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-bold text-gray-900">Additional Charges</h3>
-                <button 
-                  onClick={() => setShowExtraChargesModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-700">• Extra Pay for One Way Drop Return Ticket</p>
-                <p className="text-sm text-gray-700">• Food Extra</p>
-                <p className="text-sm text-gray-700">• Staying Accommodation (Not Mandatory)</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {showDriverProfile && selectedDriverOrLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
-            {/* Header */}
-            <div className="relative bg-gradient-to-br from-black to-gray-800 p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl">
-              <button onClick={() => setShowDriverProfile(false)} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              <div className="flex flex-col items-center text-white">
-                {(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) ? (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-lg mb-2 sm:mb-3 overflow-hidden bg-white flex items-center justify-center p-1">
-                    <img 
-                      src={(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo)?.startsWith('http') ? (selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) : `${API_BASE_URL}${selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo}`} 
-                      alt="Photo" 
-                      className="w-full h-full object-contain rounded-full" 
-                      onError={(e) => {
-                        e.currentTarget.parentElement.style.display = 'none';
-                        e.currentTarget.parentElement.nextElementSibling.style.display = 'flex';
-                      }}
-                    />
-                  </div>
-                ) : null}
-                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) ? 'hidden' : ''}`}>
-                  {selectedDriverOrLead.name?.[0] || 'D'}
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriverOrLead.name || 'Driver/Lead'}</h2>
-              </div>
-            </div>
+        setEstimateLoading(true);
+        try {
+            const hours = parseDurationToHours(formData.estimatedUsage);
+            const isOutstation = serviceType === BookingType.OUTSTATION;
+            const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
+            const breakdown = await calculateFare(hours, 0, isOutstation, isImmediate);
 
-            {/* Content */}
-            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-              {/* Contact Info */}
-              <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-2 sm:space-y-3">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Phone Number</p>
-                    <a href={`tel:${selectedDriverOrLead.phone}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.phone || 'N/A'}</a>
-                  </div>
-                  <a href={`tel:${selectedDriverOrLead.phone}`} className="w-9 h-9 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition shadow-lg flex-shrink-0">
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                  </a>
-                </div>
-                {(selectedDriverOrLead.alternateMobile1 || selectedDriverOrLead.alternateMobile2 || selectedDriverOrLead.alternateMobile3 || selectedDriverOrLead.alternateMobile4) && (
-                  <div className="pt-2 sm:pt-3 border-t border-gray-200 space-y-2">
-                    {selectedDriverOrLead.alternateMobile1 && (
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 1</p>
-                          <a href={`tel:${selectedDriverOrLead.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile1}</a>
-                        </div>
-                      </div>
-                    )}
-                    {selectedDriverOrLead.alternateMobile2 && (
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 2</p>
-                          <a href={`tel:${selectedDriverOrLead.alternateMobile2}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile2}</a>
-                        </div>
-                      </div>
-                    )}
-                    {selectedDriverOrLead.alternateMobile3 && (
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 3</p>
-                          <a href={`tel:${selectedDriverOrLead.alternateMobile3}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile3}</a>
-                        </div>
-                      </div>
-                    )}
-                    {selectedDriverOrLead.alternateMobile4 && (
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 4</p>
-                          <a href={`tel:${selectedDriverOrLead.alternateMobile4}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile4}</a>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+            if (breakdown) {
+                setFareBreakdown(breakdown);
+                setEstimate(breakdown.totalFare);
+            } else {
+                setEstimate(null);
+                setFareBreakdown(null);
+            }
+        } catch (error) {
+            console.error('Error calculating fare:', error);
+            setEstimate(null);
+            setFareBreakdown(null);
+        } finally {
+            setEstimateLoading(false);
+        }
+    };
 
-              {/* License Info */}
-              {selectedDriverOrLead.licenseNo && (
-                <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm2.45 4a2.5 2.5 0 10-4.9 0h4.9zM12 9a1 1 0 100 2h3a1 1 0 100-2h-3zm-1 4a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
+    const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean, immediateOverride?: boolean) => {
+        if (!estimatedUsage) return;
+
+        setEstimateLoading(true);
+        try {
+            const hours = parseDurationToHours(estimatedUsage);
+            const useOutstation = isOutstation !== undefined ? isOutstation : serviceType === BookingType.OUTSTATION;
+            const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
+            const breakdown = await calculateFare(hours, 0, useOutstation, isImmediate);
+
+            if (breakdown) {
+                setFareBreakdown(breakdown);
+                setEstimate(breakdown.totalFare);
+            } else {
+                setEstimate(null);
+                setFareBreakdown(null);
+            }
+        } catch (error) {
+            console.error('Error calculating fare:', error);
+            setEstimate(null);
+            setFareBreakdown(null);
+        } finally {
+            setEstimateLoading(false);
+        }
+    };
+
+    const getAutoEstimatedUsage = (durationMinutes: number): string => {
+        const hours = Math.round(durationMinutes / 60 + 2);
+        const final = Math.min(Math.max(hours, 4), 12);
+        return `${final} Hrs`;
+    };
+
+    const getOutstationDays = (date: string, returnDate: string): number => {
+        if (formData.tripType !== 'Round Trip' || !date || !returnDate) return 1;
+        const from = new Date(date);
+        const to = new Date(returnDate);
+        const diff = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+        return Math.max(diff + 1, 1);
+    };
+
+    const applyOutstationDaysEstimate = (dailyFare: number | null = null, date?: string, returnDate?: string) => {
+        const base = dailyFare ?? outstationDailyFare;
+        if (!base) return;
+        const days = getOutstationDays(date ?? formData.date, returnDate ?? formData.returnDate);
+        const total = base * days;
+        setEstimate(total);
+        setFareBreakdown(prev => prev ? {
+            ...prev,
+            totalFare: total,
+            description: days > 1 ? `${prev.description} • ${days} Days` : prev.description.replace(/ • \d+ Days$/, '')
+        } : prev);
+    };
+
+    const handleBookingSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Check if customer profile is complete
+        const hasName = customer.name && customer.name.trim() !== '';
+        const hasPhone = customer.phone && customer.phone.trim() !== '';
+        const hasAddress = customer.address && customer.address.trim() !== '';
+        const hasIdProof = customer.idProof && customer.idProof.trim() !== '';
+        if (!hasName || !hasPhone || !hasAddress || !hasIdProof) {
+            toast.error('Please complete your profile before booking');
+            setActiveTab('PROFILE');
+            return;
+        }
+
+        // Check if estimate is available
+        if (!estimate || estimate <= 0) {
+            toast.error('Please wait for fare estimation before booking or try any other near location');
+            setShowEstimateWarning(true);
+            setTimeout(() => setShowEstimateWarning(false), 5000);
+            return;
+        }
+
+        // Validate Date and Time only if Schedule is selected
+        const requiresDateTime = (serviceType === BookingType.OUTSTATION && formData.whenNeeded === 'Schedule') ||
+            (serviceType === 'Outstation' && formData.whenNeeded === 'Schedule') ||
+            (serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule');
+
+        if (requiresDateTime) {
+            if (!formData.date) {
+                toast.error('Please select a date for your trip');
+                return;
+            }
+            if (!formData.time) {
+                toast.error('Please select a time for your trip');
+                return;
+            }
+        }
+
+        // Validate Return Date and Time for Round Trip
+        if (formData.tripType === 'Round Trip') {
+            if (!formData.returnDate) {
+                toast.error('Please select the return (to) date for your round trip');
+                return;
+            }
+            if (!formData.returnTime) {
+                toast.error('Please select the return (to) time for your round trip');
+                return;
+            }
+        }
+
+        // Validate pickup location
+        if (!formData.pickup) {
+            toast.error('Please enter pickup location');
+            return;
+        }
+
+        // For Round Trip, drop location is not required
+        const isRoundTrip = formData.tripType === 'Round Trip';
+
+        // Validate drop location only for One Way trips
+        if (!isRoundTrip && !formData.drop) {
+            toast.error('Please enter drop location');
+            return;
+        }
+
+        // Validate that pickup location is complete
+        if (!formData.pickup.includes(',')) {
+            toast.error('Please select complete pickup location from the suggestions');
+            return;
+        }
+
+        // Validate drop location completeness only for One Way trips
+        if (!isRoundTrip && !formData.drop.includes(',')) {
+            toast.error('Please select complete drop location from the suggestions');
+            return;
+        }
+
+        // Show payment modal instead of directly submitting
+        setShowPaymentModal(true);
+    };
+
+    const handlePaymentMethodSelect = async (method: string) => {
+        setSelectedPaymentMethod(method);
+        setShowPaymentModal(false);
+
+        // Skip service area validation for Outstation bookings
+        const isOutstationBooking = serviceType === 'Outstation' ||
+            serviceType === BookingType.OUTSTATION ||
+            serviceType?.toLowerCase().includes('outstation');
+
+        console.log('Service Type Check:', {
+            serviceType,
+            BookingTypeOUTSTATION: BookingType.OUTSTATION,
+            isOutstationBooking,
+            willSkipValidation: isOutstationBooking
+        });
+
+        if (!isOutstationBooking) {
+            // Check service availability for pickup location
+            const pickupResponse = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+            );
+            const pickupData = await pickupResponse.json();
+
+            if (pickupData.results && pickupData.results[0]) {
+                const pickupLocation = pickupData.results[0].geometry.location;
+                console.log('Pickup coordinates:', pickupLocation);
+                const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
+                console.log('Pickup availability:', pickupAvailability);
+
+                if (!pickupAvailability.available) {
+                    toast.error('Sorry, service not available in pickup area');
+                    return;
+                }
+            }
+
+            // Check service availability for drop location
+            const dropResponse = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.drop)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+            );
+            const dropData = await dropResponse.json();
+
+            if (dropData.results && dropData.results[0]) {
+                const dropLocation = dropData.results[0].geometry.location;
+                console.log('Drop coordinates:', dropLocation);
+                const dropAvailability = await checkServiceAvailability(dropLocation.lat, dropLocation.lng);
+                console.log('Drop availability:', dropAvailability);
+
+                if (!dropAvailability.available) {
+                    toast.error('Sorry, service not available in drop area');
+                    return;
+                }
+            }
+        }
+
+        try {
+            const bookingData = {
+                pickupLocation: formData.pickup,
+                dropLocation: formData.drop,
+                serviceType: serviceType,
+                tripType: formData.tripType,
+                driverType: driverType,
+                startDateTime: formData.date && formData.time ?
+                    `${formData.date}T${formData.time}` : new Date().toISOString(),
+                endDateTime: formData.tripType === 'Round Trip' && formData.returnDate && formData.returnTime ?
+                    `${formData.returnDate}T${formData.returnTime}` : null,
+                duration: formData.duration || formData.estimatedUsage,
+                carType: formData.carType,
+                vehicleType: formData.vehicleType,
+                estimateAmount: estimate,
+                paymentMethod: method
+            };
+
+            const response = await createBooking(bookingData);
+
+            if (response.success) {
+                toast.success(response.message || 'Request sent to drivers!');
+                // Reset form
+                setFormData({
+                    pickup: '',
+                    drop: '',
+                    date: '',
+                    time: '',
+                    returnDate: '',
+                    returnTime: '',
+                    duration: '',
+                    whenNeeded: 'Immediately',
+                    carType: 'Manual',
+                    vehicleType: 'Hatchback',
+                    tripType: 'One Way',
+                    estimatedUsage: '4 Hrs',
+                });
+                setEstimate(null);
+                setTermsAccepted(false);
+                // Refresh bookings
+                fetchBookings();
+                setActiveTab('TRIPS');
+            } else {
+                toast.error(response.error || 'Failed to send request');
+            }
+        } catch (error) {
+            console.error('Booking error:', error);
+            toast.error('Error sending request. Please try again.');
+        }
+    };
+
+    const handleRating = (tripId: string, rating: number) => {
+        setRatingData(prev => ({
+            ...prev,
+            [tripId]: { ...prev[tripId], rating, feedback: prev[tripId]?.feedback || '' }
+        }));
+    };
+
+    const handleFeedbackChange = (tripId: string, feedback: string) => {
+        setRatingData(prev => ({
+            ...prev,
+            [tripId]: { ...prev[tripId], rating: prev[tripId]?.rating || 0, feedback }
+        }));
+    };
+
+    const submitRating = async (tripId: string) => {
+        const data = ratingData[tripId];
+        if (!data || !data.rating) {
+            toast.error('Please select a rating');
+            return;
+        }
+        try {
+            const response = await rateBooking(tripId, data.rating, data.feedback);
+            if (response.success) {
+                toast.success('Rating submitted successfully!');
+                // Refresh bookings to show the new rating
+                fetchBookings();
+            } else {
+                toast.error(response.error || 'Failed to submit rating');
+            }
+        } catch (error) {
+            console.error('Rating error:', error);
+            toast.error('Error submitting rating');
+        }
+    };
+
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const response = await updateCustomerProfile({
+                name: editProfileData.name,
+                alternateMobile: editProfileData.alternateMobile,
+                phone: editProfileData.phone,
+                whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
+                address: editProfileData.address,
+                idProof: editProfileData.idProof,
+                languagesKnown: editProfileData.languagesKnown
+            });
+
+            if (response.success) {
+                const updatedCustomer = {
+                    ...customer,
+                    name: editProfileData.name,
+                    alternateMobile: editProfileData.alternateMobile,
+                    phone: editProfileData.phone,
+                    whatsappNumber: editProfileData.phoneSameAsWhatsapp ? editProfileData.phone : editProfileData.whatsappNumber,
+                    address: editProfileData.address,
+                    idProof: editProfileData.idProof,
+                    languagesKnown: editProfileData.languagesKnown
+                };
+                setCustomer(updatedCustomer);
+                setIsEditingProfile(false);
+                toast.success("Profile updated successfully!");
+            } else {
+                alert(response.error || 'Failed to update profile');
+            }
+        } catch (error) {
+            alert('Error updating profile. Please try again.');
+        }
+    };
+
+    const handleRegistrationSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const response = await updateCustomerProfile({
+                name: registrationData.name,
+                alternateMobile: registrationData.alternateMobile,
+                phone: registrationData.phone,
+                whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
+                address: registrationData.address,
+                idProof: registrationData.idProof
+            });
+
+            if (response.success) {
+                const updatedCustomer = {
+                    ...customer,
+                    name: registrationData.name,
+                    alternateMobile: registrationData.alternateMobile,
+                    phone: registrationData.phone,
+                    whatsappNumber: registrationData.phoneSameAsWhatsapp ? registrationData.phone : registrationData.whatsappNumber,
+                    address: registrationData.address,
+                    idProof: registrationData.idProof
+                };
+                setCustomer(updatedCustomer);
+                setShowRegistrationModal(false);
+                toast.success("Registration completed successfully!");
+            } else {
+                alert(response.error || 'Failed to update profile');
+            }
+        } catch (error) {
+            alert('Error updating profile. Please try again.');
+        }
+    };
+
+    const handleSkipRegistration = () => {
+        setShowRegistrationModal(false);
+    };
+
+    return (
+        <div className="relative h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
+            {/* Extra Charges Modal */}
+            {showExtraChargesModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowExtraChargesModal(false)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-5">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-base font-bold text-gray-900">Additional Charges</h3>
+                                <button
+                                    onClick={() => setShowExtraChargesModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-sm text-gray-700">• Extra Pay for One Way Drop Return Ticket</p>
+                                <p className="text-sm text-gray-700">• Food Extra</p>
+                                <p className="text-sm text-gray-700">• Staying Accommodation (Not Mandatory)</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] sm:text-xs text-gray-500 font-medium">License Number</p>
-                      <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{selectedDriverOrLead.licenseNo}</p>
-                    </div>
-                  </div>
-                  {(selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto) && (
-                    <img 
-                      src={(selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto)?.startsWith('http') ? (selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto) : `${API_BASE_URL}${selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto}`} 
-                      alt="License" 
-                      className="w-full h-32 sm:h-40 rounded-lg sm:rounded-xl object-contain bg-white border border-gray-200" 
-                    />
-                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Background Map Image or Route Map */}
-      {formData.pickup && formData.drop ? (
-        <RouteMap 
-          pickup={formData.pickup}
-          drop={formData.drop}
-          apiKey="AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8"
-        />
-      ) : (
-        <div 
-          className="absolute inset-0 bg-cover bg-center opacity-80"
-          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
-        ></div>
-      )}
-      
-      {/* Registration Modal */}
-      {showRegistrationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleRegistrationSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-              <div className="text-center mb-3 sm:mb-4">
-                <h2 className="text-lg sm:text-xl font-bold">Complete Your Profile</h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">Help us serve you better</p>
-              </div>
+            )}
+            {showDriverProfile && selectedDriverOrLead && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
+                        {/* Header */}
+                        <div className="relative bg-gradient-to-br from-black to-gray-800 p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl">
+                            <button onClick={() => setShowDriverProfile(false)} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-white hover:bg-white/20 rounded-full p-1.5 sm:p-2 transition">
+                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <div className="flex flex-col items-center text-white">
+                                {(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) ? (
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-lg mb-2 sm:mb-3 overflow-hidden bg-white flex items-center justify-center p-1">
+                                        <img
+                                            src={(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo)?.startsWith('http') ? (selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) : `${API_BASE_URL}${selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo}`}
+                                            alt="Photo"
+                                            className="w-full h-full object-contain rounded-full"
+                                            onError={(e) => {
+                                                e.currentTarget.parentElement.style.display = 'none';
+                                                e.currentTarget.parentElement.nextElementSibling.style.display = 'flex';
+                                            }}
+                                        />
+                                    </div>
+                                ) : null}
+                                <div className={`w-20 h-20 sm:w-24 sm:h-24 bg-white text-gray-900 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-2 sm:mb-3 ${(selectedDriverOrLead.documents?.photo || selectedDriverOrLead.photo) ? 'hidden' : ''}`}>
+                                    {selectedDriverOrLead.name?.[0] || 'D'}
+                                </div>
+                                <h2 className="text-xl sm:text-2xl font-bold">{selectedDriverOrLead.name || 'Driver/Lead'}</h2>
+                            </div>
+                        </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Full Name</label>
-                <input 
-                  type="text"
-                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                  value={registrationData.name}
-                  onChange={(e) => setRegistrationData({...registrationData, name: e.target.value})}
-                  required
+                        {/* Content */}
+                        <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                            {/* Contact Info */}
+                            <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-2 sm:space-y-3">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Phone Number</p>
+                                        <a href={`tel:${selectedDriverOrLead.phone}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.phone || 'N/A'}</a>
+                                    </div>
+                                    <a href={`tel:${selectedDriverOrLead.phone}`} className="w-9 h-9 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition shadow-lg flex-shrink-0">
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                    </a>
+                                </div>
+                                {(selectedDriverOrLead.alternateMobile1 || selectedDriverOrLead.alternateMobile2 || selectedDriverOrLead.alternateMobile3 || selectedDriverOrLead.alternateMobile4) && (
+                                    <div className="pt-2 sm:pt-3 border-t border-gray-200 space-y-2">
+                                        {selectedDriverOrLead.alternateMobile1 && (
+                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 1</p>
+                                                    <a href={`tel:${selectedDriverOrLead.alternateMobile1}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile1}</a>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedDriverOrLead.alternateMobile2 && (
+                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 2</p>
+                                                    <a href={`tel:${selectedDriverOrLead.alternateMobile2}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile2}</a>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedDriverOrLead.alternateMobile3 && (
+                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 3</p>
+                                                    <a href={`tel:${selectedDriverOrLead.alternateMobile3}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile3}</a>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedDriverOrLead.alternateMobile4 && (
+                                            <div className="flex items-center gap-2 sm:gap-3">
+                                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Alternate 4</p>
+                                                    <a href={`tel:${selectedDriverOrLead.alternateMobile4}`} className="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 truncate block">{selectedDriverOrLead.alternateMobile4}</a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Languages Known by Driver */}
+                            {((selectedDriverOrLead.languagesKnown && selectedDriverOrLead.languagesKnown.length > 0)) && (
+                                <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                                    <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 text-base">
+                                            ???
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Languages Known</p>
+                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                                {selectedDriverOrLead.languagesKnown.map((lang: string) => (
+                                                    <span key={lang} className="bg-black text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                                                        {lang}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* License Info */}
+                            {selectedDriverOrLead.licenseNo && (
+                                <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4">
+                                    <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm2.45 4a2.5 2.5 0 10-4.9 0h4.9zM12 9a1 1 0 100 2h3a1 1 0 100-2h-3zm-1 4a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] sm:text-xs text-gray-500 font-medium">License Number</p>
+                                            <p className="text-sm sm:text-base font-bold text-gray-900 truncate">{selectedDriverOrLead.licenseNo}</p>
+                                        </div>
+                                    </div>
+                                    {(selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto) && (
+                                        <img
+                                            src={(selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto)?.startsWith('http') ? (selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto) : `${API_BASE_URL}${selectedDriverOrLead.documents?.dl || selectedDriverOrLead.dlPhoto}`}
+                                            alt="License"
+                                            className="w-full h-32 sm:h-40 rounded-lg sm:rounded-xl object-contain bg-white border border-gray-200"
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Background Map Image or Route Map */}
+            {formData.pickup && formData.drop ? (
+                <RouteMap
+                    pickup={formData.pickup}
+                    drop={formData.drop}
+                    apiKey="AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8"
                 />
-              </div>
+            ) : (
+                <div
+                    className="absolute inset-0 bg-cover bg-center opacity-80"
+                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
+                ></div>
+            )}
+
+            {/* Registration Modal */}
+            {showRegistrationModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+                    <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                        <form onSubmit={handleRegistrationSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                            <div className="text-center mb-3 sm:mb-4">
+                                <h2 className="text-lg sm:text-xl font-bold">Complete Your Profile</h2>
+                                <p className="text-xs sm:text-sm text-gray-500 mt-1">Help us serve you better</p>
+                            </div>
 
                             <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Alternate Mobile Number (Optional)</label>
-                <input 
-                  type="tel"
-                  maxLength={10}
-                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                  value={registrationData.alternateMobile || ''}
-                  onChange={(e) => setRegistrationData({...registrationData, alternateMobile: e.target.value.replace(/\D/g, '')})}
-                  placeholder="10-digit mobile number"
-                />
-              </div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Full Name</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                    value={registrationData.name}
+                                    onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
+                                    required
+                                />
+                            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Phone Number</label>
-                <input 
-                  type="tel"
-                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                  value={registrationData.phone}
-                  onChange={(e) => {
-                    const newPhone = e.target.value;
-                    setRegistrationData(prev => ({
-                      ...prev, 
-                      phone: newPhone,
-                      ...(prev.phoneSameAsWhatsapp && { whatsappNumber: newPhone })
-                    }));
-                  }}
-                  required
-                />
-              </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Alternate Mobile Number (Optional)</label>
+                                <input
+                                    type="tel"
+                                    maxLength={10}
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                    value={registrationData.alternateMobile || ''}
+                                    onChange={(e) => setRegistrationData({ ...registrationData, alternateMobile: e.target.value.replace(/\D/g, '') })}
+                                    placeholder="10-digit mobile number"
+                                />
+                            </div>
 
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="regPhoneSameAsWhatsapp"
-                  className="mr-2 rounded border-gray-300 text-black focus:ring-black"
-                  checked={registrationData.phoneSameAsWhatsapp}
-                  onChange={(e) => {
-                    const isChecked = e.target.checked;
-                    setRegistrationData(prev => ({
-                      ...prev,
-                      phoneSameAsWhatsapp: isChecked,
-                      ...(isChecked && { whatsappNumber: prev.phone })
-                    }));
-                  }}
-                />
-                <label htmlFor="regPhoneSameAsWhatsapp" className="text-xs font-medium text-gray-700">Phone same as WhatsApp number</label>
-              </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Phone Number</label>
+                                <input
+                                    type="tel"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                    value={registrationData.phone}
+                                    onChange={(e) => {
+                                        const newPhone = e.target.value;
+                                        setRegistrationData(prev => ({
+                                            ...prev,
+                                            phone: newPhone,
+                                            ...(prev.phoneSameAsWhatsapp && { whatsappNumber: newPhone })
+                                        }));
+                                    }}
+                                    required
+                                />
+                            </div>
 
-              {!registrationData.phoneSameAsWhatsapp && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">WhatsApp Number</label>
-                  <input 
-                    type="tel"
-                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                    value={registrationData.whatsappNumber}
-                    onChange={(e) => setRegistrationData({...registrationData, whatsappNumber: e.target.value})}
-                    required={!registrationData.phoneSameAsWhatsapp}
-                  />
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="regPhoneSameAsWhatsapp"
+                                    className="mr-2 rounded border-gray-300 text-black focus:ring-black"
+                                    checked={registrationData.phoneSameAsWhatsapp}
+                                    onChange={(e) => {
+                                        const isChecked = e.target.checked;
+                                        setRegistrationData(prev => ({
+                                            ...prev,
+                                            phoneSameAsWhatsapp: isChecked,
+                                            ...(isChecked && { whatsappNumber: prev.phone })
+                                        }));
+                                    }}
+                                />
+                                <label htmlFor="regPhoneSameAsWhatsapp" className="text-xs font-medium text-gray-700">Phone same as WhatsApp number</label>
+                            </div>
+
+                            {!registrationData.phoneSameAsWhatsapp && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">WhatsApp Number</label>
+                                    <input
+                                        type="tel"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                        value={registrationData.whatsappNumber}
+                                        onChange={(e) => setRegistrationData({ ...registrationData, whatsappNumber: e.target.value })}
+                                        required={!registrationData.phoneSameAsWhatsapp}
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Address</label>
+                                <textarea
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
+                                    rows={3}
+                                    value={registrationData.address}
+                                    onChange={(e) => setRegistrationData({ ...registrationData, address: e.target.value })}
+                                    placeholder="#123, Street Name, City"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">ID Proof</label>
+                                <input
+                                    type="file"
+                                    accept="image/*,.pdf,.doc,.docx,.txt"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-black file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const uploadResponse = await uploadFile(file);
+                                            if (uploadResponse.success) {
+                                                setRegistrationData({ ...registrationData, idProof: uploadResponse.fileId });
+                                                toast.success('File uploaded successfully!');
+                                            } else {
+                                                toast.error(uploadResponse.error || 'Failed to upload file');
+                                            }
+                                        }
+                                    }}
+                                />
+                                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
+                            </div>
+
+                            <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
+                                <button
+                                    type="button"
+                                    onClick={handleSkipRegistration}
+                                    className="flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200"
+                                >
+                                    Skip
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-black text-white py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-bold hover:bg-gray-800"
+                                >
+                                    Complete Registration
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-              )}
+            )}
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Address</label>
-                <textarea 
-                  className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
-                  rows={3}
-                  value={registrationData.address}
-                  onChange={(e) => setRegistrationData({...registrationData, address: e.target.value})}
-                  placeholder="#123, Street Name, City"
-                />
-              </div>
+            {/* Floating Panel */}
+            <div className={`absolute md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden ${formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[60vh] rounded-t-3xl' : 'inset-0'
+                }`}>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">ID Proof</label>
-                <input 
-                  type="file"
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-black file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const uploadResponse = await uploadFile(file);
-                      if (uploadResponse.success) {
-                        setRegistrationData({...registrationData, idProof: uploadResponse.fileId});
-                        toast.success('File uploaded successfully!');
-                      } else {
-                        toast.error(uploadResponse.error || 'Failed to upload file');
-                      }
-                    }
-                  }}
-                />
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
-              </div>
-
-              <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
-                <button 
-                  type="button" 
-                  onClick={handleSkipRegistration}
-                  className="flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200"
-                >
-                  Skip
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 bg-black text-white py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-bold hover:bg-gray-800"
-                >
-                  Complete Registration
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      
-      {/* Floating Panel */}
-      <div className={`absolute md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden ${
-        formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[60vh] rounded-t-3xl' : 'inset-0'
-      }`}>
-          
-          {/* Header & Tabs */}
-          <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
-              <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
-                  {/* SOS button near Book button commented out as requested */}
-                  {/* <button 
+                {/* Header & Tabs */}
+                <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <img src="/snp-logo.png" alt="SNP Logo" className="h-7 w-auto object-contain" />
+                        <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
+                    </div>
+                    <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
+                        {/* SOS button near Book button commented out as requested */}
+                        {/* <button 
                     type="button"
                     onClick={() => {
                       setSosTargetTrip(null);
@@ -966,273 +994,155 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </svg>
                     <span>SOS</span>
                   </button> */}
-                  <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
-                  <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Trips</button>
-                  <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Profile</button>
-              </div>
-          </div>
-
-          {activeTab === 'BOOK' && (
-              <>
-                <div className="flex-grow min-h-0 overflow-y-auto px-3 sm:px-4 pt-3 sm:pt-4 pb-8 custom-scrollbar">
-                    {/* Main Category Selection */}
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                if ([BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)) {
-                                    setDriverType(BookingType.ACTING);
-                                }
-                            }}
-                            className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${
-                                ![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)
-                                    ? 'bg-black text-white border-black' 
-                                    : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            <span className="font-bold text-xs sm:text-sm">Standard</span>
-                            <span className={`text-[9px] sm:text-[10px] mt-0.5 ${![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) ? 'text-gray-300' : 'text-gray-500'}`}>Hourly/Daily</span>
-                        </button>
-                        
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setDriverType(BookingType.WEEKLY);
-                            }}
-                            className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${
-                                driverType === BookingType.WEEKLY
-                                    ? 'bg-blue-600 text-white border-blue-600' 
-                                    : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            <span className="font-bold text-xs sm:text-sm">Weekly</span>
-                            <span className={`text-[9px] sm:text-[10px] mt-0.5 ${driverType === BookingType.WEEKLY ? 'text-blue-100' : 'text-gray-500'}`}>Short Term</span>
-                        </button>
-                        
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setDriverType(BookingType.MONTHLY);
-                            }}
-                            className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${
-                                driverType === BookingType.MONTHLY
-                                    ? 'bg-green-600 text-white border-green-600' 
-                                    : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
-                            }`}
-                        >
-                            <span className="font-bold text-xs sm:text-sm">Monthly</span>
-                            <span className={`text-[9px] sm:text-[10px] mt-0.5 ${driverType === BookingType.MONTHLY ? 'text-green-100' : 'text-gray-500'}`}>Long Term</span>
-                        </button>
+                        <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
+                        <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Trips</button>
+                        <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Profile</button>
                     </div>
+                </div>
 
-                    {/* Trip Type Buttons */}
-                    {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
-                        <>
-                            <div className="flex gap-2 mb-4">
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setServiceType(BookingType.LOCAL_HOURLY);
-                                setFormData({...formData, tripType: 'One Way', estimatedUsage: '4 Hrs', pickup: oneWayData.pickup, drop: oneWayData.drop});
-                                setDropError('');
-                                setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
-                            }}
-                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
-                                serviceType === BookingType.LOCAL_HOURLY
-                                    ? 'bg-black text-white' 
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Local
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setServiceType(BookingType.OUTSTATION);
-                                setFormData({...formData, tripType: 'One Way', estimatedUsage: '8 Hrs', pickup: outstationData.pickup, drop: outstationData.drop});
-                                setDropError('');
-                                setTimeout(() => handleEstimateWithValues('8 Hrs', true), 100);
-                            }}
-                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${
-                                serviceType === BookingType.OUTSTATION
-                                    ? 'bg-black text-white' 
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Outstation
-                        </button>
-                    </div>
+                {activeTab === 'BOOK' && (
+                    <>
+                        <div className="flex-grow min-h-0 overflow-y-auto px-3 sm:px-4 pt-3 sm:pt-4 pb-8 custom-scrollbar">
+                            {/* Main Category Selection */}
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if ([BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)) {
+                                            setDriverType(BookingType.ACTING);
+                                        }
+                                    }}
+                                    className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)
+                                        ? 'bg-black text-white border-black'
+                                        : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="font-bold text-xs sm:text-sm">Standard</span>
+                                    <span className={`text-[9px] sm:text-[10px] mt-0.5 ${![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) ? 'text-gray-300' : 'text-gray-500'}`}>Hourly/Daily</span>
+                                </button>
 
-                    {/* Local Sub-options: One Way and Round Trip */}
-                    {serviceType === BookingType.LOCAL_HOURLY && (
-                        <div className="flex gap-2 mb-4">
-                            <button 
-                                type="button"
-                                onClick={() => {
-                                    setFormData({...formData, tripType: 'One Way', pickup: oneWayData.pickup, drop: oneWayData.drop});
-                                    setDropError('');
-                                }}
-                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
-                                    formData.tripType === 'One Way'
-                                        ? 'bg-gray-800 text-white' 
-                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                }`}
-                            >
-                                One Way
-                            </button>
-                            <button 
-                                type="button"
-                                onClick={() => {
-                                    setFormData({...formData, tripType: 'Round Trip', pickup: roundTripData.pickup, drop: roundTripData.drop});
-                                    setDropError('');
-                                }}
-                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
-                                    formData.tripType === 'Round Trip'
-                                        ? 'bg-gray-800 text-white' 
-                                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                }`}
-                            >
-                                Round Trip
-                            </button>
-                        </div>
-                    )}
-                        </>
-                    )}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setDriverType(BookingType.WEEKLY);
+                                    }}
+                                    className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${driverType === BookingType.WEEKLY
+                                        ? 'bg-blue-600 text-white border-blue-600'
+                                        : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="font-bold text-xs sm:text-sm">Weekly</span>
+                                    <span className={`text-[9px] sm:text-[10px] mt-0.5 ${driverType === BookingType.WEEKLY ? 'text-blue-100' : 'text-gray-500'}`}>Short Term</span>
+                                </button>
 
-                    {/* Location Inputs */}
-                    <div className="relative mb-4">
-                        <div className="absolute left-4 top-4 bottom-4 w-4 flex flex-col items-center">
-                            <div className="w-2 h-2 bg-black rounded-full"></div>
-                            {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setDriverType(BookingType.MONTHLY);
+                                    }}
+                                    className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${driverType === BookingType.MONTHLY
+                                        ? 'bg-green-600 text-white border-green-600'
+                                        : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
+                                        }`}
+                                >
+                                    <span className="font-bold text-xs sm:text-sm">Monthly</span>
+                                    <span className={`text-[9px] sm:text-[10px] mt-0.5 ${driverType === BookingType.MONTHLY ? 'text-green-100' : 'text-gray-500'}`}>Long Term</span>
+                                </button>
+                            </div>
+
+                            {/* Trip Type Buttons */}
+                            {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
                                 <>
-                                    <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
-                                    <div className="w-2 h-2 bg-black border border-black"></div>
+                                    <div className="flex gap-2 mb-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setServiceType(BookingType.LOCAL_HOURLY);
+                                                setFormData({ ...formData, tripType: 'One Way', estimatedUsage: '4 Hrs', pickup: oneWayData.pickup, drop: oneWayData.drop });
+                                                setDropError('');
+                                                setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
+                                            }}
+                                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${serviceType === BookingType.LOCAL_HOURLY
+                                                ? 'bg-black text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}
+                                        >
+                                            Local
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setServiceType(BookingType.OUTSTATION);
+                                                setFormData({ ...formData, tripType: 'One Way', estimatedUsage: '8 Hrs', pickup: outstationData.pickup, drop: outstationData.drop });
+                                                setDropError('');
+                                                setTimeout(() => handleEstimateWithValues('8 Hrs', true), 100);
+                                            }}
+                                            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${serviceType === BookingType.OUTSTATION
+                                                ? 'bg-black text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                }`}
+                                        >
+                                            Outstation
+                                        </button>
+                                    </div>
+
+                                    {/* Local Sub-options: One Way and Round Trip */}
+                                    {serviceType === BookingType.LOCAL_HOURLY && (
+                                        <div className="flex gap-2 mb-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData({ ...formData, tripType: 'One Way', pickup: oneWayData.pickup, drop: oneWayData.drop });
+                                                    setDropError('');
+                                                }}
+                                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${formData.tripType === 'One Way'
+                                                    ? 'bg-gray-800 text-white'
+                                                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                            >
+                                                One Way
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setFormData({ ...formData, tripType: 'Round Trip', pickup: roundTripData.pickup, drop: roundTripData.drop });
+                                                    setDropError('');
+                                                }}
+                                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${formData.tripType === 'Round Trip'
+                                                    ? 'bg-gray-800 text-white'
+                                                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                            >
+                                                Round Trip
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
                             )}
-                        </div>
-                        <div className="pl-10 space-y-3">
-                            <LocationAutocomplete
-                                value={formData.pickup}
-                                onChange={async (value) => {
-                                    setShowEstimateWarning(false);
-                                    setFormData({...formData, pickup: value});
-                                    if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
-                                        setOneWayData({...oneWayData, pickup: value});
-                                        setOneWayErrors({...oneWayErrors, pickup: ''});
-                                        // Calculate distance for local and auto-set package based on Min KM
-                                        if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
-                                            const distanceData = await calculateDistance(value, formData.drop);
-                                            if (distanceData) {
-                                                setCalculatedDistance(distanceData.distance);
-                                                setCalculatedDuration(distanceData.duration);
-                                                const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
-                                                if (breakdown) {
-                                                    setFareBreakdown(breakdown);
-                                                    setEstimate(breakdown.totalFare);
-                                                    setFormData({...formData, pickup: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}`});
-                                                }
-                                            }
-                                        } else {
-                                            setCalculatedDistance(null);
-                                            setCalculatedDuration(null);
-                                            if (formData.estimatedUsage) {
-                                                setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
-                                            }
-                                        }
-                                    } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
-                                        setRoundTripData({...roundTripData, pickup: value});
-                                        setRoundTripErrors({...roundTripErrors, pickup: ''});
-                                        // Recalculate fare for local
-                                        if (formData.estimatedUsage) {
-                                            setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
-                                        }
-                                    } else if (serviceType === BookingType.OUTSTATION) {
-                                        setOutstationData({...outstationData, pickup: value});
-                                        setOutstationErrors({...outstationErrors, pickup: ''});
-                                        
-                                        // Reset distance and fare when pickup changes for outstation
-                                        setCalculatedDistance(null);
-                                        setCalculatedDuration(null);
-                                        setEstimate(null);
-                                        setFareBreakdown(null);
-                                        
-                                        // Recalculate if both pickup and drop are available
-                                        if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
-                                            const distanceData = await calculateDistance(value, formData.drop);
-                                            if (distanceData) {
-                                                // Check if distance is less than 60km for outstation
-                                                if (distanceData.distance < 60) {
-                                                    // Don't calculate fare for short distances
-                                                    return;
-                                                }
-                                                
-                                                setCalculatedDistance(distanceData.distance);
-                                                setCalculatedDuration(distanceData.duration);
-                                                
-                                                // Auto-select package based on distance
-                                                const packageInfo = getPackageByDistance(distanceData.distance);
-                                                setFormData(prev => ({...prev, pickup: value, estimatedUsage: `${packageInfo.hours} Hrs`}));
-                                                
-                                                // Calculate fare based on distance
-                                                const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
-                                                if (breakdown) {
-                                                    setFareBreakdown(breakdown);
-                                                    setOutstationDailyFare(breakdown.totalFare);
-                                                    if (formData.tripType === 'Round Trip') {
-                                                        applyOutstationDaysEstimate(breakdown.totalFare);
-                                                    } else {
-                                                        setEstimate(breakdown.totalFare);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (!value) return;
-                                    
-                                    // Check service availability immediately
-                                    if (value && value.includes(',')) {
-                                        const response = await fetch(
-                                            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(value)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
-                                        );
-                                        const data = await response.json();
-                                        if (data.results && data.results[0]) {
-                                            const location = data.results[0].geometry.location;
-                                            const availability = await checkServiceAvailability(location.lat, location.lng);
-                                            if (!availability.available) {
-                                                if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
-                                                    setOneWayErrors({...oneWayErrors, pickup: 'Sorry, service not available in this area'});
-                                                } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
-                                                    setRoundTripErrors({...roundTripErrors, pickup: 'Sorry, service not available in this area'});
-                                                } else if (serviceType === BookingType.OUTSTATION) {
-                                                    setOutstationErrors({...outstationErrors, pickup: 'Sorry, service not available in this area'});
-                                                }
-                                            }
-                                        }
-                                    }
-                                }}
-                                placeholder="Pickup location"
-                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
-                                showMyLocation={true}
-                                readOnly={true}
-                            />
-                            {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.pickup}</p>}
-                            {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip' && roundTripErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{roundTripErrors.pickup}</p>}
-                            {serviceType === BookingType.OUTSTATION && outstationErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.pickup}</p>}
-                            {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
-                                <>
+
+                            {/* Location Inputs */}
+                            <div className="relative mb-4">
+                                <div className="absolute left-4 top-4 bottom-4 w-4 flex flex-col items-center">
+                                    <div className="w-2 h-2 bg-black rounded-full"></div>
+                                    {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
+                                        <>
+                                            <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
+                                            <div className="w-2 h-2 bg-black border border-black"></div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="pl-10 space-y-3">
                                     <LocationAutocomplete
-                                        key={`${serviceType}-${formData.tripType}`}
-                                        value={formData.drop}
+                                        value={formData.pickup}
                                         onChange={async (value) => {
                                             setShowEstimateWarning(false);
-                                            setFormData({...formData, drop: value});
+                                            setFormData({ ...formData, pickup: value });
                                             if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
-                                                setOneWayData({...oneWayData, drop: value});
-                                                setOneWayErrors({...oneWayErrors, drop: ''});
+                                                setOneWayData({ ...oneWayData, pickup: value });
+                                                setOneWayErrors({ ...oneWayErrors, pickup: '' });
                                                 // Calculate distance for local and auto-set package based on Min KM
-                                                if (formData.pickup && value && formData.pickup.includes(',') && value.includes(',')) {
-                                                    const distanceData = await calculateDistance(formData.pickup, value);
+                                                if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
+                                                    const distanceData = await calculateDistance(value, formData.drop);
                                                     if (distanceData) {
                                                         setCalculatedDistance(distanceData.distance);
                                                         setCalculatedDuration(distanceData.duration);
@@ -1240,7 +1150,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         if (breakdown) {
                                                             setFareBreakdown(breakdown);
                                                             setEstimate(breakdown.totalFare);
-                                                            setFormData({...formData, drop: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}`});
+                                                            setFormData({ ...formData, pickup: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}` });
                                                         }
                                                     }
                                                 } else {
@@ -1250,53 +1160,59 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
                                                     }
                                                 }
+                                            } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
+                                                setRoundTripData({ ...roundTripData, pickup: value });
+                                                setRoundTripErrors({ ...roundTripErrors, pickup: '' });
+                                                // Recalculate fare for local
+                                                if (formData.estimatedUsage) {
+                                                    setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                                }
                                             } else if (serviceType === BookingType.OUTSTATION) {
-                                                setOutstationData({...outstationData, drop: value});
-                                                setOutstationErrors({...outstationErrors, drop: ''});
-                                            }
-                                            
-                                            if (!value) {
-                                                // Reset distance when drop location is cleared
+                                                setOutstationData({ ...outstationData, pickup: value });
+                                                setOutstationErrors({ ...outstationErrors, pickup: '' });
+
+                                                // Reset distance and fare when pickup changes for outstation
                                                 setCalculatedDistance(null);
                                                 setCalculatedDuration(null);
                                                 setEstimate(null);
                                                 setFareBreakdown(null);
-                                                return;
-                                            }
-                                            
-                                            // For Outstation: Calculate distance and auto-select package
-                                            if (serviceType === BookingType.OUTSTATION && formData.pickup && value.includes(',')) {
-                                                const distanceData = await calculateDistance(formData.pickup, value);
-                                                if (distanceData) {
-                                                    // Check if distance is less than 60km for outstation
-                                                    if (distanceData.distance < 60) {
-                                                        // Don't calculate fare for short distances
-                                                        return;
-                                                    }
-                                                    
-                                                    setCalculatedDistance(distanceData.distance);
-                                                    setCalculatedDuration(distanceData.duration);
-                                                    
-                                                    // Auto-select package based on distance
-                                                    const packageInfo = getPackageByDistance(distanceData.distance);
-                                                    setFormData({...formData, drop: value, estimatedUsage: `${packageInfo.hours} Hrs`});
-                                                    
-                                                    // Calculate fare based on distance
-                                                    const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
-                                                    if (breakdown) {
-                                                        setFareBreakdown(breakdown);
-                                                        setOutstationDailyFare(breakdown.totalFare);
-                                                        if (formData.tripType === 'Round Trip') {
-                                                            applyOutstationDaysEstimate(breakdown.totalFare);
-                                                        } else {
-                                                            setEstimate(breakdown.totalFare);
+
+                                                // Recalculate if both pickup and drop are available
+                                                if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
+                                                    const distanceData = await calculateDistance(value, formData.drop);
+                                                    if (distanceData) {
+                                                        // Check if distance is less than 60km for outstation
+                                                        if (distanceData.distance < 60) {
+                                                            // Don't calculate fare for short distances
+                                                            return;
+                                                        }
+
+                                                        setCalculatedDistance(distanceData.distance);
+                                                        setCalculatedDuration(distanceData.duration);
+
+                                                        // Auto-select package based on distance
+                                                        const packageInfo = getPackageByDistance(distanceData.distance);
+                                                        setFormData(prev => ({ ...prev, pickup: value, estimatedUsage: `${packageInfo.hours} Hrs` }));
+
+                                                        // Calculate fare based on distance
+                                                        const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
+                                                        if (breakdown) {
+                                                            setFareBreakdown(breakdown);
+                                                            setOutstationDailyFare(breakdown.totalFare);
+                                                            if (formData.tripType === 'Round Trip') {
+                                                                applyOutstationDaysEstimate(breakdown.totalFare);
+                                                            } else {
+                                                                setEstimate(breakdown.totalFare);
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
-                                            
-                                            // Check service availability only for Local One Way, not for Outstation
-                                            if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && value.includes(',')) {
+
+                                            if (!value) return;
+
+                                            // Check service availability immediately
+                                            if (value && value.includes(',')) {
                                                 const response = await fetch(
                                                     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(value)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
                                                 );
@@ -1305,24 +1221,129 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     const location = data.results[0].geometry.location;
                                                     const availability = await checkServiceAvailability(location.lat, location.lng);
                                                     if (!availability.available) {
-                                                        setOneWayErrors({...oneWayErrors, drop: 'Sorry, service not available in this area'});
+                                                        if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
+                                                            setOneWayErrors({ ...oneWayErrors, pickup: 'Sorry, service not available in this area' });
+                                                        } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
+                                                            setRoundTripErrors({ ...roundTripErrors, pickup: 'Sorry, service not available in this area' });
+                                                        } else if (serviceType === BookingType.OUTSTATION) {
+                                                            setOutstationErrors({ ...outstationErrors, pickup: 'Sorry, service not available in this area' });
+                                                        }
                                                     }
                                                 }
                                             }
                                         }}
-                                        placeholder="Drop location"
+                                        placeholder="Pickup location"
                                         className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                        showMyLocation={true}
                                         readOnly={true}
                                     />
-                                    {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.drop}</p>}
-                                    {serviceType === BookingType.OUTSTATION && outstationErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.drop}</p>}
-                                </>
-                            )}
-                        </div>
-                    </div>
+                                    {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.pickup}</p>}
+                                    {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip' && roundTripErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{roundTripErrors.pickup}</p>}
+                                    {serviceType === BookingType.OUTSTATION && outstationErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.pickup}</p>}
+                                    {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
+                                        <>
+                                            <LocationAutocomplete
+                                                key={`${serviceType}-${formData.tripType}`}
+                                                value={formData.drop}
+                                                onChange={async (value) => {
+                                                    setShowEstimateWarning(false);
+                                                    setFormData({ ...formData, drop: value });
+                                                    if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
+                                                        setOneWayData({ ...oneWayData, drop: value });
+                                                        setOneWayErrors({ ...oneWayErrors, drop: '' });
+                                                        // Calculate distance for local and auto-set package based on Min KM
+                                                        if (formData.pickup && value && formData.pickup.includes(',') && value.includes(',')) {
+                                                            const distanceData = await calculateDistance(formData.pickup, value);
+                                                            if (distanceData) {
+                                                                setCalculatedDistance(distanceData.distance);
+                                                                setCalculatedDuration(distanceData.duration);
+                                                                const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
+                                                                if (breakdown) {
+                                                                    setFareBreakdown(breakdown);
+                                                                    setEstimate(breakdown.totalFare);
+                                                                    setFormData({ ...formData, drop: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}` });
+                                                                }
+                                                            }
+                                                        } else {
+                                                            setCalculatedDistance(null);
+                                                            setCalculatedDuration(null);
+                                                            if (formData.estimatedUsage) {
+                                                                setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
+                                                            }
+                                                        }
+                                                    } else if (serviceType === BookingType.OUTSTATION) {
+                                                        setOutstationData({ ...outstationData, drop: value });
+                                                        setOutstationErrors({ ...outstationErrors, drop: '' });
+                                                    }
 
-                    {/* AI Helper */}
-                    {/* <div className="flex gap-2 mb-4">
+                                                    if (!value) {
+                                                        // Reset distance when drop location is cleared
+                                                        setCalculatedDistance(null);
+                                                        setCalculatedDuration(null);
+                                                        setEstimate(null);
+                                                        setFareBreakdown(null);
+                                                        return;
+                                                    }
+
+                                                    // For Outstation: Calculate distance and auto-select package
+                                                    if (serviceType === BookingType.OUTSTATION && formData.pickup && value.includes(',')) {
+                                                        const distanceData = await calculateDistance(formData.pickup, value);
+                                                        if (distanceData) {
+                                                            // Check if distance is less than 60km for outstation
+                                                            if (distanceData.distance < 60) {
+                                                                // Don't calculate fare for short distances
+                                                                return;
+                                                            }
+
+                                                            setCalculatedDistance(distanceData.distance);
+                                                            setCalculatedDuration(distanceData.duration);
+
+                                                            // Auto-select package based on distance
+                                                            const packageInfo = getPackageByDistance(distanceData.distance);
+                                                            setFormData({ ...formData, drop: value, estimatedUsage: `${packageInfo.hours} Hrs` });
+
+                                                            // Calculate fare based on distance
+                                                            const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
+                                                            if (breakdown) {
+                                                                setFareBreakdown(breakdown);
+                                                                setOutstationDailyFare(breakdown.totalFare);
+                                                                if (formData.tripType === 'Round Trip') {
+                                                                    applyOutstationDaysEstimate(breakdown.totalFare);
+                                                                } else {
+                                                                    setEstimate(breakdown.totalFare);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Check service availability only for Local One Way, not for Outstation
+                                                    if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && value.includes(',')) {
+                                                        const response = await fetch(
+                                                            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(value)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+                                                        );
+                                                        const data = await response.json();
+                                                        if (data.results && data.results[0]) {
+                                                            const location = data.results[0].geometry.location;
+                                                            const availability = await checkServiceAvailability(location.lat, location.lng);
+                                                            if (!availability.available) {
+                                                                setOneWayErrors({ ...oneWayErrors, drop: 'Sorry, service not available in this area' });
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                                placeholder="Drop location"
+                                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-500"
+                                                readOnly={true}
+                                            />
+                                            {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.drop}</p>}
+                                            {serviceType === BookingType.OUTSTATION && outstationErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.drop}</p>}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* AI Helper */}
+                            {/* <div className="flex gap-2 mb-4">
                         <input 
                             className="flex-grow bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs"
                             placeholder="Describe your trip (e.g. Need driver for 2 days outstation)"
@@ -1333,48 +1354,48 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             {isAiLoading ? '...' : '→'}
                         </button>
                     </div> */}
-                    
-                    {/* Choose Service Dropdown - Hidden for Weekly/Monthly */}
-                    {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
-                        <div className="relative mb-3">
-                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose Service</label>
-                            <div 
-                                onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
-                                className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                            >
-                                <span>{driverType}</span>
-                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                            {openDropdown === 'service' && (
-                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
-                                    {[
-                                        BookingType.ACTING,
-                                        BookingType.SPARE,
-                                        BookingType.TEMPORARY,
-                                        BookingType.VALET,
-                                        BookingType.DAILY
-                                    ].map((type) => (
-                                    <div 
-                                        key={type}
-                                        onClick={() => { setDriverType(type); setOpenDropdown(null); }}
-                                        className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${driverType === type ? 'bg-gray-100' : ''}`}
+
+                            {/* Choose Service Dropdown - Hidden for Weekly/Monthly */}
+                            {![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType) && (
+                                <div className="relative mb-3">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose Service</label>
+                                    <div
+                                        onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
+                                        className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                                     >
-                                        <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
-                                            <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-xs">{type}</h4>
-                                            <p className="text-[10px] text-gray-500">Reliable & Verified</p>
-                                        </div>
+                                        <span>{driverType}</span>
+                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                     </div>
-                                ))}
+                                    {openDropdown === 'service' && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
+                                            {[
+                                                BookingType.ACTING,
+                                                BookingType.SPARE,
+                                                BookingType.TEMPORARY,
+                                                BookingType.VALET,
+                                                BookingType.DAILY
+                                            ].map((type) => (
+                                                <div
+                                                    key={type}
+                                                    onClick={() => { setDriverType(type); setOpenDropdown(null); }}
+                                                    className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${driverType === type ? 'bg-gray-100' : ''}`}
+                                                >
+                                                    <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
+                                                        <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-xs">{type}</h4>
+                                                        <p className="text-[10px] text-gray-500">Reliable & Verified</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
-                    )}
 
-                    {/* Choose Type of Service Dropdown - Show for all services */}
-                    {/* <div className="relative mb-3">
+                            {/* Choose Type of Service Dropdown - Show for all services */}
+                            {/* <div className="relative mb-3">
                         <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Choose type of service</label>
                         <div 
                             onClick={() => setOpenDropdown(openDropdown === 'serviceType' ? null : 'serviceType')}
@@ -1393,7 +1414,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         key={type}
                                         onClick={() => { 
                                             setServiceType(type); 
-                                            setFormData({...formData, estimatedUsage: type === BookingType.LOCAL_HOURLY ? '1 Hr' : '4 Hrs'});
+                                            setFormData({...formData, estimatedUsage: '4 Hrs'});
                                             setOpenDropdown(null); 
                                         }}
                                         className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${serviceType === type ? 'bg-gray-100' : ''}`}
@@ -1410,153 +1431,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             </div>
                         )}
                     </div> */}
-                    
-                    {/* Monthly Driver Form */}
-                    {driverType === BookingType.MONTHLY && (
-                        <>
-                            <div className="relative mb-3">
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Vehicle Type</label>
-                                <div 
-                                    onClick={() => setOpenDropdown(openDropdown === 'monthlyVehicle' ? null : 'monthlyVehicle')}
-                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                                >
-                                    <span>{formData.vehicleType}</span>
-                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'monthlyVehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                                {openDropdown === 'monthlyVehicle' && (
-                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                        {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                            <div 
-                                                key={option}
-                                                onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
-                                                className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                            >
-                                                {option}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
 
-                            <div className="relative mb-3">
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Hours Per Day</label>
-                                <div 
-                                    onClick={() => setOpenDropdown(openDropdown === 'hoursPerDay' ? null : 'hoursPerDay')}
-                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                                >
-                                    <span>{formData.hoursPerDay} Hours</span>
-                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'hoursPerDay' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                                {openDropdown === 'hoursPerDay' && (
-                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                        {['8', '10', '12', '1 day'].map(option => (
-                                            <div 
-                                                key={option}
-                                                onClick={() => { setFormData({...formData, hoursPerDay: option}); setOpenDropdown(null); }}
-                                                className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.hoursPerDay === option ? 'bg-gray-100' : ''}`}
-                                            >
-                                                {option === '1 day' ? '1 Day' : `${option} Hours`}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="relative mb-3">
-                                <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Days Per Week</label>
-                                <div 
-                                    onClick={() => setOpenDropdown(openDropdown === 'daysPerWeek' ? null : 'daysPerWeek')}
-                                    className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                                >
-                                    <span>{formData.daysPerWeek === '12' ? '12 Hours' : `${formData.daysPerWeek} Days`}</span>
-                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'daysPerWeek' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                                {openDropdown === 'daysPerWeek' && (
-                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                        {formData.hoursPerDay === '1 day' ? (
-                                            <div 
-                                                onClick={() => { setFormData({...formData, daysPerWeek: '12'}); setOpenDropdown(null); }}
-                                                className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.daysPerWeek === '12' ? 'bg-gray-100' : ''}`}
-                                            >
-                                                12 Hours
-                                            </div>
-                                        ) : (
-                                            ['5', '6'].map(option => (
-                                                <div 
-                                                    key={option}
-                                                    onClick={() => { setFormData({...formData, daysPerWeek: option}); setOpenDropdown(null); }}
-                                                    className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.daysPerWeek === option ? 'bg-gray-100' : ''}`}
-                                                >
-                                                    {option} Days
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm mb-3">
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Monthly Charges</p>
-                                <p className="text-3xl font-bold text-black mb-1">₹{parseInt(formData.hoursPerDay) * parseInt(formData.daysPerWeek) * 4 * 100}</p>
-                                <p className="text-xs text-gray-600 mt-2">
-                                    {formData.hoursPerDay} hrs/day × {formData.daysPerWeek} days/week × 4 weeks × ₹100/hr
-                                </p>
-                                <div className="mt-3 pt-3 border-t border-green-300">
-                                    <p className="text-xs font-bold text-red-600 uppercase">Extra Per Hour: Rs. 100/-</p>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* When Needed Dropdown - Show for LOCAL_HOURLY and OUTSTATION */}
-                    {driverType !== BookingType.MONTHLY && (serviceType === BookingType.LOCAL_HOURLY || serviceType === BookingType.OUTSTATION) && (
-                        <div className="relative mb-3">
-                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
-                            <div 
-                                onClick={() => setOpenDropdown(openDropdown === 'whenNeeded' ? null : 'whenNeeded')}
-                                className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                            >
-                                <span>{formData.whenNeeded}</span>
-                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'whenNeeded' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                            {openDropdown === 'whenNeeded' && (
-                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                    {['Immediately', 'Schedule'].map((option) => (
-                                        <div 
-                                            key={option}
-                                            onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); setTimeout(() => handleEstimate(option === 'Immediately'), 100); }}
-                                            className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
+                            {/* Monthly Driver Form */}
+                            {driverType === BookingType.MONTHLY && (
+                                <>
+                                    <div className="relative mb-3">
+                                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Vehicle Type</label>
+                                        <div
+                                            onClick={() => setOpenDropdown(openDropdown === 'monthlyVehicle' ? null : 'monthlyVehicle')}
+                                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                                         >
-                                            <h4 className="font-bold text-xs">{option}</h4>
+                                            <span>{formData.vehicleType}</span>
+                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'monthlyVehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {driverType !== BookingType.MONTHLY && (
-                    <div className="mt-3 sm:mt-4 space-y-3 pb-4">
-                        <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
-                        {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
-                                    <div className="relative">
-                                        <div 
-                                            onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                        >
-                                            <span>{formData.estimatedUsage}</span>
-                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                        </div>
-                                        {openDropdown === 'usage' && (
-                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
-                                                    <div 
+                                        {openDropdown === 'monthlyVehicle' && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                                    <div
                                                         key={option}
-                                                        onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
+                                                        className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
                                                     >
                                                         {option}
                                                     </div>
@@ -1564,146 +1458,273 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.carType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'car' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic', 'Both'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+
+                                    <div className="relative mb-3">
+                                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Hours Per Day</label>
+                                        <div
+                                            onClick={() => setOpenDropdown(openDropdown === 'hoursPerDay' ? null : 'hoursPerDay')}
+                                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                        >
+                                            <span>{formData.hoursPerDay} Hours</span>
+                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'hoursPerDay' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.vehicleType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'vehicle' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                        {serviceType === BookingType.OUTSTATION && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.tripType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'tripType' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['One Way', 'Round Trip'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, tripType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.estimatedUsage}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'usage' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {getFilteredDurationOptions(calculatedDistance).map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                {formData.whenNeeded === 'Schedule' && (
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
-                                        <div className="flex gap-2 sm:gap-3">
-                                            <input 
-                                                type="date" 
-                                                min={new Date().toISOString().split('T')[0]}
-                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                value={formData.date}
-                                                onChange={e => setFormData({...formData, date: e.target.value})}
-                                            />
-                                            <div className="relative flex-1">
-                                                <div 
-                                                    onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
-                                                    className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                >
-                                                    <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
-                                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                </div>
-                                                {openDropdown === 'timeSlot' && (
-                                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                        {getTimeSlots(formData.date).map(slot => (
-                                                            <div 
-                                                                key={slot.value}
-                                                                onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
-                                                                className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
-                                                            >
-                                                                {slot.label}
-                                                            </div>
-                                                        ))}
+                                        {openDropdown === 'hoursPerDay' && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                {['8', '10', '12', '1 day'].map(option => (
+                                                    <div
+                                                        key={option}
+                                                        onClick={() => { setFormData({ ...formData, hoursPerDay: option }); setOpenDropdown(null); }}
+                                                        className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.hoursPerDay === option ? 'bg-gray-100' : ''}`}
+                                                    >
+                                                        {option === '1 day' ? '1 Day' : `${option} Hours`}
                                                     </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="relative mb-3">
+                                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Days Per Week</label>
+                                        <div
+                                            onClick={() => setOpenDropdown(openDropdown === 'daysPerWeek' ? null : 'daysPerWeek')}
+                                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                        >
+                                            <span>{formData.daysPerWeek === '12' ? '12 Hours' : `${formData.daysPerWeek} Days`}</span>
+                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'daysPerWeek' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        </div>
+                                        {openDropdown === 'daysPerWeek' && (
+                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                {formData.hoursPerDay === '1 day' ? (
+                                                    <div
+                                                        onClick={() => { setFormData({ ...formData, daysPerWeek: '12' }); setOpenDropdown(null); }}
+                                                        className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.daysPerWeek === '12' ? 'bg-gray-100' : ''}`}
+                                                    >
+                                                        12 Hours
+                                                    </div>
+                                                ) : (
+                                                    ['5', '6'].map(option => (
+                                                        <div
+                                                            key={option}
+                                                            onClick={() => { setFormData({ ...formData, daysPerWeek: option }); setOpenDropdown(null); }}
+                                                            className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.daysPerWeek === option ? 'bg-gray-100' : ''}`}
+                                                        >
+                                                            {option} Days
+                                                        </div>
+                                                    ))
                                                 )}
                                             </div>
+                                        )}
+                                    </div>
+
+                                    <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm mb-3">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Monthly Charges</p>
+                                        <p className="text-3xl font-bold text-black mb-1">₹{parseInt(formData.hoursPerDay) * parseInt(formData.daysPerWeek) * 4 * 100}</p>
+                                        <p className="text-xs text-gray-600 mt-2">
+                                            {formData.hoursPerDay} hrs/day × {formData.daysPerWeek} days/week × 4 weeks × ₹100/hr
+                                        </p>
+                                        <div className="mt-3 pt-3 border-t border-green-300">
+                                            <p className="text-xs font-bold text-red-600 uppercase">Extra Per Hour: Rs. 100/-</p>
                                         </div>
                                     </div>
-                                )}
-                                {/* Commented out Immediate Outstation Departure banner as requested
+                                </>
+                            )}
+
+                            {/* When Needed Dropdown - Show for LOCAL_HOURLY and OUTSTATION */}
+                            {driverType !== BookingType.MONTHLY && (serviceType === BookingType.LOCAL_HOURLY || serviceType === BookingType.OUTSTATION) && (
+                                <div className="relative mb-3">
+                                    <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
+                                    <div
+                                        onClick={() => setOpenDropdown(openDropdown === 'whenNeeded' ? null : 'whenNeeded')}
+                                        className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
+                                    >
+                                        <span>{formData.whenNeeded}</span>
+                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'whenNeeded' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
+                                    {openDropdown === 'whenNeeded' && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                            {['Immediately', 'Schedule'].map((option) => (
+                                                <div
+                                                    key={option}
+                                                    onClick={() => { setFormData({ ...formData, whenNeeded: option }); setOpenDropdown(null); setTimeout(() => handleEstimate(option === 'Immediately'), 100); }}
+                                                    className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
+                                                >
+                                                    <h4 className="font-bold text-xs">{option}</h4>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {driverType !== BookingType.MONTHLY && (
+                                <div className="mt-3 sm:mt-4 space-y-3 pb-4">
+                                    <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
+                                    {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
+                                        <>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
+                                                <div className="relative">
+                                                    <div
+                                                        onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                    >
+                                                        <span>{formData.estimatedUsage}</span>
+                                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                    </div>
+                                                    {openDropdown === 'usage' && (
+                                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                            {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                                                                <div
+                                                                    key={option}
+                                                                    onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
+                                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                                >
+                                                                    {option}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.carType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'car' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Manual', 'Automatic', 'Both'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.vehicleType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'vehicle' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                    {serviceType === BookingType.OUTSTATION && (
+                                        <>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.tripType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'tripType' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['One Way', 'Round Trip'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, tripType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.estimatedUsage}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'usage' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                                {getFilteredDurationOptions(calculatedDistance).map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {formData.whenNeeded === 'Schedule' && (
+                                                <div>
+                                                    <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
+                                                    <div className="flex gap-2 sm:gap-3">
+                                                        <input
+                                                            type="date"
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                            value={formData.date}
+                                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                                        />
+                                                        <div className="relative flex-1">
+                                                            <div
+                                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
+                                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                            >
+                                                                <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                            </div>
+                                                            {openDropdown === 'timeSlot' && (
+                                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                                    {getTimeSlots(formData.date).map(slot => (
+                                                                        <div
+                                                                            key={slot.value}
+                                                                            onClick={() => { setFormData({ ...formData, time: slot.value }); setOpenDropdown(null); }}
+                                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
+                                                                        >
+                                                                            {slot.label}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {/* Commented out Immediate Outstation Departure banner as requested
                                 <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
                                     <div className="flex items-center gap-2.5">
                                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
@@ -1717,955 +1738,965 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     </span>
                                 </div>
                                 */}
-                                {formData.tripType === 'Round Trip' && (
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-2">To Date & Time (Return)</label>
-                                        <div className="flex gap-2 sm:gap-3">
-                                            <input 
-                                                type="date" 
-                                                min={formData.date || undefined}
-                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                value={formData.returnDate}
-                                                onChange={e => {
-                                                    const newReturnDate = e.target.value;
-                                                    setFormData({...formData, returnDate: newReturnDate});
-                                                    if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && newReturnDate) {
-                                                        setTimeout(() => applyOutstationDaysEstimate(null, formData.date, newReturnDate), 100);
-                                                    }
-                                                }}
-                                            />
-                                            <div className="relative flex-1">
-                                                <div 
-                                                    onClick={() => setOpenDropdown(openDropdown === 'returnTimeSlot' ? null : 'returnTimeSlot')}
-                                                    className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                >
-                                                    <span>{formData.returnTime ? getTimeSlots(formData.returnDate).find(s => s.value === formData.returnTime)?.label || formData.returnTime : 'Select time'}</span>
-                                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'returnTimeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                </div>
-                                                {openDropdown === 'returnTimeSlot' && (
-                                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                        {getTimeSlots(formData.returnDate).map(slot => (
-                                                            <div 
-                                                                key={slot.value}
-                                                                onClick={() => { setFormData({...formData, returnTime: slot.value}); setOpenDropdown(null); }}
-                                                                className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.returnTime === slot.value ? 'bg-gray-100' : ''}`}
+                                            {formData.tripType === 'Round Trip' && (
+                                                <div>
+                                                    <label className="block text-xs font-bold text-gray-500 mb-2">To Date & Time (Return)</label>
+                                                    <div className="flex gap-2 sm:gap-3">
+                                                        <input
+                                                            type="date"
+                                                            min={formData.date || undefined}
+                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                            value={formData.returnDate}
+                                                            onChange={e => {
+                                                                const newReturnDate = e.target.value;
+                                                                setFormData({ ...formData, returnDate: newReturnDate });
+                                                                if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && newReturnDate) {
+                                                                    setTimeout(() => applyOutstationDaysEstimate(null, formData.date, newReturnDate), 100);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <div className="relative flex-1">
+                                                            <div
+                                                                onClick={() => setOpenDropdown(openDropdown === 'returnTimeSlot' ? null : 'returnTimeSlot')}
+                                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
                                                             >
-                                                                {slot.label}
+                                                                <span>{formData.returnTime ? getTimeSlots(formData.returnDate).find(s => s.value === formData.returnTime)?.label || formData.returnTime : 'Select time'}</span>
+                                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'returnTimeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                            </div>
+                                                            {openDropdown === 'returnTimeSlot' && (
+                                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                                    {getTimeSlots(formData.returnDate).map(slot => (
+                                                                        <div
+                                                                            key={slot.value}
+                                                                            onClick={() => { setFormData({ ...formData, returnTime: slot.value }); setOpenDropdown(null); }}
+                                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.returnTime === slot.value ? 'bg-gray-100' : ''}`}
+                                                                        >
+                                                                            {slot.label}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.carType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'car' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Manual', 'Automatic', 'Both'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.vehicleType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'vehicle' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                    {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
+                                        <>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                                <div className="flex gap-2 sm:gap-3">
+                                                    <input
+                                                        type="date"
+                                                        className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                        value={formData.date}
+                                                        onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                                    />
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
+                                                            className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'timeSlot2' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                                {getTimeSlots(formData.date).map(slot => (
+                                                                    <div
+                                                                        key={slot.value}
+                                                                        onClick={() => { setFormData({ ...formData, time: slot.value }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {slot.label}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
+                                                <div className="relative">
+                                                    <div
+                                                        onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
+                                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                    >
+                                                        <span>{formData.estimatedUsage}</span>
+                                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                    </div>
+                                                    {openDropdown === 'usage' && (
+                                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
+                                                            {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                                                                <div
+                                                                    key={option}
+                                                                    onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
+                                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
+                                                                >
+                                                                    {option}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.carType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'car' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Manual', 'Automatic', 'Both'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.vehicleType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'vehicle' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {false && (
+                                        <>
+                                            <div className="relative">
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">When is driver needed?</label>
+                                                <div
+                                                    onClick={() => setOpenDropdown(openDropdown === 'when' ? null : 'when')}
+                                                    className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                >
+                                                    <span>{formData.whenNeeded}</span>
+                                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'when' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                                {openDropdown === 'when' && (
+                                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                        {['Now', 'Schedule Later'].map(option => (
+                                                            <div
+                                                                key={option}
+                                                                onClick={() => { setFormData({ ...formData, whenNeeded: option }); setOpenDropdown(null); }}
+                                                                className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
+                                                            >
+                                                                {option}
                                                             </div>
                                                         ))}
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.carType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'car' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic', 'Both'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.vehicleType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'vehicle' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                        {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-                                    <div className="flex gap-2 sm:gap-3">
-                                        <input 
-                                            type="date" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.date}
-                                            onChange={e => setFormData({...formData, date: e.target.value})}
-                                        />
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
-                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'timeSlot2' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                    {getTimeSlots(formData.date).map(slot => (
-                                                        <div 
-                                                            key={slot.value}
-                                                            onClick={() => { setFormData({...formData, time: slot.value}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {slot.label}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
-                                    <div className="relative">
-                                        <div 
-                                            onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                        >
-                                            <span>{formData.estimatedUsage}</span>
-                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                        </div>
-                                        {openDropdown === 'usage' && (
-                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                {['1 Hr', '2 Hrs', '3 Hrs', '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
-                                                    <div 
-                                                        key={option}
-                                                        onClick={() => { setFormData({...formData, estimatedUsage: option}); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                    >
-                                                        {option}
+                                            {formData.whenNeeded === 'Schedule Later' && (
+                                                <div>
+                                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
+                                                    <div className="flex gap-2 sm:gap-3">
+                                                        <input
+                                                            type="date"
+                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                            value={formData.date}
+                                                            onChange={e => {
+                                                                const newDate = e.target.value;
+                                                                setFormData({ ...formData, date: newDate });
+                                                                if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip') {
+                                                                    setTimeout(() => applyOutstationDaysEstimate(null, newDate, formData.returnDate), 100);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <input
+                                                            type="time"
+                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
+                                                            value={formData.time}
+                                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                                        />
                                                     </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.carType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'car' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic', 'Both'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
                                                 </div>
                                             )}
-                                        </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.vehicleType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'vehicle' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
                                                         >
-                                                            {option}
+                                                            <span>{formData.carType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
-                        {false && (
-                            <>
-                                <div className="relative">
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">When is driver needed?</label>
-                                    <div 
-                                        onClick={() => setOpenDropdown(openDropdown === 'when' ? null : 'when')}
-                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                    >
-                                        <span>{formData.whenNeeded}</span>
-                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'when' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                    </div>
-                                    {openDropdown === 'when' && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                            {['Now', 'Schedule Later'].map(option => (
-                                                <div 
-                                                    key={option}
-                                                    onClick={() => { setFormData({...formData, whenNeeded: option}); setOpenDropdown(null); }}
-                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
-                                                >
-                                                    {option}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                {formData.whenNeeded === 'Schedule Later' && (
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-<div className="flex gap-2 sm:gap-3">
-                                        <input 
-                                            type="date" 
-                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                            value={formData.date}
-                                            onChange={e => {
-                                                const newDate = e.target.value;
-                                                setFormData({...formData, date: newDate});
-                                                if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip') {
-                                                    setTimeout(() => applyOutstationDaysEstimate(null, newDate, formData.returnDate), 100);
-                                                }
-                                            }}
-                                        />
-                                            <input 
-                                                type="time" 
-                                                className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                value={formData.time}
-                                                onChange={e => setFormData({...formData, time: e.target.value})}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.carType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'car' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Manual', 'Automatic', 'Both'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, carType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="relative flex-1">
-                                            <div 
-                                                onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span>{formData.vehicleType}</span>
-                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                            {openDropdown === 'vehicle' && (
-                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                    {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                        <div 
-                                                            key={option}
-                                                            onClick={() => { setFormData({...formData, vehicleType: option}); setOpenDropdown(null); }}
-                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                        >
-                                                            {option}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                    )}
-
-                    {/* Fare Estimate - Uber-style */}
-                    {driverType !== BookingType.MONTHLY && serviceType === BookingType.OUTSTATION && calculatedDistance && (
-                        <div className="mx-4 mb-4">
-                            {/* Distance - Compact */}
-                            <div className="bg-gray-50 rounded-2xl p-4 mb-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-                                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
-                                            <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Fare Card - Only show for distances >= 60km */}
-                            {calculatedDistance >= 60 && (estimate || estimateLoading) && (
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
-                                    {estimateLoading ? (
-                                        <div className="flex items-center justify-center py-8">
-                                            <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="p-4">
-                                                <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
-                                                <div className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                                                    {formData.whenNeeded !== 'Immediately' && fareBreakdown && fareBreakdown.immediateCharge && fareBreakdown.immediateCharge > (estimate || 0) ? (
-                                                        <>
-                                                            <span className="text-2xl text-gray-400 line-through">₹{fareBreakdown.immediateCharge}</span>
-                                                            <span className="text-green-600">₹{estimate}</span>
-                                                        </>
-                                                    ) : (
-                                                        <span>₹{estimate}</span>
-                                                    )}
-                                                </div>
-                                                {fareBreakdown && (
-                                                    <div>
-                                                        <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
-
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="border-t border-green-200">
-                                                <div className="px-4 py-3">
-                                                    <p className="text-xs font-bold text-gray-900 uppercase flex items-center">
-                                                        <span>Extra Per Hour:</span>
-                                                        {fareBreakdown && (fareBreakdown.extraPerHourSch || fareBreakdown.extraPerHourImm) ? (
-                                                            formData.whenNeeded !== 'Immediately' && fareBreakdown.extraPerHourImm ? (
-                                                                <span className="ml-1 inline-flex gap-1">
-                                                                    <span className="line-through text-gray-400">Rs. {fareBreakdown.extraPerHourImm}/-</span>
-                                                                    <span className="text-green-600">Rs. {fareBreakdown.extraPerHourSch}/-</span>
-                                                                </span>
-                                                            ) : (
-                                                                <span className="ml-1">Rs. {formData.whenNeeded === 'Immediately' ? (fareBreakdown.extraPerHourImm || fareBreakdown.extraPerHourSch) : fareBreakdown.extraPerHourSch}/-</span>
-                                                            )
-                                                        ) : (
-                                                            <span className="ml-1">Rs. 100/-</span>
+                                                        {openDropdown === 'car' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Manual', 'Automatic', 'Both'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         )}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="border-t border-gray-100">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowExtraChargesModal(true)}
-                                                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                                        </svg>
-                                                        <span className="text-xs font-medium text-gray-700">More charges apply</span>
                                                     </div>
-                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                    </svg>
-                                                </button>
+                                                    <div className="relative flex-1">
+                                                        <div
+                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
+                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                        >
+                                                            <span>{formData.vehicleType}</span>
+                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                        </div>
+                                                        {openDropdown === 'vehicle' && (
+                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
+                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
+                                                                    >
+                                                                        {option}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </>
                                     )}
                                 </div>
                             )}
-                        </div>
-                    )}
-                    
-                    {/* Distance Display for Local */}
-                    {driverType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && calculatedDistance && (
-                        <div className="mx-4 mb-4">
-                            <div className="bg-gray-50 rounded-2xl p-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
-                                        <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Fare Estimate for Local - Show normally */}
-                    {driverType !== BookingType.MONTHLY && serviceType !== BookingType.OUTSTATION && (estimate || estimateLoading) && (
-                        <div className="mx-4 mb-4">
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
-                                {estimateLoading ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="p-4">
-                                            <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
-                                            <div className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                                                {formData.whenNeeded !== 'Immediately' && fareBreakdown && fareBreakdown.immediateCharge && fareBreakdown.immediateCharge > (estimate || 0) ? (
-                                                    <>
-                                                        <span className="text-2xl text-gray-400 line-through">₹{fareBreakdown.immediateCharge}</span>
-                                                        <span className="text-green-600">₹{estimate}</span>
-                                                    </>
-                                                ) : (
-                                                    <span>₹{estimate}</span>
-                                                )}
-                                            </div>
-                                            {fareBreakdown && (
-                                                <div>
-                                                    <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}</p>
-
+                            {/* Fare Estimate - Uber-style */}
+                            {driverType !== BookingType.MONTHLY && serviceType === BookingType.OUTSTATION && calculatedDistance && (
+                                <div className="mx-4 mb-4">
+                                    {/* Distance - Compact */}
+                                    <div className="bg-gray-50 rounded-2xl p-4 mb-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                    </svg>
                                                 </div>
+                                                <div>
+                                                    <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
+                                                    <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Fare Card - Only show for distances >= 60km */}
+                                    {calculatedDistance >= 60 && (estimate || estimateLoading) && (
+                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
+                                            {estimateLoading ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="p-4">
+                                                        <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
+                                                        <div className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                                                            {formData.whenNeeded !== 'Immediately' && fareBreakdown && fareBreakdown.immediateCharge && fareBreakdown.immediateCharge > (estimate || 0) ? (
+                                                                <>
+                                                                    <span className="text-2xl text-gray-400 line-through">₹{fareBreakdown.immediateCharge}</span>
+                                                                    <span className="text-green-600">₹{estimate}</span>
+                                                                </>
+                                                            ) : (
+                                                                <span>₹{estimate}</span>
+                                                            )}
+                                                        </div>
+                                                        {fareBreakdown && (
+                                                            <div>
+                                                                <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
+
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="border-t border-green-200">
+                                                        <div className="px-4 py-3">
+                                                            <p className="text-xs font-bold text-gray-900 uppercase flex items-center">
+                                                                <span>Extra Per Hour:</span>
+                                                                {fareBreakdown && (fareBreakdown.extraPerHourSch || fareBreakdown.extraPerHourImm) ? (
+                                                                    formData.whenNeeded !== 'Immediately' && fareBreakdown.extraPerHourImm ? (
+                                                                        <span className="ml-1 inline-flex gap-1">
+                                                                            <span className="line-through text-gray-400">Rs. {fareBreakdown.extraPerHourImm}/-</span>
+                                                                            <span className="text-green-600">Rs. {fareBreakdown.extraPerHourSch}/-</span>
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="ml-1">Rs. {formData.whenNeeded === 'Immediately' ? (fareBreakdown.extraPerHourImm || fareBreakdown.extraPerHourSch) : fareBreakdown.extraPerHourSch}/-</span>
+                                                                    )
+                                                                ) : (
+                                                                    <span className="ml-1">Rs. 100/-</span>
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="border-t border-gray-100">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowExtraChargesModal(true)}
+                                                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                                </svg>
+                                                                <span className="text-xs font-medium text-gray-700">More charges apply</span>
+                                                            </div>
+                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
-                                        
-                                        <div className="border-t border-green-200">
-                                            <div className="px-4 py-3">
-                                                <p className="text-xs font-bold text-gray-900 uppercase flex items-center">
-                                                    <span>Extra Per Hour:</span>
-                                                    {fareBreakdown && (fareBreakdown.extraPerHourSch || fareBreakdown.extraPerHourImm) ? (
-                                                        formData.whenNeeded !== 'Immediately' && fareBreakdown.extraPerHourImm ? (
-                                                            <span className="ml-1 inline-flex gap-1">
-                                                                <span className="line-through text-gray-400">Rs. {fareBreakdown.extraPerHourImm}/-</span>
-                                                                <span className="text-green-600">Rs. {fareBreakdown.extraPerHourSch}/-</span>
-                                                            </span>
-                                                        ) : (
-                                                            <span className="ml-1">Rs. {formData.whenNeeded === 'Immediately' ? (fareBreakdown.extraPerHourImm || fareBreakdown.extraPerHourSch) : fareBreakdown.extraPerHourSch}/-</span>
-                                                        )
-                                                    ) : (
-                                                        <span className="ml-1">Rs. 100/-</span>
-                                                    )}
-                                                </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Distance Display for Local */}
+                            {driverType !== BookingType.MONTHLY && serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && calculatedDistance && (
+                                <div className="mx-4 mb-4">
+                                    <div className="bg-gray-50 rounded-2xl p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-2xl font-bold text-gray-900">{calculatedDistance} km</p>
+                                                <p className="text-xs text-gray-500">{Math.floor(calculatedDuration / 60)}h {calculatedDuration % 60}m • {formData.estimatedUsage}</p>
                                             </div>
                                         </div>
-                                        
-                                        <div className="border-t border-gray-100">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowExtraChargesModal(true)}
-                                                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                                    </svg>
-                                                    <span className="text-xs font-medium text-gray-700">More charges apply</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Fare Estimate for Local - Show normally */}
+                            {driverType !== BookingType.MONTHLY && serviceType !== BookingType.OUTSTATION && (estimate || estimateLoading) && (
+                                <div className="mx-4 mb-4">
+                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 overflow-hidden shadow-sm">
+                                        {estimateLoading ? (
+                                            <div className="flex items-center justify-center py-8">
+                                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="p-4">
+                                                    <p className="text-xs text-gray-500 mb-1">Estimated fare</p>
+                                                    <div className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                                                        {formData.whenNeeded !== 'Immediately' && fareBreakdown && fareBreakdown.immediateCharge && fareBreakdown.immediateCharge > (estimate || 0) ? (
+                                                            <>
+                                                                <span className="text-2xl text-gray-400 line-through">₹{fareBreakdown.immediateCharge}</span>
+                                                                <span className="text-green-600">₹{estimate}</span>
+                                                            </>
+                                                        ) : (
+                                                            <span>₹{estimate}</span>
+                                                        )}
+                                                    </div>
+                                                    {fareBreakdown && (
+                                                        <div>
+                                                            <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}</p>
+
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </>
+
+                                                <div className="border-t border-green-200">
+                                                    <div className="px-4 py-3">
+                                                        <p className="text-xs font-bold text-gray-900 uppercase flex items-center">
+                                                            <span>Extra Per Hour:</span>
+                                                            {fareBreakdown && (fareBreakdown.extraPerHourSch || fareBreakdown.extraPerHourImm) ? (
+                                                                formData.whenNeeded !== 'Immediately' && fareBreakdown.extraPerHourImm ? (
+                                                                    <span className="ml-1 inline-flex gap-1">
+                                                                        <span className="line-through text-gray-400">Rs. {fareBreakdown.extraPerHourImm}/-</span>
+                                                                        <span className="text-green-600">Rs. {fareBreakdown.extraPerHourSch}/-</span>
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="ml-1">Rs. {formData.whenNeeded === 'Immediately' ? (fareBreakdown.extraPerHourImm || fareBreakdown.extraPerHourSch) : fareBreakdown.extraPerHourSch}/-</span>
+                                                                )
+                                                            ) : (
+                                                                <span className="ml-1">Rs. 100/-</span>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t border-gray-100">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowExtraChargesModal(true)}
+                                                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <span className="text-xs font-medium text-gray-700">More charges apply</span>
+                                                        </div>
+                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Terms and Conditions */}
+                            <div className="mx-4 mb-3">
+                                <label className="flex items-start gap-2 text-xs">
+                                    <input
+                                        type="checkbox"
+                                        checked={termsAccepted}
+                                        onChange={(e) => setTermsAccepted(e.target.checked)}
+                                        className="mt-0.5 w-3 h-3 text-black bg-gray-100 border-gray-300 rounded focus:ring-black focus:ring-2"
+                                    />
+                                    <span className="text-gray-600">
+                                        I agree to the{' '}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowTerms(true)}
+                                            className="text-black font-bold underline hover:text-gray-800"
+                                        >
+                                            Terms and Conditions
+                                        </button>
+                                    </span>
+                                </label>
+                                {showEstimateWarning && (
+                                    <div className="flex items-start gap-2 mt-2 ml-5">
+                                        <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        <p className="text-xs text-red-600 font-medium">Please wait for fare estimation before booking or try any other near location</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
-                    )}
-                    
-                    {/* Terms and Conditions */}
-                    <div className="mx-4 mb-3">
-                        <label className="flex items-start gap-2 text-xs">
-                            <input 
-                                type="checkbox" 
-                                checked={termsAccepted}
-                                onChange={(e) => setTermsAccepted(e.target.checked)}
-                                className="mt-0.5 w-3 h-3 text-black bg-gray-100 border-gray-300 rounded focus:ring-black focus:ring-2"
-                            />
-                            <span className="text-gray-600">
-                                I agree to the{' '}
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowTerms(true)}
-                                    className="text-black font-bold underline hover:text-gray-800"
-                                >
-                                    Terms and Conditions
-                                </button>
-                            </span>
-                        </label>
-                        {showEstimateWarning && (
-                            <div className="flex items-start gap-2 mt-2 ml-5">
-                                <svg className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                                <p className="text-xs text-red-600 font-medium">Please wait for fare estimation before booking or try any other near location</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
 
-                <div className="p-3 border-t border-gray-100 bg-white sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                    {!isAuthenticated && (
-                        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-yellow-800 text-sm">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                </svg>
-                                <span className="font-medium">Please log in to book rides and get estimates</span>
-                            </div>
-                        </div>
-                    )}
-                    <button 
-                        onClick={handleBookingSubmit}
-                        disabled={!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)}
-                        className={`w-full py-3 rounded-lg font-bold text-base transition shadow-lg ${
-                            !isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                                : 'bg-black text-white hover:bg-gray-900'
-                        }`}
-                    >
-                        {authChecking ? 'Checking...' : 
-                         serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60 ? 'Distance too short for outstation' :
-                         'Request Driver'}
-                    </button>
-                </div>
-              </>
-          )}
-
-          {activeTab === 'TRIPS' && (
-              <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
-                 <h3 className="text-lg font-bold">Your Bookings</h3>
-                 {!isAuthenticated ? (
-                    <div className="text-center py-8">
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                            <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                            <h4 className="text-lg font-bold text-yellow-800 mb-2">Login Required</h4>
-                            <p className="text-yellow-700">Please log in to view your bookings</p>
-                        </div>
-                    </div>
-                 ) : myTrips.length === 0 ? (
-                    <p className="text-gray-500">No bookings yet.</p>
-                 ) : (
-                    myTrips
-                    .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime())
-                    .map(booking => {
-                        const startDate = new Date(booking.startDateTime);
-                        const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-                        const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
-                        const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
-                        const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                        
-                        return (
-                        <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
-                             <div className="flex flex-row justify-between items-center sm:items-start gap-2 mb-3 flex-wrap sm:flex-nowrap">
-                                <div className="flex flex-col sm:mt-1 space-y-1">
-                                    <span className="text-sm sm:text-xs font-bold">🚗 Going — {formattedDate}, {formattedTime}</span>
-                                    {booking.endDateTime && (
-                                        <span className="text-sm sm:text-xs font-bold">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</span>
-                                    )}
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${
-                                        booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
-                                        (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'bg-green-100 text-green-800' : 
-                                        booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                                        booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                        booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100'
-                                    }`}>
-                                        {booking.cancellationRequested ? 'CANCELLATION PENDING' :
-                                         booking.status === 'CANCELLED' ? 'CANCELLED' :
-                                         (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
-                                    </span>
-                                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
-                                        <button
-                                            onClick={() => setCancelModalBookingId(booking.id)}
-                                            className="text-[10px] bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 font-bold transition shadow-sm border border-red-100"
-                                        >
-                                            Cancel Trip
-                                        </button>
-                                    )}
-                                </div>
-                             </div>
-
-                             {booking.estimateAmount && (
-                                <p className="text-sm font-bold text-green-600 mb-2">₹{booking.estimateAmount}</p>
-                             )}
-                             {booking.paymentMethod && (
-                                <p className="text-xs text-gray-600 mb-2">Payment: <span className="font-bold">{booking.paymentMethod}</span></p>
-                             )}
-                             <p className="text-xs sm:text-sm font-medium mb-2">{booking.bookingType}</p>
-                             <div className="text-xs text-gray-500 space-y-1 mb-3">
-                                <div className="flex items-start gap-2">
-                                    <span className="font-bold shrink-0">From:</span>
-                                    <span className="flex-1 break-words">{booking.pickupLocation}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="font-bold shrink-0">To:</span>
-                                    <span className="flex-1 break-words">{booking.dropLocation}</span>
-                                </div>
-                             </div>
-                             
-                             {/* Status Messages */}
-                             {booking.status === 'PENDING' && !booking.selectedPackageType && (
-                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
-                                     <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
-                                 </div>
-                             )}
-                             
-                             {booking.status === 'CONFIRMED' && !(booking.driverId || booking.leadId) && !booking.leadId && (
-                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
-                                     <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
-                                     <p className="text-xs text-blue-600 mt-1">Request sent to {booking.selectedPackageType} drivers</p>
-                                 </div>
-                             )}
-                             
-                             {/* Lead Details - Show when lead is allocated */}
-                             {booking.lead && booking.leadId && (
-                                 <div className="mt-3 pt-3 border-t border-gray-200">
-                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
-                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
-                                         <div className="flex items-center gap-2.5">
-                                             <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
-                                                 {booking.lead.name?.[0] || 'D'}
-                                             </div>
-                                             <div className="flex-grow min-w-0">
-                                                 <p className="font-bold text-sm truncate">{booking.lead.name || 'Driver'}</p>
-                                                 <p className="text-xs text-gray-600">{booking.lead.phone || 'N/A'}</p>
-                                                 {booking.lead.rating > 0 && (
-                                                     <div className="flex items-center gap-1 mt-0.5">
-                                                         <span className="text-[11px] font-bold text-gray-700">{booking.lead.rating.toFixed(1)}</span>
-                                                         <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                         <span className="text-[10px] text-gray-500">({booking.lead.totalRides || 0} rides)</span>
-                                                     </div>
-                                                 )}
-                                             </div>
-                                             <a 
-                                                 href={`tel:${booking.lead.phone}`}
-                                                 className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
-                                             >
-                                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                                             </a>
-                                         </div>
-                                         <button
-                                             onClick={() => {
-                                               setSelectedDriver(booking.lead);
-                                               setShowDriverProfile(true);
-                                             }}
-                                             className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
-                                         >
-                                             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                             </svg>
-                                             <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
-                                         </button>
-                                     </div>
-                                 </div>
-                             )}
-                             
-                             {/* Driver Details - Show when driver is allocated */}
-                             {(booking.driver || booking.lead) && (booking.driverId || booking.leadId) && (
-                                 <div className="mt-3 pt-3 border-t border-gray-200">
-                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
-                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
-                                         <div className="flex items-center gap-2.5">
-                                             <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
-                                                 {(booking.driver || booking.lead).name?.[0] || 'D'}
-                                             </div>
-                                             <div className="flex-grow min-w-0">
-                                                 <p className="font-bold text-sm truncate">{(booking.driver || booking.lead).name || 'Driver'}</p>
-                                                 <p className="text-xs text-gray-600">{(booking.driver || booking.lead).phone || 'N/A'}</p>
-                                                 {(booking.driver || booking.lead).rating > 0 && (
-                                                     <div className="flex items-center gap-1 mt-0.5">
-                                                         <span className="text-[11px] font-bold text-gray-700">{(booking.driver || booking.lead).rating.toFixed(1)}</span>
-                                                         <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                         <span className="text-[10px] text-gray-500">({(booking.driver || booking.lead).totalRides || 0} rides)</span>
-                                                     </div>
-                                                 )}
-                                             </div>
-                                             <a 
-                                                 href={`tel:${(booking.driver || booking.lead).phone}`}
-                                                 className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
-                                             >
-                                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                                             </a>
-                                         </div>
-                                         <button
-                                             onClick={() => {
-                                               setSelectedDriver((booking.driver || booking.lead));
-                                               setShowDriverProfile(true);
-                                             }}
-                                             className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
-                                         >
-                                             <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                             </svg>
-                                             <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
-                                         </button>
-                                     </div>
-                                 </div>
-                             )}
-
-                             {/* Rating UI for Completed Trips */}
-                             {booking.status === 'COMPLETED' && (
-                                 <div className="mt-3 pt-3 border-t border-gray-100">
-                                     {booking.rating ? (
-                                         <div className="flex flex-col gap-2">
-                                             <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
-                                                 <span>Your Rating:</span>
-                                                 <span>{'★'.repeat(booking.rating)}</span>
-                                             </div>
-                                             {booking.feedback && (
-                                                <p className="text-xs text-gray-600 italic">"{booking.feedback}"</p>
-                                             )}
-                                         </div>
-                                     ) : (
-                                         <div>
-                                             <p className="text-xs font-bold mb-2">Rate your driver:</p>
-                                             <div className="flex flex-col gap-3">
-                                                 <div className="flex gap-2">
-                                                     {[1, 2, 3, 4, 5].map(star => (
-                                                         <button 
-                                                            key={star}
-                                                            onClick={() => handleRating(booking.id, star)}
-                                                            className={`w-8 h-8 rounded-full font-bold border flex items-center justify-center transition ${
-                                                                (ratingData[booking.id]?.rating || 0) >= star 
-                                                                    ? 'bg-yellow-50 text-yellow-500 border-yellow-200' 
-                                                                    : 'bg-gray-50 text-gray-300 hover:text-yellow-500 border-gray-200 hover:bg-yellow-50'
-                                                            }`}
-                                                         >
-                                                             ★
-                                                         </button>
-                                                     ))}
-                                                 </div>
-                                                 {(ratingData[booking.id]?.rating || 0) > 0 && (
-                                                     <div className="flex flex-col gap-2">
-                                                         <textarea
-                                                             value={ratingData[booking.id]?.feedback || ''}
-                                                             onChange={(e) => handleFeedbackChange(booking.id, e.target.value)}
-                                                             placeholder="How was your trip? (Optional)"
-                                                             className="w-full text-sm p-2 border border-gray-200 rounded-lg resize-none focus:ring-1 focus:ring-black outline-none"
-                                                             rows={2}
-                                                         />
-                                                         <button
-                                                             onClick={() => submitRating(booking.id)}
-                                                             className="bg-black text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition self-start"
-                                                         >
-                                                             Submit Rating
-                                                         </button>
-                                                     </div>
-                                                 )}
-                                             </div>
-                                         </div>
-                                     )}
-                                 </div>
-                             )}
-                        </div>
-                        );
-                    })
-                 )}
-              </div>
-          )}
-
-          {false && activeTab === 'TRIPS' && (
-              <CustomerBookingStatus customer={customer} />
-          )}
-
-          {false && activeTab === 'TRIPS' && (
-              <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
-                 <h3 className="text-lg font-bold">Your Trips</h3>
-                 {!isAuthenticated ? (
-                    <div className="text-center py-8">
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                            <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                            <h4 className="text-lg font-bold text-yellow-800 mb-2">Login Required</h4>
-                            <p className="text-yellow-700">Please log in to view your trip history</p>
-                        </div>
-                    </div>
-                 ) : myTrips.length === 0 ? (
-                    <p className="text-gray-500">No trips booked yet.</p>
-                 ) : (
-                    myTrips
-                    .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime())
-                    .map(trip => {
-                        const startDate = new Date(trip.startDateTime);
-                        const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-                        const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        
-                        return (
-                        <div key={trip.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                             <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <span className="font-bold text-lg">{formattedTime}, {formattedDate}</span>
-                                    {trip.estimateAmount && (
-                                        <p className="text-sm font-bold text-green-600 mt-1">₹{trip.estimateAmount}</p>
-                                    )}
-                                </div>
-                                <span className={`text-xs px-2 py-1 rounded font-bold ${
-                                    trip.status === 'COMPLETED' ? 'bg-green-100 text-green-800' : 
-                                    trip.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                                    trip.status === 'ONGOING' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100'
-                                }`}>{trip.status}</span>
-                             </div>
-                             <p className="text-sm font-medium mb-1">{trip.bookingType}</p>
-                             <div className="text-xs text-gray-500 flex flex-col gap-1">
-                                <span>From: {trip.pickupLocation}</span>
-                                <span>To: {trip.dropLocation}</span>
-                             </div>
-                             
-                             {/* Driver Details - Show when trip is confirmed/ongoing/completed */}
-                             {(trip.driver || trip.lead) && (trip.status === 'CONFIRMED' || trip.status === 'ONGOING' || trip.status === 'COMPLETED') && (
-                                 <div className="mt-3 pt-3 border-t border-gray-100">
-                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Driver Details</p>
-                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                                         <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
-                                             {(trip.driver || trip.lead).name?.[0] || 'D'}
-                                         </div>
-                                         <div className="flex-grow">
-                                             <p className="font-bold text-sm">{(trip.driver || trip.lead).name || 'Driver'}</p>
-                                             <p className="text-xs text-gray-500">{(trip.driver || trip.lead).phone || 'N/A'}</p>
-                                         </div>
-                                         <a 
-                                             href={`tel:${(trip.driver || trip.lead).phone}`}
-                                             className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition"
-                                         >
-                                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                                         </a>
-                                     </div>
-                                 </div>
-                             )}
-                             {/* Rating UI for Completed Trips */}
-                             {trip.status === 'COMPLETED' && (
-                                 <div className="mt-3 pt-3 border-t border-gray-100">
-                                     {trip.rating ? (
-                                         <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
-                                             <span>Your Rating:</span>
-                                             <span>{'★'.repeat(trip.rating)}</span>
-                                         </div>
-                                     ) : (
-                                         <div>
-                                             <p className="text-xs font-bold mb-2">Rate your driver:</p>
-                                             <div className="flex gap-2">
-                                                 {[1, 2, 3, 4, 5].map(star => (
-                                                     <button 
-                                                        key={star}
-                                                        onClick={() => handleRating(trip.id, star)}
-                                                        className="w-8 h-8 rounded-full bg-gray-50 hover:bg-yellow-50 text-gray-300 hover:text-yellow-500 font-bold border border-gray-200 flex items-center justify-center transition"
-                                                     >
-                                                         ★
-                                                     </button>
-                                                 ))}
-                                             </div>
-                                         </div>
-                                     )}
-                                 </div>
-                             )}
-                        </div>
-                        );
-                    })
-                 )}
-              </div>
-          )}
-
-          {activeTab === 'PROFILE' && (
-              <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar">
-                 {!isEditingProfile ? (
-                     <div className="space-y-6">
-                        <div className="flex justify-between items-start">
-                             <div className="flex items-center gap-3 sm:gap-4">
-                                 <div className="w-14 h-14 sm:w-16 sm:h-16 bg-black text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
-                                     {customer.name?.[0] || 'C'}
-                                 </div>
-                                 <div>
-                                     <h3 className="text-lg sm:text-xl font-bold">{customer.name}</h3>
-                                     <p className="text-xs sm:text-sm text-gray-500">{customer.phone}</p>
-                                     {customer.alternateMobile && <p className="text-xs text-gray-500 font-medium">Alt Mobile: {customer.alternateMobile}</p>}
-                                 </div>
-                             </div>
-                             <button 
-                                onClick={() => setIsEditingProfile(true)}
-                                className="text-xs font-bold text-black border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50"
-                             >
-                                 Edit
-                             </button>
-                        </div>
-
-                                                {/* Contact Information Card */}
-                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2 text-xs">
-                            <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">Contact Details</h4>
-                            <div className="flex justify-between items-center py-1 border-b border-gray-50">
-                                <span className="text-gray-500 font-medium">Primary Phone:</span>
-                                <span className="font-bold text-gray-900">{customer.phone}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1 border-b border-gray-50">
-                                <span className="text-gray-500 font-medium">Alternate Mobile:</span>
-                                <span className="font-bold text-gray-900">{customer.alternateMobile || 'Not provided'}</span>
-                            </div>
-                            {customer.whatsappNumber && (
-                                <div className="flex justify-between items-center py-1">
-                                    <span className="text-gray-500 font-medium">WhatsApp:</span>
-                                    <span className="font-bold text-gray-900">{customer.whatsappNumber}</span>
+                        <div className="p-3 border-t border-gray-100 bg-white sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                            {!isAuthenticated && (
+                                <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div className="flex items-center gap-2 text-yellow-800 text-sm">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                        </svg>
+                                        <span className="font-medium">Please log in to book rides and get estimates</span>
+                                    </div>
                                 </div>
                             )}
+                            <button
+                                onClick={handleBookingSubmit}
+                                disabled={!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)}
+                                className={`w-full py-3 rounded-lg font-bold text-base transition shadow-lg ${!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-black text-white hover:bg-gray-900'
+                                    }`}
+                            >
+                                {authChecking ? 'Checking...' :
+                                    serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60 ? 'Distance too short for outstation' :
+                                        'Request Driver'}
+                            </button>
                         </div>
+                    </>
+                )}
 
-                                                {/* Language Preferences Card */}
-                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2">
-                            <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">{t('profile.settings', 'Settings & Preferences')}</h4>
-                            <UberLanguageSelector variant="inline" />
-                        </div>
+                {activeTab === 'TRIPS' && (
+                    <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
+                        <h3 className="text-lg font-bold">Your Bookings</h3>
+                        {!isAuthenticated ? (
+                            <div className="text-center py-8">
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                                    <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <h4 className="text-lg font-bold text-yellow-800 mb-2">Login Required</h4>
+                                    <p className="text-yellow-700">Please log in to view your bookings</p>
+                                </div>
+                            </div>
+                        ) : myTrips.length === 0 ? (
+                            <p className="text-gray-500">No bookings yet.</p>
+                        ) : (
+                            myTrips
+                                .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime())
+                                .map(booking => {
+                                    const startDate = new Date(booking.startDateTime);
+                                    const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                                    const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                    const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
+                                    const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                                    const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-                        {/* Address Section */}
-                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                            <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">Address</h4>
-                            <p className="text-sm font-medium">{customer.address || 'No address added'}</p>
-                        </div>
+                                    return (
+                                        <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
+                                            <div className="flex flex-row justify-between items-center sm:items-start gap-2 mb-3 flex-wrap sm:flex-nowrap">
+                                                <div className="flex flex-col sm:mt-1 space-y-1">
+                                                    <span className="text-sm sm:text-xs font-bold">🚗 Going — {formattedDate}, {formattedTime}</span>
+                                                    {booking.endDateTime && (
+                                                        <span className="text-sm sm:text-xs font-bold">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
+                                                        (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'bg-green-100 text-green-800' :
+                                                            booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                                                                booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-gray-100'
+                                                        }`}>
+                                                        {booking.cancellationRequested ? 'CANCELLATION PENDING' :
+                                                            booking.status === 'CANCELLED' ? 'CANCELLED' :
+                                                                (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
+                                                    </span>
+                                                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
+                                                        <button
+                                                            onClick={() => setCancelModalBookingId(booking.id)}
+                                                            className="text-[10px] bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 font-bold transition shadow-sm border border-red-100"
+                                                        >
+                                                            Cancel Trip
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
 
-                         {/* <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                                            {booking.estimateAmount && (
+                                                <p className="text-sm font-bold text-green-600 mb-2">₹{booking.estimateAmount}</p>
+                                            )}
+                                            {booking.paymentMethod && (
+                                                <p className="text-xs text-gray-600 mb-2">Payment: <span className="font-bold">{booking.paymentMethod}</span></p>
+                                            )}
+                                            <p className="text-xs sm:text-sm font-medium mb-2">{booking.bookingType}</p>
+                                            <div className="text-xs text-gray-500 space-y-1 mb-3">
+                                                <div className="flex items-start gap-2">
+                                                    <span className="font-bold shrink-0">From:</span>
+                                                    <span className="flex-1 break-words">{booking.pickupLocation}</span>
+                                                </div>
+                                                <div className="flex items-start gap-2">
+                                                    <span className="font-bold shrink-0">To:</span>
+                                                    <span className="flex-1 break-words">{booking.dropLocation}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Status Messages */}
+                                            {booking.status === 'PENDING' && !booking.selectedPackageType && (
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
+                                                    <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
+                                                </div>
+                                            )}
+
+                                            {booking.status === 'CONFIRMED' && !(booking.driverId || booking.leadId) && !booking.leadId && (
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
+                                                    <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
+                                                    <p className="text-xs text-blue-600 mt-1">Request sent to {booking.selectedPackageType} drivers</p>
+                                                </div>
+                                            )}
+
+                                            {/* Lead Details - Show when lead is allocated */}
+                                            {booking.lead && booking.leadId && (
+                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
+                                                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
+                                                                {booking.lead.name?.[0] || 'D'}
+                                                            </div>
+                                                            <div className="flex-grow min-w-0">
+                                                                <p className="font-bold text-sm truncate">{booking.lead.name || 'Driver'}</p>
+                                                                <p className="text-xs text-gray-600">{booking.lead.phone || 'N/A'}</p>
+                                                                {booking.lead.rating > 0 && (
+                                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                                        <span className="text-[11px] font-bold text-gray-700">{booking.lead.rating.toFixed(1)}</span>
+                                                                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                                        <span className="text-[10px] text-gray-500">({booking.lead.totalRides || 0} rides)</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <a
+                                                                href={`tel:${booking.lead.phone}`}
+                                                                className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                            </a>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedDriver(booking.lead);
+                                                                setShowDriverProfile(true);
+                                                            }}
+                                                            className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
+                                                        >
+                                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                            </svg>
+                                                            <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Driver Details - Show when driver is allocated */}
+                                            {(booking.driver || booking.lead) && (booking.driverId || booking.leadId) && (
+                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
+                                                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
+                                                                {(booking.driver || booking.lead).name?.[0] || 'D'}
+                                                            </div>
+                                                            <div className="flex-grow min-w-0">
+                                                                <p className="font-bold text-sm truncate">{(booking.driver || booking.lead).name || 'Driver'}</p>
+                                                                <p className="text-xs text-gray-600">{(booking.driver || booking.lead).phone || 'N/A'}</p>
+                                                                {(booking.driver || booking.lead).rating > 0 && (
+                                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                                        <span className="text-[11px] font-bold text-gray-700">{(booking.driver || booking.lead).rating.toFixed(1)}</span>
+                                                                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                                        <span className="text-[10px] text-gray-500">({(booking.driver || booking.lead).totalRides || 0} rides)</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <a
+                                                                href={`tel:${(booking.driver || booking.lead).phone}`}
+                                                                className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                            </a>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedDriver((booking.driver || booking.lead));
+                                                                setShowDriverProfile(true);
+                                                            }}
+                                                            className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
+                                                        >
+                                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                            </svg>
+                                                            <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Rating UI for Completed Trips */}
+                                            {booking.status === 'COMPLETED' && (
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    {booking.rating ? (
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
+                                                                <span>Your Rating:</span>
+                                                                <span>{'★'.repeat(booking.rating)}</span>
+                                                            </div>
+                                                            {booking.feedback && (
+                                                                <p className="text-xs text-gray-600 italic">"{booking.feedback}"</p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <p className="text-xs font-bold mb-2">Rate your driver:</p>
+                                                            <div className="flex flex-col gap-3">
+                                                                <div className="flex gap-2">
+                                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                                        <button
+                                                                            key={star}
+                                                                            onClick={() => handleRating(booking.id, star)}
+                                                                            className={`w-8 h-8 rounded-full font-bold border flex items-center justify-center transition ${(ratingData[booking.id]?.rating || 0) >= star
+                                                                                ? 'bg-yellow-50 text-yellow-500 border-yellow-200'
+                                                                                : 'bg-gray-50 text-gray-300 hover:text-yellow-500 border-gray-200 hover:bg-yellow-50'
+                                                                                }`}
+                                                                        >
+                                                                            ★
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                                {(ratingData[booking.id]?.rating || 0) > 0 && (
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <textarea
+                                                                            value={ratingData[booking.id]?.feedback || ''}
+                                                                            onChange={(e) => handleFeedbackChange(booking.id, e.target.value)}
+                                                                            placeholder="How was your trip? (Optional)"
+                                                                            className="w-full text-sm p-2 border border-gray-200 rounded-lg resize-none focus:ring-1 focus:ring-black outline-none"
+                                                                            rows={2}
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => submitRating(booking.id)}
+                                                                            className="bg-black text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition self-start"
+                                                                        >
+                                                                            Submit Rating
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                        )}
+                    </div>
+                )}
+
+                {false && activeTab === 'TRIPS' && (
+                    <CustomerBookingStatus customer={customer} />
+                )}
+
+                {false && activeTab === 'TRIPS' && (
+                    <div className="flex-grow overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
+                        <h3 className="text-lg font-bold">Your Trips</h3>
+                        {!isAuthenticated ? (
+                            <div className="text-center py-8">
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                                    <svg className="w-12 h-12 text-yellow-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <h4 className="text-lg font-bold text-yellow-800 mb-2">Login Required</h4>
+                                    <p className="text-yellow-700">Please log in to view your trip history</p>
+                                </div>
+                            </div>
+                        ) : myTrips.length === 0 ? (
+                            <p className="text-gray-500">No trips booked yet.</p>
+                        ) : (
+                            myTrips
+                                .sort((a, b) => new Date(b.startDateTime).getTime() - new Date(a.startDateTime).getTime())
+                                .map(trip => {
+                                    const startDate = new Date(trip.startDateTime);
+                                    const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                                    const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                                    return (
+                                        <div key={trip.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <span className="font-bold text-lg">{formattedTime}, {formattedDate}</span>
+                                                    {trip.estimateAmount && (
+                                                        <p className="text-sm font-bold text-green-600 mt-1">₹{trip.estimateAmount}</p>
+                                                    )}
+                                                </div>
+                                                <span className={`text-xs px-2 py-1 rounded font-bold ${trip.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                                    trip.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                                                        trip.status === 'ONGOING' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-gray-100'
+                                                    }`}>{trip.status}</span>
+                                            </div>
+                                            <p className="text-sm font-medium mb-1">{trip.bookingType}</p>
+                                            <div className="text-xs text-gray-500 flex flex-col gap-1">
+                                                <span>From: {trip.pickupLocation}</span>
+                                                <span>To: {trip.dropLocation}</span>
+                                            </div>
+
+                                            {/* Driver Details - Show when trip is confirmed/ongoing/completed */}
+                                            {(trip.driver || trip.lead) && (trip.status === 'CONFIRMED' || trip.status === 'ONGOING' || trip.status === 'COMPLETED') && (
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Driver Details</p>
+                                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+                                                        <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
+                                                            {(trip.driver || trip.lead).name?.[0] || 'D'}
+                                                        </div>
+                                                        <div className="flex-grow">
+                                                            <p className="font-bold text-sm">{(trip.driver || trip.lead).name || 'Driver'}</p>
+                                                            <p className="text-xs text-gray-500">{(trip.driver || trip.lead).phone || 'N/A'}</p>
+                                                        </div>
+                                                        <a
+                                                            href={`tel:${(trip.driver || trip.lead).phone}`}
+                                                            className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {/* Rating UI for Completed Trips */}
+                                            {trip.status === 'COMPLETED' && (
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    {trip.rating ? (
+                                                        <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
+                                                            <span>Your Rating:</span>
+                                                            <span>{'★'.repeat(trip.rating)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <p className="text-xs font-bold mb-2">Rate your driver:</p>
+                                                            <div className="flex gap-2">
+                                                                {[1, 2, 3, 4, 5].map(star => (
+                                                                    <button
+                                                                        key={star}
+                                                                        onClick={() => handleRating(trip.id, star)}
+                                                                        className="w-8 h-8 rounded-full bg-gray-50 hover:bg-yellow-50 text-gray-300 hover:text-yellow-500 font-bold border border-gray-200 flex items-center justify-center transition"
+                                                                    >
+                                                                        ★
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'PROFILE' && (
+                    <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar">
+                        {!isEditingProfile ? (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-black text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
+                                            {customer.name?.[0] || 'C'}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg sm:text-xl font-bold">{customer.name}</h3>
+                                            <p className="text-xs sm:text-sm text-gray-500">{customer.phone}</p>
+                                            {customer.alternateMobile && <p className="text-xs text-gray-500 font-medium">Alt Mobile: {customer.alternateMobile}</p>}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsEditingProfile(true)}
+                                        className="text-xs font-bold text-black border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50"
+                                    >
+                                        Edit
+                                    </button>
+                                </div>
+
+                                {/* Contact Information Card */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2 text-xs">
+                                    <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">Contact Details</h4>
+                                    <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                                        <span className="text-gray-500 font-medium">Primary Phone:</span>
+                                        <span className="font-bold text-gray-900">{customer.phone}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                                        <span className="text-gray-500 font-medium">Alternate Mobile:</span>
+                                        <span className="font-bold text-gray-900">{customer.alternateMobile || 'Not provided'}</span>
+                                    </div>
+                                    {customer.whatsappNumber && (
+                                        <div className="flex justify-between items-center py-1">
+                                            <span className="text-gray-500 font-medium">WhatsApp:</span>
+                                            <span className="font-bold text-gray-900">{customer.whatsappNumber}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Language Preferences Card */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2">
+                                    <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">{t('profile.settings', 'Settings & Preferences')}</h4>
+                                    <UberLanguageSelector variant="inline" />
+                                </div>
+
+                                {/* Address Section */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                    <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">Address</h4>
+                                    <p className="text-sm font-medium">{customer.address || 'No address added'}</p>
+                                </div>
+
+                                {/* Languages Known Card */}
+                                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                    <h4 className="text-xs text-gray-400 font-bold uppercase mb-2">🗣️ Languages Known</h4>
+                                    {((customer as any).languagesKnown || []).length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {((customer as any).languagesKnown as string[]).map((lang: string) => (
+                                                <span key={lang} className="bg-black text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-400">No languages added — tap Edit to add</p>
+                                    )}
+                                </div>
+
+                                {/* <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
                              <div className="flex justify-between items-center mb-4">
                                  <span className="text-sm font-bold text-gray-600">Advance Payment</span>
                                  <span className="text-2xl font-bold">₹{customer.advancePaymentBalance}</span>
@@ -2673,85 +2704,85 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                              <button className="w-full bg-black text-white py-2 rounded-lg text-sm font-bold">Add Money</button>
                          </div> */}
 
-                         <div className="space-y-2">
-                             <div className="flex items-center justify-between">
-                                 <h4 className="font-bold text-sm">ID Proof</h4>
-                                 {customer.idProof && (
-                                     <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                                         Verified Document
-                                     </span>
-                                 )}
-                             </div>
-                             {customer.idProof ? (() => {
-                                 const fullUrl = customer.idProof.startsWith('http') ? customer.idProof : `${API_BASE_URL}${customer.idProof.startsWith('/') ? '' : '/'}${customer.idProof}`;
-                                 const isPdf = customer.idProof.toLowerCase().endsWith('.pdf');
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-bold text-sm">ID Proof</h4>
+                                        {customer.idProof && (
+                                            <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                                                Verified Document
+                                            </span>
+                                        )}
+                                    </div>
+                                    {customer.idProof ? (() => {
+                                        const fullUrl = customer.idProof.startsWith('http') ? customer.idProof : `${API_BASE_URL}${customer.idProof.startsWith('/') ? '' : '/'}${customer.idProof}`;
+                                        const isPdf = customer.idProof.toLowerCase().endsWith('.pdf');
 
-                                 return (
-                                     <div className="border border-gray-200 rounded-2xl overflow-hidden bg-gray-50 shadow-sm">
-                                         <div className="p-3 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
-                                             <div className="flex items-center gap-2">
-                                                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                                 <span className="text-xs font-bold text-emerald-800">ID Proof Uploaded</span>
-                                             </div>
-                                             <button 
-                                                 onClick={() => window.open(fullUrl, '_blank')}
-                                                 className="text-xs font-extrabold text-black hover:underline flex items-center gap-1"
-                                             >
-                                                 View Full Size ↗
-                                             </button>
-                                         </div>
-                                         {!isPdf ? (
-                                             <div className="p-3 flex justify-center bg-black/5">
-                                                 <img 
-                                                     src={fullUrl} 
-                                                     alt="ID Proof" 
-                                                     className="max-h-52 w-auto object-contain rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition"
-                                                     onClick={() => window.open(fullUrl, '_blank')}
-                                                 />
-                                             </div>
-                                         ) : (
-                                             <div className="p-6 text-center">
-                                                 <span className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-bold mb-2">PDF Document</span>
-                                                 <p className="text-xs text-gray-600">ID Proof Document (Click 'View Full Size' to inspect)</p>
-                                             </div>
-                                         )}
-                                     </div>
-                                 );
-                             })() : (
-                                 <div 
-                                     onClick={() => setIsEditingProfile(true)}
-                                     className="border border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 cursor-pointer"
-                                 >
-                                     <div className="text-gray-500 text-sm">
-                                         <p className="font-bold mb-1">Upload ID Proof</p>
-                                         <p className="text-xs">Aadhar / Voter ID / DLL (No PAN Card)</p>
-                                     </div>
-                                 </div>
-                             )}
-                         </div>
+                                        return (
+                                            <div className="border border-gray-200 rounded-2xl overflow-hidden bg-gray-50 shadow-sm">
+                                                <div className="p-3 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                                        <span className="text-xs font-bold text-emerald-800">ID Proof Uploaded</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => window.open(fullUrl, '_blank')}
+                                                        className="text-xs font-extrabold text-black hover:underline flex items-center gap-1"
+                                                    >
+                                                        View Full Size ↗
+                                                    </button>
+                                                </div>
+                                                {!isPdf ? (
+                                                    <div className="p-3 flex justify-center bg-black/5">
+                                                        <img
+                                                            src={fullUrl}
+                                                            alt="ID Proof"
+                                                            className="max-h-52 w-auto object-contain rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition"
+                                                            onClick={() => window.open(fullUrl, '_blank')}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-6 text-center">
+                                                        <span className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-md text-xs font-bold mb-2">PDF Document</span>
+                                                        <p className="text-xs text-gray-600">ID Proof Document (Click 'View Full Size' to inspect)</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })() : (
+                                        <div
+                                            onClick={() => setIsEditingProfile(true)}
+                                            className="border border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 cursor-pointer"
+                                        >
+                                            <div className="text-gray-500 text-sm">
+                                                <p className="font-bold mb-1">Upload ID Proof</p>
+                                                <p className="text-xs">Aadhar / Voter ID / DLL (No PAN Card)</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
-                         <div className="pt-4 space-y-3">
-                             <button
-                                 onClick={() => {
-                                     setConfirmConfig({
-                                         isOpen: true,
-                                         title: 'Logout',
-                                         message: 'Are you sure you want to logout?',
-                                         type: 'info',
-                                         confirmText: 'Logout',
-                                         onConfirm: () => {
-                                             localStorage.removeItem('auth-token');
-                                             window.location.href = '/';
-                                         }
-                                     });
-                                 }}
-                                 className="w-full bg-white border border-gray-200 text-black py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2"
-                             >
-                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                 Logout
-                             </button>
+                                <div className="pt-4 space-y-3">
+                                    <button
+                                        onClick={() => {
+                                            setConfirmConfig({
+                                                isOpen: true,
+                                                title: 'Logout',
+                                                message: 'Are you sure you want to logout?',
+                                                type: 'info',
+                                                confirmText: 'Logout',
+                                                onConfirm: () => {
+                                                    localStorage.removeItem('auth-token');
+                                                    window.location.href = '/';
+                                                }
+                                            });
+                                        }}
+                                        className="w-full bg-white border border-gray-200 text-black py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                        Logout
+                                    </button>
 
-{/* 
+                                    {/* 
                              <button
                                  onClick={() => {
                                      setConfirmConfig({
@@ -2787,253 +2818,282 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                  Delete Account
                              </button>
 */}
-                         </div>
-                     </div>
-                 ) : (
-                     <form onSubmit={handleProfileUpdate} className="space-y-4">
-                         <h3 className="text-lg font-bold mb-4">Edit Profile</h3>
-                         
-                         <div>
-                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Full Name</label>
-                             <input 
-                                 type="text"
-                                 className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                                 value={editProfileData.name}
-                                 onChange={(e) => setEditProfileData({...editProfileData, name: e.target.value})}
-                                 required
-                             />
-                         </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleProfileUpdate} className="space-y-4">
+                                <h3 className="text-lg font-bold mb-4">Edit Profile</h3>
 
-                                                   <div>
-                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Alternate Mobile Number</label>
-                              <input 
-                                  type="tel"
-                                  maxLength={10}
-                                  className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                                  value={editProfileData.alternateMobile || ''}
-                                  onChange={(e) => setEditProfileData({...editProfileData, alternateMobile: e.target.value.replace(/\D/g, '')})}
-                                  placeholder="10-digit mobile number"
-                              />
-                          </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Full Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                        value={editProfileData.name}
+                                        onChange={(e) => setEditProfileData({ ...editProfileData, name: e.target.value })}
+                                        required
+                                    />
+                                </div>
 
-                         <div>
-                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Phone Number</label>
-                             <input 
-                                 type="tel"
-                                 className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                                 value={editProfileData.phone}
-                                 onChange={(e) => {
-                                   const newPhone = e.target.value;
-                                   setEditProfileData(prev => ({
-                                     ...prev,
-                                     phone: newPhone,
-                                     ...(prev.phoneSameAsWhatsapp && { whatsappNumber: newPhone })
-                                   }));
-                                 }}
-                                 required
-                             />
-                         </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Alternate Mobile Number</label>
+                                    <input
+                                        type="tel"
+                                        maxLength={10}
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                        value={editProfileData.alternateMobile || ''}
+                                        onChange={(e) => setEditProfileData({ ...editProfileData, alternateMobile: e.target.value.replace(/\D/g, '') })}
+                                        placeholder="10-digit mobile number"
+                                    />
+                                </div>
 
-                         <div className="flex items-center">
-                             <input
-                                 type="checkbox"
-                                 id="editPhoneSameAsWhatsapp"
-                                 className="mr-2 rounded border-gray-300 text-black focus:ring-black"
-                                 checked={editProfileData.phoneSameAsWhatsapp}
-                                 onChange={(e) => {
-                                     const isChecked = e.target.checked;
-                                     setEditProfileData(prev => ({
-                                         ...prev,
-                                         phoneSameAsWhatsapp: isChecked,
-                                         ...(isChecked && { whatsappNumber: prev.phone })
-                                     }));
-                                 }}
-                             />
-                             <label htmlFor="editPhoneSameAsWhatsapp" className="text-xs font-medium text-gray-700">Phone same as WhatsApp number</label>
-                         </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                        value={editProfileData.phone}
+                                        onChange={(e) => {
+                                            const newPhone = e.target.value;
+                                            setEditProfileData(prev => ({
+                                                ...prev,
+                                                phone: newPhone,
+                                                ...(prev.phoneSameAsWhatsapp && { whatsappNumber: newPhone })
+                                            }));
+                                        }}
+                                        required
+                                    />
+                                </div>
 
-                         {!editProfileData.phoneSameAsWhatsapp && (
-                             <div>
-                                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">WhatsApp Number</label>
-                                 <input 
-                                     type="tel"
-                                     className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
-                                     value={editProfileData.whatsappNumber}
-                                     onChange={(e) => setEditProfileData({...editProfileData, whatsappNumber: e.target.value})}
-                                     required={!editProfileData.phoneSameAsWhatsapp}
-                                 />
-                             </div>
-                         )}
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id="editPhoneSameAsWhatsapp"
+                                        className="mr-2 rounded border-gray-300 text-black focus:ring-black"
+                                        checked={editProfileData.phoneSameAsWhatsapp}
+                                        onChange={(e) => {
+                                            const isChecked = e.target.checked;
+                                            setEditProfileData(prev => ({
+                                                ...prev,
+                                                phoneSameAsWhatsapp: isChecked,
+                                                ...(isChecked && { whatsappNumber: prev.phone })
+                                            }));
+                                        }}
+                                    />
+                                    <label htmlFor="editPhoneSameAsWhatsapp" className="text-xs font-medium text-gray-700">Phone same as WhatsApp number</label>
+                                </div>
 
-                         <div>
-                             <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Address</label>
-                             <textarea 
-                                 className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
-                                 rows={3}
-                                 value={editProfileData.address}
-                                 onChange={(e) => setEditProfileData({...editProfileData, address: e.target.value})}
-                                 placeholder="#123, Street Name, City"
-                             />
-                         </div>
+                                {!editProfileData.phoneSameAsWhatsapp && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">WhatsApp Number</label>
+                                        <input
+                                            type="tel"
+                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black"
+                                            value={editProfileData.whatsappNumber}
+                                            onChange={(e) => setEditProfileData({ ...editProfileData, whatsappNumber: e.target.value })}
+                                            required={!editProfileData.phoneSameAsWhatsapp}
+                                        />
+                                    </div>
+                                )}
 
-                         <div>
-                              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
-                              {(editProfileData.idProof || customer.idProof) ? (
-                                  <div className="space-y-3">
-                                      <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                                          <div className="flex items-center gap-2">
-                                              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                              <span className="text-xs sm:text-sm font-bold text-emerald-800">ID Proof Uploaded</span>
-                                          </div>
-                                          <button 
-                                              type="button"
-                                              onClick={() => document.getElementById('idProofInput')?.click()}
-                                              className="text-xs font-extrabold text-black bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition shadow-xs cursor-pointer"
-                                          >
-                                              Replace
-                                          </button>
-                                      </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Address</label>
+                                    <textarea
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
+                                        rows={3}
+                                        value={editProfileData.address}
+                                        onChange={(e) => setEditProfileData({ ...editProfileData, address: e.target.value })}
+                                        placeholder="#123, Street Name, City"
+                                    />
+                                </div>
 
-                                      {/* Visible Image Preview on Screen */}
-                                      {(() => {
-                                          const idProofVal = editProfileData.idProof || customer.idProof;
-                                          const fullUrl = idProofVal ? (idProofVal.startsWith('http') ? idProofVal : `${API_BASE_URL}${idProofVal.startsWith('/') ? '' : '/'}${idProofVal}`) : null;
-                                          const isPdf = idProofVal && idProofVal.toLowerCase().endsWith('.pdf');
+                                {/* Languages Known */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">🗣️ Languages Known</label>
+                                    <p className="text-[11px] text-gray-400 mb-2">Select all languages you can speak — helps us connect you with drivers who speak the same language.</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Hindi', 'English', 'Marathi', 'Bengali', 'Gujarati', 'Odia', 'Punjabi', 'Urdu'].map(lang => {
+                                            const selected = (editProfileData.languagesKnown || []).includes(lang);
+                                            return (
+                                                <button
+                                                    key={lang}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const current = editProfileData.languagesKnown || [];
+                                                        setEditProfileData({
+                                                            ...editProfileData,
+                                                            languagesKnown: selected
+                                                                ? current.filter((l: string) => l !== lang)
+                                                                : [...current, lang]
+                                                        });
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${selected ? 'bg-black text-white border-black' : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-400'}`}
+                                                >
+                                                    {lang}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
 
-                                          if (isPdf) {
-                                              return (
-                                                  <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50 flex items-center justify-between">
-                                                      <div className="flex items-center gap-3">
-                                                          <span className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center font-black text-xs">PDF</span>
-                                                          <div>
-                                                              <p className="text-xs font-bold text-gray-800">ID Proof Document (PDF)</p>
-                                                              <p className="text-[10px] text-gray-500">Click to view in new tab</p>
-                                                          </div>
-                                                      </div>
-                                                      <button
-                                                          type="button"
-                                                          onClick={() => window.open(fullUrl!, '_blank')}
-                                                          className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
-                                                      >
-                                                          View PDF
-                                                      </button>
-                                                  </div>
-                                              );
-                                          }
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">ID Proof</label>
+                                    {(editProfileData.idProof || customer.idProof) ? (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                                                <div className="flex items-center gap-2">
+                                                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                                    <span className="text-xs sm:text-sm font-bold text-emerald-800">ID Proof Uploaded</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => document.getElementById('idProofInput')?.click()}
+                                                    className="text-xs font-extrabold text-black bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition shadow-xs cursor-pointer"
+                                                >
+                                                    Replace
+                                                </button>
+                                            </div>
 
-                                          return (
-                                              <div className="border-2 border-gray-200 rounded-2xl overflow-hidden bg-gray-50 shadow-xs group">
-                                                  <div className="p-2.5 flex justify-center bg-black/5">
-                                                      <img 
-                                                          src={fullUrl!} 
-                                                          alt="ID Proof Preview" 
-                                                          className="max-h-56 w-auto object-contain rounded-xl shadow-xs cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
-                                                          onClick={() => window.open(fullUrl!, '_blank')}
-                                                      />
-                                                  </div>
-                                                  <div className="p-2.5 bg-white border-t border-gray-100 flex items-center justify-between">
-                                                      <span className="text-[11px] text-gray-500 font-semibold truncate">Current Document Preview</span>
-                                                      <button
-                                                          type="button"
-                                                          onClick={() => window.open(fullUrl!, '_blank')}
-                                                          className="text-xs font-bold text-black hover:underline flex items-center gap-1"
-                                                      >
-                                                          Open Full Size ↗
-                                                      </button>
-                                                  </div>
-                                              </div>
-                                          );
-                                      })()}
+                                            {/* Visible Image Preview on Screen */}
+                                            {(() => {
+                                                const idProofVal = editProfileData.idProof || customer.idProof;
+                                                const fullUrl = idProofVal ? (idProofVal.startsWith('http') ? idProofVal : `${API_BASE_URL}${idProofVal.startsWith('/') ? '' : '/'}${idProofVal}`) : null;
+                                                const isPdf = idProofVal && idProofVal.toLowerCase().endsWith('.pdf');
 
-                                      <input 
-                                          id="idProofInput"
-                                          type="file"
-                                          accept="image/*,.pdf,.doc,.docx,.txt"
-                                          className="hidden"
-                                          onChange={async (e) => {
-                                              const file = e.target.files?.[0];
-                                              if (file) {
-                                                  const uploadResponse = await uploadFile(file);
-                                                  if (uploadResponse.success) {
-                                                      setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
-                                                      setCustomer(prev => ({ ...prev, idProof: uploadResponse.fileId }));
-                                                      toast.success('New ID proof uploaded successfully!');
-                                                  } else {
-                                                      toast.error(uploadResponse.error || 'Failed to upload file');
-                                                  }
-                                              }
-                                          }}
-                                      />
-                                  </div>
-                              ) : (
-                                  <input 
-                                      type="file"
-                                      accept="image/*,.pdf,.doc,.docx,.txt"
-                                      className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
-                                      onChange={async (e) => {
-                                          const file = e.target.files?.[0];
-                                          if (file) {
-                                              const uploadResponse = await uploadFile(file);
-                                              if (uploadResponse.success) {
-                                                  setEditProfileData({...editProfileData, idProof: uploadResponse.fileId});
-                                                  setCustomer(prev => ({ ...prev, idProof: uploadResponse.fileId }));
-                                                  toast.success('ID proof uploaded successfully!');
-                                              } else {
-                                                  toast.error(uploadResponse.error || 'Failed to upload file');
-                                              }
-                                          }
-                                      }}
-                                  />
-                              )}
-                              <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
-                          </div>
+                                                if (isPdf) {
+                                                    return (
+                                                        <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50 flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center font-black text-xs">PDF</span>
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-gray-800">ID Proof Document (PDF)</p>
+                                                                    <p className="text-[10px] text-gray-500">Click to view in new tab</p>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(fullUrl!, '_blank')}
+                                                                className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
+                                                            >
+                                                                View PDF
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                }
 
-                         <div className="flex gap-3 pt-4">
-                             <button 
-                                type="button" 
-                                onClick={() => setIsEditingProfile(false)}
-                                className="flex-1 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg"
-                             >
-                                 Cancel
-                             </button>
-                             <button 
-                                type="submit" 
-                                className="flex-1 bg-black text-white py-3 rounded-lg text-sm font-bold hover:bg-gray-800"
-                             >
-                                 Save Changes
-                             </button>
-                         </div>
-                     </form>
-                 )}
-              </div>
-          )}
-          
-          {/* Terms and Conditions Modal */}
-          <TermsAndConditions 
-            isOpen={showTerms} 
-            onClose={() => setShowTerms(false)} 
-          />
+                                                return (
+                                                    <div className="border-2 border-gray-200 rounded-2xl overflow-hidden bg-gray-50 shadow-xs group">
+                                                        <div className="p-2.5 flex justify-center bg-black/5">
+                                                            <img
+                                                                src={fullUrl!}
+                                                                alt="ID Proof Preview"
+                                                                className="max-h-56 w-auto object-contain rounded-xl shadow-xs cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
+                                                                onClick={() => window.open(fullUrl!, '_blank')}
+                                                            />
+                                                        </div>
+                                                        <div className="p-2.5 bg-white border-t border-gray-100 flex items-center justify-between">
+                                                            <span className="text-[11px] text-gray-500 font-semibold truncate">Current Document Preview</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(fullUrl!, '_blank')}
+                                                                className="text-xs font-bold text-black hover:underline flex items-center gap-1"
+                                                            >
+                                                                Open Full Size ↗
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
 
-          {/* Payment Method Modal */}
-          {showPaymentModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-                <h2 className="text-xl font-bold mb-2">Select Payment Method</h2>
-                <p className="text-sm text-gray-600 mb-6">Choose how you want to pay</p>
-                
-                <div className="space-y-3">
-                  <button
-                    onClick={() => handlePaymentMethodSelect('CASH')}
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-lg flex items-center justify-center gap-3"
-                  >
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                      <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
-                    </svg>
-                    Cash
-                  </button>
-                  
-                  {/* <button
+                                            <input
+                                                id="idProofInput"
+                                                type="file"
+                                                accept="image/*,.pdf,.doc,.docx,.txt"
+                                                className="hidden"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const uploadResponse = await uploadFile(file);
+                                                        if (uploadResponse.success) {
+                                                            setEditProfileData({ ...editProfileData, idProof: uploadResponse.fileId });
+                                                            setCustomer(prev => ({ ...prev, idProof: uploadResponse.fileId }));
+                                                            toast.success('New ID proof uploaded successfully!');
+                                                        } else {
+                                                            toast.error(uploadResponse.error || 'Failed to upload file');
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="file"
+                                            accept="image/*,.pdf,.doc,.docx,.txt"
+                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-black file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const uploadResponse = await uploadFile(file);
+                                                    if (uploadResponse.success) {
+                                                        setEditProfileData({ ...editProfileData, idProof: uploadResponse.fileId });
+                                                        setCustomer(prev => ({ ...prev, idProof: uploadResponse.fileId }));
+                                                        toast.success('ID proof uploaded successfully!');
+                                                    } else {
+                                                        toast.error(uploadResponse.error || 'Failed to upload file');
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-1">Aadhar / Voter ID / DLL (No PAN Card) <span className="text-red-500">(Max 5MB)</span></p>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditingProfile(false)}
+                                        className="flex-1 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50 rounded-lg"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-black text-white py-3 rounded-lg text-sm font-bold hover:bg-gray-800"
+                                    >
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                )}
+
+                {/* Terms and Conditions Modal */}
+                <TermsAndConditions
+                    isOpen={showTerms}
+                    onClose={() => setShowTerms(false)}
+                />
+
+                {/* Payment Method Modal */}
+                {showPaymentModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+                            <h2 className="text-xl font-bold mb-2">Select Payment Method</h2>
+                            <p className="text-sm text-gray-600 mb-6">Choose how you want to pay</p>
+
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => handlePaymentMethodSelect('CASH')}
+                                    className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-lg flex items-center justify-center gap-3"
+                                >
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                                        <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                                    </svg>
+                                    Cash
+                                </button>
+
+                                {/* <button
                     onClick={() => handlePaymentMethodSelect('UPI')}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:from-blue-600 hover:to-blue-700 transition shadow-lg flex items-center justify-center gap-3"
                   >
@@ -3043,85 +3103,85 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </svg>
                     UPI
                   </button> */}
+                            </div>
+
+                            <button
+                                onClick={() => setShowPaymentModal(false)}
+                                className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Cancel Confirmation Modal */}
+            {cancelModalBookingId && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 text-center space-y-4">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">Cancel Booking?</h3>
+                            <p className="text-sm text-gray-500 font-medium">Are you sure? This request will be sent to the Admin for approval.</p>
+                        </div>
+                        <div className="flex border-t border-gray-100 divide-x divide-gray-100">
+                            <button
+                                onClick={() => setCancelModalBookingId(null)}
+                                disabled={isCancelling}
+                                className="flex-1 py-4 text-sm font-bold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+                            >
+                                Keep It
+                            </button>
+                            <button
+                                onClick={confirmCancel}
+                                disabled={isCancelling}
+                                className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                            >
+                                {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                
-                <button
-                  onClick={() => setShowPaymentModal(false)}
-                  className="w-full mt-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-      </div>
+            )}
 
-      {/* Cancel Confirmation Modal */}
-      {cancelModalBookingId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 text-center space-y-4">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+
+            {/* Floating SOS Emergency Button (Uber-style persistent safety button) */}
+            <button
+                type="button"
+                onClick={() => {
+                    setSosTargetTrip(null);
+                    setShowSosModal(true);
+                }}
+                className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-700 hover:to-red-800 text-white font-black px-4 py-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/90 ring-4 ring-red-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 group cursor-pointer"
+                title="Emergency SOS & Safety Toolkit"
+            >
+                <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                </span>
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2 10h-4v-2h4v2zm0-4h-4V9h4v4z" />
                 </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Cancel Booking?</h3>
-              <p className="text-sm text-gray-500 font-medium">Are you sure? This request will be sent to the Admin for approval.</p>
-            </div>
-            <div className="flex border-t border-gray-100 divide-x divide-gray-100">
-              <button
-                onClick={() => setCancelModalBookingId(null)}
-                disabled={isCancelling}
-                className="flex-1 py-4 text-sm font-bold text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
-              >
-                Keep It
-              </button>
-              <button
-                onClick={confirmCancel}
-                disabled={isCancelling}
-                className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition disabled:opacity-50"
-              >
-                {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
-              </button>
-            </div>
-          </div>
+                <span className="text-xs sm:text-sm font-black tracking-wider uppercase">SOS</span>
+            </button>
+
+            {/* SOS Modal */}
+            <CustomerSosModal
+                isOpen={showSosModal}
+                onClose={() => setShowSosModal(false)}
+                customer={customer}
+                activeTrip={sosTargetTrip}
+                allTrips={myTrips}
+            />
+
+            <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
         </div>
-      )}
-      
-      
-      {/* Floating SOS Emergency Button (Uber-style persistent safety button) */}
-      <button
-        type="button"
-        onClick={() => {
-          setSosTargetTrip(null);
-          setShowSosModal(true);
-        }}
-        className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-700 hover:to-red-800 text-white font-black px-4 py-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/90 ring-4 ring-red-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 group cursor-pointer"
-        title="Emergency SOS & Safety Toolkit"
-      >
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-        </span>
-        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2 10h-4v-2h4v2zm0-4h-4V9h4v4z"/>
-        </svg>
-        <span className="text-xs sm:text-sm font-black tracking-wider uppercase">SOS</span>
-      </button>
-
-      {/* SOS Modal */}
-      <CustomerSosModal
-        isOpen={showSosModal}
-        onClose={() => setShowSosModal(false)}
-        customer={customer}
-        activeTrip={sosTargetTrip}
-        allTrips={myTrips}
-      />
-
-      <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
-    </div>
-  );
+    );
 };
 
 export default CustomerPortal;

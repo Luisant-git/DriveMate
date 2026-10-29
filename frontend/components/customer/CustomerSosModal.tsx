@@ -12,8 +12,11 @@ interface CustomerSosModalProps {
 export const EMERGENCY_NUMBERS = {
   NATIONAL_POLICE: '112',
   POLICE_LOCAL: '100',
-  DRIVEMATE_SAFETY: '+918000112233',
-  DRIVEMATE_SAFETY_DISPLAY: '+91 80001 12233'
+  EMERGENCY_CONTACTS: [
+    { number: '+918884557768', display: '8884557768' },
+    { number: '+918884555775', display: '8884555775' },
+    { number: '+919986977768', display: '9986977768' }
+  ]
 };
 
 const CustomerSosModal: React.FC<CustomerSosModalProps> = ({
@@ -115,16 +118,16 @@ const CustomerSosModal: React.FC<CustomerSosModalProps> = ({
             </div>
           </div>
 
-          {/* 2. DriveMate 24x7 Safety Helpline */}
+          {/* 2. DriveMate Emergency Helpline */}
           <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-800">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <span className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider bg-blue-950/80 px-2 py-0.5 rounded-full border border-blue-800/40">
-                  DriveMate Safety Team
+                  DriveMate Emergency Team
                 </span>
-                <h3 className="text-base font-bold text-white mt-1">24x7 Safety Helpline</h3>
+                <h3 className="text-base font-bold text-white mt-1">Emergency 🚨</h3>
                 <p className="text-xs text-slate-300 mt-0.5 leading-snug">
-                  Speak directly with our dedicated safety & crisis response managers.
+                  Speak directly with our dedicated emergency support line.
                 </p>
               </div>
               <div className="w-10 h-10 rounded-full bg-blue-600/30 border border-blue-500/40 text-blue-400 flex items-center justify-center shrink-0">
@@ -134,15 +137,20 @@ const CustomerSosModal: React.FC<CustomerSosModalProps> = ({
               </div>
             </div>
 
-            <a
-              href={`tel:${EMERGENCY_NUMBERS.DRIVEMATE_SAFETY}`}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-              </svg>
-              <span>Call Helpline ({EMERGENCY_NUMBERS.DRIVEMATE_SAFETY_DISPLAY})</span>
-            </a>
+            <div className="space-y-2">
+              {EMERGENCY_NUMBERS.EMERGENCY_CONTACTS.map((contact, idx) => (
+                <a
+                  key={idx}
+                  href={`tel:${contact.number}`}
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors text-sm"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                  </svg>
+                  <span>Emergency 🚨 {contact.display}</span>
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* 
