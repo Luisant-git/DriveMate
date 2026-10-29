@@ -536,7 +536,6 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       {/* Top Header Bar - Fixed */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2">
-          <img src="/snp-logo.png" alt="SNP Logo" className="h-8 w-auto object-contain" />
           <p className="font-bold text-sm leading-none">SNP Driver</p>
         </div>
         <div className="flex items-center gap-2">
@@ -770,7 +769,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     <input
                                       type="text"
                                       placeholder="Enter OTP from Customer"
-                                      className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                      className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-sans text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
                                       value={startOtp}
                                       onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                     />
@@ -904,7 +903,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                         type="text"
                                         inputMode="numeric"
                                         placeholder="Enter OTP from Customer"
-                                        className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                        className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-sans text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
                                         value={endOtp}
                                         onChange={(e) => setEndOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                       />
@@ -1047,7 +1046,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <input
                                 type="text"
                                 placeholder="Enter OTP from Customer"
-                                className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-mono text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
+                                className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-sans text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
                                 value={startOtp}
                                 onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               />
