@@ -20,7 +20,7 @@ import { BiAnalyse, BiError } from 'react-icons/bi';
 import ConfirmModal from '../../components/common/ConfirmModal';
 
 
-type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'ALL';
+type SubscriptionType = 'LOCAL' | 'OUTSTATION' | 'BOTH';
 
 interface SubscriptionPlan {
   id: string;
@@ -55,7 +55,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const ITEMS_PER_PAGE = 10;
-  
+
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -68,7 +68,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     title: '',
     message: '',
     type: 'info',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -198,11 +198,10 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-8 h-8 rounded text-xs font-bold flex items-center justify-center transition ${
-                currentPage === page
-                  ? 'bg-black text-white'
-                  : 'hover:bg-gray-50 text-gray-600'
-              }`}
+              className={`w-8 h-8 rounded text-xs font-bold flex items-center justify-center transition ${currentPage === page
+                ? 'bg-black text-white'
+                : 'hover:bg-gray-50 text-gray-600'
+                }`}
             >
               {page}
             </button>
@@ -241,7 +240,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     setPackageForm({
       category: pkg.category || 'Silver',
       name: pkg.name || '',
-      type: (pkg.type as SubscriptionType) || 'LOCAL',
+      type: (pkg.category || 'Silver') === 'Silver' ? 'LOCAL' : ((pkg.type as SubscriptionType) || 'LOCAL'),
       price: pkg.price || 0,
       durationDays: pkg.duration || 30,
       maxDuties: pkg.maxDuties || 0,
@@ -298,7 +297,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const handleTogglePackageStatus = async (pkg: SubscriptionPlan) => {
     const newStatus = pkg.isActive ? false : true;
     const action = newStatus ? 'activate' : 'deactivate';
-    
+
     const confirmed = window.confirm(
       `Are you sure you want to ${action} "${pkg.name}"?`,
     );
@@ -350,19 +349,19 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               A
             </div>
           </div>
-          <button 
+          <button
             onClick={() => {
-                setConfirmConfig({
-                    isOpen: true,
-                    title: 'Logout',
-                    message: 'Are you sure you want to logout?',
-                    type: 'info',
-                    confirmText: 'Logout',
-                    onConfirm: () => {
-                        closeConfirm();
-                        if (onLogout) onLogout();
-                    }
-                });
+              setConfirmConfig({
+                isOpen: true,
+                title: 'Logout',
+                message: 'Are you sure you want to logout?',
+                type: 'info',
+                confirmText: 'Logout',
+                onConfirm: () => {
+                  closeConfirm();
+                  if (onLogout) onLogout();
+                }
+              });
             }}
             className="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full transition-colors"
           >
@@ -370,267 +369,264 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
           </button>
         </div>
       </div>
-      
-      <div className="flex flex-1 overflow-hidden">
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 top-16 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:z-auto lg:flex-shrink-0 lg:top-0`}>
-        <div className="flex flex-col h-full">
-          {/* Logo/Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Admin Portal</h1>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
 
-          {/* Menu Items */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {menuItems.map((item) => {
-              const IconComponent = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabChange(item.id as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
-                    activeTab === item.id
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className={`fixed inset-y-0 left-0 top-16 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:z-auto lg:flex-shrink-0 lg:top-0`}>
+          <div className="flex flex-col h-full">
+            {/* Logo/Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h1 className="text-xl font-bold text-gray-900">Admin Portal</h1>
+              <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+              {menuItems.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id as any)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${activeTab === item.id
                       ? 'bg-black text-white'
                       : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <IconComponent className="text-lg" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden top-16"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-500 hover:text-gray-700"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <h2 className="text-lg font-bold text-gray-900">
-            {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
-          </h2>
-          <div className="w-6"></div>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto">
-          <div className="h-full">
-            {activeTab === 'BOOKINGS' && <BookingWorkflow />}
-            {activeTab === 'APPROVALS' && <PendingDriverApproval />}
-            {activeTab === 'CUSTOMERS' && <Customer />}
-            {activeTab === 'DRIVERS' && <Driver />}
-            {activeTab === 'LEADS' && <Lead />}
-            {activeTab === 'LEAD_PACKAGES' && <LeadPackage />}
-            {activeTab === 'LEAD_SUBSCRIPTIONS' && <LeadSubscriptionList />}
-
-            {activeTab === 'PACKAGES' && (
-              <div className="p-4 md:p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                  <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
-                  <button
-                    className="w-full md:w-auto bg-black text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
-                    onClick={openAddPackageModal}
+                      }`}
                   >
-                    Add Package
+                    <IconComponent className="text-lg" />
+                    <span>{item.label}</span>
                   </button>
-                </div>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
 
-                {packagesLoading && (
-                  <p className="text-sm text-gray-500 mb-4">Loading packages...</p>
-                )}
+        {/* Overlay for mobile */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden top-16"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+          {/* Top Bar */}
+          <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden text-gray-500 hover:text-gray-700"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <h2 className="text-lg font-bold text-gray-900">
+              {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            </h2>
+            <div className="w-6"></div>
+          </header>
+
+          {/* Content Area */}
+          <main className="flex-1 overflow-x-hidden overflow-y-auto">
+            <div className="h-full">
+              {activeTab === 'BOOKINGS' && <BookingWorkflow />}
+              {activeTab === 'APPROVALS' && <PendingDriverApproval />}
+              {activeTab === 'CUSTOMERS' && <Customer />}
+              {activeTab === 'DRIVERS' && <Driver />}
+              {activeTab === 'LEADS' && <Lead />}
+              {activeTab === 'LEAD_PACKAGES' && <LeadPackage />}
+              {activeTab === 'LEAD_SUBSCRIPTIONS' && <LeadSubscriptionList />}
+
+              {activeTab === 'PACKAGES' && (
+                <div className="p-4 md:p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
                     <button
-                      key={cat}
-                      onClick={() => setPackageCategoryFilter(cat)}
-                      className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${
-                        packageCategoryFilter === cat
+                      className="w-full md:w-auto bg-black text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
+                      onClick={openAddPackageModal}
+                    >
+                      Add Package
+                    </button>
+                  </div>
+
+                  {packagesLoading && (
+                    <p className="text-sm text-gray-500 mb-4">Loading packages...</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setPackageCategoryFilter(cat)}
+                        className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${packageCategoryFilter === cat
                           ? 'bg-black text-white'
                           : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+                          }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
 
-                {['Silver', 'Gold', 'Platinum', 'Diamond'].map((category) => {
-                  if (packageCategoryFilter !== 'All' && category !== packageCategoryFilter) return null;
-                  const categoryPackages = packages
-                    .filter((pkg) => (pkg.category || 'Silver') === category)
-                    .sort((a, b) => a.price - b.price);
+                  {['Silver', 'Gold', 'Platinum', 'Diamond'].map((category) => {
+                    if (packageCategoryFilter !== 'All' && category !== packageCategoryFilter) return null;
+                    const categoryPackages = packages
+                      .filter((pkg) => (pkg.category || 'Silver') === category)
+                      .sort((a, b) => a.price - b.price);
 
-                  if (categoryPackages.length === 0) return null;
+                    if (categoryPackages.length === 0) return null;
 
-                  return (
-                    <div key={category} className="mb-8">
-                      <h4 className="font-bold text-sm uppercase tracking-wider text-gray-500 mb-3">
-                        {category}
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {categoryPackages.map((pkg) => (
-                          <div
-                            key={pkg.id}
-                            className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <h4 className="font-bold text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h4>
-                              </div>
-                              <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
-                                {pkg.type || 'N/A'}
-                              </span>
-                            </div>
-
-                            <p className="text-sm font-semibold text-gray-700 mb-2">{pkg.name}</p>
-                            <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
-                            <div className="flex justify-between items-center border-t border-gray-100 pt-3">
-                              <p className="text-xs text-gray-500">
-                                Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
-                                {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
-                              </p>
-                              <div className="flex gap-2">
-                                <button
-                                  className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${
-                                    pkg.isActive 
-                                      ? 'text-green-600 bg-green-50 hover:bg-green-100' 
-                                      : 'text-red-600 bg-red-50 hover:bg-red-100'
-                                  }`}
-                                  onClick={() => handleTogglePackageStatus(pkg)}
-                                >
-                                  {pkg.isActive ? 'Active' : 'Inactive'}
-                                </button>
-                                <button
-                                  className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
-                                  onClick={() => openEditPackageModal(pkg)}
-                                >
-                                  Edit
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {activeTab === 'SUBSCRIPTIONS' && (
-              <div className="p-4 md:p-6">
-                <SubscriptionList />
-              </div>
-            )}
-
-            {activeTab === 'PRICING' && <PricingManagement />}
-            {activeTab === 'SERVICE_AREAS' && <ServiceAreaManagement />}
-            {activeTab === 'REPORTS' && <Reports />}
-            {activeTab === 'ROUTING_CONFIG' && <BookingRoutingConfig />}
-            {activeTab === 'OVERDUE_REPORT' && <OverdueReport />}
-            {activeTab === 'DELETED_ACCOUNTS' && <AdminDeletedAccounts />}
-
-            {activeTab === 'PAYMENTS' && (
-              <>
-                <div className="md:hidden p-4 space-y-4">
-                  {paymentData.data.map((pay: any) => (
-                    <div
-                      key={pay.id}
-                      className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
-                    >
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm font-bold text-gray-900">{pay.type}</span>
-                        <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                          {pay.status}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-end">
-                        <div className="text-xs text-gray-500 space-y-1">
-                          <p className="font-medium text-gray-900">{pay.date}</p>
-                          <p>
-                            User: <span className="font-mono">{pay.userId}</span>
-                          </p>
-                        </div>
-                        <p className="font-bold text-xl">₹{pay.amount}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="hidden md:block overflow-x-auto">
-                  <div className="min-w-full inline-block align-middle">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                          <tr>
-                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                              Date
-                            </th>
-                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                              User ID
-                            </th>
-                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                              Type
-                            </th>
-                            <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                              Amount
-                            </th>
-                            <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                              Status
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {paymentData.data.map((pay: any) => (
-                            <tr key={pay.id} className="hover:bg-gray-50/50">
-                              <td className="px-8 py-5 text-sm font-medium">{pay.date}</td>
-                              <td className="px-8 py-5 text-sm text-gray-500">{pay.userId}</td>
-                              <td className="px-8 py-5 text-sm font-bold">{pay.type}</td>
-                              <td className="px-8 py-5 text-sm">₹{pay.amount}</td>
-                              <td className="px-8 py-5 text-right">
-                                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                                  {pay.status}
+                    return (
+                      <div key={category} className="mb-8">
+                        <h4 className="font-bold text-sm uppercase tracking-wider text-gray-500 mb-3">
+                          {category}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                          {categoryPackages.map((pkg) => (
+                            <div
+                              key={pkg.id}
+                              className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h4 className="font-bold text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h4>
+                                </div>
+                                <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
+                                  {pkg.type === 'BOTH' ? 'LOCAL + OUTSTATION' : pkg.type || 'N/A'}
                                 </span>
-                              </td>
-                            </tr>
+                              </div>
+
+                              <p className="text-sm font-semibold text-gray-700 mb-2">{pkg.name}</p>
+                              <p className="text-sm text-gray-500 mb-4">{pkg.description}</p>
+                              <div className="flex justify-between items-center border-t border-gray-100 pt-3">
+                                <p className="text-xs text-gray-500">
+                                  Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
+                                  {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    className={`px-3 py-1 text-xs font-bold rounded cursor-pointer ${pkg.isActive
+                                      ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                                      : 'text-red-600 bg-red-50 hover:bg-red-100'
+                                      }`}
+                                    onClick={() => handleTogglePackageStatus(pkg)}
+                                  >
+                                    {pkg.isActive ? 'Active' : 'Inactive'}
+                                  </button>
+                                  <button
+                                    className="px-3 py-1 text-xs font-bold text-black bg-gray-100 rounded hover:bg-gray-200"
+                                    onClick={() => openEditPackageModal(pkg)}
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {activeTab === 'SUBSCRIPTIONS' && (
+                <div className="p-4 md:p-6">
+                  <SubscriptionList />
+                </div>
+              )}
+
+              {activeTab === 'PRICING' && <PricingManagement />}
+              {activeTab === 'SERVICE_AREAS' && <ServiceAreaManagement />}
+              {activeTab === 'REPORTS' && <Reports />}
+              {activeTab === 'ROUTING_CONFIG' && <BookingRoutingConfig />}
+              {activeTab === 'OVERDUE_REPORT' && <OverdueReport />}
+              {activeTab === 'DELETED_ACCOUNTS' && <AdminDeletedAccounts />}
+
+              {activeTab === 'PAYMENTS' && (
+                <>
+                  <div className="md:hidden p-4 space-y-4">
+                    {paymentData.data.map((pay: any) => (
+                      <div
+                        key={pay.id}
+                        className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
+                      >
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm font-bold text-gray-900">{pay.type}</span>
+                          <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                            {pay.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <div className="text-xs text-gray-500 space-y-1">
+                            <p className="font-medium text-gray-900">{pay.date}</p>
+                            <p>
+                              User: <span className="font-mono">{pay.userId}</span>
+                            </p>
+                          </div>
+                          <p className="font-bold text-xl">₹{pay.amount}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block overflow-x-auto">
+                    <div className="min-w-full inline-block align-middle">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left">
+                          <thead className="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Date
+                              </th>
+                              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                User ID
+                              </th>
+                              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Type
+                              </th>
+                              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Amount
+                              </th>
+                              <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Status
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {paymentData.data.map((pay: any) => (
+                              <tr key={pay.id} className="hover:bg-gray-50/50">
+                                <td className="px-8 py-5 text-sm font-medium">{pay.date}</td>
+                                <td className="px-8 py-5 text-sm text-gray-500">{pay.userId}</td>
+                                <td className="px-8 py-5 text-sm font-bold">{pay.type}</td>
+                                <td className="px-8 py-5 text-sm">₹{pay.amount}</td>
+                                <td className="px-8 py-5 text-right">
+                                  <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                                    {pay.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <PaginationControls
-                  total={paymentData.total}
-                  totalPages={paymentData.totalPages}
-                />
-              </>
-            )}
-          </div>
-        </main>
-      </div>
+                  <PaginationControls
+                    total={paymentData.total}
+                    totalPages={paymentData.totalPages}
+                  />
+                </>
+              )}
+            </div>
+          </main>
+        </div>
       </div>
 
       {/* ADD / EDIT PACKAGE MODAL */}
@@ -659,12 +655,15 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 <select
                   className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
                   value={packageForm.category}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const newCat = e.target.value;
                     setPackageForm((prev) => ({
                       ...prev,
-                      category: e.target.value,
-                    }))
-                  }
+                      category: newCat,
+                      // Silver is always LOCAL — reset type if switching to Silver
+                      type: newCat === 'Silver' ? 'LOCAL' : prev.type,
+                    }));
+                  }}
                   required
                 >
                   <option value="Silver">Silver</option>
@@ -689,20 +688,28 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Type
-                <select
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
-                  value={packageForm.type}
-                  onChange={(e) =>
-                    setPackageForm((prev) => ({
-                      ...prev,
-                      type: e.target.value as SubscriptionType,
-                    }))
-                  }
-                  required
-                >
-                  <option value="LOCAL">LOCAL</option>
-                  <option value="OUTSTATION">OUTSTATION</option>
-                </select>
+                {packageForm.category === 'Silver' ? (
+                  <div className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 flex items-center gap-2">
+                    <span className="font-bold text-gray-700">LOCAL</span>
+                    <span className="text-[10px] text-gray-400">(Silver is Local only)</span>
+                  </div>
+                ) : (
+                  <select
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
+                    value={packageForm.type}
+                    onChange={(e) =>
+                      setPackageForm((prev) => ({
+                        ...prev,
+                        type: e.target.value as SubscriptionType,
+                      }))
+                    }
+                    required
+                  >
+                    <option value="LOCAL">LOCAL</option>
+                    <option value="OUTSTATION">OUTSTATION</option>
+                    <option value="BOTH">BOTH (Local + Outstation)</option>
+                  </select>
+                )}
               </label>
 
               <div className="grid grid-cols-3 gap-4">
@@ -727,9 +734,9 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <div className="flex justify-between items-center mb-1">
                     <span>Duration (days)</span>
                     <label className="flex items-center gap-1 text-[10px] text-gray-500 font-normal cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={packageForm.durationDays === 36500} 
+                      <input
+                        type="checkbox"
+                        checked={packageForm.durationDays === 36500}
                         onChange={(e) =>
                           setPackageForm((prev) => ({
                             ...prev,
@@ -809,7 +816,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
           </div>
         </div>
       )}
-      
+
       <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div>
   );
