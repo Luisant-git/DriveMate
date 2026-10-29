@@ -3,6 +3,7 @@ import { UserRole } from '../types';
 import ConfirmModal from './common/ConfirmModal';
 import UberLanguageSelector from './common/UberLanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
+import logo from '../assets/logo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
     title: '',
     message: '',
     type: 'info',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   const closeConfirm = () => setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -35,43 +36,43 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
       {/* Uber-style Minimal Navbar */}
       <nav className={`bg-black text-white h-16 sticky top-0 z-50 ${currentUser?.role === UserRole.ADMIN ? 'hidden' : ''}`}>
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            {/* Logo */}
-            <div className="flex items-center gap-1 cursor-pointer">
-              <span className="text-2xl font-bold tracking-tight">SNP</span>
-            </div>
+          {/* Logo */}
+          <div className="flex items-center cursor-pointer">
+            <img src={logo} alt="SNP Consultant and Services" className="w-80 h-auto object-contain" />
+          </div>
 
-            {/* Right Actions */}
-            <div className="flex items-center gap-3 sm:gap-4">
-              <UberLanguageSelector variant="navbar" />
-              {currentUser && (
-                <>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                     <span className="hidden md:block text-sm font-medium">{currentUser.name || 'User'}</span>
-                     <div className="h-8 w-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-sm">
-                       {currentUser.name?.[0] || 'U'}
-                     </div>
+          {/* Right Actions */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <UberLanguageSelector variant="navbar" />
+            {currentUser && (
+              <>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="hidden md:block text-sm font-medium">{currentUser.name || 'User'}</span>
+                  <div className="h-8 w-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-sm">
+                    {currentUser.name?.[0] || 'U'}
                   </div>
-                  <button 
-                    onClick={() => {
-                        setConfirmConfig({
-                            isOpen: true,
-                            title: t('nav.logout', 'Logout'),
-                            message: 'Are you sure you want to logout?',
-                            type: 'info',
-                            confirmText: t('nav.logout', 'Logout'),
-                            onConfirm: () => {
-                                closeConfirm();
-                                onLogout();
-                            }
-                        });
-                    }}
-                    className="text-xs sm:text-sm bg-gray-800 hover:bg-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors font-medium"
-                  >
-                     {t('nav.logout', 'Logout')}
-                  </button>
-                </>
-              )}
-            </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setConfirmConfig({
+                      isOpen: true,
+                      title: t('nav.logout', 'Logout'),
+                      message: 'Are you sure you want to logout?',
+                      type: 'info',
+                      confirmText: t('nav.logout', 'Logout'),
+                      onConfirm: () => {
+                        closeConfirm();
+                        onLogout();
+                      }
+                    });
+                  }}
+                  className="text-xs sm:text-sm bg-gray-800 hover:bg-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors font-medium"
+                >
+                  {t('nav.logout', 'Logout')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
