@@ -52,7 +52,7 @@ export const getDriverTrips = async (req, res) => {
       where: {
         OR: [
           isLead ? { leadId: userId } : { driverId: userId },
-          isLead 
+          isLead
             ? { leadResponses: { some: { leadId: userId, status: 'REJECTED' } } }
             : { driverResponses: { some: { driverId: userId, status: 'CANCELLED' } } }
         ]
@@ -66,7 +66,7 @@ export const getDriverTrips = async (req, res) => {
     console.log('Found bookings for user:', bookings.length);
 
     const trips = bookings.map(booking => {
-      const isCancelledByThisUser = isLead 
+      const isCancelledByThisUser = isLead
         ? booking.leadId !== userId
         : booking.driverId !== userId;
       const isCancelledByThisDriver = isCancelledByThisUser;
@@ -131,9 +131,9 @@ export const acceptTrip = async (req, res) => {
   try {
     // Drivers can't accept trips directly anymore
     // Only admin assigns bookings through the booking workflow
-    res.status(403).json({ 
-      success: false, 
-      error: 'Direct trip acceptance is disabled. Admin assigns bookings.' 
+    res.status(403).json({
+      success: false,
+      error: 'Direct trip acceptance is disabled. Admin assigns bookings.'
     });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
@@ -153,12 +153,31 @@ export const completeTrip = async (req, res) => {
       return res.status(401).json({ success: false, error: 'User ID not found in request' });
     }
 
-    const { finalAmount } = req.body;
+    const { finalAmount, otp } = req.body;
+
+    // ── End OTP verification ──────────────────────────────────────────
+    if (!otp) {
+      return res.status(400).json({ success: false, error: 'OTP is required to complete the trip' });
+    }
+    const storedEndOtp = endOtpStore.get(tripId);
+    if (!storedEndOtp) {
+      return res.status(400).json({ success: false, error: 'OTP expired or not requested. Please send OTP again.' });
+    }
+    if (Date.now() > storedEndOtp.expiresAt) {
+      endOtpStore.delete(tripId);
+      return res.status(400).json({ success: false, error: 'OTP expired. Please request a new OTP.' });
+    }
+    if (otp !== storedEndOtp.otp) {
+      return res.status(400).json({ success: false, error: 'Invalid OTP' });
+    }
+    // Valid — consume it
+    endOtpStore.delete(tripId);
+    // ─────────────────────────────────────────────────────────────────
 
     // Get the current booking to check actualStartTime
     const currentBooking = await prisma.booking.findUnique({ where: { id: tripId } });
     let calculatedDuration = currentBooking?.duration;
-    
+
     if (currentBooking?.actualStartTime) {
       const start = new Date(currentBooking.actualStartTime);
       const end = new Date();
@@ -225,8 +244,8 @@ export const completeTrip = async (req, res) => {
           const pName = (s.plan.name || '').toLowerCase();
           const pCat = (s.plan.category || '').toLowerCase();
           return (bType.includes('outstation') && (pType.includes('outstation') || pName.includes('outstation'))) ||
-                 (bType.includes('local') && (pType.includes('local') || pName.includes('local'))) ||
-                 (pCat && bType.includes(pCat));
+            (bType.includes('local') && (pType.includes('local') || pName.includes('local'))) ||
+            (pCat && bType.includes(pCat));
         });
 
         if (!targetSub) {
@@ -281,7 +300,7 @@ export const completeTrip = async (req, res) => {
           destination: booking.dropLocation,
           amount: (booking.finalAmount || booking.estimateAmount || 0).toString()
         };
-        
+
         console.log('[TripController] Sending WhatsApp completion notification for booking:', booking.id);
         await sendTripCompletedInternal(booking.customer.phone, whatsappParams);
       }
@@ -297,6 +316,9 @@ export const completeTrip = async (req, res) => {
 // In-memory OTP store for trip starts
 const startOtpStore = new Map();
 
+// In-memory OTP store for trip ends
+const endOtpStore = new Map();
+
 // Send OTP to customer for starting trip
 export const sendStartOtp = async (req, res) => {
   try {
@@ -305,21 +327,21 @@ export const sendStartOtp = async (req, res) => {
       where: { id: tripId },
       include: { customer: true }
     });
-    
+
     if (!booking || !booking.customer || !booking.customer.phone) {
       return res.status(400).json({ success: false, error: 'Customer phone not found' });
     }
-    
+
     const phone = booking.customer.phone;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     startOtpStore.set(tripId, {
       otp,
       expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
     });
-    
+
     console.log(`[Trip] Start OTP for Trip ${tripId} (Phone: ${phone}): ${otp}`);
-    
+
     try {
       // We dynamically import to avoid circular dependency issues if any
       const { customerLoginOtp } = await import('./whatsapp.controller.js');
@@ -328,13 +350,13 @@ export const sendStartOtp = async (req, res) => {
         json: (data) => console.log('[WhatsApp] Success:', data.message),
         status: (code) => ({ json: (data) => console.error('[WhatsApp] Error:', data.error) })
       };
-      
+
       await customerLoginOtp(mockReq, mockRes);
       console.log(`[Trip] WhatsApp Start OTP sent successfully to ${phone}`);
     } catch (whatsappError) {
       console.error('[Trip] WhatsApp Start OTP Error:', whatsappError.message);
     }
-    
+
     res.json({ success: true, message: 'OTP sent to customer successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -352,7 +374,7 @@ export const startTrip = async (req, res) => {
     if (!otp) {
       return res.status(400).json({ success: false, error: 'OTP is required' });
     }
-    
+
     const storedOtpData = startOtpStore.get(tripId);
     if (!storedOtpData) {
       return res.status(400).json({ success: false, error: 'OTP expired or not requested' });
@@ -364,7 +386,7 @@ export const startTrip = async (req, res) => {
     if (otp !== storedOtpData.otp) {
       return res.status(400).json({ success: false, error: 'Invalid OTP' });
     }
-    
+
     // OTP is valid, proceed
     startOtpStore.delete(tripId);
 
@@ -398,6 +420,48 @@ export const startTrip = async (req, res) => {
   }
 };
 
+// Send OTP to customer for ending trip
+export const sendEndOtp = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    const booking = await prisma.booking.findUnique({
+      where: { id: tripId },
+      include: { customer: true }
+    });
+
+    if (!booking || !booking.customer || !booking.customer.phone) {
+      return res.status(400).json({ success: false, error: 'Customer phone not found' });
+    }
+
+    const phone = booking.customer.phone;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    endOtpStore.set(tripId, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+    });
+
+    console.log(`[Trip] End OTP for Trip ${tripId} (Phone: ${phone}): ${otp}`);
+
+    try {
+      const { customerLoginOtp } = await import('./whatsapp.controller.js');
+      const mockReq = { body: { phone, otp } };
+      const mockRes = {
+        json: (data) => console.log('[WhatsApp] End OTP Success:', data.message),
+        status: (code) => ({ json: (data) => console.error('[WhatsApp] End OTP Error:', data.error) })
+      };
+      await customerLoginOtp(mockReq, mockRes);
+      console.log(`[Trip] WhatsApp End OTP sent successfully to ${phone}`);
+    } catch (whatsappError) {
+      console.error('[Trip] WhatsApp End OTP Error:', whatsappError.message);
+    }
+
+    res.json({ success: true, message: 'End OTP sent to customer successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // Update trip status (generic)
 export const updateTripStatus = async (req, res) => {
   try {
@@ -405,7 +469,7 @@ export const updateTripStatus = async (req, res) => {
     const { status } = req.body;
 
     const updateData = { status };
-    
+
     if (status === 'COMPLETED') {
       updateData.completedAt = new Date();
     }
@@ -538,7 +602,7 @@ export const requestCancelTrip = async (req, res) => {
 
     const updatedBooking = await prisma.booking.update({
       where: { id: tripId },
-      data: { 
+      data: {
         cancellationRequested: true,
         cancellationReason: 'Requested by Driver'
       }

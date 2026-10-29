@@ -13,6 +13,7 @@ import {
   getCompletedTrips,
   requestCancelTrip,
   sendStartOtp,
+  sendEndOtp,
 } from '../controllers/trip.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
@@ -271,6 +272,8 @@ router.put('/:tripId/status', authenticateToken, updateTripStatus);
  *         description: OTP sent
  */
 router.post('/:tripId/send-start-otp', authenticateToken, requireRole(['DRIVER', 'LEAD']), sendStartOtp);
+
+router.post('/:tripId/send-end-otp', authenticateToken, requireRole(['DRIVER', 'LEAD']), sendEndOtp);
 
 /**
  * @swagger
