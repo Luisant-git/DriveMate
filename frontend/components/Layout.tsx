@@ -4,7 +4,6 @@ import ConfirmModal from './common/ConfirmModal';
 import UberLanguageSelector from './common/UberLanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.png';
-import carlogo from '../assets/carlogo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -39,10 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center cursor-pointer">
-            {/* Mobile: small car logo */}
-            <img src={carlogo} alt="" className="h-7 w-auto object-contain sm:hidden" />
-            {/* Desktop: full SNP brand logo */}
-            <img src={logo} alt="SNP Consultant and Services" className="hidden sm:block w-80 h-auto object-contain" />
+            <img src={logo} alt="SNP Consultant and Services" className="w-80 h-auto object-contain" />
           </div>
 
           {/* Right Actions */}
