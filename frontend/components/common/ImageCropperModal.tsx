@@ -17,7 +17,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   defaultAspectRatio = '4:3',
   onClose,
   onCropComplete,
-  onUploadOriginal
+  onUploadOriginal,
 }) => {
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '4:3' | '3:2' | 'free'>(defaultAspectRatio);
   const [zoom, setZoom] = useState(1);
@@ -26,11 +26,13 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
+  // Natural rendered size of the image at zoom=1 (computed once image loads)
+  const [baseSize, setBaseSize] = useState<{ w: number; h: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // Reset state when a new image is opened
+  // Reset state when a new image opens
   useEffect(() => {
     if (isOpen) {
       setAspectRatio(defaultAspectRatio);
@@ -38,182 +40,202 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       setRotation(0);
       setPan({ x: 0, y: 0 });
       setIsProcessing(false);
+      setBaseSize(null);
     }
   }, [isOpen, imageSrc, defaultAspectRatio]);
 
-  // Handle Drag / Pan start
+  // Compute base rendered size once image loads, then auto-zoom to fill crop box
+  const handleImageLoad = () => {
+    // Use a small delay so the layout has settled before measuring
+    requestAnimationFrame(() => {
+      if (!imageRef.current || !containerRef.current) return;
+      const img = imageRef.current;
+      const cW = containerRef.current.clientWidth;
+      const cH = containerRef.current.clientHeight;
+
+      // img.width / img.height = actual rendered pixels before CSS transform
+      const bW = img.width;
+      const bH = img.height;
+      setBaseSize({ w: bW, h: bH });
+
+      // Crop box dimensions
+      let cropW = Math.min(cW - 40, 420);
+      let cropH = cropW;
+      if (defaultAspectRatio === '4:3') cropH = cropW * (3 / 4);
+      else if (defaultAspectRatio === '3:2') cropH = cropW * (2 / 3);
+      else if (defaultAspectRatio === 'free') cropH = Math.min(cH - 40, 320);
+
+      // Auto-zoom so the image fills the crop box completely
+      const fillZoom = Math.max(cropW / bW, cropH / bH);
+      setZoom(parseFloat(Math.max(fillZoom, 1).toFixed(3)));
+    });
+  };
+
+  // ── Drag / Pan ────────────────────────────────────────────────────────
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   };
+  const handleMouseUp = () => setIsDragging(false);
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Touch Support
+  // Touch support
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      setIsDragging(true);
-      setDragStart({ x: touch.clientX - pan.x, y: touch.clientY - pan.y });
-    }
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: t.clientX - pan.x, y: t.clientY - pan.y });
   };
-
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    setPan({
-      x: touch.clientX - dragStart.x,
-      y: touch.clientY - dragStart.y
-    });
+    const t = e.touches[0];
+    setPan({ x: t.clientX - dragStart.x, y: t.clientY - dragStart.y });
   };
+  const handleTouchEnd = () => setIsDragging(false);
 
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-  };
+  const handleRotate = () => setRotation(prev => (prev + 90) % 360);
 
-  // Rotate 90 degrees
-  const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
-  };
-
-  // Perform crop using Canvas
+  // ── Crop ─────────────────────────────────────────────────────────────
   const handleCrop = useCallback(async () => {
-    if (!imageRef.current || !containerRef.current) return;
+    if (!imageRef.current || !containerRef.current || !baseSize) return;
     setIsProcessing(true);
 
     try {
       const img = imageRef.current;
-      const cropBox = containerRef.current.getBoundingClientRect();
-      
-      // Calculate crop frame dimensions
-      let cropWidth = Math.min(cropBox.width - 40, 420);
-      let cropHeight = cropWidth;
+      const container = containerRef.current;
+      const cW = container.clientWidth;
+      const cH = container.clientHeight;
 
-      if (aspectRatio === '4:3') {
-        cropHeight = cropWidth * (3 / 4);
-      } else if (aspectRatio === '3:2') {
-        cropHeight = cropWidth * (2 / 3);
-      } else if (aspectRatio === 'free') {
-        cropHeight = Math.min(cropBox.height - 40, 320);
-      }
+      // ── Screen-space crop box ─────────────────────────────────────────
+      let cropW = Math.min(cW - 40, 420);
+      let cropH = cropW;
+      if (aspectRatio === '4:3') cropH = cropW * (3 / 4);
+      else if (aspectRatio === '3:2') cropH = cropW * (2 / 3);
+      else if (aspectRatio === 'free') cropH = Math.min(cH - 40, 320);
 
-      // Desired output resolution (clean HD)
-      const outputWidth = Math.max(800, cropWidth * 2);
-      const outputHeight = (cropHeight / cropWidth) * outputWidth;
+      // ── Image rendered size at current zoom ───────────────────────────
+      // img.width/img.height = rendered layout size before CSS transform
+      const scaledW = img.width * zoom;
+      const scaledH = img.height * zoom;
+
+      // Image top-left in container coords (image is centred then panned)
+      const imgLeft = (cW - scaledW) / 2 + pan.x;
+      const imgTop = (cH - scaledH) / 2 + pan.y;
+
+      // Crop box top-left in container coords (always centred)
+      const boxLeft = (cW - cropW) / 2;
+      const boxTop = (cH - cropH) / 2;
+
+      // ── Map to source image pixels ────────────────────────────────────
+      const pxPerSrc = scaledW / img.naturalWidth;
+      const srcX = (boxLeft - imgLeft) / pxPerSrc;
+      const srcY = (boxTop - imgTop) / pxPerSrc;
+      const srcW = cropW / pxPerSrc;
+      const srcH = cropH / pxPerSrc;
+
+      // ── Output canvas ─────────────────────────────────────────────────
+      const outW = Math.max(1200, Math.round(cropW * 2));
+      const outH = Math.round((cropH / cropW) * outW);
 
       const canvas = document.createElement('canvas');
-      canvas.width = outputWidth;
-      canvas.height = outputHeight;
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) throw new Error('Could not get canvas context');
-
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext('2d')!;
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-
-      // Fill with clean white background in case of transparent borders
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, outputWidth, outputHeight);
+      ctx.fillRect(0, 0, outW, outH);
 
-      // Translate to canvas center
-      ctx.translate(outputWidth / 2, outputHeight / 2);
+      if (rotation === 0) {
+        // Direct source-rect draw — most accurate, no rotation
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+      } else {
+        // Rotate around the crop-box centre
+        const outPxPerSrc = outW / srcW;
+        const cropCX = srcX + srcW / 2;
+        const cropCY = srcY + srcH / 2;
+        ctx.save();
+        ctx.translate(outW / 2, outH / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(
+          img,
+          -cropCX * outPxPerSrc,
+          -cropCY * outPxPerSrc,
+          img.naturalWidth * outPxPerSrc,
+          img.naturalHeight * outPxPerSrc,
+        );
+        ctx.restore();
+      }
 
-      // Apply rotation
-      ctx.rotate((rotation * Math.PI) / 180);
-
-      // Calculate scale relative to preview container
-      const scaleFactor = outputWidth / cropWidth;
-      const displayedWidth = img.naturalWidth * (img.width / img.naturalWidth) * zoom * scaleFactor;
-      const displayedHeight = img.naturalHeight * (img.height / img.naturalHeight) * zoom * scaleFactor;
-
-      // Draw transformed image
-      ctx.drawImage(
-        img,
-        -displayedWidth / 2 + pan.x * scaleFactor,
-        -displayedHeight / 2 + pan.y * scaleFactor,
-        displayedWidth,
-        displayedHeight
-      );
-
-      // Convert to blob
       canvas.toBlob(
         async (blob) => {
-          if (!blob) {
-            setIsProcessing(false);
-            return;
-          }
+          if (!blob) { setIsProcessing(false); return; }
           const previewUrl = URL.createObjectURL(blob);
           await onCropComplete(blob, previewUrl);
           setIsProcessing(false);
         },
         'image/jpeg',
-        0.92
+        0.92,
       );
     } catch (err) {
       console.error('Cropping failed:', err);
       setIsProcessing(false);
       alert('Failed to crop image. Please try again.');
     }
-  }, [aspectRatio, zoom, rotation, pan, onCropComplete]);
+  }, [aspectRatio, zoom, rotation, pan, baseSize, onCropComplete]);
 
-  if (!isOpen || !imageSrc) return null;
+  // minZoom: image must always cover the crop box — no black bars
+  const getMinZoom = () => {
+    if (!imageRef.current || !containerRef.current) return 0.3;
+    const bW = imageRef.current.width;
+    const bH = imageRef.current.height;
+    if (!bW || !bH) return 0.3;
+    const cW = containerRef.current.clientWidth;
+    const cH = containerRef.current.clientHeight;
+    let cropW = Math.min(cW - 40, 420);
+    let cropH = cropW;
+    if (aspectRatio === '4:3') cropH = cropW * (3 / 4);
+    else if (aspectRatio === '3:2') cropH = cropW * (2 / 3);
+    else if (aspectRatio === 'free') cropH = Math.min(cH - 40, 320);
+    return Math.max(cropW / bW, cropH / bH);
+  };
+  const minZoom = getMinZoom();
 
-  // Visual aspect ratio dimensions
   const getCropBoxStyles = () => {
     switch (aspectRatio) {
-      case '1:1':
-        return 'w-64 h-64 sm:w-80 sm:h-80';
-      case '4:3':
-        return 'w-72 h-54 sm:w-96 sm:h-72';
-      case '3:2':
-        return 'w-72 h-48 sm:w-96 sm:h-64';
+      case '1:1': return 'w-64 h-64 sm:w-72 sm:h-72';
+      case '4:3': return 'w-72 h-54 sm:w-96 sm:h-72';
+      case '3:2': return 'w-72 h-48 sm:w-96 sm:h-64';
       case 'free':
-      default:
-        return 'w-72 h-64 sm:w-[420px] sm:h-72';
+      default: return 'w-72 h-64 sm:w-[420px] sm:h-72';
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div 
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-3 sm:p-4">
+      <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col overflow-hidden border border-gray-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-gray-900 leading-tight">
-                Crop & Adjust: {documentTitle}
-              </h3>
-              <p className="text-[11px] text-gray-400 font-medium">
-                Drag to position, use controls to zoom or rotate
-              </p>
+              <h3 className="text-sm font-bold text-gray-900 leading-tight">Crop & Adjust: {documentTitle}</h3>
+              <p className="text-[11px] text-gray-400 font-medium">Drag to position · zoom · rotate</p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-gray-200/80 hover:bg-gray-300 text-gray-600 flex items-center justify-center transition active:scale-95"
-            title="Cancel"
-          >
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-gray-200/80 hover:bg-gray-300 text-gray-600 flex items-center justify-center transition active:scale-95">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -221,203 +243,117 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         </div>
 
         {/* Aspect Ratio Selector */}
-        <div className="px-5 py-2.5 bg-gray-100/60 border-b border-gray-200/60 flex items-center justify-between flex-wrap gap-2 text-xs font-semibold">
-          <span className="text-gray-500 text-[11px] uppercase tracking-wide">Aspect Ratio:</span>
-          <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-gray-200 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setAspectRatio('1:1')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${
-                aspectRatio === '1:1' ? 'bg-black text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              1:1 (Photo)
-            </button>
-            <button
-              type="button"
-              onClick={() => setAspectRatio('4:3')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${
-                aspectRatio === '4:3' ? 'bg-black text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              4:3 (Card / DL)
-            </button>
-            <button
-              type="button"
-              onClick={() => setAspectRatio('3:2')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${
-                aspectRatio === '3:2' ? 'bg-black text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              3:2 (ID)
-            </button>
-            <button
-              type="button"
-              onClick={() => setAspectRatio('free')}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${
-                aspectRatio === 'free' ? 'bg-black text-white shadow-2xs' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Free
-            </button>
+        <div className="px-5 py-2.5 bg-gray-100/60 border-b border-gray-200/60 flex items-center justify-between flex-wrap gap-2">
+          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Aspect Ratio:</span>
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200">
+            {(['1:1', '4:3', '3:2', 'free'] as const).map((r) => (
+              <button key={r} type="button" onClick={() => setAspectRatio(r)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${aspectRatio === r ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                {r === '1:1' ? '1:1 (Photo)' : r === '4:3' ? '4:3 (Card/DL)' : r === '3:2' ? '3:2 (ID)' : 'Free'}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Cropping Canvas / Viewport Area */}
-        <div 
+        {/* Crop Viewport */}
+        <div
           ref={containerRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           className="relative w-full h-80 sm:h-96 bg-neutral-900 flex items-center justify-center overflow-hidden cursor-move select-none"
         >
-          {/* Target Image being manipulated */}
+          {/* The image — natural size capped to container, transform handles zoom/pan/rotate */}
           <img
             ref={imageRef}
             src={imageSrc}
-            alt="Source for cropping"
+            alt="crop source"
             draggable={false}
+            onLoad={handleImageLoad}
             style={{
+              // Let the image sit at its natural object-contain size
+              maxWidth: '100%',
+              maxHeight: '100%',
+              display: 'block',
+              // All manipulation via transform — origin stays at element centre
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
               transformOrigin: 'center center',
-              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-              maxWidth: 'none',
-              maxHeight: 'none'
+              transition: isDragging ? 'none' : 'transform 0.08s ease-out',
             }}
-            className="pointer-events-none select-none max-w-none max-h-none"
+            className="pointer-events-none select-none"
           />
 
-          {/* Semi-transparent dark overlay with crop window */}
+          {/* Dark overlay + crop box */}
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            {/* The Cutout Box */}
-            <div 
-              className={`relative border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] rounded-lg pointer-events-none transition-all duration-200 ${getCropBoxStyles()}`}
-            >
-              {/* Corner Guides */}
-              <span className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-400"></span>
-              <span className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-400"></span>
-              <span className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-400"></span>
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-emerald-400"></span>
-
-              {/* Grid 3x3 Overlay Guidelines */}
-              <div className="w-full h-full grid grid-cols-3 grid-rows-3 pointer-events-none opacity-30">
-                <div className="border-r border-b border-white"></div>
-                <div className="border-r border-b border-white"></div>
-                <div className="border-b border-white"></div>
-                <div className="border-r border-b border-white"></div>
-                <div className="border-r border-b border-white"></div>
-                <div className="border-b border-white"></div>
-                <div className="border-r border-white"></div>
-                <div className="border-r border-white"></div>
-                <div></div>
+            <div className={`relative border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.62)] rounded-sm pointer-events-none transition-all duration-200 ${getCropBoxStyles()}`}>
+              {/* Corner handles */}
+              <span className="absolute -top-[3px] -left-[3px] w-4 h-4 border-t-2 border-l-2 border-emerald-400 rounded-tl" />
+              <span className="absolute -top-[3px] -right-[3px] w-4 h-4 border-t-2 border-r-2 border-emerald-400 rounded-tr" />
+              <span className="absolute -bottom-[3px] -left-[3px] w-4 h-4 border-b-2 border-l-2 border-emerald-400 rounded-bl" />
+              <span className="absolute -bottom-[3px] -right-[3px] w-4 h-4 border-b-2 border-r-2 border-emerald-400 rounded-br" />
+              {/* Rule-of-thirds grid */}
+              <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-25 pointer-events-none">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className="border border-white" />
+                ))}
               </div>
-
-              {/* Watermark/Hint */}
-              <span className="absolute bottom-1 right-2 text-[10px] text-white/70 font-semibold drop-shadow-sm select-none">
-                Crop Area
-              </span>
             </div>
           </div>
         </div>
 
-        {/* Bottom Adjustment Controls */}
+        {/* Controls */}
         <div className="p-4 bg-white border-t border-gray-100 space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            {/* Zoom Slider */}
-            <div className="flex-1 flex items-center gap-2">
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide flex-shrink-0">
-                Zoom:
-              </span>
-              <button
-                type="button"
-                onClick={() => setZoom(prev => Math.max(0.5, prev - 0.2))}
-                className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-sm flex items-center justify-center transition"
-                title="Zoom Out"
-              >
-                -
-              </button>
-              <input 
-                type="range"
-                min="0.5"
-                max="3"
-                step="0.05"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="flex-1 accent-black h-1.5 bg-gray-200 rounded-lg cursor-pointer"
-              />
-              <button
-                type="button"
-                onClick={() => setZoom(prev => Math.min(3, prev + 0.2))}
-                className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-sm flex items-center justify-center transition"
-                title="Zoom In"
-              >
-                +
-              </button>
-              <span className="text-xs font-mono text-gray-600 w-10 text-right">
-                {Math.round(zoom * 100)}%
-              </span>
-            </div>
-
-            {/* Rotate Button */}
-            <button
-              type="button"
-              onClick={handleRotate}
-              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition flex items-center gap-1.5 active:scale-95 flex-shrink-0"
-              title="Rotate 90 degrees"
-            >
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide flex-shrink-0">Zoom:</span>
+            <button type="button" onClick={() => setZoom(p => Math.max(minZoom, +(p - 0.1).toFixed(2)))}
+              className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 font-black flex items-center justify-center transition">−</button>
+            <input type="range" min={minZoom} max="4" step="0.05" value={zoom}
+              onChange={(e) => setZoom(Math.max(minZoom, parseFloat(e.target.value)))}
+              className="flex-1 accent-black h-1.5 rounded-lg cursor-pointer" />
+            <button type="button" onClick={() => setZoom(p => Math.min(4, +(p + 0.1).toFixed(2)))}
+              className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 font-black flex items-center justify-center transition">+</button>
+            <span className="text-xs font-mono text-gray-600 w-10 text-right">{Math.round(zoom * 100)}%</span>
+            <button type="button" onClick={handleRotate}
+              className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition flex items-center gap-1.5 active:scale-95 flex-shrink-0">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span>Rotate 90°</span>
+              90°
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-1 gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isProcessing}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition active:scale-95"
-            >
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <button type="button" onClick={onClose} disabled={isProcessing}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition active:scale-95">
               Cancel
             </button>
-
             <div className="flex items-center gap-2">
               {onUploadOriginal && (
-                <button
-                  type="button"
-                  onClick={onUploadOriginal}
-                  disabled={isProcessing}
-                  className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-bold rounded-xl transition active:scale-95"
-                >
+                <button type="button" onClick={onUploadOriginal} disabled={isProcessing}
+                  className="px-3 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-bold rounded-xl transition active:scale-95">
                   Skip & Upload Original
                 </button>
               )}
-
-              <button
-                type="button"
-                onClick={handleCrop}
-                disabled={isProcessing}
-                className="px-5 py-2 bg-black hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition shadow-md active:scale-95 flex items-center gap-2 disabled:opacity-50"
-              >
+              <button type="button" onClick={handleCrop} disabled={isProcessing || !baseSize}
+                className="px-5 py-2 bg-black hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition shadow-md active:scale-95 flex items-center gap-2 disabled:opacity-50">
                 {isProcessing ? (
                   <>
                     <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
-                    <span>Processing...</span>
+                    Processing...
                   </>
                 ) : (
                   <>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>Crop & Upload</span>
+                    Crop & Upload
                   </>
                 )}
               </button>
