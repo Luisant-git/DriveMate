@@ -67,13 +67,13 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
   const respondToRequest = async (responseId, action) => {
     try {
-      await apiClient.put(`/booking-workflow/driver/respond/${responseId}`, 
+      await apiClient.put(`/booking-workflow/driver/respond/${responseId}`,
         { action }
       );
       setSuccessModal({
         isOpen: true,
         title: action === 'ACCEPTED' ? 'Booking Accepted!' : 'Booking Declined',
-        message: action === 'ACCEPTED' 
+        message: action === 'ACCEPTED'
           ? 'You have successfully accepted this booking. Please wait for the admin to allocate it to you.'
           : 'You have declined this booking request. We will assign it to another driver.'
       });
@@ -103,7 +103,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
           </svg>
           <h3 className="text-lg font-bold text-yellow-800 mb-2">Package Required</h3>
           <p className="text-yellow-700 mb-4">Please choose a driver package from the PACKAGES tab to start receiving booking requests.</p>
-          <button 
+          <button
             onClick={() => onNavigateToPackages ? onNavigateToPackages() : window.location.reload()}
             className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-yellow-700 transition"
           >
@@ -139,21 +139,33 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
           {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).map((sub, idx) => {
             const daysLeft = Math.max(0, Math.ceil((new Date(sub.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
             const dutiesLeft = sub.maxDuties > 0 ? Math.max(0, sub.maxDuties - (sub.dutiesCompleted || 0)) : null;
+            const type = sub.plan?.type;
             return (
-              <div key={sub.id || idx} className="bg-gray-50 border border-gray-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-black bg-white px-2 py-0.5 rounded border border-gray-200 inline-block mb-1">
+              <div key={sub.id || idx} className="bg-gray-50 border border-gray-200 rounded-xl p-2.5 flex flex-col gap-1.5">
+                {/* Top row: category badge + type badge */}
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-black bg-white px-2 py-0.5 rounded border border-gray-200">
                     {sub.plan?.category || 'Package'}
                   </span>
-                  <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{sub.plan?.name}</p>
+                  {type && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${type === 'LOCAL' ? 'bg-blue-100 text-blue-800' :
+                        type === 'OUTSTATION' ? 'bg-purple-100 text-purple-800' :
+                          'bg-orange-100 text-orange-800'
+                      }`}>
+                      {type === 'BOTH' ? 'LOCAL + OUTSTATION' : type}
+                    </span>
+                  )}
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full block">
+                {/* Plan name */}
+                <p className="text-xs font-bold text-gray-900 truncate">{sub.plan?.name}</p>
+                {/* Days + duties */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                     {daysLeft}d left
                   </span>
                   {dutiesLeft !== null && (
-                    <span className="text-[10px] font-semibold text-purple-700 mt-0.5 block">
-                      {dutiesLeft} duties
+                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                      {dutiesLeft} duties left
                     </span>
                   )}
                 </div>
@@ -165,55 +177,137 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
       {/* Pending Requests */}
       {(!activeSubTab || activeSubTab === 'PENDING') && (
-      <div>
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Pending Requests</h2>
-        {(() => {
-          const visibleRequests = requests.filter(req => !req.availableAt || new Date(req.availableAt).getTime() <= currentTime.getTime());
-          
-          if (visibleRequests.length === 0) {
-            return (
-              <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Pending Requests</h2>
+          {(() => {
+            const visibleRequests = requests.filter(req => !req.availableAt || new Date(req.availableAt).getTime() <= currentTime.getTime());
+
+            if (visibleRequests.length === 0) {
+              return (
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-sm">No pending requests</p>
                 </div>
-                <p className="text-gray-500 text-sm">No pending requests</p>
+              );
+            }
+
+            return (
+              <div className="space-y-3">
+                {visibleRequests.map(request => {
+                  const startDate = new Date(request.booking.startDateTime);
+                  const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                  const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const endDate = request.booking.endDateTime ? new Date(request.booking.endDateTime) : null;
+                  const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                  const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                  return (
+                    <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
+                      <div className="p-4 sm:p-5">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <p className="text-xs sm:text-sm text-gray-500">🚗 Going — {formattedDate}, {formattedTime}</p>
+                            {request.booking.endDateTime && (
+                              <p className="text-xs sm:text-sm text-gray-500">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</p>
+                            )}
+                            {request.booking.estimateAmount && (
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
+                            )}
+                            {request.booking.paymentMethod && (
+                              <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{request.booking.paymentMethod}</span></p>
+                            )}
+                            <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
+                          </div>
+                        </div>
+
+                        {/* Route */}
+                        <div className="space-y-3 mb-4">
+                          <div className="flex gap-3">
+                            <div className="flex flex-col items-center pt-1">
+                              <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                              <div className="w-0.5 h-8 bg-gray-300"></div>
+                              <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
+                            </div>
+                            <div className="flex-1 space-y-3">
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Pickup</p>
+                                <p className="text-sm font-medium text-gray-900">{request.booking.pickupLocation}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500 mb-1">Drop-off</p>
+                                <p className="text-sm font-medium text-gray-900">{request.booking.dropLocation}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Customer Info hidden for pending requests */}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 sm:gap-3">
+                          <button
+                            onClick={() => respondToRequest(request.id, 'REJECTED')}
+                            className="flex-1 bg-gray-100 text-gray-900 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-200 transition active:scale-95"
+                          >
+                            Decline
+                          </button>
+                          <button
+                            onClick={() => respondToRequest(request.id, 'ACCEPTED')}
+                            className="flex-1 bg-black text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95 shadow-md"
+                          >
+                            Accept
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
-          }
+          })()}
+        </div>
+      )}
 
-          return (
+      {activeSubTab === 'HISTORY' && (
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Request History</h2>
+          {allRequests.length === 0 ? (
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
+              <p className="text-gray-500 text-sm">No request history</p>
+            </div>
+          ) : (
             <div className="space-y-3">
-              {visibleRequests.map(request => {
+              {allRequests.map(request => {
                 const startDate = new Date(request.booking.startDateTime);
                 const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
                 const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const endDate = request.booking.endDateTime ? new Date(request.booking.endDateTime) : null;
-                const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
-                const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                
+
                 return (
-                  <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
+                  <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-4 sm:p-5">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <p className="text-xs sm:text-sm text-gray-500">🚗 Going — {formattedDate}, {formattedTime}</p>
-                          {request.booking.endDateTime && (
-                            <p className="text-xs sm:text-sm text-gray-500">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</p>
-                          )}
+                          <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
                           {request.booking.estimateAmount && (
                             <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
                           )}
-                          {request.booking.paymentMethod && (
-                            <p className="text-xs text-gray-600 mt-1">Payment: <span className="font-semibold">{request.booking.paymentMethod}</span></p>
-                          )}
                           <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
                         </div>
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
+                            (request.status === 'REJECTED' || request.status === 'CANCELLED') ? 'bg-red-100 text-red-700' :
+                              request.status === 'EXPIRED' ? 'bg-orange-100 text-orange-700' :
+                                request.status === 'ALLOCATED TO ANOTHER' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-gray-100 text-gray-700'
+                          }`}>
+                          {request.status}
+                        </span>
                       </div>
-                      
-                      {/* Route */}
-                      <div className="space-y-3 mb-4">
+
+                      <div className="space-y-3">
                         <div className="flex gap-3">
                           <div className="flex flex-col items-center pt-1">
                             <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
@@ -232,96 +326,13 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Customer Info hidden for pending requests */}
-                      
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 sm:gap-3">
-                        <button 
-                          onClick={() => respondToRequest(request.id, 'REJECTED')} 
-                          className="flex-1 bg-gray-100 text-gray-900 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-200 transition active:scale-95"
-                        >
-                          Decline
-                        </button>
-                        <button 
-                          onClick={() => respondToRequest(request.id, 'ACCEPTED')} 
-                          className="flex-1 bg-black text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95 shadow-md"
-                        >
-                          Accept
-                        </button>
-                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-          );
-        })()}
-      </div>
-      )}
-
-      {activeSubTab === 'HISTORY' && (
-      <div>
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Request History</h2>
-        {allRequests.length === 0 ? (
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
-            <p className="text-gray-500 text-sm">No request history</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {allRequests.map(request => {
-              const startDate = new Date(request.booking.startDateTime);
-              const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-              const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              
-              return (
-                <div key={request.id} className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-4 sm:p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-500">{formattedTime}, {formattedDate}</p>
-                        {request.booking.estimateAmount && (
-                          <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">₹{request.booking.estimateAmount}</p>
-                        )}
-                        <span className="inline-block mt-2 bg-blue-100 text-blue-700 text-xs px-2.5 sm:px-3 py-1 rounded-full font-medium">{request.booking.serviceType}</span>
-                      </div>
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                          request.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 
-                          (request.status === 'REJECTED' || request.status === 'CANCELLED') ? 'bg-red-100 text-red-700' :
-                          request.status === 'EXPIRED' ? 'bg-orange-100 text-orange-700' :
-                          request.status === 'ALLOCATED TO ANOTHER' ? 'bg-purple-100 text-purple-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {request.status}
-                        </span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="flex gap-3">
-                        <div className="flex flex-col items-center pt-1">
-                          <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                          <div className="w-0.5 h-8 bg-gray-300"></div>
-                          <div className="w-3 h-3 bg-gray-900 rounded-full"></div>
-                        </div>
-                        <div className="flex-1 space-y-3">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Pickup</p>
-                            <p className="text-sm font-medium text-gray-900">{request.booking.pickupLocation}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Drop-off</p>
-                            <p className="text-sm font-medium text-gray-900">{request.booking.dropLocation}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* Success Modal */}
@@ -329,9 +340,8 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl transform transition-all animate-fade-in-up scale-100">
             <div className={`p-8 text-center ${successModal.title.includes('Accepted') ? 'bg-green-50' : 'bg-gray-50'}`}>
-              <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-5 shadow-inner ${
-                successModal.title.includes('Accepted') ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'
-              }`}>
+              <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-5 shadow-inner ${successModal.title.includes('Accepted') ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-600'
+                }`}>
                 {successModal.title.includes('Accepted') ? (
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
