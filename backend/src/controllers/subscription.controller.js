@@ -8,11 +8,11 @@ const updateExpiredSubscriptions = async (driverId = null) => {
       lt: new Date()
     }
   };
-  
+
   if (driverId) {
     whereClause.driverId = driverId;
   }
-  
+
   await prisma.subscription.updateMany({
     where: whereClause,
     data: {
@@ -27,16 +27,29 @@ const updateExpiredSubscriptions = async (driverId = null) => {
   if (driverId) {
     maxDutiesWhere.driverId = driverId;
   }
-  
+
   const activeSubs = await prisma.subscription.findMany({ where: maxDutiesWhere });
   const expiredIds = activeSubs.filter(s => s.dutiesCompleted >= s.maxDuties).map(s => s.id);
-  
+
   if (expiredIds.length > 0) {
     await prisma.subscription.updateMany({
       where: { id: { in: expiredIds } },
       data: { status: 'EXPIRED' }
     });
   }
+
+  // ── Auto-deactivate overdue partial payments (5-day limit exceeded) ──
+  const overdueWhere = {
+    status: 'ACTIVE',
+    paymentStatus: 'PARTIAL',
+    paymentDueDate: { lt: new Date() }
+  };
+  if (driverId) overdueWhere.driverId = driverId;
+
+  await prisma.subscription.updateMany({
+    where: overdueWhere,
+    data: { status: 'CANCELLED', paymentStatus: 'OVERDUE' }
+  });
 };
 
 const VALID_CATEGORIES = ['Silver', 'Gold', 'Platinum', 'Diamond'];
@@ -70,7 +83,7 @@ const sortPlans = (plans) => {
   return plans.sort((a, b) => {
     const tierA = getPlanSortValue(a);
     const tierB = getPlanSortValue(b);
-    
+
     if (tierA !== tierB) return tierA - tierB;
     if (a.duration !== b.duration) return (a.duration || 0) - (b.duration || 0);
     if (a.maxDuties !== undefined && b.maxDuties !== undefined && a.maxDuties !== b.maxDuties) {
@@ -83,7 +96,7 @@ const sortPlans = (plans) => {
 export const getSubscriptionPlans = async (req, res) => {
   try {
     const plans = await prisma.subscriptionPlan.findMany();
-    
+
     const sortedPlans = sortPlans(plans);
 
     res.json(sortedPlans);
@@ -121,10 +134,10 @@ export const updateSubscriptionPlan = async (req, res) => {
 
 export const deleteSubscriptionPlan = async (req, res) => {
   try {
-    const id = req.params.id; 
+    const id = req.params.id;
 
     await prisma.subscriptionPlan.update({
-      where: { id }, 
+      where: { id },
       data: { isActive: false },
     });
 
@@ -135,31 +148,28 @@ export const deleteSubscriptionPlan = async (req, res) => {
 };
 export const purchaseSubscription = async (req, res) => {
   try {
-    const { planId, paymentMethod } = req.body;
+    const { planId, paymentMethod, paidAmount } = req.body;
     const driverId = req.user.userId;
 
-    const plan = await prisma.subscriptionPlan.findUnique({
-      where: { id: planId },
-    });
+    const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
 
-    if (!plan) {
-      return res.status(404).json({ error: 'Plan not found' });
-    }
+    const paid = paidAmount !== undefined ? parseFloat(paidAmount) : plan.price;
+    if (isNaN(paid) || paid <= 0) return res.status(400).json({ error: 'Invalid paid amount' });
+    if (paid > plan.price) return res.status(400).json({ error: `Paid amount cannot exceed plan price ₹${plan.price}` });
 
+    const isPartial = paid < plan.price;
+    const remaining = isPartial ? parseFloat((plan.price - paid).toFixed(2)) : 0;
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000);
+    const paymentDueDate = isPartial ? new Date(startDate.getTime() + 5 * 24 * 60 * 60 * 1000) : null;
 
-    // Cancel existing active subscription of the same planId if any (allows holding multiple different packages)
+    // Cancel existing active subscription of the same planId if any
     await prisma.subscription.updateMany({
-      where: { 
-        driverId,
-        planId,
-        status: 'ACTIVE'
-      },
+      where: { driverId, planId, status: 'ACTIVE' },
       data: { status: 'CANCELLED' },
     });
 
-    // Create new subscription
     const subscription = await prisma.subscription.create({
       data: {
         driverId,
@@ -167,7 +177,11 @@ export const purchaseSubscription = async (req, res) => {
         startDate,
         endDate,
         amount: plan.price,
-        paymentMethod,
+        paidAmount: paid,
+        remainingAmount: remaining,
+        paymentMethod: paymentMethod || 'CASH',
+        paymentStatus: isPartial ? 'PARTIAL' : 'PAID',
+        paymentDueDate,
         status: 'ACTIVE',
         maxDuties: plan.maxDuties || 0,
       },
@@ -336,6 +350,8 @@ export const adminCreateSubscription = async (req, res) => {
         remainingAmount: plan.price - paid,
         paymentMethod: paymentMethod || 'CASH',
         isAdminCreated: true,
+        paymentStatus: paid < plan.price ? 'PARTIAL' : 'PAID',
+        paymentDueDate: paid < plan.price ? new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) : null,
         status: 'ACTIVE',
         maxDuties: plan.maxDuties || 0,
       },
@@ -363,15 +379,71 @@ export const updateSubscriptionPayment = async (req, res) => {
     }
 
     const newPaidAmount = (subscription.paidAmount || 0) + parseFloat(additionalPayment);
-    const newRemainingAmount = subscription.amount - newPaidAmount;
+    const newRemainingAmount = Math.max(0, subscription.amount - newPaidAmount);
+    const nowFullyPaid = newRemainingAmount <= 0;
 
     const updated = await prisma.subscription.update({
       where: { id },
       data: {
         paidAmount: newPaidAmount,
-        remainingAmount: newRemainingAmount > 0 ? newRemainingAmount : 0
+        remainingAmount: newRemainingAmount,
+        paymentStatus: nowFullyPaid ? 'PAID' : 'PARTIAL',
+        paymentDueDate: nowFullyPaid ? null : subscription.paymentDueDate,
       },
       include: { plan: true, driver: true }
+    });
+
+    res.json({ success: true, subscription: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+// Driver pays remaining amount on their own partial subscription
+export const payRemainingAmount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paidAmount, paymentMethod } = req.body;
+    const driverId = req.user.userId;
+
+    const subscription = await prisma.subscription.findUnique({
+      where: { id },
+      include: { plan: true }
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'Subscription not found' });
+    }
+    if (subscription.driverId !== driverId) {
+      return res.status(403).json({ success: false, error: 'Not your subscription' });
+    }
+    if (subscription.paymentStatus === 'PAID') {
+      return res.status(400).json({ success: false, error: 'Subscription is already fully paid' });
+    }
+
+    const payment = parseFloat(paidAmount);
+    const remaining = subscription.remainingAmount || 0;
+    if (isNaN(payment) || payment <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid payment amount' });
+    }
+    if (payment > remaining) {
+      return res.status(400).json({ success: false, error: `Payment cannot exceed remaining amount ₹${remaining}` });
+    }
+
+    const newPaid = (subscription.paidAmount || 0) + payment;
+    const newRemaining = Math.max(0, remaining - payment);
+    const fullyPaid = newRemaining <= 0;
+
+    const updated = await prisma.subscription.update({
+      where: { id },
+      data: {
+        paidAmount: newPaid,
+        remainingAmount: newRemaining,
+        paymentStatus: fullyPaid ? 'PAID' : 'PARTIAL',
+        paymentDueDate: fullyPaid ? null : subscription.paymentDueDate,
+        ...(paymentMethod && { paymentMethod }),
+      },
+      include: { plan: true }
     });
 
     res.json({ success: true, subscription: updated });

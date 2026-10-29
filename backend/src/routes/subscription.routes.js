@@ -12,6 +12,7 @@ import {
   adminCreateSubscription,
   updateSubscriptionPayment,
   getDriverAllActiveSubscriptions,
+  payRemainingAmount,
 } from '../controllers/subscription.controller.js';
 import { getLeadSubscriptions } from '../controllers/leadSubscription.controller.js';
 import { authenticateToken, authenticateLead, requireRole } from '../middleware/auth.js';
@@ -214,5 +215,8 @@ router.get('/lead', authenticateLead, getLeadSubscriptions);
 router.post('/admin/create', authenticateToken, requireRole(['ADMIN']), adminCreateSubscription);
 
 router.put('/admin/update-payment/:id', authenticateToken, requireRole(['ADMIN']), updateSubscriptionPayment);
+
+// Driver pays their own remaining amount
+router.post('/pay-remaining/:id', authenticateToken, requireRole(['DRIVER']), payRemainingAmount);
 
 export default router;
