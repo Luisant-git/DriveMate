@@ -3,6 +3,7 @@ import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import { calculateFare, parseDurationToHours } from '../../utils/fareCalculator';
+import TermsAndConditions from '../../components/TermsAndConditions';
 
 export default function BookingWorkflow() {
   const [pendingBookings, setPendingBookings] = useState([]);
@@ -40,12 +41,15 @@ export default function BookingWorkflow() {
     carType: 'Manual',
     vehicleType: 'Hatchback',
     driverType: 'Acting Driver',
-    paymentMethod: 'CASH'
+    paymentMethod: 'CASH',
+    languagesKnown: ['Tamil', 'English']
   });
   const [creatingBooking, setCreatingBooking] = useState(false);
   const [searchCust, setSearchCust] = useState('');
   const [showCustDropdown, setShowCustDropdown] = useState(false);
   const [calculatedFareInfo, setCalculatedFareInfo] = useState(null);
+  const [termsAccepted, setTermsAccepted] = useState(true);
+  const [showTerms, setShowTerms] = useState(false);
 
   useEffect(() => {
     fetchPendingBookings();
@@ -774,7 +778,7 @@ export default function BookingWorkflow() {
       {/* Create Booking Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
             <div className="p-5 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-base font-bold text-gray-900">Create New Booking</h3>
               <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200">
@@ -832,30 +836,6 @@ export default function BookingWorkflow() {
                 </div>
               </div>
 
-              {/* When Needed Buttons */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">When Needed</label>
-                <div className="flex gap-2">
-                  <button 
-                    type="button"
-                    onClick={() => setCreateForm({...createForm, whenNeeded: 'Immediately'})}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                      createForm.whenNeeded === 'Immediately' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                    }`}
-                  >
-                    Immediately
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setCreateForm({...createForm, whenNeeded: 'Schedule'})}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                      createForm.whenNeeded === 'Schedule' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                    }`}
-                  >
-                    Schedule Later
-                  </button>
-                </div>
-              </div>
 
               {/* Customer Selection */}
               <div className="relative">
@@ -887,7 +867,8 @@ export default function BookingWorkflow() {
                               ...prev,
                               customerName: c.name || prev.customerName,
                               customerPhone: c.phone || prev.customerPhone,
-                              pickupLocation: c.address || prev.pickupLocation
+                              pickupLocation: c.address || prev.pickupLocation,
+                              languagesKnown: (c.languagesKnown && c.languagesKnown.length > 0) ? c.languagesKnown : prev.languagesKnown
                             }));
                             setSearchCust(`${c.name || 'Unnamed'} - ${c.phone}`);
                             setShowCustDropdown(false);
@@ -944,6 +925,31 @@ export default function BookingWorkflow() {
                   <span>Drop location is same as pickup address for Local Round Trip.</span>
                 </div>
               )}
+
+              {/* When Needed Buttons */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">When Needed</label>
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, whenNeeded: 'Immediately'})}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                      createForm.whenNeeded === 'Immediately' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Immediately
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, whenNeeded: 'Schedule'})}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                      createForm.whenNeeded === 'Schedule' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Schedule Later
+                  </button>
+                </div>
+              </div>
 
               {/* Date & Time fields */}
               {createForm.whenNeeded === 'Schedule' ? (
@@ -1154,9 +1160,62 @@ export default function BookingWorkflow() {
                 </div>
               )}
 
+              {/* Languages Known / Preferred */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Languages Known / Preferred</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Tamil', 'English', 'Hindi', 'Telugu', 'Malayalam', 'Kannada'].map(lang => {
+                    const isSelected = (createForm.languagesKnown || []).includes(lang);
+                    return (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => {
+                          const current = createForm.languagesKnown || [];
+                          const updated = isSelected
+                            ? current.filter(l => l !== lang)
+                            : [...current, lang];
+                          setCreateForm({ ...createForm, languagesKnown: updated });
+                        }}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 ${
+                          isSelected
+                            ? 'bg-black text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {lang}
+                        {isSelected && <span className="text-[10px]">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Terms and Conditions */}
+              <div className="pt-2">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={termsAccepted} 
+                    onChange={e => setTermsAccepted(e.target.checked)} 
+                    className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded focus:ring-black cursor-pointer"
+                  />
+                  <span className="text-gray-600">
+                    Customer accepts the{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowTerms(true)} 
+                      className="text-black font-bold underline hover:text-gray-800"
+                    >
+                      Terms and Conditions
+                    </button>
+                  </span>
+                </label>
+              </div>
+
               <div className="flex gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
-                <button type="submit" disabled={creatingBooking} className="flex-1 py-2.5 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition">
+                <button type="submit" disabled={creatingBooking || !termsAccepted} className="flex-1 py-2.5 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition">
                   {creatingBooking ? 'Creating & Routing...' : 'Create Booking'}
                 </button>
               </div>
@@ -1164,6 +1223,11 @@ export default function BookingWorkflow() {
           </div>
         </div>
       )}
+      {/* Terms and Conditions Modal */}
+      <TermsAndConditions
+        isOpen={showTerms}
+        onClose={() => setShowTerms(false)}
+      />
     </div>
   );
 }
