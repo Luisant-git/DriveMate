@@ -26,14 +26,21 @@ export default function BookingWorkflow() {
     customerPhone: '',
     serviceType: 'Local - Hourly',
     tripType: 'One Way',
+    whenNeeded: 'Immediately',
     pickupLocation: '',
     dropLocation: '',
     startDateTime: '',
+    returnDate: '',
+    returnTime: '',
+    endDateTime: '',
     estimateAmount: '',
     duration: '4 Hrs',
+    hoursPerDay: '8',
+    daysPerWeek: '6',
     carType: 'Manual',
     vehicleType: 'Hatchback',
-    driverType: 'Acting Driver'
+    driverType: 'Acting Driver',
+    paymentMethod: 'CASH'
   });
   const [creatingBooking, setCreatingBooking] = useState(false);
   const [searchCust, setSearchCust] = useState('');
@@ -52,11 +59,24 @@ export default function BookingWorkflow() {
   useEffect(() => {
     const calculateEstimate = async () => {
       if (!showCreateModal) return;
+
+      if (createForm.driverType === 'Monthly Driver') {
+        const h = parseInt(createForm.hoursPerDay) || 8;
+        const d = parseInt(createForm.daysPerWeek) || 6;
+        const monthlyTotal = h * d * 4 * 100;
+        setCalculatedFareInfo(null);
+        setCreateForm(prev => ({
+          ...prev,
+          estimateAmount: monthlyTotal.toString()
+        }));
+        return;
+      }
       
       const isOutstation = createForm.serviceType === 'Outstation';
+      const isImmediate = createForm.whenNeeded === 'Immediately';
       const hours = parseDurationToHours(createForm.duration);
       
-      const fareInfo = await calculateFare(hours, 0, isOutstation, false);
+      const fareInfo = await calculateFare(hours, 0, isOutstation, isImmediate);
       if (fareInfo) {
         setCalculatedFareInfo(fareInfo);
         setCreateForm(prev => ({
@@ -69,7 +89,15 @@ export default function BookingWorkflow() {
     };
 
     calculateEstimate();
-  }, [createForm.duration, createForm.serviceType, showCreateModal]);
+  }, [
+    createForm.duration,
+    createForm.serviceType,
+    createForm.whenNeeded,
+    createForm.driverType,
+    createForm.hoursPerDay,
+    createForm.daysPerWeek,
+    showCreateModal
+  ]);
 
   const fetchCustomers = async () => {
     try {
@@ -314,10 +342,42 @@ export default function BookingWorkflow() {
     e.preventDefault();
     setCreatingBooking(true);
     try {
-      await apiClient.post('/bookings/admin/create-booking', createForm);
+      const payload = {
+        ...createForm,
+        startDateTime: (createForm.whenNeeded === 'Schedule' && createForm.startDateTime)
+          ? createForm.startDateTime
+          : new Date(Date.now() + 15 * 60000).toISOString(),
+        endDateTime: createForm.tripType === 'Round Trip' && createForm.returnDate
+          ? `${createForm.returnDate}T${createForm.returnTime || '18:00'}`
+          : (createForm.endDateTime || null),
+        dropLocation: (createForm.serviceType === 'Local - Hourly' && createForm.tripType === 'Round Trip')
+          ? (createForm.dropLocation || createForm.pickupLocation)
+          : createForm.dropLocation
+      };
+      await apiClient.post('/bookings/admin/create-booking', payload);
       alert('✓ Booking created and routed successfully!');
       setShowCreateModal(false);
-      setCreateForm({ customerName: '', customerPhone: '', serviceType: 'Local - Hourly', tripType: 'One Way', pickupLocation: '', dropLocation: '', startDateTime: '', estimateAmount: '', duration: '4 Hrs', carType: 'Manual', vehicleType: 'Hatchback', driverType: 'Acting Driver' });
+      setCreateForm({
+        customerName: '',
+        customerPhone: '',
+        serviceType: 'Local - Hourly',
+        tripType: 'One Way',
+        whenNeeded: 'Immediately',
+        pickupLocation: '',
+        dropLocation: '',
+        startDateTime: '',
+        returnDate: '',
+        returnTime: '',
+        endDateTime: '',
+        estimateAmount: '',
+        duration: '4 Hrs',
+        hoursPerDay: '8',
+        daysPerWeek: '6',
+        carType: 'Manual',
+        vehicleType: 'Hatchback',
+        driverType: 'Acting Driver',
+        paymentMethod: 'CASH'
+      });
       fetchPendingBookings();
     } catch (error) {
       alert(error.response?.data?.error || 'Failed to create booking');
@@ -715,38 +775,42 @@ export default function BookingWorkflow() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+            <div className="p-5 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
               <h3 className="text-base font-bold text-gray-900">Create New Booking</h3>
               <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <form onSubmit={handleCreateBooking} className="p-5 space-y-4">
-              {/* Service Type Buttons */}
-              <div className="flex gap-2 mb-2">
-                <button 
-                  type="button"
-                  onClick={() => setCreateForm({...createForm, serviceType: 'Local - Hourly', tripType: 'One Way'})}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
-                    createForm.serviceType === 'Local - Hourly' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  LOCAL
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setCreateForm({...createForm, serviceType: 'Outstation', tripType: 'Round Trip'})}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
-                    createForm.serviceType === 'Outstation' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  OUTSTATION
-                </button>
+              {/* Service Type Buttons (LOCAL / OUTSTATION) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Service Type</label>
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, serviceType: 'Local - Hourly', duration: '4 Hrs'})}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
+                      createForm.serviceType === 'Local - Hourly' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    LOCAL
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, serviceType: 'Outstation', duration: '8 Hrs'})}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
+                      createForm.serviceType === 'Outstation' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    OUTSTATION
+                  </button>
+                </div>
               </div>
 
-              {/* Trip Type Buttons - Only show for Local */}
-              {createForm.serviceType === 'Local - Hourly' && (
-                <div className="flex gap-2 mb-4">
+              {/* Trip Type Buttons - One Way / Round Trip (For BOTH Local and Outstation) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Trip Type</label>
+                <div className="flex gap-2">
                   <button 
                     type="button"
                     onClick={() => setCreateForm({...createForm, tripType: 'One Way'})}
@@ -766,10 +830,35 @@ export default function BookingWorkflow() {
                     Round Trip
                   </button>
                 </div>
-              )}
+              </div>
+
+              {/* When Needed Buttons */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">When Needed</label>
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, whenNeeded: 'Immediately'})}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                      createForm.whenNeeded === 'Immediately' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Immediately
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, whenNeeded: 'Schedule'})}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
+                      createForm.whenNeeded === 'Schedule' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
+                  >
+                    Schedule Later
+                  </button>
+                </div>
+              </div>
 
               {/* Customer Selection */}
-              <div className="mb-4 relative">
+              <div className="relative">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Search & Select Customer (Optional)</label>
                 <input 
                   type="text"
@@ -838,9 +927,9 @@ export default function BookingWorkflow() {
                 />
               </div>
               
-              {!(createForm.serviceType === 'Local - Hourly' && createForm.tripType === 'Round Trip') && (
+              {!(createForm.serviceType === 'Local - Hourly' && createForm.tripType === 'Round Trip') ? (
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Drop Location</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Drop Location {createForm.tripType === 'One Way' ? '*' : '(Optional)'}</label>
                   <LocationAutocomplete 
                     value={createForm.dropLocation} 
                     onChange={value => setCreateForm({...createForm, dropLocation: value})} 
@@ -849,73 +938,221 @@ export default function BookingWorkflow() {
                     showMyLocation={false} 
                   />
                 </div>
+              ) : (
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-600 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>Drop location is same as pickup address for Local Round Trip.</span>
+                </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Date & Time *</label>
-                  <input required type="datetime-local" value={createForm.startDateTime} onChange={e => setCreateForm({...createForm, startDateTime: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-green-600 uppercase mb-1.5 flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Estimate Amount (₹) *
-                  </label>
-                  <input required type="number" min="0" value={createForm.estimateAmount} onChange={e => setCreateForm({...createForm, estimateAmount: e.target.value})} className="w-full bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm font-bold text-green-900 focus:ring-2 focus:ring-green-500 outline-none transition shadow-inner" placeholder="500" />
-                  {calculatedFareInfo && calculatedFareInfo.extraPerHourSch && (
-                    <p className="text-[10px] text-gray-500 mt-1.5 font-medium bg-gray-50 p-1.5 rounded border border-gray-100 inline-flex items-center gap-1">
-                      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      Extra Hour Charge: <span className="text-gray-900 font-bold">₹{calculatedFareInfo.extraPerHourSch}/hr</span>
-                    </p>
+              {/* Date & Time fields */}
+              {createForm.whenNeeded === 'Schedule' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pickup Date & Time *</label>
+                    <input 
+                      required 
+                      type="datetime-local" 
+                      value={createForm.startDateTime} 
+                      onChange={e => setCreateForm({...createForm, startDateTime: e.target.value})} 
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                    />
+                  </div>
+                  {createForm.tripType === 'Round Trip' && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date *</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="date" 
+                          value={createForm.returnDate} 
+                          onChange={e => setCreateForm({...createForm, returnDate: e.target.value})} 
+                          className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                        />
+                        <input 
+                          type="time" 
+                          value={createForm.returnTime} 
+                          onChange={e => setCreateForm({...createForm, returnTime: e.target.value})} 
+                          className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
+              ) : (
+                createForm.tripType === 'Round Trip' && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date & Time (Round Trip)</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="date" 
+                        value={createForm.returnDate} 
+                        onChange={e => setCreateForm({...createForm, returnDate: e.target.value})} 
+                        className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                      />
+                      <input 
+                        type="time" 
+                        value={createForm.returnTime} 
+                        onChange={e => setCreateForm({...createForm, returnTime: e.target.value})} 
+                        className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                      />
+                    </div>
+                  </div>
+                )
+              )}
+
+              {/* Driver Type */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Driver Type</label>
+                <select 
+                  value={createForm.driverType} 
+                  onChange={e => setCreateForm({...createForm, driverType: e.target.value})} 
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                >
+                  <option value="Acting Driver">Acting Driver</option>
+                  <option value="Spare Driver">Spare Driver</option>
+                  <option value="Temporary Driver">Temporary Driver</option>
+                  <option value="Valet/Wallet Parking">Valet/Wallet Parking</option>
+                  <option value="Daily Driver">Daily Driver</option>
+                  <option value="Weekly Driver">Weekly Driver</option>
+                  <option value="Monthly Driver">Monthly Driver</option>
+                </select>
+              </div>
+
+              {/* If Monthly Driver selected, show Monthly parameters */}
+              {createForm.driverType === 'Monthly Driver' ? (
+                <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-xl p-3.5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-gray-700 uppercase">Monthly Driver Configuration</span>
+                    <span className="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">₹100 / hr rate</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 mb-1">Hours Per Day</label>
+                      <select 
+                        value={createForm.hoursPerDay} 
+                        onChange={e => setCreateForm({...createForm, hoursPerDay: e.target.value})}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
+                      >
+                        {['8', '9', '10', '11', '12'].map(h => (
+                          <option key={h} value={h}>{h} Hours / Day</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 mb-1">Days Per Week</label>
+                      <select 
+                        value={createForm.daysPerWeek} 
+                        onChange={e => setCreateForm({...createForm, daysPerWeek: e.target.value})}
+                        className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
+                      >
+                        {['5', '6', '7'].map(d => (
+                          <option key={d} value={d}>{d} Days / Week</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-green-200/60 flex items-center justify-between text-xs text-gray-700">
+                    <span>Monthly Estimate:</span>
+                    <span className="font-bold text-green-900">
+                      ₹{parseInt(createForm.hoursPerDay || '8') * parseInt(createForm.daysPerWeek || '6') * 4 * 100}
+                      <span className="text-[10px] text-gray-500 font-normal ml-1">({createForm.hoursPerDay}h × {createForm.daysPerWeek}d × 4w)</span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Duration (for non-monthly) */
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Duration</label>
-                  <select value={createForm.duration} onChange={e => setCreateForm({...createForm, duration: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                  <select 
+                    value={createForm.duration} 
+                    onChange={e => setCreateForm({...createForm, duration: e.target.value})} 
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white"
+                  >
                     {createForm.serviceType === 'Local - Hourly' ? (
-                      <>
-                        {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </>
+                      ['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))
                     ) : (
-                      <>
-                        {['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </>
+                      ['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))
                     )}
                   </select>
                 </div>
+              )}
+
+              {/* Car Type & Vehicle Type */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Driver Type</label>
-                  <select value={createForm.driverType} onChange={e => setCreateForm({...createForm, driverType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
-                    <option value="Acting Driver">Acting Driver</option>
-                    <option value="Spare Driver">Spare Driver</option>
-                    <option value="Temporary Driver">Temporary Driver</option>
-                    <option value="Valet/Wallet Parking">Valet/Wallet Parking</option>
-                    <option value="Daily Driver">Daily Driver</option>
-                    <option value="Weekly Driver">Weekly Driver</option>
-                    <option value="Monthly Driver">Monthly Driver</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Car Type</label>
-                  <select value={createForm.carType} onChange={e => setCreateForm({...createForm, carType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Car Type (Transmission)</label>
+                  <select 
+                    value={createForm.carType} 
+                    onChange={e => setCreateForm({...createForm, carType: e.target.value})} 
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                  >
                     <option value="Manual">Manual</option>
                     <option value="Automatic">Automatic</option>
+                    <option value="Both">Both (Manual / Automatic)</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Vehicle Type</label>
-                  <select value={createForm.vehicleType} onChange={e => setCreateForm({...createForm, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white">
+                  <select 
+                    value={createForm.vehicleType} 
+                    onChange={e => setCreateForm({...createForm, vehicleType: e.target.value})} 
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                  >
                     <option value="Hatchback">Hatchback</option>
                     <option value="Sedan">Sedan</option>
                     <option value="SUV">SUV</option>
+                    <option value="MPV">MPV</option>
                     <option value="Luxury">Luxury</option>
                   </select>
                 </div>
               </div>
+
+              {/* Payment Method & Estimate */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Payment Method</label>
+                  <select 
+                    value={createForm.paymentMethod} 
+                    onChange={e => setCreateForm({...createForm, paymentMethod: e.target.value})} 
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                  >
+                    <option value="CASH">Cash on Completion</option>
+                    <option value="UPI">Online / UPI (Paid)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-green-700 uppercase mb-1.5 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Estimate Amount (₹) *
+                  </label>
+                  <input 
+                    required 
+                    type="number" 
+                    min="0" 
+                    value={createForm.estimateAmount} 
+                    onChange={e => setCreateForm({...createForm, estimateAmount: e.target.value})} 
+                    className="w-full bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm font-bold text-green-900 focus:ring-2 focus:ring-green-500 outline-none transition shadow-inner" 
+                    placeholder="500" 
+                  />
+                </div>
+              </div>
+
+              {/* Extra Hour Charge note */}
+              {calculatedFareInfo && (calculatedFareInfo.extraPerHourSch || calculatedFareInfo.extraPerHourImm) && createForm.driverType !== 'Monthly Driver' && (
+                <div className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Extra Hour Charge:
+                  </span>
+                  <span className="text-gray-900 font-bold">
+                    ₹{createForm.whenNeeded === 'Immediately' ? (calculatedFareInfo.extraPerHourImm || calculatedFareInfo.extraPerHourSch) : calculatedFareInfo.extraPerHourSch}/hr
+                  </span>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
