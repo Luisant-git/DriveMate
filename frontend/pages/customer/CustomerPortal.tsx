@@ -975,25 +975,18 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 {/* Header & Tabs */}
                 <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                        <img src="/snp-logo.png" alt="SNP Logo" className="h-7 w-auto object-contain" />
                         <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
                     </div>
                     <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
-                        {/* SOS button near Book button commented out as requested */}
-                        {/* <button 
-                    type="button"
-                    onClick={() => {
-                      setSosTargetTrip(null);
-                      setShowSosModal(true);
-                    }} 
-                    className="px-2.5 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5 shadow-md transition font-black tracking-wide animate-pulse"
-                    title="Emergency SOS"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                    </svg>
-                    <span>SOS</span>
-                  </button> */}
+                        <button
+                            type="button"
+                            onClick={() => { setSosTargetTrip(null); setShowSosModal(true); }}
+                            className="px-2.5 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center gap-1 transition font-black text-[11px]"
+                            title="Emergency SOS"
+                        >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" /></svg>
+                            SOS
+                        </button>
                         <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
                         <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Trips</button>
                         <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Profile</button>
@@ -2317,68 +2310,91 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
                                     return (
-                                        <div key={booking.id} className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
-                                            <div className="flex flex-row justify-between items-center sm:items-start gap-2 mb-3 flex-wrap sm:flex-nowrap">
-                                                <div className="flex flex-col sm:mt-1 space-y-1">
-                                                    <span className="text-sm sm:text-xs font-bold">🚗 Going — {formattedDate}, {formattedTime}</span>
+                                        <div key={booking.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+
+                                            {/* ── Top bar: date + status ── */}
+                                            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-gray-900">🚗 {formattedDate} · {formattedTime}</span>
                                                     {booking.endDateTime && (
-                                                        <span className="text-sm sm:text-xs font-bold">🏠 Return — {formattedReturnDate}, {formattedReturnTime}</span>
+                                                        <span className="text-[11px] text-gray-500 mt-0.5">🏠 Return: {formattedReturnDate} · {formattedReturnTime}</span>
                                                     )}
                                                 </div>
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <span className={`text-[10px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-full font-bold whitespace-nowrap ${booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
-                                                        (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'bg-green-100 text-green-800' :
-                                                            booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                                                                booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                                                    booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                                                                        'bg-gray-100'
-                                                        }`}>
-                                                        {booking.cancellationRequested ? 'CANCELLATION PENDING' :
-                                                            booking.status === 'CANCELLED' ? 'CANCELLED' :
-                                                                (booking.status === 'CONFIRMED' && ((booking.driverId || booking.leadId) || booking.leadId)) ? 'DRIVER ALLOCATED' : booking.status}
-                                                    </span>
-                                                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
-                                                        <button
-                                                            onClick={() => setCancelModalBookingId(booking.id)}
-                                                            className="text-[10px] bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 font-bold transition shadow-sm border border-red-100"
-                                                        >
-                                                            Cancel Trip
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black tracking-wide flex-shrink-0 ${booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
+                                                    (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'bg-green-100 text-green-800' :
+                                                        booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                                                            booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                                                booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                                                    booking.status === 'ONGOING' ? 'bg-emerald-100 text-emerald-800' :
+                                                                        booking.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600' :
+                                                                            'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                    {booking.cancellationRequested ? 'CANCEL PENDING' :
+                                                        booking.status === 'CANCELLED' ? 'CANCELLED' :
+                                                            booking.status === 'COMPLETED' ? 'COMPLETED' :
+                                                                (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'DRIVER ALLOCATED' :
+                                                                    booking.status}
+                                                </span>
                                             </div>
 
-                                            {booking.estimateAmount && (
-                                                <p className="text-sm font-bold text-green-600 mb-2">₹{booking.estimateAmount}</p>
-                                            )}
-                                            {booking.paymentMethod && (
-                                                <p className="text-xs text-gray-600 mb-2">Payment: <span className="font-bold">{booking.paymentMethod}</span></p>
-                                            )}
-                                            <p className="text-xs sm:text-sm font-medium mb-2">{booking.bookingType}</p>
-                                            <div className="text-xs text-gray-500 space-y-1 mb-3">
-                                                <div className="flex items-start gap-2">
-                                                    <span className="font-bold shrink-0">From:</span>
-                                                    <span className="flex-1 break-words">{booking.pickupLocation}</span>
+                                            {/* ── Route ── */}
+                                            <div className="px-4 py-3 flex gap-3">
+                                                {/* Dot line */}
+                                                <div className="flex flex-col items-center pt-1 flex-shrink-0">
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-black"></div>
+                                                    <div className="w-px flex-1 bg-gray-300 my-1"></div>
+                                                    <div className="w-2.5 h-2.5 rounded-full border-2 border-black bg-white"></div>
                                                 </div>
-                                                <div className="flex items-start gap-2">
-                                                    <span className="font-bold shrink-0">To:</span>
-                                                    <span className="flex-1 break-words">{booking.dropLocation}</span>
+                                                {/* Addresses */}
+                                                <div className="flex flex-col justify-between gap-3 flex-1 min-w-0">
+                                                    <div>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Pickup</p>
+                                                        <p className="text-xs font-semibold text-gray-900 break-words leading-snug">{booking.pickupLocation}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Drop</p>
+                                                        <p className="text-xs font-semibold text-gray-900 break-words leading-snug">{booking.dropLocation}</p>
+                                                    </div>
                                                 </div>
+                                                {/* Amount */}
+                                                {booking.estimateAmount && (
+                                                    <div className="flex flex-col items-end justify-center flex-shrink-0">
+                                                        <p className="text-lg font-black text-green-600">₹{booking.estimateAmount}</p>
+                                                        {booking.paymentMethod && (
+                                                            <span className="text-[10px] text-gray-400 font-bold">{booking.paymentMethod}</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {/* Status Messages */}
-                                            {booking.status === 'PENDING' && !booking.selectedPackageType && (
-                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
-                                                    <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
-                                                </div>
-                                            )}
-
-                                            {booking.status === 'CONFIRMED' && !(booking.driverId || booking.leadId) && !booking.leadId && (
-                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mt-3">
-                                                    <p className="text-xs font-bold text-blue-800">🔍 Finding available drivers...</p>
-                                                    <p className="text-xs text-blue-600 mt-1">Request sent to {booking.selectedPackageType} drivers</p>
-                                                </div>
-                                            )}
+                                            {/* ── Footer: status message + cancel ── */}
+                                            <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap">
+                                                {/* Finding drivers */}
+                                                {(booking.status === 'PENDING' || (booking.status === 'CONFIRMED' && !(booking.driverId || booking.leadId))) && (
+                                                    <p className="text-[11px] text-blue-600 font-semibold">🔍 Finding drivers{booking.selectedPackageType ? ` · ${booking.selectedPackageType}` : ''}...</p>
+                                                )}
+                                                {(booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) && (
+                                                    <p className="text-[11px] text-green-600 font-semibold">✓ Driver on the way</p>
+                                                )}
+                                                {booking.status === 'ONGOING' && (
+                                                    <p className="text-[11px] text-emerald-600 font-semibold">🚗 Trip in progress</p>
+                                                )}
+                                                {booking.status === 'COMPLETED' && (
+                                                    <p className="text-[11px] text-gray-500 font-semibold">✓ Trip completed</p>
+                                                )}
+                                                {booking.cancellationRequested && (
+                                                    <p className="text-[11px] text-yellow-600 font-semibold">⏳ Cancellation requested</p>
+                                                )}
+                                                {/* Cancel button */}
+                                                {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
+                                                    <button
+                                                        onClick={() => setCancelModalBookingId(booking.id)}
+                                                        className="ml-auto text-[11px] text-red-600 font-bold px-3 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 transition"
+                                                    >
+                                                        Cancel Trip
+                                                    </button>
+                                                )}
+                                            </div>
 
                                             {/* Lead Details - Show when lead is allocated */}
                                             {booking.lead && booking.leadId && (
@@ -3150,8 +3166,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             )}
 
 
-            {/* Floating SOS Emergency Button (Uber-style persistent safety button) */}
-            <button
+            {/* Floating SOS Emergency Button - commented out, moved to header near Book button */}
+            {/*<button
                 type="button"
                 onClick={() => {
                     setSosTargetTrip(null);
@@ -3168,7 +3184,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2 10h-4v-2h4v2zm0-4h-4V9h4v4z" />
                 </svg>
                 <span className="text-xs sm:text-sm font-black tracking-wider uppercase">SOS</span>
-            </button>
+            </button>*/}
 
             {/* SOS Modal */}
             <CustomerSosModal
