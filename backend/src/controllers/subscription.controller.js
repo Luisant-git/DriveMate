@@ -1,4 +1,4 @@
-import prisma from '../config/database.js';
+﻿import prisma from '../config/database.js';
 
 // Helper function to update expired subscriptions
 const updateExpiredSubscriptions = async (driverId = null) => {
@@ -56,12 +56,21 @@ const VALID_CATEGORIES = ['Silver', 'Gold', 'Platinum', 'Diamond'];
 
 export const createSubscriptionPlan = async (req, res) => {
   try {
-    const { category, name, duration, price, description, type, maxDuties } = req.body;
+    const { category, name, duration, price, description, type, maxDuties, excessAmountPerRide } = req.body;
 
     const planCategory = VALID_CATEGORIES.includes(category) ? category : 'Silver';
 
     const plan = await prisma.subscriptionPlan.create({
-      data: { category: planCategory, name, duration, price, description, type, maxDuties: maxDuties || 0 },
+      data: {
+        category: planCategory,
+        name,
+        duration,
+        price,
+        description,
+        type,
+        maxDuties: maxDuties || 0,
+        excessAmountPerRide: excessAmountPerRide !== undefined ? parseFloat(excessAmountPerRide) : 0,
+      },
     });
 
     res.status(201).json(plan);
@@ -108,7 +117,7 @@ export const getSubscriptionPlans = async (req, res) => {
 export const updateSubscriptionPlan = async (req, res) => {
   try {
     const id = (req.params.id);
-    const { category, name, duration, price, description, type, isActive, maxDuties } = req.body;
+    const { category, name, duration, price, description, type, isActive, maxDuties, excessAmountPerRide } = req.body;
 
     const updateData = {};
     if (category !== undefined) updateData.category = VALID_CATEGORIES.includes(category) ? category : 'Silver';
@@ -119,6 +128,7 @@ export const updateSubscriptionPlan = async (req, res) => {
     if (type !== undefined) updateData.type = type;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (maxDuties !== undefined) updateData.maxDuties = maxDuties;
+    if (excessAmountPerRide !== undefined) updateData.excessAmountPerRide = parseFloat(excessAmountPerRide);
 
     const plan = await prisma.subscriptionPlan.update({
       where: { id },
@@ -210,6 +220,20 @@ export const getActivePackagesForDrivers = async (req, res) => {
   }
 };
 
+export const attachCommissionData = (sub) => {
+  if (!sub) return sub;
+  const excess = sub.plan?.excessAmountPerRide || 0;
+  const completed = sub.dutiesCompleted || 0;
+  const totalCommission = completed * excess;
+  const paid = sub.commissionPaid || 0;
+  const commissionDue = Math.max(0, totalCommission - paid);
+  return {
+    ...sub,
+    totalCommission,
+    commissionPaid: paid,
+    commissionDue,
+  };
+};
 export const getAllSubscriptions = async (req, res) => {
   try {
     // Update expired subscriptions
@@ -230,7 +254,7 @@ export const getAllSubscriptions = async (req, res) => {
       }
     });
 
-    res.json({ success: true, subscriptions });
+    res.json({ success: true, subscriptions: subscriptions.map(attachCommissionData) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -306,7 +330,7 @@ export const getDriverAllActiveSubscriptions = async (req, res) => {
       include: { plan: true },
       orderBy: { startDate: 'desc' }
     });
-    res.json({ success: true, subscriptions: activeSubscriptions });
+    res.json({ success: true, subscriptions: activeSubscriptions.map(attachCommissionData) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -449,5 +473,56 @@ export const payRemainingAmount = async (req, res) => {
     res.json({ success: true, subscription: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+// Admin collects / settles driver commission for completed rides
+export const settleDriverCommission = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, paymentMethod } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid settlement amount' });
+    }
+
+    const subscription = await prisma.subscription.findUnique({
+      where: { id },
+      include: { plan: true, driver: true }
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'Subscription not found' });
+    }
+
+    const excess = subscription.plan?.excessAmountPerRide || 0;
+    const completed = subscription.dutiesCompleted || 0;
+    const totalCommission = completed * excess;
+    const alreadyPaid = subscription.commissionPaid || 0;
+    const currentDue = Math.max(0, totalCommission - alreadyPaid);
+
+    if (parsedAmount > currentDue) {
+      return res.status(400).json({
+        success: false,
+        error: `Settlement amount cannot exceed current commission due (₹${currentDue})`
+      });
+    }
+
+    const updated = await prisma.subscription.update({
+      where: { id },
+      data: {
+        commissionPaid: { increment: parsedAmount }
+      },
+      include: { plan: true, driver: true }
+    });
+
+    res.json({
+      success: true,
+      subscription: attachCommissionData(updated),
+      message: `Successfully collected commission payment of ₹${parsedAmount}`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 };

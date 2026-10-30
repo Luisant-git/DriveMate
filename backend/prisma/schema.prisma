@@ -150,11 +150,12 @@ model SubscriptionPlan {
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   type          PackageType
-  maxDuties     Int?           @default(0)
-  advancePayment Float?        @default(0)
-  types         String[]       @default([])
-  category      String         @default("GENERAL")
-  subscriptions Subscription[]
+  maxDuties           Int?     @default(0)
+  advancePayment      Float?   @default(0)
+  excessAmountPerRide Float?   @default(0)
+  types               String[] @default([])
+  category            String   @default("GENERAL")
+  subscriptions       Subscription[]
 
   @@map("subscription_plans")
 }
@@ -192,6 +193,7 @@ model Subscription {
   paymentDueDate  DateTime?
   dutiesCompleted Int              @default(0)
   maxDuties       Int?             @default(0)
+  commissionPaid  Float?           @default(0)
   driver          Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
   plan            SubscriptionPlan @relation(fields: [planId], references: [id])
 

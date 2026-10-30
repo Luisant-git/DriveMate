@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import {
   createSubscriptionPlan,
   getSubscriptionPlans,
@@ -13,6 +13,7 @@ import {
   updateSubscriptionPayment,
   getDriverAllActiveSubscriptions,
   payRemainingAmount,
+  settleDriverCommission,
 } from '../controllers/subscription.controller.js';
 import { getLeadSubscriptions } from '../controllers/leadSubscription.controller.js';
 import { authenticateToken, authenticateLead, requireRole } from '../middleware/auth.js';
@@ -218,5 +219,7 @@ router.put('/admin/update-payment/:id', authenticateToken, requireRole(['ADMIN']
 
 // Driver pays their own remaining amount
 router.post('/pay-remaining/:id', authenticateToken, requireRole(['DRIVER']), payRemainingAmount);
+
+router.post('/admin/settle-commission/:id', authenticateToken, requireRole(['ADMIN']), settleDriverCommission);
 
 export default router;
