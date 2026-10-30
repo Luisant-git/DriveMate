@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Driver, Trip } from '../../types';
 
 interface SubscriptionPackage {
@@ -9,6 +9,7 @@ interface SubscriptionPackage {
   duration: number;
   price: number;
   maxDuties?: number;
+  excessAmountPerRide?: number;
   description?: string;
   isActive?: boolean;
 }
@@ -383,6 +384,12 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           </div>
         </div>
         <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
+        {pkg.excessAmountPerRide > 0 && (
+          <div className="mt-2 inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-3 py-1 rounded-lg">
+            <span className="text-[11px] font-black">Commission / Ride:</span>
+            <span className="text-[11px] font-extrabold">₹{pkg.excessAmountPerRide}</span>
+          </div>
+        )}
         <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
 
         <button
@@ -1247,6 +1254,72 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
               )}
             </div>
 
+            {/* Trip Commission Ledger in Completed Trips History */}
+            {(activeSubscriptions.length > 0 ? activeSubscriptions : (currentSubscription ? [currentSubscription] : [])).some(sub => sub.plan?.excessAmountPerRide > 0) && (
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900">Trip Commission Ledger</h3>
+                      <p className="text-xs text-gray-500">Per-ride commission summary for your active packages</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).filter(sub => sub?.plan?.excessAmountPerRide > 0).map((sub, idx) => {
+                    const rate = sub.plan.excessAmountPerRide;
+                    const rides = sub.dutiesCompleted || 0;
+                    const total = rides * rate;
+                    const paid = sub.commissionPaid || 0;
+                    const due = Math.max(0, total - paid);
+
+                    return (
+                      <div key={sub.id || idx} className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200">
+                        <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-gray-200/80">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-gray-900">{sub.plan.name}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700 uppercase">{sub.plan.category || 'Package'}</span>
+                          </div>
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
+                            due > 0 ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            {due > 0 ? `₹${due} Due` : '✓ All Settled'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-white rounded-lg p-2 border border-gray-100">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Rate</p>
+                            <p className="font-bold text-xs sm:text-sm text-gray-800">₹{rate}/ride</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-2 border border-gray-100">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Total ({rides} rides)</p>
+                            <p className="font-bold text-xs sm:text-sm text-gray-800">₹{total}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-2 border border-gray-100">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Paid to Admin</p>
+                            <p className="font-bold text-xs sm:text-sm text-emerald-600">₹{paid}</p>
+                          </div>
+                        </div>
+
+                        {due > 0 && (
+                          <p className="text-[11px] text-orange-700 font-semibold mt-2.5 text-center bg-orange-50 py-1.5 px-2 rounded-lg border border-orange-200">
+                            Outstanding ₹{due} commission to be settled at Admin office
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Completed Trips Section */}
             <div>
               <h3 className="text-base sm:text-lg font-bold mb-3 text-gray-400">Completed Trips</h3>
@@ -1486,7 +1559,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                   </div>
                                   {/* Plan name */}
                                   <p className="text-sm sm:text-base font-bold text-black truncate mt-1">{sub.plan?.name}</p>
-                                  {/* Days + Duties pills */}
+                                  {/* Days + Duties + Commission pills */}
                                   <div className="flex flex-wrap gap-2 mt-1.5">
                                     <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-emerald-700 border-emerald-300 bg-emerald-50 font-bold">
                                       {daysLeft} days left
@@ -1494,6 +1567,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     {dutiesLeft !== null && (
                                       <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-purple-700 border-purple-300 bg-purple-50 font-bold">
                                         {dutiesLeft} duties left
+                                      </span>
+                                    )}
+                                    {sub.plan?.excessAmountPerRide > 0 && (
+                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-orange-700 border-orange-300 bg-orange-50 font-bold">
+                                        ₹{sub.plan.excessAmountPerRide} commission/ride
                                       </span>
                                     )}
                                   </div>
@@ -2187,6 +2265,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 <p className="text-xl font-black mt-0.5">{selectedPackage.name}</p>
                 <p className="text-2xl font-black mt-1">₹{selectedPackage.price}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{selectedPackage.duration} days · {selectedPackage.category}</p>
+                {selectedPackage.excessAmountPerRide && selectedPackage.excessAmountPerRide > 0 ? (
+                  <p className="text-xs text-orange-400 font-semibold mt-1">Platform Commission: ₹{selectedPackage.excessAmountPerRide}/ride</p>
+                ) : null}
               </div>
               <div className="p-5 space-y-4">
                 {/* Pay Full / Pay Partial toggle */}

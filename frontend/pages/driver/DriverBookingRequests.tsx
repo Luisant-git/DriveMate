@@ -135,13 +135,13 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
           <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-gray-100">
+        <div className="space-y-2.5 pt-1 border-t border-gray-100">
           {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).map((sub, idx) => {
             const daysLeft = Math.max(0, Math.ceil((new Date(sub.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
             const dutiesLeft = sub.maxDuties > 0 ? Math.max(0, sub.maxDuties - (sub.dutiesCompleted || 0)) : null;
             const type = sub.plan?.type;
             return (
-              <div key={sub.id || idx} className="bg-gray-50 border border-gray-200 rounded-xl p-2.5 flex flex-col gap-1.5">
+              <div key={sub.id || idx} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col gap-1.5">
                 {/* Top row: category badge + type badge */}
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-[9px] font-black uppercase tracking-wider text-black bg-white px-2 py-0.5 rounded border border-gray-200">
@@ -157,18 +157,25 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                   )}
                 </div>
                 {/* Plan name */}
-                <p className="text-xs font-bold text-gray-900 truncate">{sub.plan?.name}</p>
-                {/* Days + duties */}
+                <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{sub.plan?.name}</p>
+                {/* Days + duties + commission */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     {daysLeft}d left
                   </span>
                   {dutiesLeft !== null && (
-                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full">
                       {dutiesLeft} duties left
                     </span>
                   )}
+                  {sub.plan?.excessAmountPerRide > 0 && (
+                    <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full">
+                      ₹{sub.plan.excessAmountPerRide} commission/ride
+                    </span>
+                  )}
                 </div>
+
+
               </div>
             );
           })}
@@ -273,7 +280,73 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
       )}
 
       {activeSubTab === 'HISTORY' && (
-        <div>
+        <div className="space-y-4">
+          {/* Trip Commission Ledger (History) */}
+          {(activeSubscriptions.length > 0 ? activeSubscriptions : (currentSubscription ? [currentSubscription] : [])).some(sub => sub.plan?.excessAmountPerRide > 0) && (
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900">Trip Commission Ledger</h3>
+                    <p className="text-xs text-gray-500">Per-ride commission summary for your active packages</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).filter(sub => sub?.plan?.excessAmountPerRide > 0).map((sub, idx) => {
+                  const rate = sub.plan.excessAmountPerRide;
+                  const rides = sub.dutiesCompleted || 0;
+                  const total = rides * rate;
+                  const paid = sub.commissionPaid || 0;
+                  const due = Math.max(0, total - paid);
+
+                  return (
+                    <div key={sub.id || idx} className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200">
+                      <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-gray-200/80">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs sm:text-sm text-gray-900">{sub.plan.name}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700 uppercase">{sub.plan.category || 'Package'}</span>
+                        </div>
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
+                          due > 0 ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        }`}>
+                          {due > 0 ? `₹${due} Due` : '✓ All Settled'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white rounded-lg p-2 border border-gray-100">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">Rate</p>
+                          <p className="font-bold text-xs sm:text-sm text-gray-800">₹{rate}/ride</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 border border-gray-100">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">Total ({rides} rides)</p>
+                          <p className="font-bold text-xs sm:text-sm text-gray-800">₹{total}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 border border-gray-100">
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">Paid to Admin</p>
+                          <p className="font-bold text-xs sm:text-sm text-emerald-600">₹{paid}</p>
+                        </div>
+                      </div>
+
+                      {due > 0 && (
+                        <p className="text-[11px] text-orange-700 font-semibold mt-2.5 text-center bg-orange-50 py-1.5 px-2 rounded-lg border border-orange-200">
+                          Outstanding ₹{due} commission to be settled at Admin office
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Request History</h2>
           {allRequests.length === 0 ? (
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
