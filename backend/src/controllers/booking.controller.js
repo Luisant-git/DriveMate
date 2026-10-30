@@ -77,7 +77,7 @@ export const createBooking = async (req, res) => {
 
 export const adminCreateBooking = async (req, res) => {
   try {
-    const { customerName, customerPhone, endDateTime, whenNeeded, paymentMethod,
+    const { customerName, customerPhone, languagesKnown, endDateTime, whenNeeded, paymentMethod,
       pickupLocation, 
       dropLocation, 
       serviceType,
@@ -99,6 +99,10 @@ export const adminCreateBooking = async (req, res) => {
       where: { phone: customerPhone }
     });
 
+    if (customer && Array.isArray(languagesKnown) && languagesKnown.length > 0) {
+      await prisma.customer.update({ where: { id: customer.id }, data: { languagesKnown } });
+    }
+
     if (!customer) {
       customer = await prisma.customer.create({
         data: {
@@ -106,6 +110,7 @@ export const adminCreateBooking = async (req, res) => {
           phone: customerPhone,
           email: `${customerPhone}@temp.com`, // temporary placeholder
           password: 'admin_created',
+          languagesKnown: Array.isArray(languagesKnown) ? languagesKnown : []
         }
       });
     }
