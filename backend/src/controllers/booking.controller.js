@@ -44,7 +44,8 @@ export const createBooking = async (req, res) => {
         driverType,
         serviceType,
         tripType,
-        startDateTime: new Date(startDateTime),
+        startDateTime: startDateTime ? new Date(startDateTime) : new Date(Date.now() + 15 * 60000),
+        endDateTime: endDateTime ? new Date(endDateTime) : null,
         endDateTime: endDateTime ? new Date(endDateTime) : null,
         duration,
         vehicleType,
@@ -76,9 +77,7 @@ export const createBooking = async (req, res) => {
 
 export const adminCreateBooking = async (req, res) => {
   try {
-    const { 
-      customerName,
-      customerPhone,
+    const { customerName, customerPhone, endDateTime, whenNeeded, paymentMethod,
       pickupLocation, 
       dropLocation, 
       serviceType,
@@ -91,7 +90,7 @@ export const adminCreateBooking = async (req, res) => {
       driverType
     } = req.body;
 
-    if (!customerName || !customerPhone || !pickupLocation || !serviceType || !startDateTime) {
+    if (!customerName || !customerPhone || !pickupLocation || !serviceType) {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
@@ -118,10 +117,11 @@ export const adminCreateBooking = async (req, res) => {
         dropLocation,
         serviceType,
         tripType: tripType || 'One Way',
-        startDateTime: new Date(startDateTime),
+        startDateTime: (startDateTime && !isNaN(new Date(startDateTime).getTime())) ? new Date(startDateTime) : new Date(Date.now() + 15 * 60000),
+        endDateTime: (endDateTime && !isNaN(new Date(endDateTime).getTime())) ? new Date(endDateTime) : null,
         estimateAmount: parseFloat(estimateAmount) || 0,
-        paymentMethod: 'CASH',
-        paymentStatus: 'UNPAID',
+        paymentMethod: paymentMethod || 'CASH',
+        paymentStatus: (paymentMethod === 'UPI' || paymentMethod === 'Online') ? 'PAID' : 'UNPAID',
         status: 'PENDING',
         duration,
         carType,
