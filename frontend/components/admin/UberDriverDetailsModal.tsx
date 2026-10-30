@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import DocumentViewerModal from './DocumentViewerModal';
+import { API_BASE_URL } from '../../api/config.js';
 
 export interface DriverDocumentItem {
   label: string;
@@ -67,6 +68,61 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
 }) => {
   const [activePreviewDoc, setActivePreviewDoc] = useState<{ title: string; url: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [showSettleModal, setShowSettleModal] = useState(false);
+  const [settleAmount, setSettleAmount] = useState('');
+  const [isSettling, setIsSettling] = useState(false);
+  const [settleSuccessMsg, setSettleSuccessMsg] = useState<string | null>(null);
+
+  const activeSub = driver?.activeSubscription;
+  const excessPerRide = activeSub?.plan?.excessAmountPerRide || 0;
+  const dutiesDone = activeSub?.dutiesCompleted || 0;
+  const totalComm = dutiesDone * excessPerRide;
+  const commPaid = activeSub?.commissionPaid || 0;
+  const commDue = Math.max(0, totalComm - commPaid);
+
+  const handleSettleCommission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSub) return;
+    const amountNum = parseFloat(settleAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    if (amountNum > commDue) {
+      alert(`Amount cannot exceed current commission due (₹${commDue})`);
+      return;
+    }
+
+    try {
+      setIsSettling(true);
+      const token = localStorage.getItem('token') || localStorage.getItem('auth-token');
+      const res = await fetch(`${API_BASE_URL}/api/subscriptions/admin/settle-commission/${activeSub.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ amount: amountNum })
+      });
+      const data = await res.json();
+      if (data.success) {
+        activeSub.commissionPaid = (activeSub.commissionPaid || 0) + amountNum;
+        activeSub.commissionDue = Math.max(0, (activeSub.totalCommission || totalComm) - activeSub.commissionPaid);
+        setSettleSuccessMsg(`Successfully collected ₹${amountNum} commission!`);
+        setTimeout(() => {
+          setSettleSuccessMsg(null);
+          setShowSettleModal(false);
+          setSettleAmount('');
+        }, 1500);
+      } else {
+        alert(data.error || 'Failed to settle commission');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error settling commission');
+    } finally {
+      setIsSettling(false);
+    }
+  };
 
   if (!driver) return null;
 
@@ -507,28 +563,70 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80 flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Package:</span>
-                      <p className="text-sm font-black text-gray-900">
-                        {driver.activeSubscription?.plan?.name || 'No Active Package'}
-                      </p>
-                      {driver.activeSubscription && (
-                        <p className="text-[11px] text-gray-500 font-medium">
-                          Duties: {driver.activeSubscription.dutiesCompleted || 0} / {driver.activeSubscription.maxDuties || 'Unlimited'}
+                  <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Package:</span>
+                        <p className="text-sm font-black text-gray-900">
+                          {driver.activeSubscription?.plan?.name || 'No Active Package'}
                         </p>
-                      )}
+                        {driver.activeSubscription && (
+                          <p className="text-[11px] text-gray-500 font-medium">
+                            Duties: <span className="font-bold text-gray-900">{dutiesDone}</span> / {driver.activeSubscription.maxDuties || 'Unlimited'}
+                          </p>
+                        )}
+                      </div>
+
+                      <button 
+                        onClick={onOpenUpdatePackage}
+                        className="px-4 py-2 bg-black hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Update</span>
+                      </button>
                     </div>
 
-                    <button 
-                      onClick={onOpenUpdatePackage}
-                      className="px-4 py-2 bg-black hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span>Update</span>
-                    </button>
+                    {/* Per-Ride Commission Details (Driver Commission Ledger) */}
+                    {activeSub && excessPerRide > 0 && (
+                      <div className="pt-2.5 border-t border-gray-200 space-y-2">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-white p-2 rounded-lg border border-gray-200/70">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Commission Rate</span>
+                            <span className="text-xs font-black text-gray-900">₹{excessPerRide} / ride</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-gray-200/70">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Commission Settled</span>
+                            <span className="text-xs font-black text-emerald-600">₹{commPaid}</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-orange-50 border border-orange-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
+                          <div>
+                            <span className="text-[9px] font-black text-orange-800 uppercase tracking-wider block">Commission Owed</span>
+                            <p className="text-base font-black text-orange-700 leading-tight">₹{commDue}</p>
+                            <p className="text-[10px] text-orange-600 font-semibold mt-0.5">({dutiesDone} completed rides × ₹{excessPerRide})</p>
+                          </div>
+                          {commDue > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSettleAmount(String(commDue));
+                                setShowSettleModal(true);
+                              }}
+                              className="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-black rounded-lg transition shadow-xs active:scale-95 flex-shrink-0"
+                            >
+                              Collect ₹{commDue}
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200">
+                              ✓ All Settled
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -686,6 +784,88 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
             handleDownloadDoc(docObj?.path, docObj?.label || 'document');
           }}
         />
+      )}
+
+      {/* Settle Commission Modal */}
+      {showSettleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
+            <div className="bg-black text-white px-5 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Commission</p>
+                <h3 className="text-base font-black text-white mt-0.5">{driver.name}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettleModal(false)}
+                className="text-gray-400 hover:text-white text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSettleCommission} className="p-5 space-y-4">
+              {settleSuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center">
+                  ✓ {settleSuccessMsg}
+                </div>
+              )}
+
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Package:</span>
+                  <span className="font-bold text-gray-900">{activeSub?.plan?.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Completed Rides:</span>
+                  <span className="font-bold text-gray-900">{dutiesDone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Commission Rate:</span>
+                  <span className="font-bold text-gray-900">₹{excessPerRide} / ride</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-gray-200 font-bold">
+                  <span className="text-orange-800">Total Due:</span>
+                  <span className="text-orange-700 text-sm font-black">₹{commDue}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Amount Collected (₹)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={commDue}
+                  step="0.01"
+                  required
+                  value={settleAmount}
+                  onChange={(e) => setSettleAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Enter collected amount"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSettleModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSettling}
+                  className="flex-1 px-4 py-2 bg-black hover:bg-gray-800 text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                >
+                  {isSettling ? 'Recording...' : 'Confirm Collected'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );

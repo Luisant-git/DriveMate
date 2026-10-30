@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -14,6 +14,7 @@ interface Package {
   price: number;
   description: string;
   maxDuties: number;
+  excessAmountPerRide: number;
   isActive: boolean;
 }
 
@@ -24,6 +25,7 @@ const emptyForm = {
   duration: 0,
   price: 0,
   maxDuties: 0,
+  excessAmountPerRide: 0,
   description: ''
 };
 
@@ -80,6 +82,7 @@ const ManagePackages: React.FC = () => {
       duration: pkg.duration,
       price: pkg.price,
       maxDuties: pkg.maxDuties || 0,
+      excessAmountPerRide: pkg.excessAmountPerRide || 0,
       description: pkg.description || ''
     });
     setEditingId(pkg.id);
@@ -186,13 +189,14 @@ const ManagePackages: React.FC = () => {
                 <option value="OUTSTATION">OUTSTATION</option>
               </select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1">Duration (days)</label>
                 <input
                   type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                  value={formData.duration === 0 ? "" : formData.duration}
+                  placeholder="30"
+                  onChange={(e) => setFormData({ ...formData, duration: e.target.value === "" ? 0 : parseInt(e.target.value) })}
                   className="w-full border px-3 py-2 rounded"
                   required
                 />
@@ -201,8 +205,9 @@ const ManagePackages: React.FC = () => {
                 <label className="block mb-1">Price (₹)</label>
                 <input
                   type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                  value={formData.price === 0 ? "" : formData.price}
+                  placeholder="0"
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
                   className="w-full border px-3 py-2 rounded"
                   required
                 />
@@ -212,8 +217,21 @@ const ManagePackages: React.FC = () => {
                 <input
                   type="number"
                   min={0}
-                  value={formData.maxDuties}
-                  onChange={(e) => setFormData({ ...formData, maxDuties: parseInt(e.target.value) })}
+                  value={formData.maxDuties === 0 ? "" : formData.maxDuties}
+                  placeholder="0"
+                  onChange={(e) => setFormData({ ...formData, maxDuties: e.target.value === "" ? 0 : parseInt(e.target.value) })}
+                  className="w-full border px-3 py-2 rounded"
+                />
+              </div>
+              <div>
+                <label className="block mb-1">Excess Amount / Ride (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={formData.excessAmountPerRide === 0 ? '' : formData.excessAmountPerRide}
+                  placeholder="0"
+                  onChange={(e) => setFormData({ ...formData, excessAmountPerRide: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                   className="w-full border px-3 py-2 rounded"
                 />
               </div>
@@ -268,6 +286,7 @@ const ManagePackages: React.FC = () => {
                     <div className="mb-3">
                       <p className="text-sm"><strong>Duration:</strong> {pkg.duration} days</p>
                       {pkg.maxDuties > 0 && <p className="text-sm"><strong>Max Duties:</strong> {pkg.maxDuties}</p>}
+                      {pkg.excessAmountPerRide > 0 && <p className="text-sm text-orange-600"><strong>Excess / Ride:</strong> ₹{pkg.excessAmountPerRide}</p>}
                     </div>
                     <div className="flex gap-2">
                       <button

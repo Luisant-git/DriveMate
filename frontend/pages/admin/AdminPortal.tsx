@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
 import BookingWorkflow from './BookingWorkflow';
 import PendingDriverApproval from './PendingDriverApproval';
@@ -41,6 +41,7 @@ interface PackageFormState {
   price: number;
   durationDays: number;
   maxDuties: number;
+  excessAmountPerRide: number;
   description: string;
 }
 
@@ -86,10 +87,13 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<SubscriptionPlan | null>(null);
   const [packageForm, setPackageForm] = useState<PackageFormState>({
+    category: 'Silver',
     name: '',
     type: 'LOCAL',
     price: 0,
-    durationDays: 30,
+    durationDays: 0,
+    maxDuties: 0,
+    excessAmountPerRide: 0,
     description: '',
   });
   const [isSavingPackage, setIsSavingPackage] = useState(false);
@@ -227,8 +231,9 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       name: '',
       type: 'LOCAL',
       price: 0,
-      durationDays: 30,
+      durationDays: 0,
       maxDuties: 0,
+      excessAmountPerRide: 0,
       description: '',
     });
     setPackageModalError(null);
@@ -244,6 +249,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       price: pkg.price || 0,
       durationDays: pkg.duration || 30,
       maxDuties: pkg.maxDuties || 0,
+      excessAmountPerRide: (pkg as any).excessAmountPerRide || 0,
       description: pkg.description || '',
     });
     setPackageModalError(null);
@@ -264,10 +270,11 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       const payload: any = {
         category: packageForm.category,
         name: packageForm.name,
-        duration: packageForm.durationDays,
+        duration: packageForm.durationDays === 0 ? 30 : packageForm.durationDays,
         maxDuties: packageForm.maxDuties,
         price: packageForm.price,
         description: packageForm.description,
+        excessAmountPerRide: packageForm.excessAmountPerRide,
       };
 
       payload.type = packageForm.type;
@@ -507,7 +514,12 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                               <div className="flex justify-between items-center border-t border-gray-100 pt-3">
                                 <p className="text-xs text-gray-500">
                                   Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
-                                  {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
+                                  {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
+                                  {(pkg as any).excessAmountPerRide > 0 && (
+                                    <span className="text-xs font-bold text-orange-600 ml-1">
+                                      | Commission: ₹{(pkg as any).excessAmountPerRide}/ride
+                                    </span>
+                                  )}
                                 </p>
                                 <div className="flex gap-2">
                                   <button
@@ -712,18 +724,19 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 )}
               </label>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Price (₹)
                   <input
                     type="number"
                     min={0}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.price}
+                    value={packageForm.price === 0 ? '' : packageForm.price}
+                    placeholder="0"
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
-                        price: Number(e.target.value),
+                        price: e.target.value === '' ? 0 : Number(e.target.value),
                       }))
                     }
                     required
@@ -751,13 +764,13 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={1}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 disabled:bg-gray-100 disabled:text-gray-400"
-                    value={packageForm.durationDays === 36500 ? '' : packageForm.durationDays}
-                    placeholder={packageForm.durationDays === 36500 ? 'Unlimited' : ''}
+                    value={packageForm.durationDays === 36500 ? '' : (packageForm.durationDays === 0 ? '' : packageForm.durationDays)}
+                    placeholder={packageForm.durationDays === 36500 ? 'Unlimited' : '30'}
                     disabled={packageForm.durationDays === 36500}
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
-                        durationDays: Number(e.target.value),
+                        durationDays: e.target.value === '' ? 0 : Number(e.target.value),
                       }))
                     }
                     required={packageForm.durationDays !== 36500}
@@ -770,11 +783,30 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={0}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.maxDuties}
+                    value={packageForm.maxDuties === 0 ? '' : packageForm.maxDuties}
+                    placeholder="0"
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
-                        maxDuties: Number(e.target.value),
+                        maxDuties: e.target.value === '' ? 0 : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+
+                <label className="block text-xs font-bold text-gray-500 uppercase">
+                  Excess Amount / Ride (₹)
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    value={packageForm.excessAmountPerRide === 0 ? '' : packageForm.excessAmountPerRide}
+                    placeholder="0"
+                    onChange={(e) =>
+                      setPackageForm((prev) => ({
+                        ...prev,
+                        excessAmountPerRide: e.target.value === '' ? 0 : Number(e.target.value),
                       }))
                     }
                   />
