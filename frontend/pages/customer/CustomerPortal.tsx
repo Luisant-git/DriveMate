@@ -906,7 +906,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             ) : (
                 <div className="absolute inset-0" style={{ backgroundColor: '#e8eaed' }}>
                     <img
-                        src="/assets/bg-cost.png"
+                        src="/assets/bg-final.png"
                         alt=""
                         className="w-full h-full"
                         style={{ objectFit: 'cover', objectPosition: 'center', transform: 'scale(1.15)', transformOrigin: 'center' }}
