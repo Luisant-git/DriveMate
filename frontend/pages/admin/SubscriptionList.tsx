@@ -274,11 +274,16 @@ const SubscriptionList: React.FC = () => {
     }
   };
 
-  // Only show subscriptions that are ACTIVE or EXPIRED (have real commission obligations).
-  // REJECTED and CANCELLED subscriptions should never collect commission.
-  const commissionRows = subscriptions.filter(s =>
-    ((s.plan as any)?.excessAmountPerRide || 0) > 0 &&
-    s.status !== 'REJECTED' && s.status !== 'CANCELLED'
+  // Show commissions tab for:
+  // 1. Per-ride plans (excessAmountPerRide > 0) that are ACTIVE or EXPIRED
+  // 2. Non-per-ride plans (Diamond etc.) that have actual commissionDue > 0 from bookings
+  // Always exclude REJECTED and CANCELLED subscriptions.
+  const commissionRows = subscriptions.filter((s: any) =>
+    s.status !== 'REJECTED' && s.status !== 'CANCELLED' &&
+    (
+      (s.plan?.excessAmountPerRide || 0) > 0 ||   // per-ride plan
+      (s.commissionDue || 0) > 0                    // non-per-ride but has actual admin cut due
+    )
   );
   const pendingCommissionsCount = commissionRows.filter(s => ((s as any).commissionDue || 0) > 0).length;
   if (loading) {
@@ -492,7 +497,7 @@ const SubscriptionList: React.FC = () => {
                             Update Payment
                           </button>
                         )}
-                        {(sub as any).plan?.excessAmountPerRide > 0 && (sub as any).commissionDue > 0 && (
+                        {(sub as any).commissionDue > 0 && (
                           <button
                             onClick={() => {
                               setSettleTargetSub(sub);
@@ -533,8 +538,8 @@ const SubscriptionList: React.FC = () => {
         <div className="space-y-4">
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="font-extrabold text-orange-950 text-sm sm:text-base">Per-Ride Commission Ledger</p>
-              <p className="text-xs text-orange-700">Track and collect commission owed by drivers for completed rides under their package.</p>
+              <p className="font-extrabold text-orange-950 text-sm sm:text-base">Commission Ledger</p>
+              <p className="text-xs text-orange-700">Track and collect commission owed by drivers — per-ride plans and booking admin cuts.</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-white border border-orange-200 rounded-lg px-3 py-1.5 text-center">
@@ -552,7 +557,7 @@ const SubscriptionList: React.FC = () => {
 
           {commissionRows.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-sm text-gray-500">
-              No packages with per-ride commission configured yet. Set an Excess Amount / Ride in Manage Packages.
+              No packages with outstanding commission yet. Commission is collected when drivers complete trips under active subscriptions.
             </div>
           ) : (
             <div className="overflow-x-auto bg-white border border-gray-200 rounded-xl shadow-xs">
