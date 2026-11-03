@@ -904,10 +904,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     apiKey="AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8"
                 />
             ) : (
-                <div
-                    className="absolute inset-0 bg-cover bg-center opacity-80"
-                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
-                ></div>
+                <div className="absolute inset-0" style={{ backgroundColor: '#e8eaed' }}>
+                    <img
+                        src="/assets/bg-cost.png"
+                        alt=""
+                        className="w-full h-full"
+                        style={{ objectFit: 'cover', objectPosition: 'center', transform: 'scale(1.15)', transformOrigin: 'center' }}
+                        draggable={false}
+                    />
+                </div>
             )}
 
             {/* Registration Modal */}
