@@ -14,6 +14,7 @@ import Reports from './Reports';
 import OverdueReport from './OverdueReport';
 import BookingRoutingConfig from './BookingRoutingConfig';
 import AdminDeletedAccounts from './AdminDeletedAccounts';
+import AdminJobRequirements from './AdminJobRequirements';
 import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
 import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar, FaChartArea, FaTrashAlt } from 'react-icons/fa';
 import { BiAnalyse, BiError } from 'react-icons/bi';
@@ -53,7 +54,7 @@ interface AdminPortalProps {
 
 const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<
-    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG' | 'OVERDUE_REPORT' | 'DELETED_ACCOUNTS'
+    'DRIVERS' | 'CUSTOMERS' | 'LEADS' | 'LEAD_PACKAGES' | 'LEAD_SUBSCRIPTIONS' | 'PACKAGES' | 'PAYMENTS' | 'BOOKINGS' | 'APPROVALS' | 'SUBSCRIPTIONS' | 'PRICING' | 'SERVICE_AREAS' | 'REPORTS' | 'ROUTING_CONFIG' | 'OVERDUE_REPORT' | 'DELETED_ACCOUNTS' | 'JOBS'
   >('BOOKINGS');
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -336,6 +337,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'ROUTING_CONFIG', label: 'Routing Config', icon: FaClipboardList },
     { id: 'APPROVALS', label: 'Approvals', icon: FaCheckCircle },
     { id: 'CUSTOMERS', label: 'Customers', icon: FaUsers },
+    { id: 'JOBS', label: 'Job Requirements', icon: FaClipboardList },
     { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
     { id: 'LEADS', label: 'Leads', icon: FaBullseye },
     { id: 'OVERDUE_REPORT', label: 'Verification Report', icon: BiError },
@@ -566,6 +568,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               {activeTab === 'ROUTING_CONFIG' && <BookingRoutingConfig />}
               {activeTab === 'OVERDUE_REPORT' && <OverdueReport />}
               {activeTab === 'DELETED_ACCOUNTS' && <AdminDeletedAccounts />}
+              {activeTab === 'JOBS' && <AdminJobRequirements />}
 
               {activeTab === 'PAYMENTS' && (
                 <>
@@ -836,38 +839,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 </label>
               </div>
 
-              {/* Live commission preview */}
-              {packageForm.minHours > 0 && packageForm.extraPerHourRate > 0 && packageForm.price > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-2">
-                  <p className="font-bold text-blue-800 uppercase tracking-wide">Commission Preview (per trip)</p>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-white rounded-lg p-2 border border-blue-100">
-                      <p className="text-gray-400">Min Hours</p>
-                      <p className="font-black text-gray-900">{packageForm.minHours} hrs</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-2 border border-blue-100">
-                      <p className="text-gray-400">Base Fare</p>
-                      <p className="font-black text-gray-900">₹{packageForm.price}</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-2 border border-blue-100">
-                      <p className="text-gray-400">Extra/Hr</p>
-                      <p className="font-black text-gray-900">₹{packageForm.extraPerHourRate}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                      <p className="text-green-600 text-[10px] font-bold">Driver (base)</p>
-                      <p className="font-black text-green-700">₹{packageForm.price - 250}</p>
-                      <p className="text-[10px] text-gray-400">Admin: ₹250</p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                      <p className="text-green-600 text-[10px] font-bold">Driver (extra/hr)</p>
-                      <p className="font-black text-green-700">₹{packageForm.extraPerHourRate - 10}/hr</p>
-                      <p className="text-[10px] text-gray-400">Admin: ₹10/hr</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+
 
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Description

@@ -274,7 +274,12 @@ const SubscriptionList: React.FC = () => {
     }
   };
 
-  const commissionRows = subscriptions.filter(s => ((s.plan as any)?.excessAmountPerRide || 0) > 0);
+  // Only show subscriptions that are ACTIVE or EXPIRED (have real commission obligations).
+  // REJECTED and CANCELLED subscriptions should never collect commission.
+  const commissionRows = subscriptions.filter(s =>
+    ((s.plan as any)?.excessAmountPerRide || 0) > 0 &&
+    s.status !== 'REJECTED' && s.status !== 'CANCELLED'
+  );
   const pendingCommissionsCount = commissionRows.filter(s => ((s as any).commissionDue || 0) > 0).length;
   if (loading) {
     return <p className="text-sm text-gray-500 mb-4">Loading subscriptions...</p>;
@@ -321,205 +326,205 @@ const SubscriptionList: React.FC = () => {
       {viewTab === 'PACKAGES' && (
         <>
           {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <select
-          value={filterPlan}
-          onChange={(e) => setFilterPlan(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <option value="">All Plans</option>
-          {packages.map(pkg => (
-            <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
-          ))}
-        </select>
+          <div className="flex flex-wrap gap-3">
+            <select
+              value={filterPlan}
+              onChange={(e) => setFilterPlan(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">All Plans</option>
+              {packages.map(pkg => (
+                <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+              ))}
+            </select>
 
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <option value="">All Status</option>
-          <option value="ACTIVE">Active</option>
-          <option value="EXPIRED">Expired</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
 
-        <select
-          value={filterPayment}
-          onChange={(e) => setFilterPayment(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <option value="">All Payments</option>
-          <option value="PENDING">Pending Payment</option>
-          <option value="PAID">Fully Paid</option>
-        </select>
-      </div>
-
-      {/* Mobile View: Cards */}
-      <div className="md:hidden space-y-4">
-        {filteredSubscriptions.map((sub) => (
-          <div
-            key={sub.id}
-            className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-bold text-gray-900">{sub.driver.name}</span>
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
-                  sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
-                    sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
-                      sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
-                        'text-gray-600 bg-gray-50'
-                  }`}>
-                  {sub.status}
-                </span>
-                {sub.status === 'ACTIVE' && (
-                  <button
-                    onClick={() => rejectSubscription(sub.id)}
-                    className="text-[10px] font-bold px-2 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
-                  >
-                    Reject
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500">Plan: {sub.plan.name}</p>
-              <p className="text-xs text-gray-500">Phone: {sub.driver.phone}</p>
-              <p className="text-xs text-gray-500">
-                Period: {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
-              </p>
-              <p className="font-bold text-lg">₹{sub.amount}</p>
-              {sub.paidAmount !== undefined && sub.paidAmount !== null && (
-                <p className="text-xs text-gray-500">Paid: ₹{sub.paidAmount}</p>
-              )}
-              {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && (
-                <p className="text-xs font-bold text-orange-600">Remaining: ₹{sub.remainingAmount}</p>
-              )}
-              {sub.paymentStatus && (
-                <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${sub.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
-                  sub.paymentStatus === 'OVERDUE' ? 'bg-red-100 text-red-700' :
-                    'bg-orange-100 text-orange-700'
-                  }`}>{sub.paymentStatus}</span>
-              )}
-              {sub.paymentDueDate && sub.paymentStatus === 'PARTIAL' && (
-                <p className="text-[10px] text-gray-500">Due: {new Date(sub.paymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-              )}
-            </div>
+            <select
+              value={filterPayment}
+              onChange={(e) => setFilterPayment(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">All Payments</option>
+              <option value="PENDING">Pending Payment</option>
+              <option value="PAID">Fully Paid</option>
+            </select>
           </div>
-        ))}
-      </div>
 
-      {/* Desktop View: Table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="min-w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Driver
-              </th>
-              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Plan
-              </th>
-              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Amount
-              </th>
-              <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Period
-              </th>
-              <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
+          {/* Mobile View: Cards */}
+          <div className="md:hidden space-y-4">
             {filteredSubscriptions.map((sub) => (
-              <tr key={sub.id} className={`hover:bg-gray-50/50 ${sub.paymentStatus === 'OVERDUE' ? 'bg-red-50/40' : sub.paymentStatus === 'PARTIAL' ? 'bg-orange-50/30' : ''}`}>
-                <td className="px-8 py-5 text-sm">
-                  <div>
-                    <p className="font-medium">{sub.driver.name}</p>
-                    <p className="text-gray-500">{sub.driver.phone}</p>
-                  </div>
-                </td>
-                <td className="px-8 py-5 text-sm">
-                  <div>
-                    <p className="font-medium">{sub.plan.name}</p>
-                    <p className="text-gray-500">{sub.plan.type}</p>
-                  </div>
-                </td>
-                <td className="px-8 py-5 text-sm">
-                  <div>
-                    <p className="font-medium">₹{sub.amount}</p>
-                    {sub.remainingAmount !== undefined && sub.remainingAmount !== null && (
-                      <p className={`text-xs ${sub.remainingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                        Remaining: ₹{sub.remainingAmount}
-                      </p>
-                    )}
-                  </div>
-                </td>
-                <td className="px-8 py-5 text-sm text-gray-500">
-                  {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
-                </td>
-                <td className="px-8 py-5 text-right">
-                  <span className={`text-xs font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
-                    sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
-                      sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
-                        sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
-                          'text-gray-600 bg-gray-50'
-                    }`}>
-                    {sub.status}
-                  </span>
-                </td>
-                <td className="px-8 py-5 text-right">
-                  <div className="flex justify-end gap-2">
-                    {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && sub.status === 'ACTIVE' && (
-                      <button
-                        onClick={() => {
-                          setSelectedSubscription(sub);
-                          setShowPaymentModal(true);
-                        }}
-                        className="text-xs font-bold px-3 py-1 rounded text-blue-600 bg-blue-50 hover:bg-blue-100"
-                      >
-                        Update Payment
-                      </button>
-                    )}
-                    {(sub as any).plan?.excessAmountPerRide > 0 && (sub as any).commissionDue > 0 && (
-                      <button
-                        onClick={() => {
-                          setSettleTargetSub(sub);
-                          setSettleAmount(String((sub as any).commissionDue || ''));
-                          setShowSettleModal(true);
-                        }}
-                        className="text-xs font-bold px-3 py-1 rounded text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200"
-                      >
-                        Collect Commission
-                      </button>
-                    )}
+              <div
+                key={sub.id}
+                className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm font-bold text-gray-900">{sub.driver.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
+                      sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
+                        sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
+                          sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
+                            'text-gray-600 bg-gray-50'
+                      }`}>
+                      {sub.status}
+                    </span>
                     {sub.status === 'ACTIVE' && (
                       <button
                         onClick={() => rejectSubscription(sub.id)}
-                        className="text-xs font-bold px-3 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
+                        className="text-[10px] font-bold px-2 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
                       >
                         Reject
                       </button>
                     )}
                   </div>
-                </td>
-              </tr>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">Plan: {sub.plan.name}</p>
+                  <p className="text-xs text-gray-500">Phone: {sub.driver.phone}</p>
+                  <p className="text-xs text-gray-500">
+                    Period: {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
+                  </p>
+                  <p className="font-bold text-lg">₹{sub.amount}</p>
+                  {sub.paidAmount !== undefined && sub.paidAmount !== null && (
+                    <p className="text-xs text-gray-500">Paid: ₹{sub.paidAmount}</p>
+                  )}
+                  {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && (
+                    <p className="text-xs font-bold text-orange-600">Remaining: ₹{sub.remainingAmount}</p>
+                  )}
+                  {sub.paymentStatus && (
+                    <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${sub.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
+                      sub.paymentStatus === 'OVERDUE' ? 'bg-red-100 text-red-700' :
+                        'bg-orange-100 text-orange-700'
+                      }`}>{sub.paymentStatus}</span>
+                  )}
+                  {sub.paymentDueDate && sub.paymentStatus === 'PARTIAL' && (
+                    <p className="text-[10px] text-gray-500">Due: {new Date(sub.paymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                  )}
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
 
-      {filteredSubscriptions.length === 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <p className="text-gray-500">No subscriptions found.</p>
-        </div>
-      )}
+          {/* Desktop View: Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full text-left">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Driver
+                  </th>
+                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Plan
+                  </th>
+                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Period
+                  </th>
+                  <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredSubscriptions.map((sub) => (
+                  <tr key={sub.id} className={`hover:bg-gray-50/50 ${sub.paymentStatus === 'OVERDUE' ? 'bg-red-50/40' : sub.paymentStatus === 'PARTIAL' ? 'bg-orange-50/30' : ''}`}>
+                    <td className="px-8 py-5 text-sm">
+                      <div>
+                        <p className="font-medium">{sub.driver.name}</p>
+                        <p className="text-gray-500">{sub.driver.phone}</p>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-sm">
+                      <div>
+                        <p className="font-medium">{sub.plan.name}</p>
+                        <p className="text-gray-500">{sub.plan.type}</p>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-sm">
+                      <div>
+                        <p className="font-medium">₹{sub.amount}</p>
+                        {sub.remainingAmount !== undefined && sub.remainingAmount !== null && (
+                          <p className={`text-xs ${sub.remainingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                            Remaining: ₹{sub.remainingAmount}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-sm text-gray-500">
+                      {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
+                        sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
+                          sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
+                            sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
+                              'text-gray-600 bg-gray-50'
+                        }`}>
+                        {sub.status}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-2">
+                        {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && sub.status === 'ACTIVE' && (
+                          <button
+                            onClick={() => {
+                              setSelectedSubscription(sub);
+                              setShowPaymentModal(true);
+                            }}
+                            className="text-xs font-bold px-3 py-1 rounded text-blue-600 bg-blue-50 hover:bg-blue-100"
+                          >
+                            Update Payment
+                          </button>
+                        )}
+                        {(sub as any).plan?.excessAmountPerRide > 0 && (sub as any).commissionDue > 0 && (
+                          <button
+                            onClick={() => {
+                              setSettleTargetSub(sub);
+                              setSettleAmount(String((sub as any).commissionDue || ''));
+                              setShowSettleModal(true);
+                            }}
+                            className="text-xs font-bold px-3 py-1 rounded text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200"
+                          >
+                            Collect Commission
+                          </button>
+                        )}
+                        {sub.status === 'ACTIVE' && (
+                          <button
+                            onClick={() => rejectSubscription(sub.id)}
+                            className="text-xs font-bold px-3 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
+                          >
+                            Reject
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredSubscriptions.length === 0 && (
+            <div className="text-center py-12 bg-gray-50 rounded-xl">
+              <p className="text-gray-500">No subscriptions found.</p>
+            </div>
+          )}
         </>
       )}
 
@@ -568,7 +573,7 @@ const SubscriptionList: React.FC = () => {
                   {commissionRows.map((sub: any) => {
                     const rate = sub.plan?.excessAmountPerRide || 0;
                     const rides = sub.dutiesCompleted || 0;
-                    const total = rides * rate;
+                    const total = sub.totalCommission !== undefined ? sub.totalCommission : rides * rate;
                     const paid = sub.commissionPaid || 0;
                     const due = sub.commissionDue !== undefined ? sub.commissionDue : Math.max(0, total - paid);
                     return (
@@ -587,13 +592,15 @@ const SubscriptionList: React.FC = () => {
                           <span className="font-bold text-gray-900">{rides}</span> rides
                         </td>
                         <td className="px-6 py-4 font-bold text-gray-900">
-                          ₹{rate}
+                          {sub.totalCommission > 0 && rate === 0
+                            ? <span className="text-xs text-blue-600 font-bold">From bookings</span>
+                            : `₹${rate}`}
                         </td>
                         <td className="px-6 py-4 font-bold text-gray-900">
-                          ₹{total}
+                          ₹{Math.round(total)}
                         </td>
                         <td className="px-6 py-4 font-bold text-emerald-600">
-                          ₹{paid}
+                          ₹{Math.round(paid)}
                         </td>
                         <td className="px-6 py-4">
                           {due > 0 ? (
@@ -805,7 +812,7 @@ const SubscriptionList: React.FC = () => {
           </div>
         </div>
       )}
-          {/* Collect Commission Modal */}
+      {/* Collect Commission Modal */}
       {showSettleModal && settleTargetSub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">

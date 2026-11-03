@@ -97,6 +97,10 @@ export const getDriverTrips = async (req, res) => {
         cancellationRequested: isCancelledByThisUser ? false : booking.cancellationRequested,
         cancellationReason: isCancelledByThisUser ? (isLead ? 'Requested by Lead' : 'Requested by Driver') : booking.cancellationReason,
         updatedAt: booking.updatedAt,
+        driverPayout: booking.driverPayout,
+        adminCommission: booking.adminCommission,
+        minHours: booking.minHours,
+        extraPerHourRate: booking.extraPerHourRate,
       };
     });
 

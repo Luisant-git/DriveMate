@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Driver, Trip } from '../../types';
 
 interface SubscriptionPackage {
@@ -383,7 +383,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
             <span className="text-[11px] font-black">Min {(pkg as any).minHours}hr · ₹{(pkg as any).extraPerHourRate}/extra hr</span>
           </div>
         )}
-        <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
+        <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment â€¢ Non-Refundable</p>
 
         <button
           onClick={() => handleSubscriptionBuy(pkg)}
@@ -1272,65 +1272,61 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 <p className="text-gray-500 italic text-sm">No completed trips yet.</p>
               ) : (
                 pastTrips.map(trip => (
-                  <div key={trip.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 shadow-sm mb-4 hover:border-gray-300 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-500 mb-0.5">
-                          Start: {(trip as any).actualStartTime ? new Date((trip as any).actualStartTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : `${trip.startDate} • ${trip.startTime}`}
+                  <div key={trip.id} className="bg-white border border-gray-200 rounded-xl p-3 mb-2.5 shadow-sm">
+                    {/* Header row: status + time */}
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${trip.status === 'CANCELLED' ? 'text-red-600 bg-red-50' : 'text-green-700 bg-green-50'}`}>
+                          {trip.status === 'CANCELLED' ? ((trip as any).cancellationReason === 'Requested by Customer' ? 'Cancelled by Customer' : 'Cancelled by Driver') : '✓ Completed'}
                         </span>
-                        {trip.status === 'COMPLETED' && (trip as any).completedAt && (
-                          <span className="text-[10px] font-bold text-green-600">
-                            Ended: {new Date((trip as any).completedAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
+                        {trip.duration && <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold">⏱ {trip.duration}</span>}
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${trip.status === 'CANCELLED' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
-                        {trip.status === 'CANCELLED' ? ((trip as any).cancellationReason === 'Requested by Customer' ? 'Cancelled by Customer' : ((trip as any).cancellationReason === 'Requested by Driver' ? 'Cancelled by Driver' : 'Cancelled')) : 'Completed'}
+                      <span className="text-[10px] font-black text-gray-900">
+                        {(trip as any).actualStartTime ? new Date((trip as any).actualStartTime).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : `${trip.startDate}`}
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-2 mb-2">
-                      <div>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase">From</p>
-                        <p className="font-bold text-sm">{trip.pickupLocation}</p>
+                    {/* Route */}
+                    <div className="flex gap-2 items-stretch mb-2">
+                      <div className="flex flex-col items-center pt-1">
+                        <div className="w-2 h-2 rounded-full bg-gray-800 flex-shrink-0"></div>
+                        <div className="w-px flex-1 bg-gray-300 my-0.5"></div>
+                        <div className="w-2 h-2 rounded-sm bg-gray-800 flex-shrink-0"></div>
                       </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase">To</p>
-                        <p className="font-bold text-sm">{trip.dropLocation}</p>
+                      <div className="flex-1 space-y-1">
+                        <div>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase">From</p>
+                          <p className="text-xs font-semibold text-gray-800 leading-tight">{trip.pickupLocation}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase">To</p>
+                          <p className="text-xs font-semibold text-gray-800 leading-tight">{trip.dropLocation}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-end border-t border-gray-100 pt-2 mt-2">
+                    {/* Footer: type + amounts */}
+                    <div className="flex justify-between items-center border-t border-gray-100 pt-2">
                       <div>
-                        <div className="flex gap-2 items-center">
-                          <p className="text-xs text-gray-500">{trip.serviceType}</p>
-                          {trip.duration && <span className="text-[10px] bg-gray-100 text-gray-600 px-2 rounded-full font-bold">⏱ {trip.duration}</span>}
-                        </div>
-                        {(trip as any).rating && (
-                          <div className="mt-1">
-                            <p className="text-xs font-bold text-yellow-500">
-                              {'★'.repeat((trip as any).rating)}
-                            </p>
-                            {(trip as any).feedback && (
-                              <p className="text-xs text-gray-600 italic mt-0.5">"{(trip as any).feedback}"</p>
-                            )}
-                          </div>
-                        )}
+                        <p className="text-[10px] text-gray-400 font-bold">{trip.serviceType}</p>
+                        {(trip as any).rating && <p className="text-xs font-bold text-yellow-500">{'â˜…'.repeat((trip as any).rating)}</p>}
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Final Amount</p>
-                        <p className="font-bold text-lg text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
+                        <p className="font-bold text-sm text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
                         {(trip as any).finalAmount > (trip.estimatedCost || 0) && (
-                          <p className="text-[10px] text-red-500 font-bold mt-1">Includes ₹{(trip as any).finalAmount - (trip.estimatedCost || 0)} Extra</p>
+                          <p className="text-[10px] text-orange-500 font-bold mt-0.5">+₹{Math.round((trip as any).finalAmount - (trip.estimatedCost || 0))} extra hrs</p>
                         )}
                         {(trip as any).driverPayout > 0 && (
-                          <div className="mt-1.5 text-right">
-                            <p className="text-[10px] text-emerald-700 font-black bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
-                              Your Payout: ₹{Math.round((trip as any).driverPayout)}
-                            </p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">
-                              Admin: ₹{Math.round((trip as any).adminCommission || 0)}
-                            </p>
+                          <div className="mt-1.5 space-y-1">
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1 text-right">
+                              <p className="text-[8px] text-emerald-600 font-bold uppercase tracking-wide">Your Payout</p>
+                              <p className="text-xs font-black text-emerald-700">₹{Math.round((trip as any).driverPayout)}</p>
+                            </div>
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg px-2 py-1 text-right">
+                              <p className="text-[8px] text-orange-500 font-bold uppercase tracking-wide">Admin Commission</p>
+                              <p className="text-xs font-black text-orange-600">₹{Math.round((trip as any).adminCommission || 0)}</p>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1577,6 +1573,40 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       </div>
                     </div>
                   )}
+
+                  {/* Commission Payment History */}
+                  <div className="p-4 bg-gray-50 rounded-xl">
+                    <p className="text-xs text-gray-400 font-bold uppercase mb-3">Commission History</p>
+                    {(() => {
+                      const commissionTrips = pastTrips.filter(t => t.status === 'COMPLETED' && (t as any).adminCommission > 0);
+                      if (commissionTrips.length === 0) return <p className="text-xs text-gray-400">No commission records yet.</p>;
+                      const total = commissionTrips.reduce((sum, t) => sum + Math.round((t as any).adminCommission || 0), 0);
+                      return (
+                        <>
+                          <div className="space-y-2 mb-3">
+                            {commissionTrips.map(t => (
+                              <div key={t.id} className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                <div>
+                                  <p className="text-xs font-bold text-gray-800">{t.pickupLocation?.split(',')[0]} → {t.dropLocation?.split(',')[0]}</p>
+                                  <p className="text-[10px] text-gray-400">
+                                    {(t as any).completedAt ? new Date((t as any).completedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : t.startDate}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-black text-orange-600">₹{Math.round((t as any).adminCommission)}</p>
+                                  <p className="text-[9px] text-gray-400">Admin cut</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex justify-between items-center border-t border-gray-200 pt-2">
+                            <p className="text-xs font-bold text-gray-600">Total Collected</p>
+                            <p className="text-sm font-black text-orange-600">₹{total}</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
 
                   <div className="space-y-4">
                     <div className="p-4 bg-gray-50 rounded-xl">
@@ -1863,8 +1893,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     </div>
                   </div>
 
-                  {/* Language Preferences Card */}
-                  <div className="p-4 bg-gray-50 rounded-xl space-y-2">
+                  <div className="p-4 bg-gray-50 rounded-xl">
                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Settings & Language</p>
                     <UberLanguageSelector variant="inline" />
                   </div>

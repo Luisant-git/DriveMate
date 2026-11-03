@@ -227,16 +227,31 @@ export const getActivePackagesForDrivers = async (req, res) => {
 
 export const attachCommissionData = (sub) => {
   if (!sub) return sub;
-  const excess = sub.plan?.excessAmountPerRide || 0;
-  const completed = sub.dutiesCompleted || 0;
-  const totalCommission = completed * excess;
+  const excessPerRide = sub.plan?.excessAmountPerRide || 0;
+  // Use actual completed-bookings count when available (set by getAllSubscriptions).
+  const actualDutiesCompleted = sub._completedRidesCount !== undefined
+    ? sub._completedRidesCount
+    : (sub.dutiesCompleted || 0);
+  // Per-ride commission plans: total = rate × completed rides (what driver owes per ride)
+  // Plans without per-ride rate: total = sum of adminCommission from bookings
+  let totalCommission;
+  if (excessPerRide > 0) {
+    totalCommission = excessPerRide * actualDutiesCompleted;
+  } else if (sub._totalAdminCommission !== undefined) {
+    totalCommission = sub._totalAdminCommission;
+  } else {
+    totalCommission = excessPerRide * (sub.dutiesCompleted || 0);
+  }
   const paid = sub.commissionPaid || 0;
   const commissionDue = Math.max(0, totalCommission - paid);
+  // Strip internal fields so they don't leak into the API response
+  const { _totalAdminCommission, _completedRidesCount, ...rest } = sub;
   return {
-    ...sub,
+    ...rest,
     totalCommission,
     commissionPaid: paid,
     commissionDue,
+    dutiesCompleted: actualDutiesCompleted,
   };
 };
 export const getAllSubscriptions = async (req, res) => {
@@ -247,19 +262,35 @@ export const getAllSubscriptions = async (req, res) => {
     const subscriptions = await prisma.subscription.findMany({
       include: {
         driver: {
-          select: {
-            name: true,
-            phone: true
-          }
+          select: { name: true, phone: true }
         },
         plan: true
       },
-      orderBy: {
-        startDate: 'desc'
-      }
+      orderBy: { startDate: 'desc' }
     });
 
-    res.json({ success: true, subscriptions: subscriptions.map(attachCommissionData) });
+    // For each subscription, sum adminCommission from completed bookings
+    // that fall within the subscription period for that driver
+    const enriched = await Promise.all(subscriptions.map(async (sub) => {
+      const completedBookings = await prisma.booking.findMany({
+        where: {
+          driverId: sub.driverId,
+          status: 'COMPLETED',
+          completedAt: {
+            gte: sub.startDate,
+            lte: sub.endDate,
+          },
+        },
+        select: { adminCommission: true }
+      });
+      const totalAdminCommission = completedBookings.reduce(
+        (sum, b) => sum + (b.adminCommission || 0), 0
+      );
+      const completedRidesCount = completedBookings.length;
+      return { ...sub, _totalAdminCommission: totalAdminCommission, _completedRidesCount: completedRidesCount };
+    }));
+
+    res.json({ success: true, subscriptions: enriched.map(attachCommissionData) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -501,9 +532,17 @@ export const settleDriverCommission = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Subscription not found' });
     }
 
-    const excess = subscription.plan?.excessAmountPerRide || 0;
-    const completed = subscription.dutiesCompleted || 0;
-    const totalCommission = completed * excess;
+    // Sum actual adminCommission from completed bookings in this subscription period
+    const completedBookings = await prisma.booking.findMany({
+      where: {
+        driverId: subscription.driverId,
+        status: 'COMPLETED',
+        completedAt: { gte: subscription.startDate, lte: subscription.endDate },
+      },
+      select: { adminCommission: true }
+    });
+    const totalCommission = completedBookings.reduce((sum, b) => sum + (b.adminCommission || 0), 0);
+    const completedRidesCount = completedBookings.length;
     const alreadyPaid = subscription.commissionPaid || 0;
     const currentDue = Math.max(0, totalCommission - alreadyPaid);
 
@@ -524,7 +563,7 @@ export const settleDriverCommission = async (req, res) => {
 
     res.json({
       success: true,
-      subscription: attachCommissionData(updated),
+      subscription: attachCommissionData({ ...updated, _totalAdminCommission: totalCommission, _completedRidesCount: completedRidesCount }),
       message: `Successfully collected commission payment of ₹${parsedAmount}`
     });
   } catch (error) {

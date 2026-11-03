@@ -37,11 +37,11 @@ const Reports: React.FC = () => {
         const res = await getRevenueReport(filters);
         if (res.success) setRevenueData(res.data);
       } else if (activeReport === 'OVERDUE VERIFICATION') {
-          const resD = await getDriverReports(filters);
-          if (resD.success) setDriverReports(resD.data);
-          const resL = await getLeadReports(filters);
-          if (resL.success) setLeadReports(resL.data);
-        } else if (activeReport === 'ALL BOOKINGS') {
+        const resD = await getDriverReports(filters);
+        if (resD.success) setDriverReports(resD.data);
+        const resL = await getLeadReports(filters);
+        if (resL.success) setLeadReports(resL.data);
+      } else if (activeReport === 'ALL BOOKINGS') {
         const res = await getAllBookingsReport(filters);
         if (res.success) setAllBookingsReports(res.data || []);
       }
@@ -69,7 +69,7 @@ const Reports: React.FC = () => {
     setSelectedEntity({ ...entity, type });
     setLoading(true);
     try {
-      const res = type === 'driver' 
+      const res = type === 'driver'
         ? await getDriverTrips(entity.id, filters)
         : await getCustomerTrips(entity.id, filters);
       if (res.success) {
@@ -86,12 +86,12 @@ const Reports: React.FC = () => {
 
   const applyModalFilters = () => {
     if (!originalTripDetails) return;
-    
+
     let filtered = [...originalTripDetails.bookings];
-    
+
     if (modalFilters.search) {
       const search = modalFilters.search.toLowerCase();
-      filtered = filtered.filter((b: any) => 
+      filtered = filtered.filter((b: any) =>
         b.pickupLocation?.toLowerCase().includes(search) ||
         b.dropLocation?.toLowerCase().includes(search) ||
         b.customer?.name?.toLowerCase().includes(search) ||
@@ -100,11 +100,11 @@ const Reports: React.FC = () => {
         b.driver?.phone?.includes(search)
       );
     }
-    
+
     if (modalFilters.status) {
       filtered = filtered.filter((b: any) => b.status === modalFilters.status);
     }
-    
+
     setTripDetails({ ...originalTripDetails, bookings: filtered });
   };
 
@@ -124,9 +124,8 @@ const Reports: React.FC = () => {
             <button
               key={tab}
               onClick={() => setActiveReport(tab as any)}
-              className={`px-3 md:px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap ${
-                activeReport === tab ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-              }`}
+              className={`px-3 md:px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap ${activeReport === tab ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
+                }`}
             >
               {tab}
             </button>
@@ -154,9 +153,9 @@ const Reports: React.FC = () => {
             onClick={() =>
               exportToCSV(
                 activeReport === 'DRIVERS' ? driverReports :
-                  activeReport === 'LEADS' ? leadReports : 
-                activeReport === 'CUSTOMERS' ? customerReports : 
-                activeReport === 'ALL BOOKINGS' ? allBookingsReports : [],
+                  activeReport === 'LEADS' ? leadReports :
+                    activeReport === 'CUSTOMERS' ? customerReports :
+                      activeReport === 'ALL BOOKINGS' ? allBookingsReports : [],
                 `${activeReport.toLowerCase().replace(' ', '-')}-report`
               )
             }
@@ -178,7 +177,7 @@ const Reports: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Phone</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Package</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Total Rides</th>
@@ -191,7 +190,7 @@ const Reports: React.FC = () => {
                     {driverReports.map((driver) => (
                       <tr key={driver.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">{driver.name}</td>
-                              <td className="px-6 py-4 text-sm font-medium">{driver.aadharNo ? (driver.upiId ? "Lead" : "Driver") : "Driver"}</td>
+                        <td className="px-6 py-4 text-sm font-medium">{driver.aadharNo ? (driver.upiId ? "Lead" : "Driver") : "Driver"}</td>
                         <td className="px-6 py-4 text-sm">{driver.phone}</td>
                         <td className="px-6 py-4 text-sm">{driver.packageType}</td>
                         <td className="px-6 py-4 text-sm">{driver.totalRides}</td>
@@ -213,14 +212,14 @@ const Reports: React.FC = () => {
             </div>
           )}
 
-{activeReport === 'LEADS' && (
+          {activeReport === 'LEADS' && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Phone</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Package</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Total Rides</th>
@@ -233,7 +232,7 @@ const Reports: React.FC = () => {
                     {leadReports.map((lead) => (
                       <tr key={lead.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm font-medium">{lead.name}</td>
-                              <td className="px-6 py-4 text-sm font-medium">{lead.aadharNo ? (lead.upiId ? "Lead" : "Driver") : "Driver"}</td>
+                        <td className="px-6 py-4 text-sm font-medium">{lead.aadharNo ? (lead.upiId ? "Lead" : "Driver") : "Driver"}</td>
                         <td className="px-6 py-4 text-sm">{lead.phone}</td>
                         <td className="px-6 py-4 text-sm">{lead.packageType}</td>
                         <td className="px-6 py-4 text-sm">{lead.totalRides}</td>
@@ -347,12 +346,11 @@ const Reports: React.FC = () => {
                           ) : 'N/A'}
                         </td>
                         <td className="px-6 py-4 text-sm">
-                          <span className={`px-2 py-1 rounded text-[10px] font-bold ${
-                            booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold ${booking.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                             booking.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                            booking.status === 'ONGOING' ? 'bg-blue-100 text-blue-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
+                              booking.status === 'ONGOING' ? 'bg-blue-100 text-blue-700' :
+                                'bg-yellow-100 text-yellow-700'
+                            }`}>
                             {booking.status}
                           </span>
                         </td>
@@ -391,7 +389,7 @@ const Reports: React.FC = () => {
                       const thirtyDaysFromNow = new Date();
                       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
                       const today = new Date();
-                      today.setHours(0,0,0,0);
+                      today.setHours(0, 0, 0, 0);
 
                       const overdueDrivers = [...driverReports, ...leadReports].filter(d => {
                         let isOverdue = false;
@@ -411,7 +409,7 @@ const Reports: React.FC = () => {
                       return overdueDrivers.map((driver, index) => {
                         const isDLExpired = !driver.licenseExpiryDate || new Date(driver.licenseExpiryDate) < today;
                         const isDLExpiring = !isDLExpired && new Date(driver.licenseExpiryDate) <= thirtyDaysFromNow;
-                        
+
                         const isPVExpired = !driver.policeVerificationExpiryDate || new Date(driver.policeVerificationExpiryDate) < today;
                         const isPVExpiring = !isPVExpired && new Date(driver.policeVerificationExpiryDate) <= thirtyDaysFromNow;
 
@@ -575,6 +573,12 @@ const Reports: React.FC = () => {
                             {booking.finalAmount > booking.estimateAmount && (
                               <p><span className="font-bold text-red-600">Extra Time Charge:</span> ₹{booking.finalAmount - booking.estimateAmount}</p>
                             )}
+                            {booking.driverPayout > 0 && (
+                              <p><span className="font-bold text-green-700">Driver Payout:</span> ₹{Math.round(booking.driverPayout)}</p>
+                            )}
+                            {booking.adminCommission > 0 && (
+                              <p><span className="font-bold text-purple-700">Admin Commission:</span> ₹{Math.round(booking.adminCommission)}</p>
+                            )}
                             <p><span className="font-bold">Start:</span> {booking.actualStartTime ? new Date(booking.actualStartTime).toLocaleString('en-IN') : new Date(booking.startDateTime).toLocaleString('en-IN')}</p>
                             {booking.endDateTime && (
                               <p><span className="font-bold">Return:</span> {new Date(booking.endDateTime).toLocaleString('en-IN')}</p>
@@ -584,7 +588,7 @@ const Reports: React.FC = () => {
                             )}
                             <p><span className="font-bold">Duration:</span> {booking.duration || 'N/A'}</p>
                           </div>
-                          
+
                           {(booking.carFrontPhoto || booking.carBackPhoto) && (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                               <p className="font-bold text-xs mb-2">Trip Photos</p>

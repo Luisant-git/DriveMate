@@ -79,9 +79,16 @@ export const autoRouteBooking = async (bookingId) => {
     const serviceType = booking.serviceType;
     const tripType = booking.tripType || 'One Way';
 
-    const config = await prisma.bookingRoutingConfig.findUnique({
+    // Try exact match first, then fallback to any config for this serviceType
+    let config = await prisma.bookingRoutingConfig.findUnique({
       where: { serviceType_tripType: { serviceType, tripType } }
     });
+
+    if (!config) {
+      config = await prisma.bookingRoutingConfig.findFirst({
+        where: { serviceType, isActive: true }
+      });
+    }
 
     if (!config || (config.driverPlanIds.length === 0 && config.leadPlanIds.length === 0)) {
       console.log(`[AutoRoute] No routing config for ${serviceType} - ${tripType}`);

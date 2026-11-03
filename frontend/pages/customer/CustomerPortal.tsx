@@ -5,6 +5,7 @@ import { getRecommendedPackage } from '../../services/geminiService';
 import { updateCustomerProfile } from '../../api/customer';
 import { uploadFile } from '../../api/upload';
 import { createBooking, getFareEstimate, getCustomerBookings, rateBooking, cancelBooking } from '../../api/booking';
+import { createJobRequirement, getMyJobRequirements, closeJobRequirement } from '../../api/jobRequirement';
 import { API_BASE_URL } from '../../api/config.js';
 import { checkAuth } from '../../api/auth';
 import { toast } from 'react-toastify';
@@ -26,9 +27,32 @@ interface CustomerPortalProps {
 
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
     const { t } = useLanguage();
-    const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'PROFILE'>('BOOK');
+    const [activeTab, setActiveTab] = useState<'BOOK' | 'TRIPS' | 'JOBS' | 'PROFILE'>('BOOK');
     const [customer, setCustomer] = useState<Customer>(initialCustomer);
     const [myTrips, setMyTrips] = useState<any[]>([]);
+
+    // ── JOBS tab state ──────────────────────────────────────────
+    const [myJobs, setMyJobs] = useState<any[]>([]);
+    const [jobsLoading, setJobsLoading] = useState(false);
+    const [showJobForm, setShowJobForm] = useState(false);
+    const [jobSubmitting, setJobSubmitting] = useState(false);
+    const [jobLocality, setJobLocality] = useState('');
+    const [jobFormData, setJobFormData] = useState({
+        title: '',
+        company: '',
+        city: '',
+        localities: [] as string[],
+        description: '',
+        contactName: customer.name || '',
+        contactEmail: '',
+        contactPhone: customer.phone || '',
+        jobType: 'Full Time',
+        category: 'Driver',
+        experienceYears: '0',
+        salaryMin: '',
+        salaryMax: '',
+    });
+    // ────────────────────────────────────────────────────────────
     const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
     const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
     const [showDriverProfile, setShowDriverProfile] = useState(false);
@@ -246,6 +270,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
         // Fetch real bookings
         fetchBookings();
+        fetchMyJobs();
 
         // Show registration modal if customer has incomplete profile
         const hasAddress = initialCustomer.address && initialCustomer.address.trim() !== '';
@@ -267,6 +292,58 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         // Calculate initial fare estimate
         handleEstimateWithValues('4 Hrs');
     }, [initialCustomer]);
+
+    // ── JOBS helpers ─────────────────────────────────────────────
+    const fetchMyJobs = async () => {
+        setJobsLoading(true);
+        try {
+            const res = await getMyJobRequirements();
+            if (res.success) setMyJobs(res.jobs || []);
+        } finally {
+            setJobsLoading(false);
+        }
+    };
+
+    const handleJobSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setJobSubmitting(true);
+        try {
+            const res = await createJobRequirement({
+                ...jobFormData,
+                experienceYears: parseInt(jobFormData.experienceYears) || 0,
+                salaryMin: jobFormData.salaryMin ? parseFloat(jobFormData.salaryMin) : null,
+                salaryMax: jobFormData.salaryMax ? parseFloat(jobFormData.salaryMax) : null,
+            });
+            if (res.success) {
+                toast.success('Job requirement posted!');
+                setShowJobForm(false);
+                setJobFormData({
+                    title: '', company: '', city: '', localities: [],
+                    description: '', contactName: customer.name || '',
+                    contactEmail: '', contactPhone: customer.phone || '',
+                    jobType: 'Full Time', category: 'Driver',
+                    experienceYears: '0', salaryMin: '', salaryMax: '',
+                });
+                setJobLocality('');
+                fetchMyJobs();
+            } else {
+                toast.error(res.error || 'Failed to post job');
+            }
+        } finally {
+            setJobSubmitting(false);
+        }
+    };
+
+    const handleCloseJob = async (id: string) => {
+        const res = await closeJobRequirement(id);
+        if (res.success) {
+            toast.success('Job closed.');
+            fetchMyJobs();
+        } else {
+            toast.error(res.error || 'Failed to close job');
+        }
+    };
+    // ─────────────────────────────────────────────────────────────
 
     const handleAiAssist = async () => {
         if (!aiQuery) return;
@@ -973,22 +1050,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 }`}>
 
                 {/* Header & Tabs */}
+                {/* Header & Tabs */}
                 <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
                     </div>
                     <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
-                        <button
-                            type="button"
-                            onClick={() => { setSosTargetTrip(null); setShowSosModal(true); }}
-                            className="px-2.5 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center gap-1 transition font-black text-[11px]"
-                            title="Emergency SOS"
-                        >
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" /></svg>
-                            SOS
-                        </button>
                         <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
                         <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Trips</button>
+                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Jobs</button>
                         <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Profile</button>
                     </div>
                 </div>
@@ -2644,6 +2714,295 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                 )}
 
+                {/* ═══════════ JOBS TAB ═══════════ */}
+                {activeTab === 'JOBS' && (
+                    <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
+
+                        {/* Header row */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold">Driver Requirements</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Post a job to hire drivers for your need</p>
+                            </div>
+                            <button
+                                onClick={() => setShowJobForm(v => !v)}
+                                className="bg-black text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                                {showJobForm ? 'Cancel' : 'Post Job'}
+                            </button>
+                        </div>
+
+                        {/* ── POST JOB FORM ── */}
+                        {showJobForm && (
+                            <form onSubmit={handleJobSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                {/* Form header */}
+                                <div className="bg-black text-white px-4 py-3.5">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Posting</p>
+                                    <h4 className="text-sm font-black mt-0.5">Post a Driver Requirement</h4>
+                                </div>
+
+                                {/* All fields use single-column layout — panel is only ~340px wide,
+                                    sm: breakpoint (640px) never fires inside the floating card.
+                                    2-column is only used for very short paired fields like salary min/max. */}
+                                <div className="p-4 space-y-4">
+
+                                    {/* Job Title */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Title <span className="text-red-500">*</span></label>
+                                        <input type="text" required maxLength={100}
+                                            placeholder="e.g. Driver for daily office commute"
+                                            className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                            value={jobFormData.title}
+                                            onChange={e => setJobFormData(p => ({ ...p, title: e.target.value }))}
+                                        />
+                                    </div>
+
+                                    {/* Company + City — 2 cols fit at 340px because inputs are compact */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Company</label>
+                                            <input type="text" maxLength={60} placeholder="ABC Pvt Ltd"
+                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.company}
+                                                onChange={e => setJobFormData(p => ({ ...p, company: e.target.value }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">City <span className="text-red-500">*</span></label>
+                                            <input type="text" required maxLength={60} placeholder="Salem"
+                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.city}
+                                                onChange={e => setJobFormData(p => ({ ...p, city: e.target.value }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Localities */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Localities / Areas</label>
+                                        <div className="flex gap-2">
+                                            <input type="text" placeholder="Type area and press Add"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobLocality}
+                                                onChange={e => setJobLocality(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const v = jobLocality.trim();
+                                                        if (v && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
+                                                        setJobLocality('');
+                                                    }
+                                                }}
+                                            />
+                                            <button type="button"
+                                                onClick={() => {
+                                                    const v = jobLocality.trim();
+                                                    if (v && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
+                                                    setJobLocality('');
+                                                }}
+                                                className="flex-shrink-0 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
+                                            >Add</button>
+                                        </div>
+                                        {jobFormData.localities.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {jobFormData.localities.map(loc => (
+                                                    <span key={loc} className="flex items-center gap-1 bg-gray-200 text-gray-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                                                        {loc}
+                                                        <button type="button" onClick={() => setJobFormData(p => ({ ...p, localities: p.localities.filter(l => l !== loc) }))} className="hover:text-black text-gray-500 leading-none">×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Category — pill row, wraps naturally */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Category</label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {['Driver', 'Chauffeur', 'Delivery', 'Other'].map(cat => (
+                                                <button key={cat} type="button"
+                                                    onClick={() => setJobFormData(p => ({ ...p, category: cat }))}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${jobFormData.category === cat ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                >{cat}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Job Type — pill row */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Job Type</label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {['Full Time', 'Part Time', 'Contract', 'Daily'].map(jt => (
+                                                <button key={jt} type="button"
+                                                    onClick={() => setJobFormData(p => ({ ...p, jobType: jt }))}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${jobFormData.jobType === jt ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                >{jt}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Salary — min / max side by side (short inputs, fits 340px) */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Salary Range (₹/month)</label>
+                                        <div className="flex items-center gap-2">
+                                            <input type="number" min={0} placeholder="Min e.g. 12000"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.salaryMin}
+                                                onChange={e => setJobFormData(p => ({ ...p, salaryMin: e.target.value }))}
+                                            />
+                                            <span className="text-gray-400 font-bold flex-shrink-0">–</span>
+                                            <input type="number" min={0} placeholder="Max e.g. 20000"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.salaryMax}
+                                                onChange={e => setJobFormData(p => ({ ...p, salaryMax: e.target.value }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Experience — pill row, wraps naturally */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Min. Experience</label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {[['0', 'Fresher'], ['1', '1+ yr'], ['2', '2+ yrs'], ['3', '3+ yrs'], ['5', '5+ yrs']].map(([val, lbl]) => (
+                                                <button key={val} type="button"
+                                                    onClick={() => setJobFormData(p => ({ ...p, experienceYears: val }))}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${jobFormData.experienceYears === val ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                >{lbl}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Description <span className="text-red-500">*</span></label>
+                                        <textarea required rows={4} maxLength={2000}
+                                            placeholder="Timings, vehicle type, duties, route…"
+                                            className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
+                                            value={jobFormData.description}
+                                            onChange={e => setJobFormData(p => ({ ...p, description: e.target.value }))}
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-0.5 text-right">{jobFormData.description.length}/2000</p>
+                                    </div>
+
+                                    {/* Recruiter Details */}
+                                    <div className="pt-3 border-t border-gray-100 space-y-3">
+                                        <p className="text-[11px] font-black text-gray-700 uppercase tracking-wide">
+                                            Recruiter Details
+                                        </p>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Contact Name <span className="text-red-500">*</span></label>
+                                            <input type="text" required maxLength={80} placeholder="Your name"
+                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.contactName}
+                                                onChange={e => setJobFormData(p => ({ ...p, contactName: e.target.value }))}
+                                            />
+                                        </div>
+                                        {/* Phone + Email — 2 cols fit fine at 340px */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Phone <span className="text-red-500">*</span></label>
+                                                <input type="tel" required maxLength={15} placeholder="9XXXXXXXXX"
+                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                    value={jobFormData.contactPhone}
+                                                    onChange={e => setJobFormData(p => ({ ...p, contactPhone: e.target.value }))}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Email</label>
+                                                <input type="email" maxLength={100} placeholder="optional"
+                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                    value={jobFormData.contactEmail}
+                                                    onChange={e => setJobFormData(p => ({ ...p, contactEmail: e.target.value }))}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Submit */}
+                                    <button type="submit" disabled={jobSubmitting}
+                                        className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-60 flex items-center justify-center gap-2"
+                                    >
+                                        {jobSubmitting
+                                            ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Posting…</>
+                                            : '🚀 Post Job'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* ── MY JOB LISTINGS ── */}
+                        {jobsLoading ? (
+                            <div className="text-center py-8 text-sm text-gray-400">Loading…</div>
+                        ) : myJobs.length === 0 && !showJobForm ? (
+                            <div className="text-center py-12">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                </div>
+                                <p className="font-bold text-gray-700">No job postings yet</p>
+                                <p className="text-xs text-gray-400 mt-1">Tap "Post Job" to hire a driver</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {myJobs.map(job => (
+                                    <div key={job.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                        {/* Card top bar */}
+                                        <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${job.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
+                                                {job.status}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400 font-medium">
+                                                {new Date(job.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        {/* Card body */}
+                                        <div className="px-4 py-3 space-y-1.5">
+                                            <h4 className="font-bold text-sm text-gray-900 leading-tight">{job.title}</h4>
+                                            {job.company && <p className="text-xs text-gray-500 font-medium">{job.company}</p>}
+                                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                                <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
+                                                <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{job.jobType}</span>
+                                                <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.category}</span>
+                                                {(job.salaryMin || job.salaryMax) && (
+                                                    <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
+                                                        ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo
+                                                    </span>
+                                                )}
+                                                {job.experienceYears > 0 && (
+                                                    <span className="text-[10px] font-bold bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">{job.experienceYears}+ yrs exp</span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-600 line-clamp-2 mt-1">{job.description}</p>
+                                            {job.localities?.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 pt-0.5">
+                                                    {job.localities.map((l: string) => (
+                                                        <span key={l} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">{l}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Card footer */}
+                                        <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between gap-2">
+                                            <div className="text-xs text-gray-500">
+                                                <span className="font-bold">Contact:</span> {job.contactName} · {job.contactPhone}
+                                            </div>
+                                            {job.status === 'ACTIVE' && (
+                                                <button
+                                                    onClick={() => handleCloseJob(job.id)}
+                                                    className="text-[11px] font-bold text-red-600 px-3 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 transition"
+                                                >
+                                                    Close
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+                {/* ═══════════════════════════════════════ */}
+
                 {activeTab === 'PROFILE' && (
                     <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar">
                         {!isEditingProfile ? (
@@ -3166,25 +3525,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             )}
 
 
-            {/* Floating SOS Emergency Button - commented out, moved to header near Book button */}
-            {/*<button
+            {/* Floating SOS Button — fixed bottom-right, Uber style */}
+            <button
                 type="button"
-                onClick={() => {
-                    setSosTargetTrip(null);
-                    setShowSosModal(true);
-                }}
-                className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-700 hover:to-red-800 text-white font-black px-4 py-3 rounded-full shadow-2xl flex items-center gap-2.5 border-2 border-white/90 ring-4 ring-red-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 group cursor-pointer"
-                title="Emergency SOS & Safety Toolkit"
+                onClick={() => { setSosTargetTrip(null); setShowSosModal(true); }}
+                className="fixed bottom-6 right-5 z-40 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black w-14 h-14 rounded-full shadow-2xl flex flex-col items-center justify-center gap-0.5 transition-all border-2 border-white ring-2 ring-red-400/40"
+                title="Emergency SOS"
+                aria-label="Emergency SOS"
             >
-                <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-                </span>
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm2 10h-4v-2h4v2zm0-4h-4V9h4v4z" />
-                </svg>
-                <span className="text-xs sm:text-sm font-black tracking-wider uppercase">SOS</span>
-            </button>*/}
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" /></svg>
+                <span className="text-[9px] font-black tracking-widest leading-none">SOS</span>
+            </button>
 
             {/* SOS Modal */}
             <CustomerSosModal
@@ -3196,7 +3547,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             />
 
             <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
-        </div>
+        </div >
     );
 };
 

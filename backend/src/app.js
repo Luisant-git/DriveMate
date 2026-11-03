@@ -29,6 +29,7 @@ import leadPackageRoutes from "./routes/leadPackage.routes.js";
 import distanceRoutes from "./routes/distance.routes.js";
 import whatsappRoutes from "./routes/whatsapp.routes.js";
 import bookingRoutingRoutes from "./routes/bookingRouting.routes.js";
+import jobRequirementRoutes from "./routes/jobRequirement.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -123,5 +124,6 @@ app.use("/api/lead-packages", leadPackageRoutes);
 app.use("/api/distance", distanceRoutes);
 app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/booking-routing", bookingRoutingRoutes);
+app.use("/api/job-requirements", jobRequirementRoutes);
 
 export default app;
