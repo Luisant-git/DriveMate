@@ -56,7 +56,7 @@ const VALID_CATEGORIES = ['Silver', 'Gold', 'Platinum', 'Diamond'];
 
 export const createSubscriptionPlan = async (req, res) => {
   try {
-    const { category, name, duration, price, description, type, maxDuties, excessAmountPerRide } = req.body;
+    const { category, name, duration, price, description, type, maxDuties, excessAmountPerRide, minHours, extraPerHourRate } = req.body;
 
     const planCategory = VALID_CATEGORIES.includes(category) ? category : 'Silver';
 
@@ -70,6 +70,8 @@ export const createSubscriptionPlan = async (req, res) => {
         type,
         maxDuties: maxDuties || 0,
         excessAmountPerRide: excessAmountPerRide !== undefined ? parseFloat(excessAmountPerRide) : 0,
+        minHours: minHours !== undefined ? parseInt(minHours) : 0,
+        extraPerHourRate: extraPerHourRate !== undefined ? parseFloat(extraPerHourRate) : 0,
       },
     });
 
@@ -129,6 +131,9 @@ export const updateSubscriptionPlan = async (req, res) => {
     if (isActive !== undefined) updateData.isActive = isActive;
     if (maxDuties !== undefined) updateData.maxDuties = maxDuties;
     if (excessAmountPerRide !== undefined) updateData.excessAmountPerRide = parseFloat(excessAmountPerRide);
+    const { minHours, extraPerHourRate } = req.body;
+    if (minHours !== undefined) updateData.minHours = parseInt(minHours);
+    if (extraPerHourRate !== undefined) updateData.extraPerHourRate = parseFloat(extraPerHourRate);
 
     const plan = await prisma.subscriptionPlan.update({
       where: { id },
