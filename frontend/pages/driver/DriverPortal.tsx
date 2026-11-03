@@ -292,40 +292,34 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
   const calculateFinalAmount = (trip: any) => {
     const baseAmount = parseFloat(trip.estimatedCost || trip.estimateAmount || 0);
-    if (!trip.actualStartTime || !trip.duration) return baseAmount;
+    if (!trip.actualStartTime) return baseAmount;
 
     const actualStart = new Date(trip.actualStartTime).getTime();
     const actualEnd = new Date().getTime();
-    const actualHours = Math.floor((actualEnd - actualStart) / (1000 * 60 * 60));
+    const actualHours = (actualEnd - actualStart) / (1000 * 60 * 60);
 
-    let baseHours = 0;
-    const durationStr = trip.duration.toLowerCase();
-    const durationMatch = durationStr.match(/\d+/);
-    const num = durationMatch ? parseInt(durationMatch[0]) : 0;
+    // Use plan's minHours and extraPerHourRate if available from active subscription
+    const activeSub = activeSubscriptions[0];
+    const planMinHours = activeSub?.plan?.minHours || activeSub?.minHours || 0;
+    const planExtraPerHour = activeSub?.plan?.extraPerHourRate || activeSub?.extraPerHourRate || 0;
 
-    if (durationStr.includes('hour') || durationStr.includes('hr')) {
-      baseHours = num;
-    } else if (durationStr.includes('day')) {
-      baseHours = num * 12; // 1 day = 12 hrs
-    } else if (durationStr.includes('month')) {
-      baseHours = num * 30 * 12; // Assuming 30 days, 12 hrs/day
+    // Fall back to parsing trip.duration if plan fields not set
+    let baseHours = planMinHours;
+    if (!baseHours && trip.duration) {
+      const durationStr = trip.duration.toLowerCase();
+      const num = parseInt(durationStr.match(/\d+/)?.[0] || '0');
+      if (durationStr.includes('hour') || durationStr.includes('hr')) baseHours = num;
+      else if (durationStr.includes('day')) baseHours = num * 12;
     }
+
+    const extraPerHour = planExtraPerHour > 0 ? planExtraPerHour :
+      (trip.createdAt && trip.startDateTime &&
+        Math.abs(new Date(trip.startDateTime).getTime() - new Date(trip.createdAt).getTime()) <= 15 * 60 * 1000
+        ? 100 : 90);
 
     if (baseHours > 0 && actualHours > baseHours) {
       const extraHours = actualHours - baseHours;
-
-      // Determine if it was an immediate or scheduled booking
-      let extraPerHour = 90; // Default scheduled
-      if (trip.createdAt && trip.startDateTime) {
-        const created = new Date(trip.createdAt).getTime();
-        const start = new Date(trip.startDateTime).getTime();
-        // If start time is within 15 minutes of creation, it's considered Immediate
-        if (Math.abs(start - created) <= 15 * 60 * 1000) {
-          extraPerHour = 100;
-        }
-      }
-
-      return baseAmount + (extraHours * extraPerHour);
+      return parseFloat((baseAmount + (extraHours * extraPerHour)).toFixed(2));
     }
 
     return baseAmount;
@@ -384,10 +378,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           </div>
         </div>
         <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
-        {pkg.excessAmountPerRide > 0 && (
-          <div className="mt-2 inline-flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-3 py-1 rounded-lg">
-            <span className="text-[11px] font-black">Commission / Ride:</span>
-            <span className="text-[11px] font-extrabold">₹{pkg.excessAmountPerRide}</span>
+        {(pkg as any).minHours > 0 && (
+          <div className="mt-2 inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-lg">
+            <span className="text-[11px] font-black">Min {(pkg as any).minHours}hr · ₹{(pkg as any).extraPerHourRate}/extra hr</span>
           </div>
         )}
         <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment • Non-Refundable</p>
@@ -902,6 +895,20 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                   <div className="bg-gray-700 rounded-lg p-3 text-center">
                                     <p className="text-gray-400 text-[10px] uppercase font-bold">Final Amount</p>
                                     <p className="text-white text-2xl font-black">₹{endTripFinalAmount}</p>
+                                    {(() => {
+                                      const activeSub = activeSubscriptions[0];
+                                      const planExtraPerHour = activeSub?.plan?.extraPerHourRate || 0;
+                                      const planMinHours = activeSub?.plan?.minHours || 0;
+                                      const baseAmount = parseFloat((activeTrips[0]?.estimatedCost || activeTrips[0]?.estimateAmount || 0).toString());
+                                      if (planExtraPerHour > 0 && endTripFinalAmount > baseAmount) {
+                                        return (
+                                          <p className="text-orange-300 text-[10px] mt-1 font-semibold">
+                                            Includes extra hrs @ ₹{planExtraPerHour}/hr
+                                          </p>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                   </div>
                                   {isEndOtpSent ? (
                                     <div className="space-y-3">
@@ -926,7 +933,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                               const result = await tripAPI.completeTrip(trip.id, { finalAmount: endTripFinalAmount, otp: endOtp });
                                               if (result.success) {
                                                 setEndingTripId(null); setIsEndOtpSent(false); setEndOtp('');
-                                                setConfirmConfig({ isOpen: true, title: 'Trip Completed', message: '✓ Trip completed successfully!', type: 'success', confirmText: 'OK', onConfirm: () => setConfirmConfig(p => ({ ...p, isOpen: false })) });
+                                                const trip = result.trip;
+                                                const payoutMsg = trip?.driverPayout
+                                                  ? `✓ Trip completed!\n\nYour Payout: ₹${trip.driverPayout.toFixed(0)}\nAdmin Commission: ₹${trip.adminCommission?.toFixed(0) || 0}`
+                                                  : '✓ Trip completed successfully!';
+                                                setConfirmConfig({ isOpen: true, title: 'Trip Completed', message: payoutMsg, type: 'success', confirmText: 'OK', onConfirm: () => setConfirmConfig(p => ({ ...p, isOpen: false })) });
                                                 const driverRes = await tripAPI.getDriverTrips();
                                                 if (driverRes.success) setTrips(driverRes.trips);
                                                 fetchCurrentSubscription();
@@ -1254,73 +1265,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
               )}
             </div>
 
-            {/* Trip Commission Ledger in Completed Trips History */}
-            {(activeSubscriptions.length > 0 ? activeSubscriptions : (currentSubscription ? [currentSubscription] : [])).some(sub => sub.plan?.excessAmountPerRide > 0) && (
-              <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-sm sm:text-base font-bold text-gray-900">Trip Commission Ledger</h3>
-                      <p className="text-xs text-gray-500">Per-ride commission summary for your active packages</p>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-3">
-                  {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).filter(sub => sub?.plan?.excessAmountPerRide > 0).map((sub, idx) => {
-                    const rate = sub.plan.excessAmountPerRide;
-                    const rides = sub.dutiesCompleted || 0;
-                    const total = rides * rate;
-                    const paid = sub.commissionPaid || 0;
-                    const due = Math.max(0, total - paid);
-
-                    return (
-                      <div key={sub.id || idx} className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200">
-                        <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-gray-200/80">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs sm:text-sm text-gray-900">{sub.plan.name}</span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-700 uppercase">{sub.plan.category || 'Package'}</span>
-                          </div>
-                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
-                            due > 0 ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          }`}>
-                            {due > 0 ? `₹${due} Due` : '✓ All Settled'}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                          <div className="bg-white rounded-lg p-2 border border-gray-100">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Rate</p>
-                            <p className="font-bold text-xs sm:text-sm text-gray-800">₹{rate}/ride</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-2 border border-gray-100">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Total ({rides} rides)</p>
-                            <p className="font-bold text-xs sm:text-sm text-gray-800">₹{total}</p>
-                          </div>
-                          <div className="bg-white rounded-lg p-2 border border-gray-100">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Paid to Admin</p>
-                            <p className="font-bold text-xs sm:text-sm text-emerald-600">₹{paid}</p>
-                          </div>
-                        </div>
-
-                        {due > 0 && (
-                          <p className="text-[11px] text-orange-700 font-semibold mt-2.5 text-center bg-orange-50 py-1.5 px-2 rounded-lg border border-orange-200">
-                            Outstanding ₹{due} commission to be settled at Admin office
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Completed Trips Section */}
             <div>
               <h3 className="text-base sm:text-lg font-bold mb-3 text-gray-400">Completed Trips</h3>
               {pastTrips.length === 0 ? (
@@ -1377,6 +1322,16 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                         <p className="font-bold text-lg text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
                         {(trip as any).finalAmount > (trip.estimatedCost || 0) && (
                           <p className="text-[10px] text-red-500 font-bold mt-1">Includes ₹{(trip as any).finalAmount - (trip.estimatedCost || 0)} Extra</p>
+                        )}
+                        {(trip as any).driverPayout > 0 && (
+                          <div className="mt-1.5 text-right">
+                            <p className="text-[10px] text-emerald-700 font-black bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
+                              Your Payout: ₹{Math.round((trip as any).driverPayout)}
+                            </p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              Admin: ₹{Math.round((trip as any).adminCommission || 0)}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1569,9 +1524,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                         {dutiesLeft} duties left
                                       </span>
                                     )}
-                                    {sub.plan?.excessAmountPerRide > 0 && (
-                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-orange-700 border-orange-300 bg-orange-50 font-bold">
-                                        ₹{sub.plan.excessAmountPerRide} commission/ride
+                                    {sub.plan?.minHours > 0 && (
+                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-blue-700 border-blue-300 bg-blue-50 font-bold">
+                                        Min {sub.plan.minHours}hr · ₹{sub.plan.extraPerHourRate}/extra hr
                                       </span>
                                     )}
                                   </div>
@@ -2265,9 +2220,9 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 <p className="text-xl font-black mt-0.5">{selectedPackage.name}</p>
                 <p className="text-2xl font-black mt-1">₹{selectedPackage.price}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{selectedPackage.duration} days · {selectedPackage.category}</p>
-                {selectedPackage.excessAmountPerRide && selectedPackage.excessAmountPerRide > 0 ? (
-                  <p className="text-xs text-orange-400 font-semibold mt-1">Platform Commission: ₹{selectedPackage.excessAmountPerRide}/ride</p>
-                ) : null}
+                {(selectedPackage as any).minHours > 0 && (
+                  <p className="text-xs text-blue-300 font-semibold mt-1">Min {(selectedPackage as any).minHours}hr · ₹{(selectedPackage as any).extraPerHourRate}/extra hr</p>
+                )}
               </div>
               <div className="p-5 space-y-4">
                 {/* Pay Full / Pay Partial toggle */}

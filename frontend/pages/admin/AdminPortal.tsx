@@ -42,6 +42,8 @@ interface PackageFormState {
   durationDays: number;
   maxDuties: number;
   excessAmountPerRide: number;
+  minHours: number;
+  extraPerHourRate: number;
   description: string;
 }
 
@@ -234,6 +236,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       durationDays: 0,
       maxDuties: 0,
       excessAmountPerRide: 0,
+      minHours: 0,
+      extraPerHourRate: 0,
       description: '',
     });
     setPackageModalError(null);
@@ -250,6 +254,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       durationDays: pkg.duration || 30,
       maxDuties: pkg.maxDuties || 0,
       excessAmountPerRide: (pkg as any).excessAmountPerRide || 0,
+      minHours: (pkg as any).minHours || 0,
+      extraPerHourRate: (pkg as any).extraPerHourRate || 0,
       description: pkg.description || '',
     });
     setPackageModalError(null);
@@ -275,6 +281,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
         price: packageForm.price,
         description: packageForm.description,
         excessAmountPerRide: packageForm.excessAmountPerRide,
+        minHours: packageForm.minHours,
+        extraPerHourRate: packageForm.extraPerHourRate,
       };
 
       payload.type = packageForm.type;
@@ -514,11 +522,9 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                               <div className="flex justify-between items-center border-t border-gray-100 pt-3">
                                 <p className="text-xs text-gray-500">
                                   Duration: {pkg.duration === 36500 ? 'Unlimited' : `${pkg.duration} days`}
-                                  {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
-                                  {(pkg as any).excessAmountPerRide > 0 && (
-                                    <span className="text-xs font-bold text-orange-600 ml-1">
-                                      | Commission: ₹{(pkg as any).excessAmountPerRide}/ride
-                                    </span>
+                                  {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
+                                  {(pkg as any).minHours > 0 && (
+                                    <span> | Min: {(pkg as any).minHours}hr ₹{(pkg as any).extraPerHourRate}/hr</span>
                                   )}
                                 </p>
                                 <div className="flex gap-2">
@@ -731,12 +737,12 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={0}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.price === 0 ? '' : packageForm.price}
+                    value={packageForm.price || ''}
                     placeholder="0"
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
-                        price: e.target.value === '' ? 0 : Number(e.target.value),
+                        price: Number(e.target.value),
                       }))
                     }
                     required
@@ -764,7 +770,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={1}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 disabled:bg-gray-100 disabled:text-gray-400"
-                    value={packageForm.durationDays === 36500 ? '' : (packageForm.durationDays === 0 ? '' : packageForm.durationDays)}
+                    value={packageForm.durationDays === 36500 ? '' : (packageForm.durationDays || '')}
                     placeholder={packageForm.durationDays === 36500 ? 'Unlimited' : '30'}
                     disabled={packageForm.durationDays === 36500}
                     onChange={(e) =>
@@ -776,42 +782,92 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     required={packageForm.durationDays !== 36500}
                   />
                 </div>
-
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Max Duties
                   <input
                     type="number"
                     min={0}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.maxDuties === 0 ? '' : packageForm.maxDuties}
+                    value={packageForm.maxDuties || ''}
                     placeholder="0"
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
-                        maxDuties: e.target.value === '' ? 0 : Number(e.target.value),
+                        maxDuties: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block text-xs font-bold text-gray-500 uppercase">
+                  Min Hours
+                  <input
+                    type="number"
+                    min={0}
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    value={packageForm.minHours || ''}
+                    placeholder="0"
+                    onChange={(e) =>
+                      setPackageForm((prev) => ({
+                        ...prev,
+                        minHours: Number(e.target.value),
                       }))
                     }
                   />
                 </label>
 
                 <label className="block text-xs font-bold text-gray-500 uppercase">
-                  Excess Amount / Ride (₹)
+                  Extra/Hr Rate (₹)
                   <input
                     type="number"
                     min={0}
-                    step="0.01"
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.excessAmountPerRide === 0 ? '' : packageForm.excessAmountPerRide}
+                    value={packageForm.extraPerHourRate || ''}
                     placeholder="0"
                     onChange={(e) =>
                       setPackageForm((prev) => ({
                         ...prev,
-                        excessAmountPerRide: e.target.value === '' ? 0 : Number(e.target.value),
+                        extraPerHourRate: Number(e.target.value),
                       }))
                     }
                   />
                 </label>
               </div>
+
+              {/* Live commission preview */}
+              {packageForm.minHours > 0 && packageForm.extraPerHourRate > 0 && packageForm.price > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs space-y-2">
+                  <p className="font-bold text-blue-800 uppercase tracking-wide">Commission Preview (per trip)</p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-white rounded-lg p-2 border border-blue-100">
+                      <p className="text-gray-400">Min Hours</p>
+                      <p className="font-black text-gray-900">{packageForm.minHours} hrs</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-2 border border-blue-100">
+                      <p className="text-gray-400">Base Fare</p>
+                      <p className="font-black text-gray-900">₹{packageForm.price}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-2 border border-blue-100">
+                      <p className="text-gray-400">Extra/Hr</p>
+                      <p className="font-black text-gray-900">₹{packageForm.extraPerHourRate}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                      <p className="text-green-600 text-[10px] font-bold">Driver (base)</p>
+                      <p className="font-black text-green-700">₹{packageForm.price - 250}</p>
+                      <p className="text-[10px] text-gray-400">Admin: ₹250</p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                      <p className="text-green-600 text-[10px] font-bold">Driver (extra/hr)</p>
+                      <p className="font-black text-green-700">₹{packageForm.extraPerHourRate - 10}/hr</p>
+                      <p className="text-[10px] text-gray-400">Admin: ₹10/hr</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Description
@@ -820,13 +876,13 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 resize-none"
                   value={packageForm.description}
                   onChange={(e) =>
-                    setPackageForm((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
+                    setPackageForm((prev) => ({ ...prev, description: e.target.value }))
                   }
                 />
               </label>
+
+
+
 
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 mt-2">
                 <button
@@ -850,7 +906,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       )}
 
       <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
-    </div>
+    </div >
   );
 };
 

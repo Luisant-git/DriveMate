@@ -1,0 +1,4 @@
+ALTER TABLE "bookings" ADD COLUMN IF NOT EXISTS "adminCommission" FLOAT;
+ALTER TABLE "bookings" ADD COLUMN IF NOT EXISTS "driverPayout" FLOAT;
+ALTER TABLE "bookings" ADD COLUMN IF NOT EXISTS "minHours" INT;
+ALTER TABLE "bookings" ADD COLUMN IF NOT EXISTS "extraPerHourRate" FLOAT;

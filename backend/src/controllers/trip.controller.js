@@ -187,6 +187,73 @@ export const completeTrip = async (req, res) => {
       calculatedDuration = `${hours}h ${minutes}m`;
     }
 
+    // ── Commission calculation from subscription plan description ────
+    // Parse description format: "LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90"
+    // Admin commission: ₹250 base + ₹10/extra hour
+    // Driver payout: (baseFare - 250) + (extraPerHour - 10) * extraHours
+    let adminCommission = null;
+    let driverPayout = null;
+    let minHoursVal = null;
+    let extraPerHourRate = null;
+
+    try {
+      // Get the driver's active subscription plan description
+      const activePlan = isLead
+        ? await prisma.leadSubscription.findFirst({
+          where: { leadId: userId, status: 'ACTIVE' },
+          include: { plan: true },
+          orderBy: { startDate: 'desc' }
+        })
+        : await prisma.subscription.findFirst({
+          where: { driverId: userId, status: 'ACTIVE' },
+          include: { plan: true },
+          orderBy: { startDate: 'desc' }
+        });
+
+      const desc = activePlan?.plan?.description || '';
+      const hoursMatch = desc.match(/(\d+)\s*hour/i);
+      const fareMatch = desc.match(/hour\s+(\d+)/i);
+      const extraMatch = desc.match(/extra\s*per\s*hour\s*(\d+)/i);
+
+      // Prefer explicit plan fields; fall back to description parsing
+      const planMinHours = activePlan?.plan?.minHours || 0;
+      const planExtraPerHour = activePlan?.plan?.extraPerHourRate || 0;
+
+      const minHours = planMinHours > 0 ? planMinHours : (hoursMatch ? Number(hoursMatch[1]) : 0);
+      const extraPerHour = planExtraPerHour > 0 ? planExtraPerHour : (extraMatch ? Number(extraMatch[1]) : 0);
+
+      // Look up baseFare from pricing table using minHours
+      let baseFare = fareMatch ? Number(fareMatch[1]) : 0;
+      if (minHours > 0) {
+        const pricing = await prisma.pricingPackage.findFirst({
+          where: { hours: minHours, isActive: true }
+        });
+        if (pricing) baseFare = pricing.minimumCharge;
+      }
+
+      if (minHours > 0 && baseFare > 0 && extraPerHour > 0) {
+        const BASE_ADMIN_COMMISSION = 250;
+        const EXTRA_ADMIN_CUT = 10;
+
+        // Calculate actual trip hours from actualStartTime
+        let actualHours = minHours; // default to minimum
+        if (currentBooking?.actualStartTime) {
+          const diffMs = new Date().getTime() - new Date(currentBooking.actualStartTime).getTime();
+          actualHours = diffMs / 3600000;
+        }
+
+        const extraHours = Math.max(0, actualHours - minHours);
+        adminCommission = BASE_ADMIN_COMMISSION + (EXTRA_ADMIN_CUT * extraHours);
+        driverPayout = (baseFare - BASE_ADMIN_COMMISSION) + ((extraPerHour - EXTRA_ADMIN_CUT) * extraHours);
+        minHoursVal = minHours;
+        extraPerHourRate = extraPerHour;
+
+        console.log(`[Commission] Plan: ${activePlan?.plan?.name}, minHours: ${minHours}, actualHours: ${actualHours.toFixed(2)}, extraHours: ${extraHours.toFixed(2)}, adminCommission: ₹${adminCommission.toFixed(2)}, driverPayout: ₹${driverPayout.toFixed(2)}`);
+      }
+    } catch (commErr) {
+      console.error('[Commission] Error calculating commission:', commErr.message);
+    }
+
     // Update booking status to completed
     const booking = await prisma.booking.update({
       where: {
@@ -197,6 +264,10 @@ export const completeTrip = async (req, res) => {
         ...(isLead ? { leadId: userId } : { driverId: userId }),
         ...(finalAmount !== undefined && { finalAmount: parseFloat(finalAmount) }),
         ...(calculatedDuration && { duration: calculatedDuration }),
+        ...(adminCommission !== null && { adminCommission }),
+        ...(driverPayout !== null && { driverPayout }),
+        ...(minHoursVal !== null && { minHours: minHoursVal }),
+        ...(extraPerHourRate !== null && { extraPerHourRate }),
       },
       include: {
         customer: true,
@@ -287,6 +358,10 @@ export const completeTrip = async (req, res) => {
       estimatedCost: booking.estimateAmount,
       finalAmount: booking.finalAmount,
       status: 'COMPLETED',
+      adminCommission: booking.adminCommission,
+      driverPayout: booking.driverPayout,
+      minHours: booking.minHours,
+      extraPerHourRate: booking.extraPerHourRate,
     };
 
     res.json({ success: true, trip });

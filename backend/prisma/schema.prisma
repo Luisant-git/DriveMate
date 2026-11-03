@@ -153,6 +153,8 @@ model SubscriptionPlan {
   maxDuties           Int?     @default(0)
   advancePayment      Float?   @default(0)
   excessAmountPerRide Float?   @default(0)
+  minHours            Int?     @default(0)
+  extraPerHourRate    Float?   @default(0)
   types               String[] @default([])
   category            String   @default("GENERAL")
   subscriptions       Subscription[]
@@ -324,6 +326,10 @@ model Booking {
   cancellationRequested Boolean               @default(false)
   cancellationReason    String?
   endDateTime           DateTime?
+  adminCommission       Float?
+  driverPayout          Float?
+  minHours              Int?
+  extraPerHourRate      Float?
   driverResponses       BookingResponse[]
   customer              Customer              @relation(fields: [customerId], references: [id])
   driver                Driver?               @relation(fields: [driverId], references: [id])
