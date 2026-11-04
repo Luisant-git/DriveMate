@@ -27,40 +27,40 @@ interface CustomerPortalProps {
 
 // â”€â”€ Job roles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const JOB_ROLES: string[] = [
-    'Accountant â€” Audit','Accountant â€” Finance','Accountant â€” Taxation','Accountant â€” Clerk/Book Keeper',
-    'Animation â€” Animator','Animation â€” Graphic Designer','Animation â€” Video Editor','Animation â€” 3D Modeler',
-    'Architect â€” Exterior Design','Architect â€” Interior Design',
-    'BPO/Telecaller â€” Domestic','BPO/Telecaller â€” International','BPO/Telecaller â€” Voice','BPO/Telecaller â€” Non Voice','BPO/Telecaller â€” Sales','BPO/Telecaller â€” Support',
-    'Business Analyst â€” Business Analysis','Business Analyst â€” Data Analysis','Business Analyst â€” SQL',
-    'Carpenter â€” Furniture','Carpenter â€” Commercial','Carpenter â€” Residential',
-    'Cashier â€” Retail','Cashier â€” Hotel & Restaurant','Cashier â€” Banking & Finance',
-    'Content Writer â€” Technology','Content Writer â€” Medical','Content Writer â€” Fashion','Content Writer â€” Travel',
-    'Cook/Chef â€” Indian Cuisine','Cook/Chef â€” Continental','Cook/Chef â€” Multi Cuisine','Cook/Chef â€” South Indian','Cook/Chef â€” Baking',
-    'Data Entry/Back Office â€” Data Entry','Data Entry/Back Office â€” Back Office',
-    'Delivery â€” Food Delivery','Delivery â€” Courier Delivery','Delivery â€” Grocery Delivery','Delivery â€” Van Delivery',
-    'Designer â€” Graphic Design','Designer â€” Fashion Design','Designer â€” Interior Design','Designer â€” UI/UX',
-    'Doctor â€” General Physician','Doctor â€” Dentist','Doctor â€” Cardiologist','Doctor â€” Dermatologist','Doctor â€” Pediatrics',
-    'Driver â€” Company Driver','Driver â€” Private Driver','Driver â€” Taxi Driver','Driver â€” Truck Driver','Driver â€” Heavy Vehicle Driver','Driver â€” School Bus Driver','Driver â€” Auto Driver',
-    'Electrician â€” Commercial','Electrician â€” Industrial','Electrician â€” Residential',
-    'Engineer â€” Site Engineer','Engineer â€” Maintenance Engineer','Engineer â€” Production Engineer','Engineer â€” Quality Engineer',
-    'HR/Admin â€” Recruitment','HR/Admin â€” Payrolls','HR/Admin â€” Training','HR/Admin â€” Compliance',
-    'IT Developer â€” React Js','IT Developer â€” Python','IT Developer â€” Java','IT Developer â€” PHP','IT Developer â€” Android','IT Developer â€” iOS','IT Developer â€” Dot Net',
-    'IT QA â€” Manual Testing','IT QA â€” Automated Testing','IT QA â€” Selenium',
-    'IT Web Designer â€” UI/UX','IT Web Designer â€” HTML/CSS','IT Web Designer â€” Figma',
-    'Legal â€” Corporate','Legal â€” Criminal','Legal â€” Employment','Legal â€” Property','Legal â€” Tax',
-    'Marketing â€” Digital Marketing','Marketing â€” Brand Marketing','Marketing â€” Social Media',
-    'Mechanic â€” Automobile','Mechanic â€” Two-wheeler','Mechanic â€” AC Repair','Mechanic â€” Mobile Repair',
-    'Nurse â€” Hospital','Nurse â€” Clinic','Nurse â€” Private House',
-    'Pharmacist â€” Manufacturing','Pharmacist â€” QC','Pharmacist â€” Packaging',
-    'Receptionist â€” Hospital','Receptionist â€” Hotel','Receptionist â€” Company','Receptionist â€” Bank',
-    'Sales â€” FMCG','Sales â€” Insurance','Sales â€” IT','Sales â€” Real Estate','Sales â€” Automobile','Sales â€” Retail',
-    'Security/Guard â€” Private Security','Security/Guard â€” Armed Forces','Security/Guard â€” Mobile/Patrol',
-    'Teacher â€” English','Teacher â€” Math','Teacher â€” Science','Teacher â€” Computer','Teacher â€” Tamil',
-    'Trainer â€” Gym','Trainer â€” Yoga','Trainer â€” Dance','Trainer â€” Language',
-    'Waiter/Steward â€” Hotel & Restaurant','Waiter/Steward â€” Airlines',
-    'Welder â€” Arc Welder','Welder â€” Mig and Tig','Welder â€” Spot Welder',
-    'Beautician â€” Hair','Beautician â€” Make-up','Beautician â€” Skin Care',
-    'Plumber â€” Residential','Plumber â€” Industrial','Painter â€” Exterior Wall','Painter â€” Interior Wall','Painter â€” Car',
+    'Accountant — Audit','Accountant — Finance','Accountant — Taxation','Accountant — Clerk/Book Keeper',
+    'Animation — Animator','Animation — Graphic Designer','Animation — Video Editor','Animation — 3D Modeler',
+    'Architect — Exterior Design','Architect — Interior Design',
+    'BPO/Telecaller — Domestic','BPO/Telecaller — International','BPO/Telecaller — Voice','BPO/Telecaller — Non Voice','BPO/Telecaller — Sales','BPO/Telecaller — Support',
+    'Business Analyst — Business Analysis','Business Analyst — Data Analysis','Business Analyst — SQL',
+    'Carpenter — Furniture','Carpenter — Commercial','Carpenter — Residential',
+    'Cashier — Retail','Cashier — Hotel & Restaurant','Cashier — Banking & Finance',
+    'Content Writer — Technology','Content Writer — Medical','Content Writer — Fashion','Content Writer — Travel',
+    'Cook/Chef — Indian Cuisine','Cook/Chef — Continental','Cook/Chef — Multi Cuisine','Cook/Chef — South Indian','Cook/Chef — Baking',
+    'Data Entry/Back Office — Data Entry','Data Entry/Back Office — Back Office',
+    'Delivery — Food Delivery','Delivery — Courier Delivery','Delivery — Grocery Delivery','Delivery — Van Delivery',
+    'Designer — Graphic Design','Designer — Fashion Design','Designer — Interior Design','Designer — UI/UX',
+    'Doctor — General Physician','Doctor — Dentist','Doctor — Cardiologist','Doctor — Dermatologist','Doctor — Pediatrics',
+    'Driver — Company Driver','Driver — Private Driver','Driver — Taxi Driver','Driver — Truck Driver','Driver — Heavy Vehicle Driver','Driver — School Bus Driver','Driver — Auto Driver',
+    'Electrician — Commercial','Electrician — Industrial','Electrician — Residential',
+    'Engineer — Site Engineer','Engineer — Maintenance Engineer','Engineer — Production Engineer','Engineer — Quality Engineer',
+    'HR/Admin — Recruitment','HR/Admin — Payrolls','HR/Admin — Training','HR/Admin — Compliance',
+    'IT Developer — React Js','IT Developer — Python','IT Developer — Java','IT Developer — PHP','IT Developer — Android','IT Developer — iOS','IT Developer — Dot Net',
+    'IT QA — Manual Testing','IT QA — Automated Testing','IT QA — Selenium',
+    'IT Web Designer — UI/UX','IT Web Designer — HTML/CSS','IT Web Designer — Figma',
+    'Legal — Corporate','Legal — Criminal','Legal — Employment','Legal — Property','Legal — Tax',
+    'Marketing — Digital Marketing','Marketing — Brand Marketing','Marketing — Social Media',
+    'Mechanic — Automobile','Mechanic — Two-wheeler','Mechanic — AC Repair','Mechanic — Mobile Repair',
+    'Nurse — Hospital','Nurse — Clinic','Nurse — Private House',
+    'Pharmacist — Manufacturing','Pharmacist — QC','Pharmacist — Packaging',
+    'Receptionist — Hospital','Receptionist — Hotel','Receptionist — Company','Receptionist — Bank',
+    'Sales — FMCG','Sales — Insurance','Sales — IT','Sales — Real Estate','Sales — Automobile','Sales — Retail',
+    'Security/Guard — Private Security','Security/Guard — Armed Forces','Security/Guard — Mobile/Patrol',
+    'Teacher — English','Teacher — Math','Teacher — Science','Teacher — Computer','Teacher — Tamil',
+    'Trainer — Gym','Trainer — Yoga','Trainer — Dance','Trainer — Language',
+    'Waiter/Steward — Hotel & Restaurant','Waiter/Steward — Airlines',
+    'Welder — Arc Welder','Welder — Mig and Tig','Welder — Spot Welder',
+    'Beautician — Hair','Beautician — Make-up','Beautician — Skin Care',
+    'Plumber — Residential','Plumber — Industrial','Painter — Exterior Wall','Painter — Interior Wall','Painter — Car',
 ];
 const EXP_OPTIONS = ['Fresher','1','2','3','4','5','6','7','8','9','10','10+'];
 
@@ -943,10 +943,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     apiKey="AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8"
                 />
             ) : (
-                <div
-                    className="absolute inset-0 bg-cover bg-center opacity-80"
-                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
-                ></div>
+                <div className="absolute inset-0" style={{ backgroundColor: '#e8eaed' }}>
+                    <img
+                        src="/assets/bg-final.png"
+                        alt=""
+                        className="w-full h-full"
+                        style={{ objectFit: 'cover', objectPosition: 'center', transform: 'scale(1.15)', transformOrigin: 'center' }}
+                        draggable={false}
+                    />
+                </div>
             )}
 
             {/* Registration Modal */}
@@ -3001,7 +3006,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <div className="flex flex-wrap gap-1.5 pt-0.5">
                                                 <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
                                                 <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{job.jobType}</span>
-                                                {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.role.split(' â€” ').pop()}</span>}
+                                                {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.role.split(' — ').pop()}</span>}
                                                 {(job.salaryMin || job.salaryMax) && (
                                                     <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
                                                         ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo
