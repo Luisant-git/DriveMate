@@ -8,12 +8,15 @@ const getAuthHeaders = () => {
   };
 };
 
-export const adminGetAllJobs = async ({ city = '', category = '', status = '', page = 1 } = {}) => {
+export const adminGetAllJobs = async ({ city = '', category = '', role = '', jobType = '', status = '', search = '', page = 1 } = {}) => {
   try {
     const params = new URLSearchParams({ page: String(page), limit: '50' });
     if (city) params.set('city', city);
     if (category) params.set('category', category);
+    if (role) params.set('role', role);
+    if (jobType) params.set('jobType', jobType);
     if (status) params.set('status', status);
+    if (search) params.set('search', search);
     const res = await fetch(`${API_BASE_URL}/api/job-requirements/admin/all?${params}`, {
       headers: getAuthHeaders(),
       credentials: 'include',

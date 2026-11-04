@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminGetAllJobs, adminUpdateJobStatus, adminDeleteJob } from '../../api/adminJobRequirement';
+import { JOB_CATEGORIES, JOB_TYPES } from '../../constants/jobRoles';
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800',
@@ -7,26 +8,22 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: 'bg-red-100 text-red-700',
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Driver: 'bg-blue-50 text-blue-700',
-  Chauffeur: 'bg-purple-50 text-purple-700',
-  Delivery: 'bg-orange-50 text-orange-700',
-  Other: 'bg-gray-100 text-gray-600',
-};
-
 const JOBTYPE_COLORS: Record<string, string> = {
-  'Full Time': 'bg-emerald-50 text-emerald-700',
-  'Part Time': 'bg-yellow-50 text-yellow-700',
-  Contract: 'bg-pink-50 text-pink-700',
-  Daily: 'bg-cyan-50 text-cyan-700',
+  'Full Time Jobs': 'bg-emerald-50 text-emerald-700',
+  'Part Time Jobs': 'bg-yellow-50 text-yellow-700',
+  'Work From Home': 'bg-cyan-50 text-cyan-700',
+  Internships: 'bg-pink-50 text-pink-700',
+  'Work Abroad': 'bg-indigo-50 text-indigo-700',
 };
 
 export default function AdminJobRequirements() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [filterSearch, setFilterSearch] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterJobType, setFilterJobType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -34,7 +31,13 @@ export default function AdminJobRequirements() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminGetAllJobs({ city: filterCity, category: filterCategory, status: filterStatus });
+      const res = await adminGetAllJobs({
+        city: filterCity,
+        category: filterCategory,
+        jobType: filterJobType,
+        status: filterStatus,
+        search: filterSearch,
+      });
       if (res.success) {
         setJobs(res.jobs || []);
         setTotal(res.total || 0);
@@ -42,7 +45,7 @@ export default function AdminJobRequirements() {
     } finally {
       setLoading(false);
     }
-  }, [filterCity, filterCategory, filterStatus]);
+  }, [filterCity, filterCategory, filterJobType, filterStatus, filterSearch]);
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
@@ -63,6 +66,14 @@ export default function AdminJobRequirements() {
     setActionLoading(null);
   };
 
+  const clearFilters = () => {
+    setFilterSearch('');
+    setFilterCity('');
+    setFilterCategory('');
+    setFilterJobType('');
+    setFilterStatus('');
+  };
+
   // ── Stats ──────────────────────────────────────────────────
   const activeCount = jobs.filter(j => j.status === 'ACTIVE').length;
   const closedCount = jobs.filter(j => j.status === 'CLOSED').length;
@@ -74,7 +85,7 @@ export default function AdminJobRequirements() {
       {/* ── Page header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="font-bold text-lg text-gray-900">Driver Job Requirements</h3>
+          <h3 className="font-bold text-lg text-gray-900">Job Board</h3>
           <p className="text-xs text-gray-500 mt-0.5">All job postings submitted by customers</p>
         </div>
         <button
@@ -107,6 +118,13 @@ export default function AdminJobRequirements() {
       <div className="flex flex-wrap gap-2">
         <input
           type="text"
+          placeholder="Search job title…"
+          value={filterSearch}
+          onChange={e => setFilterSearch(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black w-48"
+        />
+        <input
+          type="text"
           placeholder="Filter by city…"
           value={filterCity}
           onChange={e => setFilterCity(e.target.value)}
@@ -118,7 +136,15 @@ export default function AdminJobRequirements() {
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
         >
           <option value="">All Categories</option>
-          {['Driver', 'Chauffeur', 'Delivery', 'Other'].map(c => <option key={c}>{c}</option>)}
+          {JOB_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select
+          value={filterJobType}
+          onChange={e => setFilterJobType(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <option value="">All Job Types</option>
+          {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         <select
           value={filterStatus}
@@ -126,11 +152,11 @@ export default function AdminJobRequirements() {
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
         >
           <option value="">All Statuses</option>
-          {['ACTIVE', 'CLOSED', 'REJECTED'].map(s => <option key={s}>{s}</option>)}
+          {['ACTIVE', 'CLOSED', 'REJECTED'].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        {(filterCity || filterCategory || filterStatus) && (
+        {(filterSearch || filterCity || filterCategory || filterJobType || filterStatus) && (
           <button
-            onClick={() => { setFilterCity(''); setFilterCategory(''); setFilterStatus(''); }}
+            onClick={clearFilters}
             className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-black border border-gray-200 rounded-lg"
           >
             Clear
@@ -149,7 +175,7 @@ export default function AdminJobRequirements() {
             </svg>
           </div>
           <p className="font-bold text-gray-700">No job postings found</p>
-          <p className="text-xs text-gray-400 mt-1">Customers can post requirements from their portal</p>
+          <p className="text-xs text-gray-400 mt-1">Customers can post jobs from their portal</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -187,18 +213,21 @@ export default function AdminJobRequirements() {
                     {job.company && <p className="text-xs text-gray-500 mt-0.5">{job.company}</p>}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CATEGORY_COLORS[job.category] || 'bg-gray-100 text-gray-600'}`}>{job.role ? job.role.split(' — ').pop() : job.category || '—'}</span>
+                      {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.role}</span>}
+                      {job.category && <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{job.category}</span>}
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${JOBTYPE_COLORS[job.jobType] || 'bg-gray-100 text-gray-600'}`}>{job.jobType}</span>
-                      {job.remote && job.remote !== 'No' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700">Remote: {job.remote}</span>}
                       {(job.salaryMin || job.salaryMax) && (
                         <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
                           ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo
                         </span>
                       )}
-                      {job.experienceYears > 0 && (
+                      {(job.experienceMin > 0 || job.experienceMax > 0) && (
                         <span className="text-[10px] font-bold bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">
-                          {job.experienceYears}+ yrs
+                          {job.experienceMin || 0}–{job.experienceMax || 0} yrs exp
                         </span>
+                      )}
+                      {job.remoteWork && (
+                        <span className="text-[10px] font-bold bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">Remote: {job.remoteWork}</span>
                       )}
                     </div>
                   </div>
@@ -239,14 +268,14 @@ export default function AdminJobRequirements() {
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
                     {/* Description */}
                     <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Description</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Job Description</p>
                       <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{job.description}</p>
                     </div>
 
                     {/* Localities */}
                     {job.localities?.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Areas / Localities</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Localities</p>
                         <div className="flex flex-wrap gap-1.5">
                           {job.localities.map((l: string) => (
                             <span key={l} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">{l}</span>
@@ -255,13 +284,16 @@ export default function AdminJobRequirements() {
                       </div>
                     )}
 
-                    {/* Contact + Customer */}
+                    {/* Recruiter + Customer */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1.5">Recruiter Contact</p>
-                        <p className="text-xs font-bold text-gray-900">{job.contactName}</p>
-                        <a href={`tel:${job.contactPhone}`} className="text-xs font-bold text-blue-600 hover:underline block mt-0.5">{job.contactPhone}</a>
-                        {job.contactEmail && <p className="text-xs text-gray-500 mt-0.5">{job.contactEmail}</p>}
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1.5">Recruiter Details</p>
+                        {job.company && <p className="text-xs font-bold text-gray-900">Hiring for: {job.company}</p>}
+                        <a href={`mailto:${job.contactEmail}`} className="text-xs font-bold text-blue-600 hover:underline block mt-0.5">{job.contactEmail}</a>
+                        <a href={`tel:${job.contactPhone}`} className="text-xs text-gray-600 block mt-0.5">+91 {job.contactPhone}</a>
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {job.showContact === false ? 'Contact details hidden from candidates' : 'Contact details visible to candidates'}
+                        </p>
                       </div>
                       {job.customer && (
                         <div className="bg-gray-50 rounded-xl p-3">

@@ -35,11 +35,13 @@ export const getMyJobRequirements = async () => {
   }
 };
 
-export const getAllJobRequirements = async ({ city = '', category = '' } = {}) => {
+export const getAllJobRequirements = async ({ city = '', category = '', role = '', jobType = '' } = {}) => {
   try {
     const params = new URLSearchParams();
     if (city) params.set('city', city);
     if (category) params.set('category', category);
+    if (role) params.set('role', role);
+    if (jobType) params.set('jobType', jobType);
     const res = await fetch(`${API_BASE_URL}/api/job-requirements?${params}`, {
       credentials: 'include',
     });

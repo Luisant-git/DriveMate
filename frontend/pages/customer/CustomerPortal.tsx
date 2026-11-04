@@ -13,6 +13,9 @@ import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
 import CustomerBookingStatus from './CustomerBookingStatus';
 import CustomerSosModal from '../../components/customer/CustomerSosModal';
+import JobRoleSelect from '../../components/jobs/JobRoleSelect';
+import CitySelect from '../../components/jobs/CitySelect';
+import { JOB_TYPES, EXPERIENCE_OPTIONS, REMOTE_OPTIONS } from '../../constants/jobRoles';
 import TermsAndConditions from '../../components/TermsAndConditions';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import UberLanguageSelector from '../../components/common/UberLanguageSelector';
@@ -25,44 +28,8 @@ interface CustomerPortalProps {
     customer: Customer;
 }
 
-// â”€â”€ Job roles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const JOB_ROLES: string[] = [
-    'Accountant — Audit','Accountant — Finance','Accountant — Taxation','Accountant — Clerk/Book Keeper',
-    'Animation — Animator','Animation — Graphic Designer','Animation — Video Editor','Animation — 3D Modeler',
-    'Architect — Exterior Design','Architect — Interior Design',
-    'BPO/Telecaller — Domestic','BPO/Telecaller — International','BPO/Telecaller — Voice','BPO/Telecaller — Non Voice','BPO/Telecaller — Sales','BPO/Telecaller — Support',
-    'Business Analyst — Business Analysis','Business Analyst — Data Analysis','Business Analyst — SQL',
-    'Carpenter — Furniture','Carpenter — Commercial','Carpenter — Residential',
-    'Cashier — Retail','Cashier — Hotel & Restaurant','Cashier — Banking & Finance',
-    'Content Writer — Technology','Content Writer — Medical','Content Writer — Fashion','Content Writer — Travel',
-    'Cook/Chef — Indian Cuisine','Cook/Chef — Continental','Cook/Chef — Multi Cuisine','Cook/Chef — South Indian','Cook/Chef — Baking',
-    'Data Entry/Back Office — Data Entry','Data Entry/Back Office — Back Office',
-    'Delivery — Food Delivery','Delivery — Courier Delivery','Delivery — Grocery Delivery','Delivery — Van Delivery',
-    'Designer — Graphic Design','Designer — Fashion Design','Designer — Interior Design','Designer — UI/UX',
-    'Doctor — General Physician','Doctor — Dentist','Doctor — Cardiologist','Doctor — Dermatologist','Doctor — Pediatrics',
-    'Driver — Company Driver','Driver — Private Driver','Driver — Taxi Driver','Driver — Truck Driver','Driver — Heavy Vehicle Driver','Driver — School Bus Driver','Driver — Auto Driver',
-    'Electrician — Commercial','Electrician — Industrial','Electrician — Residential',
-    'Engineer — Site Engineer','Engineer — Maintenance Engineer','Engineer — Production Engineer','Engineer — Quality Engineer',
-    'HR/Admin — Recruitment','HR/Admin — Payrolls','HR/Admin — Training','HR/Admin — Compliance',
-    'IT Developer — React Js','IT Developer — Python','IT Developer — Java','IT Developer — PHP','IT Developer — Android','IT Developer — iOS','IT Developer — Dot Net',
-    'IT QA — Manual Testing','IT QA — Automated Testing','IT QA — Selenium',
-    'IT Web Designer — UI/UX','IT Web Designer — HTML/CSS','IT Web Designer — Figma',
-    'Legal — Corporate','Legal — Criminal','Legal — Employment','Legal — Property','Legal — Tax',
-    'Marketing — Digital Marketing','Marketing — Brand Marketing','Marketing — Social Media',
-    'Mechanic — Automobile','Mechanic — Two-wheeler','Mechanic — AC Repair','Mechanic — Mobile Repair',
-    'Nurse — Hospital','Nurse — Clinic','Nurse — Private House',
-    'Pharmacist — Manufacturing','Pharmacist — QC','Pharmacist — Packaging',
-    'Receptionist — Hospital','Receptionist — Hotel','Receptionist — Company','Receptionist — Bank',
-    'Sales — FMCG','Sales — Insurance','Sales — IT','Sales — Real Estate','Sales — Automobile','Sales — Retail',
-    'Security/Guard — Private Security','Security/Guard — Armed Forces','Security/Guard — Mobile/Patrol',
-    'Teacher — English','Teacher — Math','Teacher — Science','Teacher — Computer','Teacher — Tamil',
-    'Trainer — Gym','Trainer — Yoga','Trainer — Dance','Trainer — Language',
-    'Waiter/Steward — Hotel & Restaurant','Waiter/Steward — Airlines',
-    'Welder — Arc Welder','Welder — Mig and Tig','Welder — Spot Welder',
-    'Beautician — Hair','Beautician — Make-up','Beautician — Skin Care',
-    'Plumber — Residential','Plumber — Industrial','Painter — Exterior Wall','Painter — Interior Wall','Painter — Car',
-];
-const EXP_OPTIONS = ['Fresher','1','2','3','4','5','6','7','8','9','10','10+'];
+// Hourly usage options for local bookings
+const LOCAL_USAGE_OPTIONS = ['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'];
 
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
     const { t } = useLanguage();
@@ -76,21 +43,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [showJobForm, setShowJobForm] = useState(false);
     const [jobSubmitting, setJobSubmitting] = useState(false);
     const [jobLocality, setJobLocality] = useState('');
-    const [jobFormData, setJobFormData] = useState({
+    const emptyJobForm = {
         title: '',
-        company: '',
+        jobType: 'Full Time Jobs',
+        category: '',
+        role: '',
+        salaryMin: '',
+        salaryMax: '',
+        experienceMin: '',
+        experienceMax: '',
         city: '',
         localities: [] as string[],
         description: '',
-        contactName: customer.name || '',
+        company: '',
         contactEmail: '',
-        contactPhone: customer.phone || '',
-        jobType: 'Full Time',
-        category: 'Driver',
-        experienceYears: '0',
-        salaryMin: '',
-        salaryMax: '',
-    });
+        contactPhone: '',
+        showContact: true,
+        remoteWork: 'No',
+        termsAccepted: false,
+    };
+    const [jobFormData, setJobFormData] = useState(emptyJobForm);
     // ────────────────────────────────────────────────────────────
     const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
     const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
@@ -371,24 +343,29 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
     const handleJobSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!jobFormData.role.trim()) {
+            toast.error('Please select or type a role.');
+            return;
+        }
+        if (jobFormData.localities.length === 0) {
+            toast.error('Please add at least one locality.');
+            return;
+        }
         setJobSubmitting(true);
         try {
             const res = await createJobRequirement({
                 ...jobFormData,
-                experienceYears: parseInt(jobFormData.experienceYears) || 0,
+                role: jobFormData.role.trim(),
+                category: jobFormData.category || 'Other',
+                experienceMin: parseInt(jobFormData.experienceMin) || 0,
+                experienceMax: parseInt(jobFormData.experienceMax) || 0,
                 salaryMin: jobFormData.salaryMin ? parseFloat(jobFormData.salaryMin) : null,
                 salaryMax: jobFormData.salaryMax ? parseFloat(jobFormData.salaryMax) : null,
             });
             if (res.success) {
-                toast.success('Job requirement posted!');
+                toast.success('Job posted successfully!');
                 setShowJobForm(false);
-                setJobFormData({
-                    title: '', company: '', city: '', localities: [],
-                    description: '', contactName: customer.name || '',
-                    contactEmail: '', contactPhone: customer.phone || '',
-                    jobType: 'Full Time', category: 'Driver',
-                    experienceYears: '0', salaryMin: '', salaryMax: '',
-                });
+                setJobFormData(emptyJobForm);
                 setJobLocality('');
                 fetchMyJobs();
             } else {
@@ -1205,7 +1182,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
                         <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Book</button>
                         <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Trips</button>
-                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Jobs</button>
+                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Hiring</button>
                         <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>Profile</button>
                     </div>
                 </div>
@@ -2937,15 +2914,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 {activeTab === 'JOBS' && (
                     <div className="flex-grow min-h-0 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 custom-scrollbar space-y-4">
 
-                        {/* Header row */}
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-bold">Driver Requirements</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">Post a job to hire drivers for your need</p>
+                        {/* Header row — wraps instead of squeezing on narrow panels */}
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1 basis-40">
+                                <h3 className="text-base sm:text-lg font-bold leading-snug break-words">Job Postings</h3>
+                                <p className="text-xs text-gray-500 mt-0.5 leading-snug break-words">Post a job requirement to hire employees</p>
                             </div>
                             <button
                                 onClick={() => setShowJobForm(v => !v)}
-                                className="bg-black text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5"
+                                className="flex-shrink-0 bg-black text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5 whitespace-nowrap"
                             >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                                 {showJobForm ? 'Cancel' : 'Post Job'}
@@ -2958,7 +2935,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 {/* Form header */}
                                 <div className="bg-black text-white px-4 py-3.5">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Posting</p>
-                                    <h4 className="text-sm font-black mt-0.5">Post a Driver Requirement</h4>
+                                    <h4 className="text-sm font-black mt-0.5">Post a Job</h4>
                                 </div>
 
                                 {/* All fields use single-column layout — panel is only ~340px wide,
@@ -2969,47 +2946,119 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {/* Job Title */}
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Title <span className="text-red-500">*</span></label>
-                                        <input type="text" required maxLength={100}
-                                            placeholder="e.g. Sales executives needed urgently..."
+                                        <input type="text" required maxLength={150}
+                                            placeholder="Eg. Sales executives needed urgently for ..."
                                             className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
                                             value={jobFormData.title}
                                             onChange={e => setJobFormData(p => ({ ...p, title: e.target.value }))}
                                         />
+                                        <p className="text-[10px] text-gray-400 mt-0.5 text-right">{jobFormData.title.length}/150</p>
                                     </div>
 
-                                    {/* Company + City — 2 cols fit at 340px because inputs are compact */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Company</label>
-                                            <input type="text" maxLength={60} placeholder="ABC Pvt Ltd"
-                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                value={jobFormData.company}
-                                                onChange={e => setJobFormData(p => ({ ...p, company: e.target.value }))}
+                                    {/* Job Type — checkboxes, pick one */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">Job Type <span className="text-red-500">*</span></label>
+                                        <div className="space-y-1.5">
+                                            {JOB_TYPES.map(jt => {
+                                                const checked = jobFormData.jobType === jt;
+                                                return (
+                                                    <label key={jt}
+                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition ${checked ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => setJobFormData(p => ({ ...p, jobType: jt }))}
+                                                            className="w-4 h-4 accent-black flex-shrink-0"
+                                                        />
+                                                        <span className={`text-sm ${checked ? 'font-bold text-black' : 'font-semibold text-gray-700'}`}>{jt}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Role — searchable, grouped by category */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">Role <span className="text-red-500">*</span></label>
+                                        <JobRoleSelect
+                                            category={jobFormData.category}
+                                            role={jobFormData.role}
+                                            required
+                                            onChange={(category, role) => setJobFormData(p => ({ ...p, category, role }))}
+                                        />
+                                    </div>
+
+                                    {/* Monthly Salary */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Monthly Salary <span className="text-red-500">*</span></label>
+                                        <div className="flex items-center gap-2">
+                                            <input type="number" min={0} required placeholder="Min"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.salaryMin}
+                                                onChange={e => setJobFormData(p => ({ ...p, salaryMin: e.target.value }))}
+                                            />
+                                            <span className="text-gray-400 font-bold flex-shrink-0">–</span>
+                                            <input type="number" min={0} placeholder="Max"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.salaryMax}
+                                                onChange={e => setJobFormData(p => ({ ...p, salaryMax: e.target.value }))}
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">City <span className="text-red-500">*</span></label>
-                                            <input type="text" required maxLength={60} placeholder="Salem"
-                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                value={jobFormData.city}
-                                                onChange={e => setJobFormData(p => ({ ...p, city: e.target.value }))}
-                                            />
+                                    </div>
+
+                                    {/* Experience */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Experience</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 mb-1">Min</label>
+                                                <select className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                    value={jobFormData.experienceMin}
+                                                    onChange={e => setJobFormData(p => ({ ...p, experienceMin: e.target.value }))}
+                                                >
+                                                    <option value="">Select Exp..</option>
+                                                    {EXPERIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-gray-400 mb-1">Max</label>
+                                                <select className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                    value={jobFormData.experienceMax}
+                                                    onChange={e => setJobFormData(p => ({ ...p, experienceMax: e.target.value }))}
+                                                >
+                                                    <option value="">Select Exp..</option>
+                                                    {EXPERIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    {/* City — searchable dropdown */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">City <span className="text-red-500">*</span></label>
+                                        <CitySelect
+                                            value={jobFormData.city}
+                                            onChange={city => setJobFormData(p => ({ ...p, city }))}
+                                            required
+                                        />
                                     </div>
 
                                     {/* Localities */}
                                     <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Localities / Areas</label>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Localities <span className="text-red-500">*</span> <span className="text-gray-400 font-normal normal-case">(Upto 5)</span></label>
                                         <div className="flex gap-2">
-                                            <input type="text" placeholder="Type area and press Add"
-                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                            <input type="text"
+                                                placeholder="Type or select a locality"
+                                                disabled={jobFormData.localities.length >= 5}
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black disabled:opacity-60"
                                                 value={jobLocality}
                                                 onChange={e => setJobLocality(e.target.value)}
                                                 onKeyDown={e => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
                                                         const v = jobLocality.trim();
-                                                        if (v && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
+                                                        if (v && jobFormData.localities.length < 5 && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
                                                         setJobLocality('');
                                                     }
                                                 }}
@@ -3017,7 +3066,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <button type="button"
                                                 onClick={() => {
                                                     const v = jobLocality.trim();
-                                                    if (v && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
+                                                    if (v && jobFormData.localities.length < 5 && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
                                                     setJobLocality('');
                                                 }}
                                                 className="flex-shrink-0 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
@@ -3035,63 +3084,6 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         )}
                                     </div>
 
-                                    {/* Category — pill row, wraps naturally */}
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Category</label>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {['Driver', 'Chauffeur', 'Delivery', 'Other'].map(cat => (
-                                                <button key={cat} type="button"
-                                                    onClick={() => setJobFormData(p => ({ ...p, category: cat }))}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${jobFormData.category === cat ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
-                                                >{cat}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Job Type — pill row */}
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Job Type</label>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {['Full Time', 'Part Time', 'Contract', 'Daily'].map(jt => (
-                                                <button key={jt} type="button"
-                                                    onClick={() => setJobFormData(p => ({ ...p, jobType: jt }))}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${jobFormData.jobType === jt ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
-                                                >{jt}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Salary — min / max side by side (short inputs, fits 340px) */}
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Salary Range (₹/month)</label>
-                                        <div className="flex items-center gap-2">
-                                            <input type="number" min={0} placeholder="Min e.g. 12000"
-                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                value={jobFormData.salaryMin}
-                                                onChange={e => setJobFormData(p => ({ ...p, salaryMin: e.target.value }))}
-                                            />
-                                            <span className="text-gray-400 font-bold flex-shrink-0">–</span>
-                                            <input type="number" min={0} placeholder="Max e.g. 20000"
-                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                value={jobFormData.salaryMax}
-                                                onChange={e => setJobFormData(p => ({ ...p, salaryMax: e.target.value }))}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Experience — pill row, wraps naturally */}
-                                    <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Min. Experience</label>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {[['0', 'Fresher'], ['1', '1+ yr'], ['2', '2+ yrs'], ['3', '3+ yrs'], ['5', '5+ yrs']].map(([val, lbl]) => (
-                                                <button key={val} type="button"
-                                                    onClick={() => setJobFormData(p => ({ ...p, experienceYears: val }))}
-                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${jobFormData.experienceYears === val ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
-                                                >{lbl}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-
                                     {/* Description */}
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Description <span className="text-red-500">*</span></label>
@@ -3107,44 +3099,76 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {/* Recruiter Details */}
                                     <div className="pt-3 border-t border-gray-100 space-y-3">
                                         <p className="text-[11px] font-black text-gray-700 uppercase tracking-wide">
-                                            Recruiter Details
+                                            Recruiter Details <span className="text-gray-400 font-normal normal-case">(Cannot be changed later)</span>
                                         </p>
                                         <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Contact Name <span className="text-red-500">*</span></label>
-                                            <input type="text" required maxLength={80} placeholder="Your name"
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Hiring for (Company name)</label>
+                                            <input type="text" maxLength={50} placeholder="Max 50 characters"
                                                 className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                value={jobFormData.contactName}
-                                                onChange={e => setJobFormData(p => ({ ...p, contactName: e.target.value }))}
+                                                value={jobFormData.company}
+                                                onChange={e => setJobFormData(p => ({ ...p, company: e.target.value }))}
                                             />
                                         </div>
-                                        {/* Phone + Email — 2 cols fit fine at 340px */}
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Phone <span className="text-red-500">*</span></label>
-                                                <input type="tel" required maxLength={15} placeholder="9XXXXXXXXX"
-                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Email <span className="text-red-500">*</span></label>
+                                            <input type="email" required maxLength={100} placeholder="Please use your work email"
+                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                value={jobFormData.contactEmail}
+                                                onChange={e => setJobFormData(p => ({ ...p, contactEmail: e.target.value }))}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Phone <span className="text-red-500">*</span></label>
+                                            <div className="flex gap-2">
+                                                <span className="flex items-center px-3 bg-gray-100 rounded-lg text-sm font-bold text-gray-600 flex-shrink-0">+91</span>
+                                                <input type="tel" required maxLength={10} placeholder="10-digit mobile"
+                                                    className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
                                                     value={jobFormData.contactPhone}
-                                                    onChange={e => setJobFormData(p => ({ ...p, contactPhone: e.target.value }))}
+                                                    onChange={e => setJobFormData(p => ({ ...p, contactPhone: e.target.value.replace(/\D/g, '') }))}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Email</label>
-                                                <input type="email" maxLength={100} placeholder="optional"
-                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                    value={jobFormData.contactEmail}
-                                                    onChange={e => setJobFormData(p => ({ ...p, contactEmail: e.target.value }))}
+                                            <label className="flex items-center gap-2 mt-2 text-[11px] text-gray-600 cursor-pointer">
+                                                <input type="checkbox" checked={jobFormData.showContact}
+                                                    onChange={e => setJobFormData(p => ({ ...p, showContact: e.target.checked }))}
+                                                    className="rounded border-gray-300 text-black focus:ring-black"
                                                 />
-                                            </div>
+                                                Display my contact details to candidate
+                                            </label>
                                         </div>
                                     </div>
 
+                                    {/* Remote work */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Can this job be done remotely? <span className="text-red-500">*</span></label>
+                                        <div className="flex gap-2">
+                                            {REMOTE_OPTIONS.map(opt => (
+                                                <button key={opt} type="button"
+                                                    onClick={() => setJobFormData(p => ({ ...p, remoteWork: opt }))}
+                                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${jobFormData.remoteWork === opt ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                >{opt}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Terms */}
+                                    <div className="flex items-start gap-2 pt-1">
+                                        <input type="checkbox" id="jobTerms" required
+                                            checked={jobFormData.termsAccepted}
+                                            onChange={e => setJobFormData(p => ({ ...p, termsAccepted: e.target.checked }))}
+                                            className="mt-0.5 rounded border-gray-300 text-black focus:ring-black flex-shrink-0"
+                                        />
+                                        <label htmlFor="jobTerms" className="text-xs text-gray-600 cursor-pointer">
+                                            I agree to the <span className="font-bold text-black underline">Terms &amp; Conditions</span> and confirm that the information provided is accurate.
+                                        </label>
+                                    </div>
+
                                     {/* Submit */}
-                                    <button type="submit" disabled={jobSubmitting}
+                                    <button type="submit" disabled={jobSubmitting || !jobFormData.termsAccepted}
                                         className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-60 flex items-center justify-center gap-2"
                                     >
                                         {jobSubmitting
                                             ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Posting…</>
-                                            : '🚀 Post Job'}
+                                            : 'Post Job'}
                                     </button>
                                 </div>
                             </form>
@@ -3159,63 +3183,98 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                 </div>
                                 <p className="font-bold text-gray-700">No job postings yet</p>
-                                <p className="text-xs text-gray-400 mt-1">Tap "Post Job" to hire a driver</p>
+                                <p className="text-xs text-gray-400 mt-1">Tap "Post Job" to post your first requirement</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {myJobs.map(job => (
-                                    <div key={job.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                                        {/* Card top bar */}
-                                        <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${job.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
-                                                {job.status}
-                                            </span>
-                                            <span className="text-[10px] text-gray-400 font-medium">
-                                                {new Date(job.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            </span>
-                                        </div>
-                                        {/* Card body */}
-                                        <div className="px-4 py-3 space-y-1.5">
-                                            <h4 className="font-bold text-sm text-gray-900 leading-tight">{job.title}</h4>
-                                            {job.company && <p className="text-xs text-gray-500 font-medium">{job.company}</p>}
-                                            <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                                <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
-                                                <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{job.jobType}</span>
-                                                {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.role.split(' — ').pop()}</span>}
-                                                {(job.salaryMin || job.salaryMax) && (
-                                                    <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
-                                                        ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo
-                                                    </span>
-                                                )}
-                                                {job.experienceYears > 0 && (
-                                                    <span className="text-[10px] font-bold bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">{job.experienceYears}+ yrs exp</span>
-                                                )}
+                                {myJobs.map(job => {
+                                    const isActive = job.status === 'ACTIVE';
+                                    const dateLabel = new Date(job.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const salary = job.salaryMin && job.salaryMax
+                                        ? `₹${job.salaryMin} – ₹${job.salaryMax}`
+                                        : job.salaryMin ? `From ₹${job.salaryMin}`
+                                            : job.salaryMax ? `Up to ₹${job.salaryMax}` : '';
+                                    const experience = (job.experienceMin > 0 || job.experienceMax > 0)
+                                        ? `${job.experienceMin || 0}${job.experienceMax ? `–${job.experienceMax}` : '+'} yrs`
+                                        : 'Fresher';
+                                    const description = (job.description || '').trim();
+                                    // Ignore junk entries such as the literal string "null"
+                                    const localities: string[] = (job.localities || [])
+                                        .filter((l: string) => l && l.trim() && l.trim().toLowerCase() !== 'null');
+                                    const subtitle = [job.company, job.city, job.jobType].filter(Boolean).join(' · ');
+
+                                    return (
+                                        <div key={job.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                            {/* Status + date */}
+                                            <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 bg-gray-50 border-b border-gray-100">
+                                                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${isActive ? 'bg-green-100 text-green-800' : job.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'}`}>
+                                                    {job.status}
+                                                </span>
+                                                <span className="text-[10px] text-gray-400 font-semibold whitespace-nowrap">{dateLabel}</span>
                                             </div>
-                                            <p className="text-xs text-gray-600 line-clamp-2 mt-1">{job.description}</p>
-                                            {job.localities?.length > 0 && (
-                                                <div className="flex flex-wrap gap-1 pt-0.5">
-                                                    {job.localities.map((l: string) => (
-                                                        <span key={l} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">{l}</span>
+
+                                            {/* Title block */}
+                                            <div className="px-3.5 pt-3 space-y-0.5 min-w-0">
+                                                <h4 className="font-bold text-sm text-gray-900 leading-snug break-words">{job.title}</h4>
+                                                {subtitle && <p className="text-xs text-gray-500 font-semibold break-words">{subtitle}</p>}
+                                            </div>
+
+                                            {/* Key facts */}
+                                            <div className="px-3.5 pt-2.5 grid grid-cols-2 gap-2">
+                                                <div className="bg-gray-50 rounded-lg px-2.5 py-1.5 min-w-0">
+                                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Salary</p>
+                                                    <p className="text-xs font-bold text-gray-900 break-words mt-0.5">{salary ? `${salary}/mo` : '—'}</p>
+                                                </div>
+                                                <div className="bg-gray-50 rounded-lg px-2.5 py-1.5 min-w-0">
+                                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Experience</p>
+                                                    <p className="text-xs font-bold text-gray-900 break-words mt-0.5">{experience}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Role / category / remote */}
+                                            {(job.role || (job.category && job.category !== 'Other') || job.remoteWork) && (
+                                                <div className="px-3.5 pt-2.5 flex flex-wrap gap-1.5">
+                                                    {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full break-words">{job.role}</span>}
+                                                    {job.category && job.category !== 'Other' && <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full break-words">{job.category}</span>}
+                                                    {job.remoteWork && <span className="text-[10px] font-bold bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">Remote: {job.remoteWork}</span>}
+                                                </div>
+                                            )}
+
+                                            {/* Description */}
+                                            {description && (
+                                                <p className="px-3.5 pt-2 text-xs text-gray-600 leading-relaxed line-clamp-2 break-words">{description}</p>
+                                            )}
+
+                                            {/* Localities */}
+                                            {localities.length > 0 && (
+                                                <div className="px-3.5 pt-2 flex flex-wrap gap-1">
+                                                    {localities.map(l => (
+                                                        <span key={l} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold break-words">{l}</span>
                                                     ))}
                                                 </div>
                                             )}
-                                        </div>
-                                        {/* Card footer */}
-                                        <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between gap-2">
-                                            <div className="text-xs text-gray-500">
-                                                <span className="font-bold">Contact:</span> {job.contactName} · {job.contactPhone}
+
+                                            {/* Contact + action */}
+                                            <div className="mt-3 border-t border-gray-100 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+                                                <div className="flex-1 min-w-0 space-y-0.5">
+                                                    <p className="text-[11px] text-gray-500 break-all"><span className="font-bold text-gray-700">Email:</span> {job.contactEmail}</p>
+                                                    <p className="text-[11px] text-gray-500"><span className="font-bold text-gray-700">Phone:</span> +91 {job.contactPhone}</p>
+                                                    {!job.showContact && (
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Hidden from candidates</p>
+                                                    )}
+                                                </div>
+                                                {isActive && (
+                                                    <button
+                                                        onClick={() => handleCloseJob(job.id)}
+                                                        className="flex-shrink-0 text-[11px] font-bold text-red-600 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 transition"
+                                                    >
+                                                        Close
+                                                    </button>
+                                                )}
                                             </div>
-                                            {job.status === 'ACTIVE' && (
-                                                <button
-                                                    onClick={() => handleCloseJob(job.id)}
-                                                    className="text-[11px] font-bold text-red-600 px-3 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 transition"
-                                                >
-                                                    Close
-                                                </button>
-                                            )}
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

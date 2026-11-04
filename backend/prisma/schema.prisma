@@ -576,18 +576,19 @@ model JobRequirement {
   city            String
   localities      String[]  @default([])
   description     String
-  contactName     String
-  contactEmail    String?
+  contactName     String?
+  contactEmail    String
   contactPhone    String
-  jobType         String    @default("Full Time")
-  role            String    @default("")
-  remote          String    @default("No")
+  jobType         String    @default("Full Time Jobs")
+  category        String?   @default("Other")
+  role            String    @default("Other")
   experienceMin   Int?      @default(0)
   experienceMax   Int?      @default(0)
   salaryMin       Float?
   salaryMax       Float?
-  termsAccepted   Boolean   @default(false)
   showContact     Boolean   @default(true)
+  remoteWork      String    @default("No")
+  termsAccepted   Boolean   @default(false)
   status          String    @default("ACTIVE")
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

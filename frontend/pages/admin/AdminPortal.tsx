@@ -337,7 +337,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'ROUTING_CONFIG', label: 'Routing Config', icon: FaClipboardList },
     { id: 'APPROVALS', label: 'Approvals', icon: FaCheckCircle },
     { id: 'CUSTOMERS', label: 'Customers', icon: FaUsers },
-    { id: 'JOBS', label: 'Job Requirements', icon: FaClipboardList },
+    { id: 'JOBS', label: 'Hiring', icon: FaClipboardList },
     { id: 'DRIVERS', label: 'Drivers', icon: FaCar },
     { id: 'LEADS', label: 'Leads', icon: FaBullseye },
     { id: 'OVERDUE_REPORT', label: 'Verification Report', icon: BiError },
