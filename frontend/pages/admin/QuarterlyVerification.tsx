@@ -437,6 +437,7 @@ export default function QuarterlyVerification() {
             </div>
           </div>
         </div>
+      )}
       {/* Document Viewer Lightbox Modal */}
       {activeDoc && (
         <DocumentViewerModal
