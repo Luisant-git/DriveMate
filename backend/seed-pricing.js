@@ -24,7 +24,10 @@ const outstationPackages = [
 async function seedPricingPackages() {
   console.log('Seeding pricing packages...');
   
-  for (const pkg of [...localPackages, ...outstationPackages]) {
+  // Local hourly packages cover 10 km per hour (4h -> 40km … 12h -> 120km)
+  const localWithKm = localPackages.map(p => ({ ...p, minimumKm: p.hours * 10 }));
+
+  for (const pkg of [...localWithKm, ...outstationPackages]) {
     await prisma.pricingPackage.upsert({
       where: { 
         packageType_hours: { 

@@ -103,8 +103,10 @@ export async function calculateLocalFareByDistance(
   isImmediate: boolean = false
 ): Promise<FareBreakdown | null> {
   try {
+    // Base hours must exist in LOCAL_HOURLY pricing — the backend overrides it
+    // with the package required by the distance (Min KM bands)
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType: 'LOCAL_HOURLY', hours: 1, distance: distanceKm, isImmediate }
+      params: { packageType: 'LOCAL_HOURLY', hours: 4, distance: distanceKm, isImmediate }
     });
     
     if (response.data.success && response.data.pricing) {

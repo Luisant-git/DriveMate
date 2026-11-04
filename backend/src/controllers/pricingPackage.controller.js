@@ -99,11 +99,16 @@ export const getEstimateByPackage = async (req, res) => {
     if (packageType === 'LOCAL_HOURLY' && distance && parseInt(distance) > 0) {
       const distanceKm = parseInt(distance);
       const localPackages = await prisma.pricingPackage.findMany({
-        where: { packageType: 'LOCAL_HOURLY', isActive: true, minimumKm: { not: null } },
-        orderBy: { minimumKm: 'asc' }
+        where: { packageType: 'LOCAL_HOURLY', isActive: true },
+        orderBy: { hours: 'asc' }
       });
-      // Pick the smallest package whose Min KM covers the distance; else the largest
-      const matching = localPackages.find(p => distanceKm <= p.minimumKm) || localPackages[localPackages.length - 1];
+      // Packages with a Min KM define the distance bands; fall back to the largest package
+      const bands = localPackages
+        .filter(p => p.minimumKm)
+        .sort((a, b) => a.minimumKm - b.minimumKm);
+      const matching = bands.find(p => distanceKm <= p.minimumKm)
+        || bands[bands.length - 1]
+        || localPackages[localPackages.length - 1];
       if (matching) {
         queryHours = matching.hours;
       }

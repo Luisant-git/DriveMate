@@ -137,6 +137,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [estimateLoading, setEstimateLoading] = useState(false);
     const [fareBreakdown, setFareBreakdown] = useState<FareBreakdown | null>(null);
     const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
+    // Minimum hours forced by the trip distance (from the package Min KM rule)
+    const [minUsageHours, setMinUsageHours] = useState<number | null>(null);
+    // LOCAL_HOURLY Min KM bands, e.g. 4h -> 40km … 12h -> 120km
+    const [localPricing, setLocalPricing] = useState<{ hours: number; minimumKm: number }[]>([]);
     const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
     const [outstationDailyFare, setOutstationDailyFare] = useState<number | null>(null);
     const [pickupError, setPickupError] = useState<string>('');
@@ -148,6 +152,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [ratingData, setRatingData] = useState<{ [key: string]: { rating: number, feedback: string } }>({});
     const [cancelModalBookingId, setCancelModalBookingId] = useState<string | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
+    // Friendly prompt shown when a Local Hourly trip is beyond the local KM range
+    const [showOutstationSwitch, setShowOutstationSwitch] = useState(false);
 
     const [confirmConfig, setConfirmConfig] = useState<{
         isOpen: boolean;
@@ -332,6 +338,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         handleEstimateWithValues('4 Hrs');
     }, [initialCustomer]);
 
+    // Load LOCAL_HOURLY distance bands so the UI can enforce the minimum hours
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/pricing-packages`);
+                const data = await res.json();
+                if (cancelled || !data?.success) return;
+                const bands = (data.pricing || [])
+                    .filter((p: any) => p.packageType === 'LOCAL_HOURLY' && p.isActive && p.minimumKm)
+                    .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
+                    .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
+                setLocalPricing(bands);
+            } catch (error) {
+                console.error('Failed to load local pricing bands:', error);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
     // ── JOBS helpers ─────────────────────────────────────────────
     const fetchMyJobs = async () => {
         setJobsLoading(true);
@@ -447,6 +473,78 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         }
     };
 
+    // Hours required for a LOCAL_HOURLY trip, plus whether the distance is out of local range
+    const getLocalLimitForDistance = (distanceKm: number) => {
+        if (localPricing.length === 0) return { hours: null as number | null, maxKm: null as number | null, exceeds: false };
+        const maxKm = localPricing[localPricing.length - 1].minimumKm;
+        const band = localPricing.find(p => distanceKm <= p.minimumKm) || localPricing[localPricing.length - 1];
+        return { hours: band.hours, maxKm, exceeds: distanceKm > maxKm };
+    };
+
+    const localDistanceExceeded = serviceType === BookingType.LOCAL_HOURLY && calculatedDistance !== null
+        ? getLocalLimitForDistance(calculatedDistance)
+        : null;
+    const localDistanceError = localDistanceExceeded?.exceeds
+        ? `This trip is ${Math.round(calculatedDistance as number)} km. Local Hourly covers up to ${localDistanceExceeded.maxKm} km — tap here to switch to Outstation.`
+        : '';
+
+    // Remembers which route already triggered the prompt, so cancelling it does not
+    // pop it straight back up on the next re-render.
+    const [autoPromptedRoute, setAutoPromptedRoute] = useState('');
+
+    // Open the switch prompt automatically the moment a Local trip goes out of range
+    useEffect(() => {
+        if (!localDistanceExceeded?.exceeds) return;
+        const routeKey = `${formData.pickup}|${formData.drop}`;
+        if (!formData.pickup || !formData.drop) return;
+        if (routeKey === autoPromptedRoute) return;
+        setAutoPromptedRoute(routeKey);
+        setShowOutstationSwitch(true);
+    }, [localDistanceExceeded?.exceeds, formData.pickup, formData.drop, autoPromptedRoute]);
+
+    // One-tap switch to Outstation when a Local Hourly trip is out of local range.
+    // The pickup and drop the customer already typed are carried over untouched.
+    const handleSwitchToOutstation = async () => {
+        setShowOutstationSwitch(false);
+        const pickup = formData.pickup;
+        const drop = formData.drop;
+        const distance = calculatedDistance;
+        const packageInfo = distance ? getPackageByDistance(distance) : null;
+
+        setServiceType(BookingType.OUTSTATION);
+        setOutstationData({ pickup, drop });
+        setOutstationErrors({ pickup: '', drop: '' });
+        setDropError('');
+        setMinUsageHours(null);
+        setFormData(prev => ({
+            ...prev,
+            pickup,
+            drop,
+            estimatedUsage: packageInfo ? `${packageInfo.hours} Hrs` : prev.estimatedUsage,
+        }));
+
+        if (distance) {
+            const breakdown = await calculateOutstationFareByDistance(
+                distance,
+                formData.whenNeeded === 'Immediately'
+            );
+            if (breakdown) {
+                setFareBreakdown(breakdown);
+                setOutstationDailyFare(breakdown.totalFare);
+                if (formData.tripType === 'Round Trip') {
+                    applyOutstationDaysEstimate(breakdown.totalFare);
+                } else {
+                    setEstimate(breakdown.totalFare);
+                }
+            } else {
+                // Never leave a Local Hourly fare behind on an Outstation trip
+                setEstimate(null);
+                setFareBreakdown(null);
+            }
+        }
+        toast.success('Switched to Outstation — pickup and drop kept.');
+    };
+
     const getAutoEstimatedUsage = (durationMinutes: number): string => {
         const hours = Math.round(durationMinutes / 60 + 2);
         const final = Math.min(Math.max(hours, 4), 12);
@@ -490,6 +588,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
         // Check if estimate is available
         if (!estimate || estimate <= 0) {
+            // Out of Local Hourly range — reopen the switch prompt instead of a warning
+            if (localDistanceError) {
+                setShowOutstationSwitch(true);
+                return;
+            }
             toast.error('Please wait for fare estimation before booking or try any other near location');
             setShowEstimateWarning(true);
             setTimeout(() => setShowEstimateWarning(false), 5000);
@@ -1253,16 +1356,25 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     if (distanceData) {
                                                         setCalculatedDistance(distanceData.distance);
                                                         setCalculatedDuration(distanceData.duration);
-                                                        const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
-                                                        if (breakdown) {
-                                                            setFareBreakdown(breakdown);
-                                                            setEstimate(breakdown.totalFare);
-                                                            setFormData({ ...formData, pickup: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}` });
+                                                        const localLimit = getLocalLimitForDistance(distanceData.distance);
+                                                        if (localLimit.exceeds) {
+                                                            setFareBreakdown(null);
+                                                            setEstimate(null);
+                                                            setMinUsageHours(null);
+                                                        } else {
+                                                            const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
+                                                            if (breakdown) {
+                                                                setFareBreakdown(breakdown);
+                                                                setEstimate(breakdown.totalFare);
+                                                                setMinUsageHours(breakdown.hours ?? null);
+                                                                setFormData({ ...formData, pickup: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}` });
+                                                            }
                                                         }
                                                     }
                                                 } else {
                                                     setCalculatedDistance(null);
                                                     setCalculatedDuration(null);
+                                                    setMinUsageHours(null);
                                                     if (formData.estimatedUsage) {
                                                         setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
                                                     }
@@ -1281,6 +1393,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 // Reset distance and fare when pickup changes for outstation
                                                 setCalculatedDistance(null);
                                                 setCalculatedDuration(null);
+                                                setMinUsageHours(null);
                                                 setEstimate(null);
                                                 setFareBreakdown(null);
 
@@ -1364,16 +1477,25 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                             if (distanceData) {
                                                                 setCalculatedDistance(distanceData.distance);
                                                                 setCalculatedDuration(distanceData.duration);
-                                                                const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
-                                                                if (breakdown) {
-                                                                    setFareBreakdown(breakdown);
-                                                                    setEstimate(breakdown.totalFare);
-                                                                    setFormData({ ...formData, drop: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}` });
+                                                                const localLimit = getLocalLimitForDistance(distanceData.distance);
+                                                                if (localLimit.exceeds) {
+                                                                    setFareBreakdown(null);
+                                                                    setEstimate(null);
+                                                                    setMinUsageHours(null);
+                                                                } else {
+                                                                    const breakdown = await calculateLocalFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately');
+                                                                    if (breakdown) {
+                                                                        setFareBreakdown(breakdown);
+                                                                        setEstimate(breakdown.totalFare);
+                                                                        setMinUsageHours(breakdown.hours ?? null);
+                                                                        setFormData({ ...formData, drop: value, estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}` });
+                                                                    }
                                                                 }
                                                             }
                                                         } else {
                                                             setCalculatedDistance(null);
                                                             setCalculatedDuration(null);
+                                                            setMinUsageHours(null);
                                                             if (formData.estimatedUsage) {
                                                                 setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, false), 100);
                                                             }
@@ -1387,6 +1509,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         // Reset distance when drop location is cleared
                                                         setCalculatedDistance(null);
                                                         setCalculatedDuration(null);
+                                                        setMinUsageHours(null);
                                                         setEstimate(null);
                                                         setFareBreakdown(null);
                                                         return;
@@ -1670,6 +1793,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
+                                                {localDistanceError && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowOutstationSwitch(true)}
+                                                        className="w-full text-left text-[11px] font-bold text-red-600 mb-1.5 leading-snug underline decoration-red-300 underline-offset-2 hover:text-red-700"
+                                                    >
+                                                        {localDistanceError}
+                                                    </button>
+                                                )}
                                                 <div className="relative">
                                                     <div
                                                         onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
@@ -1680,15 +1812,32 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     </div>
                                                     {openDropdown === 'usage' && (
                                                         <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                            {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
-                                                                <div
-                                                                    key={option}
-                                                                    onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                                >
-                                                                    {option}
+                                                            {minUsageHours !== null && (
+                                                                <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 text-[10px] font-bold text-amber-700">
+                                                                    Minimum {minUsageHours} Hrs required for {calculatedDistance ?? ''} km
                                                                 </div>
-                                                            ))}
+                                                            )}
+                                                            {LOCAL_USAGE_OPTIONS.map(option => {
+                                                                const optionHours = parseInt(option, 10);
+                                                                const locked = minUsageHours !== null && optionHours < minUsageHours;
+                                                                return (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => {
+                                                                            if (locked) return;
+                                                                            setFormData({ ...formData, estimatedUsage: option });
+                                                                            setOpenDropdown(null);
+                                                                            setTimeout(() => handleEstimateWithValues(option), 100);
+                                                                        }}
+                                                                        className={`p-3 text-xs font-bold flex items-center justify-between gap-2 ${locked
+                                                                            ? 'text-gray-300 cursor-not-allowed'
+                                                                            : `cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}`}
+                                                                    >
+                                                                        <span>{option}</span>
+                                                                        {locked && <span className="text-[9px] font-bold text-gray-400 uppercase">Min {minUsageHours} Hrs</span>}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     )}
                                                 </div>
@@ -1975,6 +2124,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
+                                                {localDistanceError && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowOutstationSwitch(true)}
+                                                        className="w-full text-left text-[11px] font-bold text-red-600 mb-1.5 leading-snug underline decoration-red-300 underline-offset-2 hover:text-red-700"
+                                                    >
+                                                        {localDistanceError}
+                                                    </button>
+                                                )}
                                                 <div className="relative">
                                                     <div
                                                         onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
@@ -1985,15 +2143,32 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     </div>
                                                     {openDropdown === 'usage' && (
                                                         <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                            {['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
-                                                                <div
-                                                                    key={option}
-                                                                    onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                                    className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                                >
-                                                                    {option}
+                                                            {minUsageHours !== null && (
+                                                                <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 text-[10px] font-bold text-amber-700">
+                                                                    Minimum {minUsageHours} Hrs required for {calculatedDistance ?? ''} km
                                                                 </div>
-                                                            ))}
+                                                            )}
+                                                            {LOCAL_USAGE_OPTIONS.map(option => {
+                                                                const optionHours = parseInt(option, 10);
+                                                                const locked = minUsageHours !== null && optionHours < minUsageHours;
+                                                                return (
+                                                                    <div
+                                                                        key={option}
+                                                                        onClick={() => {
+                                                                            if (locked) return;
+                                                                            setFormData({ ...formData, estimatedUsage: option });
+                                                                            setOpenDropdown(null);
+                                                                            setTimeout(() => handleEstimateWithValues(option), 100);
+                                                                        }}
+                                                                        className={`p-3 text-xs font-bold flex items-center justify-between gap-2 ${locked
+                                                                            ? 'text-gray-300 cursor-not-allowed'
+                                                                            : `cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}`}
+                                                                    >
+                                                                        <span>{option}</span>
+                                                                        {locked && <span className="text-[9px] font-bold text-gray-400 uppercase">Min {minUsageHours} Hrs</span>}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     )}
                                                 </div>
@@ -3534,6 +3709,67 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                 )}
             </div>
+
+            {/* Local Hourly → Outstation switch prompt */}
+            {showOutstationSwitch && (
+                <div
+                    className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowOutstationSwitch(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-5">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-gray-900">Switch to Outstation?</p>
+                                    <p className="text-xs text-gray-500 mt-1 leading-snug">
+                                        Your trip is <span className="font-bold text-gray-800">{Math.round(calculatedDistance || 0)} km</span>.
+                                        Local Hourly covers up to <span className="font-bold text-gray-800">{localDistanceExceeded?.maxKm || 0} km</span>, so this trip needs an Outstation package.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+                                <div className="flex gap-2">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 w-9 pt-0.5">From</span>
+                                    <span className="text-xs font-semibold text-gray-800 flex-1 break-words">{formData.pickup.split(',')[0]}</span>
+                                </div>
+                                <div className="h-px bg-gray-200" />
+                                <div className="flex gap-2">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 w-9 pt-0.5">To</span>
+                                    <span className="text-xs font-semibold text-gray-800 flex-1 break-words">{formData.drop.split(',')[0]}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-[10px] text-gray-400 font-semibold mt-2">Pickup and drop are kept automatically — no need to re-enter them.</p>
+
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowOutstationSwitch(false)}
+                                    className="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSwitchToOutstation}
+                                    className="flex-1 py-2.5 rounded-lg bg-black text-white text-xs font-bold hover:bg-gray-800"
+                                >
+                                    Switch to Outstation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Cancel Confirmation Modal */}
             {cancelModalBookingId && (
