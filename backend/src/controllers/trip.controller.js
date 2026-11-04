@@ -99,6 +99,7 @@ export const getDriverTrips = async (req, res) => {
         updatedAt: booking.updatedAt,
         driverPayout: booking.driverPayout,
         adminCommission: booking.adminCommission,
+        excessAmount: booking.adminCommission,
         minHours: booking.minHours,
         extraPerHourRate: booking.extraPerHourRate,
       };
@@ -191,10 +192,14 @@ export const completeTrip = async (req, res) => {
       calculatedDuration = `${hours}h ${minutes}m`;
     }
 
-    // ── Commission calculation from subscription plan description ────
-    // Parse description format: "LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90"
-    // Admin commission: ₹250 base + ₹10/extra hour
-    // Driver payout: (baseFare - 250) + (extraPerHour - 10) * extraHours
+    // ── Excess amount calculation ────────────────────────────────────
+    // Primary rule: plan.excessAmountPerRide (Admin → Packages → Excess Amount / Ride)
+    //   adminCommission = excess per ride
+    //   driverPayout    = amount collected − excess
+    // Legacy fallback (plans without a configured excess amount):
+    //   parse description "LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90"
+    //   adminCommission = ₹250 + ₹10/extra hour
+    //   driverPayout    = (baseFare − 250) + (extraPerHour − 10) × extraHours
     let adminCommission = null;
     let driverPayout = null;
     let minHoursVal = null;
@@ -235,7 +240,20 @@ export const completeTrip = async (req, res) => {
         if (pricing) baseFare = pricing.minimumCharge;
       }
 
-      if (minHours > 0 && baseFare > 0 && extraPerHour > 0) {
+      // Excess amount configured on the plan takes priority: a flat cut per ride
+      const planExcess = activePlan?.plan?.excessAmountPerRide || 0;
+      const collectedInput = parseFloat(finalAmount);
+      const collectedAmount = Number.isFinite(collectedInput) ? collectedInput : baseFare;
+
+      if (planExcess > 0) {
+        adminCommission = planExcess;
+        driverPayout = Math.max(0, collectedAmount - planExcess);
+        if (minHours > 0) minHoursVal = minHours;
+        if (extraPerHour > 0) extraPerHourRate = extraPerHour;
+
+        console.log(`[Excess] Plan: ${activePlan?.plan?.name}, per ride: ₹${planExcess}, collected: ₹${collectedAmount}, driverPayout: ₹${driverPayout.toFixed(2)}`);
+      } else if (minHours > 0 && baseFare > 0 && extraPerHour > 0) {
+        // Legacy fallback for plans without a configured excess amount
         const BASE_ADMIN_COMMISSION = 250;
         const EXTRA_ADMIN_CUT = 10;
 
@@ -252,10 +270,10 @@ export const completeTrip = async (req, res) => {
         minHoursVal = minHours;
         extraPerHourRate = extraPerHour;
 
-        console.log(`[Commission] Plan: ${activePlan?.plan?.name}, minHours: ${minHours}, actualHours: ${actualHours.toFixed(2)}, extraHours: ${extraHours.toFixed(2)}, adminCommission: ₹${adminCommission.toFixed(2)}, driverPayout: ₹${driverPayout.toFixed(2)}`);
+        console.log(`[Excess] Legacy plan: ${activePlan?.plan?.name}, minHours: ${minHours}, actualHours: ${actualHours.toFixed(2)}, extraHours: ${extraHours.toFixed(2)}, adminCommission: ₹${adminCommission.toFixed(2)}, driverPayout: ₹${driverPayout.toFixed(2)}`);
       }
     } catch (commErr) {
-      console.error('[Commission] Error calculating commission:', commErr.message);
+      console.error('[Excess] Error calculating excess amount:', commErr.message);
     }
 
     // Update booking status to completed
@@ -362,8 +380,9 @@ export const completeTrip = async (req, res) => {
       estimatedCost: booking.estimateAmount,
       finalAmount: booking.finalAmount,
       status: 'COMPLETED',
-      adminCommission: booking.adminCommission,
       driverPayout: booking.driverPayout,
+      adminCommission: booking.adminCommission,
+      excessAmount: booking.adminCommission,
       minHours: booking.minHours,
       extraPerHourRate: booking.extraPerHourRate,
     };

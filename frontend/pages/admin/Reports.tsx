@@ -577,7 +577,7 @@ const Reports: React.FC = () => {
                               <p><span className="font-bold text-green-700">Driver Payout:</span> ₹{Math.round(booking.driverPayout)}</p>
                             )}
                             {booking.adminCommission > 0 && (
-                              <p><span className="font-bold text-purple-700">Admin Commission:</span> ₹{Math.round(booking.adminCommission)}</p>
+                              <p><span className="font-bold text-purple-700">Excess Amount:</span> ₹{Math.round(booking.adminCommission)}</p>
                             )}
                             <p><span className="font-bold">Start:</span> {booking.actualStartTime ? new Date(booking.actualStartTime).toLocaleString('en-IN') : new Date(booking.startDateTime).toLocaleString('en-IN')}</p>
                             {booking.endDateTime && (

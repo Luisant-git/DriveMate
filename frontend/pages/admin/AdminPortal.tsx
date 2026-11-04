@@ -528,6 +528,9 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                                   {(pkg as any).minHours > 0 && (
                                     <span> | Min: {(pkg as any).minHours}hr ₹{(pkg as any).extraPerHourRate}/hr</span>
                                   )}
+                                  {(pkg as any).excessAmountPerRide > 0 && (
+                                    <span className="text-orange-600"> | Excess: ₹{(pkg as any).excessAmountPerRide}/ride</span>
+                                  )}
                                 </p>
                                 <div className="flex gap-2">
                                   <button
@@ -803,7 +806,25 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <label className="block text-xs font-bold text-gray-500 uppercase">
+                  Excess Amount / Ride (₹)
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    value={packageForm.excessAmountPerRide || ''}
+                    placeholder="0"
+                    onChange={(e) =>
+                      setPackageForm((prev) => ({
+                        ...prev,
+                        excessAmountPerRide: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Min Hours
                   <input

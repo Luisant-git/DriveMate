@@ -74,13 +74,15 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
   const [settleSuccessMsg, setSettleSuccessMsg] = useState<string | null>(null);
 
   const activeSub = driver?.activeSubscription;
-  const excessPerRide = activeSub?.plan?.excessAmountPerRide || 0;
+  // Excess amount fields come from the API (attachExcessData); fall back to
+  // rate × rides for older payloads that only carry the plan and duty counter.
+  const excessPerRide = activeSub?.excessPerRide ?? activeSub?.plan?.excessAmountPerRide ?? 0;
   const dutiesDone = activeSub?.dutiesCompleted || 0;
-  const totalComm = dutiesDone * excessPerRide;
-  const commPaid = activeSub?.commissionPaid || 0;
-  const commDue = Math.max(0, totalComm - commPaid);
+  const totalExcess = activeSub?.totalExcess ?? dutiesDone * excessPerRide;
+  const excessPaid = activeSub?.excessPaid ?? activeSub?.commissionPaid ?? 0;
+  const excessDue = activeSub?.excessDue ?? Math.max(0, totalExcess - excessPaid);
 
-  const handleSettleCommission = async (e: React.FormEvent) => {
+  const handleSettleExcess = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSub) return;
     const amountNum = parseFloat(settleAmount);
@@ -88,8 +90,8 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
       alert('Please enter a valid amount');
       return;
     }
-    if (amountNum > commDue) {
-      alert(`Amount cannot exceed current commission due (₹${commDue})`);
+    if (amountNum > excessDue) {
+      alert(`Amount cannot exceed current excess due (₹${excessDue})`);
       return;
     }
 
@@ -106,19 +108,21 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        activeSub.commissionPaid = (activeSub.commissionPaid || 0) + amountNum;
-        activeSub.commissionDue = Math.max(0, (activeSub.totalCommission || totalComm) - activeSub.commissionPaid);
-        setSettleSuccessMsg(`Successfully collected ₹${amountNum} commission!`);
+        const paidNow = excessPaid + amountNum;
+        activeSub.excessPaid = paidNow;
+        activeSub.excessDue = Math.max(0, totalExcess - paidNow);
+        activeSub.commissionPaid = paidNow;
+        setSettleSuccessMsg(`Successfully collected ₹${amountNum} excess amount!`);
         setTimeout(() => {
           setSettleSuccessMsg(null);
           setShowSettleModal(false);
           setSettleAmount('');
         }, 1500);
       } else {
-        alert(data.error || 'Failed to settle commission');
+        alert(data.error || 'Failed to collect excess amount');
       }
     } catch (err: any) {
-      alert(err.message || 'Error settling commission');
+      alert(err.message || 'Error collecting excess amount');
     } finally {
       setIsSettling(false);
     }
@@ -588,36 +592,40 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                       </button>
                     </div>
 
-                    {/* Per-Ride Commission Details (Driver Commission Ledger) */}
+                    {/* Excess Amount Details (Driver Excess Ledger) */}
                     {activeSub && excessPerRide > 0 && (
                       <div className="pt-2.5 border-t border-gray-200 space-y-2">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-3 gap-2 text-xs">
                           <div className="bg-white p-2 rounded-lg border border-gray-200/70">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Commission Rate</span>
-                            <span className="text-xs font-black text-gray-900">₹{excessPerRide} / ride</span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Excess / Ride</span>
+                            <span className="text-xs font-black text-gray-900">₹{excessPerRide}</span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-gray-200/70">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Commission Settled</span>
-                            <span className="text-xs font-black text-emerald-600">₹{commPaid}</span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Total Excess</span>
+                            <span className="text-xs font-black text-gray-900">₹{Math.round(totalExcess)}</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-gray-200/70">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Collected</span>
+                            <span className="text-xs font-black text-emerald-600">₹{Math.round(excessPaid)}</span>
                           </div>
                         </div>
 
                         <div className="bg-orange-50 border border-orange-200 p-2.5 rounded-xl flex items-center justify-between gap-2">
                           <div>
-                            <span className="text-[9px] font-black text-orange-800 uppercase tracking-wider block">Commission Owed</span>
-                            <p className="text-base font-black text-orange-700 leading-tight">₹{commDue}</p>
+                            <span className="text-[9px] font-black text-orange-800 uppercase tracking-wider block">Excess Amount Owed</span>
+                            <p className="text-base font-black text-orange-700 leading-tight">₹{Math.round(excessDue)}</p>
                             <p className="text-[10px] text-orange-600 font-semibold mt-0.5">({dutiesDone} completed rides × ₹{excessPerRide})</p>
                           </div>
-                          {commDue > 0 ? (
+                          {excessDue > 0 ? (
                             <button
                               type="button"
                               onClick={() => {
-                                setSettleAmount(String(commDue));
+                                setSettleAmount(String(Math.round(excessDue)));
                                 setShowSettleModal(true);
                               }}
                               className="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-black rounded-lg transition shadow-xs active:scale-95 flex-shrink-0"
                             >
-                              Collect ₹{commDue}
+                              Collect ₹{Math.round(excessDue)}
                             </button>
                           ) : (
                             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200">
@@ -786,13 +794,13 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
         />
       )}
 
-      {/* Settle Commission Modal */}
+      {/* Settle Excess Amount Modal */}
       {showSettleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
             <div className="bg-black text-white px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Commission</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Excess Amount</p>
                 <h3 className="text-base font-black text-white mt-0.5">{driver.name}</h3>
               </div>
               <button
@@ -804,7 +812,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSettleCommission} className="p-5 space-y-4">
+            <form onSubmit={handleSettleExcess} className="p-5 space-y-4">
               {settleSuccessMsg && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl text-center">
                   ✓ {settleSuccessMsg}
@@ -821,12 +829,16 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                   <span className="font-bold text-gray-900">{dutiesDone}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Commission Rate:</span>
+                  <span className="text-gray-500">Excess / Ride:</span>
                   <span className="font-bold text-gray-900">₹{excessPerRide} / ride</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Already Collected:</span>
+                  <span className="font-bold text-emerald-700">₹{Math.round(excessPaid)}</span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-gray-200 font-bold">
                   <span className="text-orange-800">Total Due:</span>
-                  <span className="text-orange-700 text-sm font-black">₹{commDue}</span>
+                  <span className="text-orange-700 text-sm font-black">₹{Math.round(excessDue)}</span>
                 </div>
               </div>
 
@@ -837,7 +849,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                 <input
                   type="number"
                   min={1}
-                  max={commDue}
+                  max={excessDue}
                   step="0.01"
                   required
                   value={settleAmount}

@@ -158,7 +158,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                 </div>
                 {/* Plan name */}
                 <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{sub.plan?.name}</p>
-                {/* Days + duties + commission */}
+                {/* Days + duties + excess amount */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     {daysLeft}d left
@@ -170,7 +170,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                   )}
                   {sub.plan?.excessAmountPerRide > 0 && (
                     <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full">
-                      ₹{sub.plan.excessAmountPerRide} commission/ride
+                      ₹{sub.plan.excessAmountPerRide} excess/ride
                     </span>
                   )}
                 </div>
@@ -281,8 +281,8 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
 
       {activeSubTab === 'HISTORY' && (
         <div className="space-y-4">
-          {/* Trip Commission Ledger (History) */}
-          {(activeSubscriptions.length > 0 ? activeSubscriptions : (currentSubscription ? [currentSubscription] : [])).some(sub => sub.plan?.excessAmountPerRide > 0) && (
+          {/* Excess Amount Ledger (History) */}
+          {(activeSubscriptions.length > 0 ? activeSubscriptions : (currentSubscription ? [currentSubscription] : [])).some(sub => (sub.excessPerRide || sub.plan?.excessAmountPerRide || 0) > 0 || (sub.excessDue || 0) > 0) && (
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2.5">
@@ -292,19 +292,19 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-gray-900">Trip Commission Ledger</h3>
-                    <p className="text-xs text-gray-500">Per-ride commission summary for your active packages</p>
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900">Excess Amount Ledger</h3>
+                    <p className="text-xs text-gray-500">Per-ride excess amount summary for your active packages</p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).filter(sub => sub?.plan?.excessAmountPerRide > 0).map((sub, idx) => {
-                  const rate = sub.plan.excessAmountPerRide;
+                {(activeSubscriptions.length > 0 ? activeSubscriptions : [currentSubscription]).filter(sub => (sub?.excessPerRide || sub?.plan?.excessAmountPerRide || 0) > 0 || (sub?.excessDue || 0) > 0).map((sub, idx) => {
+                  const rate = sub.excessPerRide ?? sub.plan?.excessAmountPerRide ?? 0;
                   const rides = sub.dutiesCompleted || 0;
-                  const total = rides * rate;
-                  const paid = sub.commissionPaid || 0;
-                  const due = Math.max(0, total - paid);
+                  const total = sub.totalExcess ?? rides * rate;
+                  const paid = sub.excessPaid ?? sub.commissionPaid ?? 0;
+                  const due = sub.excessDue ?? Math.max(0, total - paid);
 
                   return (
                     <div key={sub.id || idx} className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200">
@@ -316,28 +316,32 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
                           due > 0 ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}>
-                          {due > 0 ? `₹${due} Due` : '✓ All Settled'}
+                          {due > 0 ? `₹${Math.round(due)} Due` : '✓ All Settled'}
                         </span>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="bg-white rounded-lg p-2 border border-gray-100">
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">Rate</p>
-                          <p className="font-bold text-xs sm:text-sm text-gray-800">₹{rate}/ride</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">Excess / Ride</p>
+                          <p className="font-bold text-xs sm:text-sm text-gray-800">
+                            {rate > 0
+                              ? `₹${rate}`
+                              : (total > 0 ? <span className="text-[10px] text-gray-500">As recorded</span> : '—')}
+                          </p>
                         </div>
                         <div className="bg-white rounded-lg p-2 border border-gray-100">
                           <p className="text-[10px] text-gray-400 font-bold uppercase">Total ({rides} rides)</p>
-                          <p className="font-bold text-xs sm:text-sm text-gray-800">₹{total}</p>
+                          <p className="font-bold text-xs sm:text-sm text-gray-800">₹{Math.round(total)}</p>
                         </div>
                         <div className="bg-white rounded-lg p-2 border border-gray-100">
                           <p className="text-[10px] text-gray-400 font-bold uppercase">Paid to Admin</p>
-                          <p className="font-bold text-xs sm:text-sm text-emerald-600">₹{paid}</p>
+                          <p className="font-bold text-xs sm:text-sm text-emerald-600">₹{Math.round(paid)}</p>
                         </div>
                       </div>
 
                       {due > 0 && (
                         <p className="text-[11px] text-orange-700 font-semibold mt-2.5 text-center bg-orange-50 py-1.5 px-2 rounded-lg border border-orange-200">
-                          Outstanding ₹{due} commission to be settled at Admin office
+                          Outstanding ₹{Math.round(due)} excess amount to be settled at Admin office
                         </p>
                       )}
                     </div>

@@ -225,33 +225,44 @@ export const getActivePackagesForDrivers = async (req, res) => {
   }
 };
 
-export const attachCommissionData = (sub) => {
-  if (!sub) return sub;
-  const excessPerRide = sub.plan?.excessAmountPerRide || 0;
-  // Use actual completed-bookings count when available (set by getAllSubscriptions).
-  const actualDutiesCompleted = sub._completedRidesCount !== undefined
+// ── Excess amount (admin cut per completed ride) ──────────────────────
+// Single source of truth used by the admin ledger, the settlement endpoint
+// and the driver subscription responses.
+//   rate  → SubscriptionPlan.excessAmountPerRide (set in Admin → Packages)
+//   total → amount recorded on each completed ride (Booking.adminCommission)
+//           falling back to rate × rides for rows completed before the field existed
+//   due   → total − already collected
+// Queries attach _totalAdminCommission / _completedRidesCount to avoid N+1 lookups.
+export const resolveExcess = (sub) => {
+  if (!sub) return { perRide: 0, rides: 0, total: 0, paid: 0, due: 0 };
+  const perRide = sub.plan?.excessAmountPerRide || 0;
+  const rides = sub._completedRidesCount !== undefined
     ? sub._completedRidesCount
     : (sub.dutiesCompleted || 0);
-  // Per-ride commission plans: total = rate × completed rides (what driver owes per ride)
-  // Plans without per-ride rate: total = sum of adminCommission from bookings
-  let totalCommission;
-  if (excessPerRide > 0) {
-    totalCommission = excessPerRide * actualDutiesCompleted;
-  } else if (sub._totalAdminCommission !== undefined) {
-    totalCommission = sub._totalAdminCommission;
-  } else {
-    totalCommission = excessPerRide * (sub.dutiesCompleted || 0);
-  }
+  const recorded = sub._totalAdminCommission || 0;
+  const total = recorded > 0 ? recorded : perRide * rides;
   const paid = sub.commissionPaid || 0;
-  const commissionDue = Math.max(0, totalCommission - paid);
+  return { perRide, rides, total, paid, due: Math.max(0, total - paid) };
+};
+
+// A plan that was rejected or cancelled never granted duties, so no completed
+// ride can be charged against it. Only ACTIVE / EXPIRED plans accrue excess.
+const DELIVERED_PLAN_STATUSES = ['ACTIVE', 'EXPIRED'];
+export const isPlanDelivered = (status) =>
+  DELIVERED_PLAN_STATUSES.includes(String(status || '').toUpperCase());
+
+export const attachExcessData = (sub) => {
+  if (!sub) return sub;
+  const { perRide, rides, total, paid, due } = resolveExcess(sub);
   // Strip internal fields so they don't leak into the API response
   const { _totalAdminCommission, _completedRidesCount, ...rest } = sub;
   return {
     ...rest,
-    totalCommission,
-    commissionPaid: paid,
-    commissionDue,
-    dutiesCompleted: actualDutiesCompleted,
+    excessPerRide: perRide,
+    dutiesCompleted: rides,
+    totalExcess: total,
+    excessPaid: paid,
+    excessDue: due,
   };
 };
 export const getAllSubscriptions = async (req, res) => {
@@ -272,6 +283,10 @@ export const getAllSubscriptions = async (req, res) => {
     // For each subscription, sum adminCommission from completed bookings
     // that fall within the subscription period for that driver
     const enriched = await Promise.all(subscriptions.map(async (sub) => {
+      // Rejected / cancelled plans never accrued any excess amount
+      if (!isPlanDelivered(sub.status)) {
+        return { ...sub, _totalAdminCommission: 0, _completedRidesCount: 0 };
+      }
       const completedBookings = await prisma.booking.findMany({
         where: {
           driverId: sub.driverId,
@@ -290,7 +305,7 @@ export const getAllSubscriptions = async (req, res) => {
       return { ...sub, _totalAdminCommission: totalAdminCommission, _completedRidesCount: completedRidesCount };
     }));
 
-    res.json({ success: true, subscriptions: enriched.map(attachCommissionData) });
+    res.json({ success: true, subscriptions: enriched.map(attachExcessData) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -341,10 +356,27 @@ export const getDriverSubscription = async (req, res) => {
       return res.json(null);
     }
 
+    // Attach the excess amount owed so the driver sees the same numbers as admin
+    const enriched = await Promise.all(activeSubscriptions.map(async (sub) => {
+      const completedBookings = await prisma.booking.findMany({
+        where: {
+          driverId: sub.driverId,
+          status: 'COMPLETED',
+          completedAt: { gte: sub.startDate, lte: sub.endDate },
+        },
+        select: { adminCommission: true },
+      });
+      const totalAdminCommission = completedBookings.reduce(
+        (sum, b) => sum + (b.adminCommission || 0), 0
+      );
+      return { ...sub, _totalAdminCommission: totalAdminCommission, _completedRidesCount: completedBookings.length };
+    }));
+    const withExcess = enriched.map(attachExcessData);
+
     // Attach all active subscriptions list while keeping primary fields top-level
     const responsePayload = {
-      ...activeSubscriptions[0],
-      activeSubscriptions
+      ...withExcess[0],
+      activeSubscriptions: withExcess
     };
 
     res.json(responsePayload);
@@ -366,7 +398,7 @@ export const getDriverAllActiveSubscriptions = async (req, res) => {
       include: { plan: true },
       orderBy: { startDate: 'desc' }
     });
-    res.json({ success: true, subscriptions: activeSubscriptions.map(attachCommissionData) });
+    res.json({ success: true, subscriptions: activeSubscriptions.map(attachExcessData) });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -512,7 +544,7 @@ export const payRemainingAmount = async (req, res) => {
   }
 };
 
-// Admin collects / settles driver commission for completed rides
+// Admin collects / settles the excess amount owed for completed rides
 export const settleDriverCommission = async (req, res) => {
   try {
     const { id } = req.params;
@@ -533,23 +565,30 @@ export const settleDriverCommission = async (req, res) => {
     }
 
     // Sum actual adminCommission from completed bookings in this subscription period
-    const completedBookings = await prisma.booking.findMany({
-      where: {
-        driverId: subscription.driverId,
-        status: 'COMPLETED',
-        completedAt: { gte: subscription.startDate, lte: subscription.endDate },
-      },
-      select: { adminCommission: true }
-    });
+    // (rejected / cancelled plans never accrued any excess amount)
+    const completedBookings = isPlanDelivered(subscription.status)
+      ? await prisma.booking.findMany({
+          where: {
+            driverId: subscription.driverId,
+            status: 'COMPLETED',
+            completedAt: { gte: subscription.startDate, lte: subscription.endDate },
+          },
+          select: { adminCommission: true }
+        })
+      : [];
     const totalCommission = completedBookings.reduce((sum, b) => sum + (b.adminCommission || 0), 0);
     const completedRidesCount = completedBookings.length;
-    const alreadyPaid = subscription.commissionPaid || 0;
-    const currentDue = Math.max(0, totalCommission - alreadyPaid);
+    // Same helper as the ledger so the validated due matches the displayed due
+    const { due: currentDue } = resolveExcess({
+      ...subscription,
+      _totalAdminCommission: totalCommission,
+      _completedRidesCount: completedRidesCount,
+    });
 
     if (parsedAmount > currentDue) {
       return res.status(400).json({
         success: false,
-        error: `Settlement amount cannot exceed current commission due (₹${currentDue})`
+        error: `Settlement amount cannot exceed current excess due (₹${currentDue})`
       });
     }
 
@@ -563,8 +602,8 @@ export const settleDriverCommission = async (req, res) => {
 
     res.json({
       success: true,
-      subscription: attachCommissionData({ ...updated, _totalAdminCommission: totalCommission, _completedRidesCount: completedRidesCount }),
-      message: `Successfully collected commission payment of ₹${parsedAmount}`
+      subscription: attachExcessData({ ...updated, _totalAdminCommission: totalCommission, _completedRidesCount: completedRidesCount }),
+      message: `Successfully collected excess amount of ₹${parsedAmount}`
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

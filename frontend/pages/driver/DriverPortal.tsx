@@ -935,7 +935,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                                 setEndingTripId(null); setIsEndOtpSent(false); setEndOtp('');
                                                 const trip = result.trip;
                                                 const payoutMsg = trip?.driverPayout
-                                                  ? `✓ Trip completed!\n\nYour Payout: ₹${trip.driverPayout.toFixed(0)}\nAdmin Commission: ₹${trip.adminCommission?.toFixed(0) || 0}`
+                                                  ? `✓ Trip completed!\n\nYour Payout: ₹${trip.driverPayout.toFixed(0)}\nExcess Amount: ₹${(trip.excessAmount ?? trip.adminCommission ?? 0).toFixed(0)}`
                                                   : '✓ Trip completed successfully!';
                                                 setConfirmConfig({ isOpen: true, title: 'Trip Completed', message: payoutMsg, type: 'success', confirmText: 'OK', onConfirm: () => setConfirmConfig(p => ({ ...p, isOpen: false })) });
                                                 const driverRes = await tripAPI.getDriverTrips();
@@ -1324,8 +1324,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <p className="text-xs font-black text-emerald-700">₹{Math.round((trip as any).driverPayout)}</p>
                             </div>
                             <div className="bg-orange-50 border border-orange-200 rounded-lg px-2 py-1 text-right">
-                              <p className="text-[8px] text-orange-500 font-bold uppercase tracking-wide">Admin Commission</p>
-                              <p className="text-xs font-black text-orange-600">₹{Math.round((trip as any).adminCommission || 0)}</p>
+                              <p className="text-[8px] text-orange-500 font-bold uppercase tracking-wide">Excess Amount</p>
+                              <p className="text-xs font-black text-orange-600">₹{Math.round((trip as any).excessAmount ?? (trip as any).adminCommission ?? 0)}</p>
                             </div>
                           </div>
                         )}
@@ -1510,7 +1510,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                   </div>
                                   {/* Plan name */}
                                   <p className="text-sm sm:text-base font-bold text-black truncate mt-1">{sub.plan?.name}</p>
-                                  {/* Days + Duties + Commission pills */}
+                                  {/* Days + Duties + Excess pills */}
                                   <div className="flex flex-wrap gap-2 mt-1.5">
                                     <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-emerald-700 border-emerald-300 bg-emerald-50 font-bold">
                                       {daysLeft} days left
@@ -1523,6 +1523,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     {sub.plan?.minHours > 0 && (
                                       <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-blue-700 border-blue-300 bg-blue-50 font-bold">
                                         Min {sub.plan.minHours}hr · ₹{sub.plan.extraPerHourRate}/extra hr
+                                      </span>
+                                    )}
+                                    {sub.plan?.excessAmountPerRide > 0 && (
+                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-orange-700 border-orange-300 bg-orange-50 font-bold">
+                                        ₹{sub.plan.excessAmountPerRide} excess / ride
                                       </span>
                                     )}
                                   </div>
@@ -1573,40 +1578,6 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       </div>
                     </div>
                   )}
-
-                  {/* Commission Payment History */}
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-400 font-bold uppercase mb-3">Commission History</p>
-                    {(() => {
-                      const commissionTrips = pastTrips.filter(t => t.status === 'COMPLETED' && (t as any).adminCommission > 0);
-                      if (commissionTrips.length === 0) return <p className="text-xs text-gray-400">No commission records yet.</p>;
-                      const total = commissionTrips.reduce((sum, t) => sum + Math.round((t as any).adminCommission || 0), 0);
-                      return (
-                        <>
-                          <div className="space-y-2 mb-3">
-                            {commissionTrips.map(t => (
-                              <div key={t.id} className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
-                                <div>
-                                  <p className="text-xs font-bold text-gray-800">{t.pickupLocation?.split(',')[0]} → {t.dropLocation?.split(',')[0]}</p>
-                                  <p className="text-[10px] text-gray-400">
-                                    {(t as any).completedAt ? new Date((t as any).completedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : t.startDate}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs font-black text-orange-600">₹{Math.round((t as any).adminCommission)}</p>
-                                  <p className="text-[9px] text-gray-400">Admin cut</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex justify-between items-center border-t border-gray-200 pt-2">
-                            <p className="text-xs font-bold text-gray-600">Total Collected</p>
-                            <p className="text-sm font-black text-orange-600">₹{total}</p>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
 
                   <div className="space-y-4">
                     <div className="p-4 bg-gray-50 rounded-xl">

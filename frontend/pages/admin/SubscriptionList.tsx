@@ -21,6 +21,12 @@ interface Subscription {
   paidAmount?: number;
   remainingAmount?: number;
   isAdminCreated?: boolean;
+  // Excess amount (admin cut per completed ride) returned by the API
+  excessPerRide?: number;
+  totalExcess?: number;
+  excessPaid?: number;
+  excessDue?: number;
+  dutiesCompleted?: number;
 }
 
 interface Driver {
@@ -56,13 +62,13 @@ const SubscriptionList: React.FC = () => {
   const [filterPlan, setFilterPlan] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
-  const [viewTab, setViewTab] = useState<'PACKAGES' | 'COMMISSIONS'>('PACKAGES');
+  const [viewTab, setViewTab] = useState<'PACKAGES' | 'EXCESS'>('PACKAGES');
   const [showSettleModal, setShowSettleModal] = useState(false);
   const [settleTargetSub, setSettleTargetSub] = useState<any>(null);
   const [settleAmount, setSettleAmount] = useState('');
   const [isSettling, setIsSettling] = useState(false);
 
-  const handleSettleCommission = async (e: React.FormEvent) => {
+  const handleSettleExcess = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settleTargetSub) return;
     const amountNum = parseFloat(settleAmount);
@@ -70,9 +76,9 @@ const SubscriptionList: React.FC = () => {
       alert('Please enter a valid amount');
       return;
     }
-    const due = settleTargetSub.commissionDue || 0;
+    const due = settleTargetSub.excessDue || 0;
     if (amountNum > due) {
-      alert(`Amount cannot exceed current commission due (₹${due})`);
+      alert(`Amount cannot exceed current excess due (₹${due})`);
       return;
     }
 
@@ -89,16 +95,16 @@ const SubscriptionList: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        alert('Commission settlement recorded successfully!');
+        alert('Excess amount collected successfully!');
         setShowSettleModal(false);
         setSettleTargetSub(null);
         setSettleAmount('');
         fetchSubscriptions();
       } else {
-        alert(data.error || 'Failed to settle commission');
+        alert(data.error || 'Failed to collect excess amount');
       }
     } catch (err: any) {
-      alert(err.message || 'Error settling commission');
+      alert(err.message || 'Error collecting excess amount');
     } finally {
       setIsSettling(false);
     }
@@ -274,18 +280,17 @@ const SubscriptionList: React.FC = () => {
     }
   };
 
-  // Show commissions tab for:
-  // 1. Per-ride plans (excessAmountPerRide > 0) that are ACTIVE or EXPIRED
-  // 2. Non-per-ride plans (Diamond etc.) that have actual commissionDue > 0 from bookings
-  // Always exclude REJECTED and CANCELLED subscriptions.
-  const commissionRows = subscriptions.filter((s: any) =>
+  // Show the excess ledger for active/expired subscriptions that either
+  // have an excess rate on their package or have a recorded pending amount.
+  // REJECTED and CANCELLED subscriptions never owe anything.
+  const excessRows = subscriptions.filter((s: any) =>
     s.status !== 'REJECTED' && s.status !== 'CANCELLED' &&
     (
-      (s.plan?.excessAmountPerRide || 0) > 0 ||   // per-ride plan
-      (s.commissionDue || 0) > 0                    // non-per-ride but has actual admin cut due
+      (s.excessPerRide || 0) > 0 ||
+      (s.excessDue || 0) > 0
     )
   );
-  const pendingCommissionsCount = commissionRows.filter(s => ((s as any).commissionDue || 0) > 0).length;
+  const pendingExcessCount = excessRows.filter(s => ((s as any).excessDue || 0) > 0).length;
   if (loading) {
     return <p className="text-sm text-gray-500 mb-4">Loading subscriptions...</p>;
   }
@@ -295,7 +300,7 @@ const SubscriptionList: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="font-bold text-lg">Driver Subscriptions</h3>
-          <p className="text-xs text-gray-500">Manage package plans and track per-ride commissions</p>
+          <p className="text-xs text-gray-500">Manage package plans and track the excess amount collected per ride</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
@@ -306,13 +311,13 @@ const SubscriptionList: React.FC = () => {
               Package Subscriptions
             </button>
             <button
-              onClick={() => setViewTab('COMMISSIONS')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${viewTab === 'COMMISSIONS' ? 'bg-black text-white shadow-xs' : 'text-gray-500 hover:text-black'}`}
+              onClick={() => setViewTab('EXCESS')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${viewTab === 'EXCESS' ? 'bg-black text-white shadow-xs' : 'text-gray-500 hover:text-black'}`}
             >
-              <span>Per-Ride Commission</span>
-              {pendingCommissionsCount > 0 && (
+              <span>Excess Amount</span>
+              {pendingExcessCount > 0 && (
                 <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                  {pendingCommissionsCount}
+                  {pendingExcessCount}
                 </span>
               )}
             </button>
@@ -497,18 +502,6 @@ const SubscriptionList: React.FC = () => {
                             Update Payment
                           </button>
                         )}
-                        {(sub as any).commissionDue > 0 && (
-                          <button
-                            onClick={() => {
-                              setSettleTargetSub(sub);
-                              setSettleAmount(String((sub as any).commissionDue || ''));
-                              setShowSettleModal(true);
-                            }}
-                            className="text-xs font-bold px-3 py-1 rounded text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200"
-                          >
-                            Collect Commission
-                          </button>
-                        )}
                         {sub.status === 'ACTIVE' && (
                           <button
                             onClick={() => rejectSubscription(sub.id)}
@@ -533,31 +526,31 @@ const SubscriptionList: React.FC = () => {
         </>
       )}
 
-      {/* VIEW: SEPARATE DRIVER PER-RIDE COMMISSION LEDGER */}
-      {viewTab === 'COMMISSIONS' && (
+      {/* VIEW: EXCESS AMOUNT LEDGER */}
+      {viewTab === 'EXCESS' && (
         <div className="space-y-4">
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="font-extrabold text-orange-950 text-sm sm:text-base">Commission Ledger</p>
-              <p className="text-xs text-orange-700">Track and collect commission owed by drivers — per-ride plans and booking admin cuts.</p>
+              <p className="font-extrabold text-orange-950 text-sm sm:text-base">Excess Amount Ledger</p>
+              <p className="text-xs text-orange-700">Excess amount owed by drivers — collected per completed ride.</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-white border border-orange-200 rounded-lg px-3 py-1.5 text-center">
-                <p className="text-[10px] uppercase font-bold text-gray-400">Total Drivers</p>
-                <p className="text-sm font-black text-gray-900">{commissionRows.length}</p>
+                <p className="text-[10px] uppercase font-bold text-gray-400">Drivers</p>
+                <p className="text-sm font-black text-gray-900">{excessRows.length}</p>
               </div>
               <div className="bg-white border border-orange-200 rounded-lg px-3 py-1.5 text-center">
-                <p className="text-[10px] uppercase font-bold text-gray-400">Pending Dues</p>
+                <p className="text-[10px] uppercase font-bold text-gray-400">Pending Excess</p>
                 <p className="text-sm font-black text-orange-600">
-                  ₹{commissionRows.reduce((sum, s: any) => sum + (s.commissionDue || 0), 0)}
+                  ₹{Math.round(excessRows.reduce((sum, s: any) => sum + (s.excessDue || 0), 0))}
                 </p>
               </div>
             </div>
           </div>
 
-          {commissionRows.length === 0 ? (
+          {excessRows.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-sm text-gray-500">
-              No packages with outstanding commission yet. Commission is collected when drivers complete trips under active subscriptions.
+              No excess amount pending. It is recorded automatically each time a driver completes a ride on a package that has an excess amount set.
             </div>
           ) : (
             <div className="overflow-x-auto bg-white border border-gray-200 rounded-xl shadow-xs">
@@ -567,20 +560,20 @@ const SubscriptionList: React.FC = () => {
                     <th className="px-6 py-4">Driver</th>
                     <th className="px-6 py-4">Package</th>
                     <th className="px-6 py-4">Completed Rides</th>
-                    <th className="px-6 py-4">Rate / Ride</th>
-                    <th className="px-6 py-4">Total Commission</th>
-                    <th className="px-6 py-4">Paid</th>
+                    <th className="px-6 py-4">Excess / Ride</th>
+                    <th className="px-6 py-4">Total Excess</th>
+                    <th className="px-6 py-4">Collected</th>
                     <th className="px-6 py-4">Balance Due</th>
                     <th className="px-6 py-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {commissionRows.map((sub: any) => {
-                    const rate = sub.plan?.excessAmountPerRide || 0;
+                  {excessRows.map((sub: any) => {
+                    const rate = sub.excessPerRide || 0;
                     const rides = sub.dutiesCompleted || 0;
-                    const total = sub.totalCommission !== undefined ? sub.totalCommission : rides * rate;
-                    const paid = sub.commissionPaid || 0;
-                    const due = sub.commissionDue !== undefined ? sub.commissionDue : Math.max(0, total - paid);
+                    const total = sub.totalExcess || 0;
+                    const paid = sub.excessPaid || 0;
+                    const due = sub.excessDue || 0;
                     return (
                       <tr key={sub.id} className="hover:bg-gray-50/60 transition">
                         <td className="px-6 py-4">
@@ -597,9 +590,7 @@ const SubscriptionList: React.FC = () => {
                           <span className="font-bold text-gray-900">{rides}</span> rides
                         </td>
                         <td className="px-6 py-4 font-bold text-gray-900">
-                          {sub.totalCommission > 0 && rate === 0
-                            ? <span className="text-xs text-blue-600 font-bold">From bookings</span>
-                            : `₹${rate}`}
+                          {rate > 0 ? `₹${rate}` : (total > 0 ? <span className="text-xs text-gray-500 font-bold">As recorded</span> : '—')}
                         </td>
                         <td className="px-6 py-4 font-bold text-gray-900">
                           ₹{Math.round(total)}
@@ -609,7 +600,7 @@ const SubscriptionList: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           {due > 0 ? (
-                            <span className="font-black text-red-600 text-sm">₹{due}</span>
+                            <span className="font-black text-red-600 text-sm">₹{Math.round(due)}</span>
                           ) : (
                             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                               ✓ All Settled
@@ -626,7 +617,7 @@ const SubscriptionList: React.FC = () => {
                               }}
                               className="px-3 py-1.5 text-xs font-black text-white bg-black hover:bg-gray-800 rounded-lg shadow-xs transition"
                             >
-                              + Collect Commission
+                              + Collect Excess
                             </button>
                           ) : (
                             <span className="text-xs text-gray-400 font-semibold">Settled</span>
@@ -817,13 +808,13 @@ const SubscriptionList: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Collect Commission Modal */}
+      {/* Collect Excess Amount Modal */}
       {showSettleModal && settleTargetSub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
             <div className="bg-black text-white px-5 py-4 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Commission</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Excess Amount</p>
                 <h3 className="text-base font-black text-white mt-0.5">{settleTargetSub.driver?.name}</h3>
               </div>
               <button
@@ -835,7 +826,7 @@ const SubscriptionList: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSettleCommission} className="p-5 space-y-4">
+            <form onSubmit={handleSettleExcess} className="p-5 space-y-4">
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Package:</span>
@@ -845,13 +836,19 @@ const SubscriptionList: React.FC = () => {
                   <span className="text-gray-500">Completed Rides:</span>
                   <span className="font-bold text-gray-900">{settleTargetSub.dutiesCompleted || 0}</span>
                 </div>
+                {(settleTargetSub.excessPerRide || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Excess / Ride:</span>
+                    <span className="font-bold text-gray-900">₹{settleTargetSub.excessPerRide} / ride</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Commission Rate:</span>
-                  <span className="font-bold text-gray-900">₹{settleTargetSub.plan?.excessAmountPerRide} / ride</span>
+                  <span className="text-gray-500">Already Collected:</span>
+                  <span className="font-bold text-emerald-700">₹{Math.round(settleTargetSub.excessPaid || 0)}</span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-gray-200 font-bold">
                   <span className="text-orange-800">Total Due:</span>
-                  <span className="text-orange-700 text-sm font-black">₹{settleTargetSub.commissionDue || 0}</span>
+                  <span className="text-orange-700 text-sm font-black">₹{Math.round(settleTargetSub.excessDue || 0)}</span>
                 </div>
               </div>
 
@@ -862,7 +859,7 @@ const SubscriptionList: React.FC = () => {
                 <input
                   type="number"
                   min={1}
-                  max={settleTargetSub.commissionDue || 999999}
+                  max={settleTargetSub.excessDue || 999999}
                   step="0.01"
                   required
                   value={settleAmount}
