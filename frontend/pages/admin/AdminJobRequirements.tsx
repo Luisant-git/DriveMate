@@ -2,23 +2,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { adminGetAllJobs, adminUpdateJobStatus, adminDeleteJob } from '../../api/adminJobRequirement';
 
 const STATUS_COLORS: Record<string, string> = {
-  ACTIVE:   'bg-green-100 text-green-800',
-  CLOSED:   'bg-gray-200 text-gray-700',
+  ACTIVE: 'bg-green-100 text-green-800',
+  CLOSED: 'bg-gray-200 text-gray-700',
   REJECTED: 'bg-red-100 text-red-700',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Driver:    'bg-blue-50 text-blue-700',
+  Driver: 'bg-blue-50 text-blue-700',
   Chauffeur: 'bg-purple-50 text-purple-700',
-  Delivery:  'bg-orange-50 text-orange-700',
-  Other:     'bg-gray-100 text-gray-600',
+  Delivery: 'bg-orange-50 text-orange-700',
+  Other: 'bg-gray-100 text-gray-600',
 };
 
 const JOBTYPE_COLORS: Record<string, string> = {
   'Full Time': 'bg-emerald-50 text-emerald-700',
   'Part Time': 'bg-yellow-50 text-yellow-700',
-  Contract:    'bg-pink-50 text-pink-700',
-  Daily:       'bg-cyan-50 text-cyan-700',
+  Contract: 'bg-pink-50 text-pink-700',
+  Daily: 'bg-cyan-50 text-cyan-700',
 };
 
 export default function AdminJobRequirements() {
@@ -64,8 +64,8 @@ export default function AdminJobRequirements() {
   };
 
   // ── Stats ──────────────────────────────────────────────────
-  const activeCount   = jobs.filter(j => j.status === 'ACTIVE').length;
-  const closedCount   = jobs.filter(j => j.status === 'CLOSED').length;
+  const activeCount = jobs.filter(j => j.status === 'ACTIVE').length;
+  const closedCount = jobs.filter(j => j.status === 'CLOSED').length;
   const rejectedCount = jobs.filter(j => j.status === 'REJECTED').length;
 
   return (
@@ -187,8 +187,9 @@ export default function AdminJobRequirements() {
                     {job.company && <p className="text-xs text-gray-500 mt-0.5">{job.company}</p>}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CATEGORY_COLORS[job.category] || 'bg-gray-100 text-gray-600'}`}>{job.category}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${CATEGORY_COLORS[job.category] || 'bg-gray-100 text-gray-600'}`}>{job.role ? job.role.split(' — ').pop() : job.category || '—'}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${JOBTYPE_COLORS[job.jobType] || 'bg-gray-100 text-gray-600'}`}>{job.jobType}</span>
+                      {job.remote && job.remote !== 'No' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700">Remote: {job.remote}</span>}
                       {(job.salaryMin || job.salaryMax) && (
                         <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
                           ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo

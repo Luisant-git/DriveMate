@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
 import { Customer, BookingType, Trip } from '../../types';
 import { getRecommendedPackage } from '../../services/geminiService';
@@ -24,6 +24,45 @@ import { checkServiceAvailability } from '../../api/serviceArea';
 interface CustomerPortalProps {
     customer: Customer;
 }
+
+// â”€â”€ Job roles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const JOB_ROLES: string[] = [
+    'Accountant â€” Audit','Accountant â€” Finance','Accountant â€” Taxation','Accountant â€” Clerk/Book Keeper',
+    'Animation â€” Animator','Animation â€” Graphic Designer','Animation â€” Video Editor','Animation â€” 3D Modeler',
+    'Architect â€” Exterior Design','Architect â€” Interior Design',
+    'BPO/Telecaller â€” Domestic','BPO/Telecaller â€” International','BPO/Telecaller â€” Voice','BPO/Telecaller â€” Non Voice','BPO/Telecaller â€” Sales','BPO/Telecaller â€” Support',
+    'Business Analyst â€” Business Analysis','Business Analyst â€” Data Analysis','Business Analyst â€” SQL',
+    'Carpenter â€” Furniture','Carpenter â€” Commercial','Carpenter â€” Residential',
+    'Cashier â€” Retail','Cashier â€” Hotel & Restaurant','Cashier â€” Banking & Finance',
+    'Content Writer â€” Technology','Content Writer â€” Medical','Content Writer â€” Fashion','Content Writer â€” Travel',
+    'Cook/Chef â€” Indian Cuisine','Cook/Chef â€” Continental','Cook/Chef â€” Multi Cuisine','Cook/Chef â€” South Indian','Cook/Chef â€” Baking',
+    'Data Entry/Back Office â€” Data Entry','Data Entry/Back Office â€” Back Office',
+    'Delivery â€” Food Delivery','Delivery â€” Courier Delivery','Delivery â€” Grocery Delivery','Delivery â€” Van Delivery',
+    'Designer â€” Graphic Design','Designer â€” Fashion Design','Designer â€” Interior Design','Designer â€” UI/UX',
+    'Doctor â€” General Physician','Doctor â€” Dentist','Doctor â€” Cardiologist','Doctor â€” Dermatologist','Doctor â€” Pediatrics',
+    'Driver â€” Company Driver','Driver â€” Private Driver','Driver â€” Taxi Driver','Driver â€” Truck Driver','Driver â€” Heavy Vehicle Driver','Driver â€” School Bus Driver','Driver â€” Auto Driver',
+    'Electrician â€” Commercial','Electrician â€” Industrial','Electrician â€” Residential',
+    'Engineer â€” Site Engineer','Engineer â€” Maintenance Engineer','Engineer â€” Production Engineer','Engineer â€” Quality Engineer',
+    'HR/Admin â€” Recruitment','HR/Admin â€” Payrolls','HR/Admin â€” Training','HR/Admin â€” Compliance',
+    'IT Developer â€” React Js','IT Developer â€” Python','IT Developer â€” Java','IT Developer â€” PHP','IT Developer â€” Android','IT Developer â€” iOS','IT Developer â€” Dot Net',
+    'IT QA â€” Manual Testing','IT QA â€” Automated Testing','IT QA â€” Selenium',
+    'IT Web Designer â€” UI/UX','IT Web Designer â€” HTML/CSS','IT Web Designer â€” Figma',
+    'Legal â€” Corporate','Legal â€” Criminal','Legal â€” Employment','Legal â€” Property','Legal â€” Tax',
+    'Marketing â€” Digital Marketing','Marketing â€” Brand Marketing','Marketing â€” Social Media',
+    'Mechanic â€” Automobile','Mechanic â€” Two-wheeler','Mechanic â€” AC Repair','Mechanic â€” Mobile Repair',
+    'Nurse â€” Hospital','Nurse â€” Clinic','Nurse â€” Private House',
+    'Pharmacist â€” Manufacturing','Pharmacist â€” QC','Pharmacist â€” Packaging',
+    'Receptionist â€” Hospital','Receptionist â€” Hotel','Receptionist â€” Company','Receptionist â€” Bank',
+    'Sales â€” FMCG','Sales â€” Insurance','Sales â€” IT','Sales â€” Real Estate','Sales â€” Automobile','Sales â€” Retail',
+    'Security/Guard â€” Private Security','Security/Guard â€” Armed Forces','Security/Guard â€” Mobile/Patrol',
+    'Teacher â€” English','Teacher â€” Math','Teacher â€” Science','Teacher â€” Computer','Teacher â€” Tamil',
+    'Trainer â€” Gym','Trainer â€” Yoga','Trainer â€” Dance','Trainer â€” Language',
+    'Waiter/Steward â€” Hotel & Restaurant','Waiter/Steward â€” Airlines',
+    'Welder â€” Arc Welder','Welder â€” Mig and Tig','Welder â€” Spot Welder',
+    'Beautician â€” Hair','Beautician â€” Make-up','Beautician â€” Skin Care',
+    'Plumber â€” Residential','Plumber â€” Industrial','Painter â€” Exterior Wall','Painter â€” Interior Wall','Painter â€” Car',
+];
+const EXP_OPTIONS = ['Fresher','1','2','3','4','5','6','7','8','9','10','10+'];
 
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
     const { t } = useLanguage();
@@ -904,15 +943,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     apiKey="AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8"
                 />
             ) : (
-                <div className="absolute inset-0" style={{ backgroundColor: '#e8eaed' }}>
-                    <img
-                        src="/assets/bg-final.png"
-                        alt=""
-                        className="w-full h-full"
-                        style={{ objectFit: 'cover', objectPosition: 'center', transform: 'scale(1.15)', transformOrigin: 'center' }}
-                        draggable={false}
-                    />
-                </div>
+                <div
+                    className="absolute inset-0 bg-cover bg-center opacity-80"
+                    style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2074&auto=format&fit=crop")' }}
+                ></div>
             )}
 
             {/* Registration Modal */}
@@ -2756,7 +2790,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Title <span className="text-red-500">*</span></label>
                                         <input type="text" required maxLength={100}
-                                            placeholder="e.g. Driver for daily office commute"
+                                            placeholder="e.g. Sales executives needed urgently..."
                                             className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
                                             value={jobFormData.title}
                                             onChange={e => setJobFormData(p => ({ ...p, title: e.target.value }))}
@@ -2881,13 +2915,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {/* Description */}
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Description <span className="text-red-500">*</span></label>
-                                        <textarea required rows={4} maxLength={2000}
-                                            placeholder="Timings, vehicle type, duties, route…"
+                                        <textarea required rows={4} maxLength={3000}
+                                            placeholder="Type or paste the Job Description here. Only plain text is supported."
                                             className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
                                             value={jobFormData.description}
                                             onChange={e => setJobFormData(p => ({ ...p, description: e.target.value }))}
                                         />
-                                        <p className="text-[10px] text-gray-400 mt-0.5 text-right">{jobFormData.description.length}/2000</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5 text-right">{jobFormData.description.length}/3000</p>
                                     </div>
 
                                     {/* Recruiter Details */}
@@ -2967,7 +3001,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <div className="flex flex-wrap gap-1.5 pt-0.5">
                                                 <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
                                                 <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{job.jobType}</span>
-                                                <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.category}</span>
+                                                {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.role.split(' â€” ').pop()}</span>}
                                                 {(job.salaryMin || job.salaryMax) && (
                                                     <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
                                                         ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo

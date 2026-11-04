@@ -8,11 +8,15 @@ export const createJobRequirement = async (req, res) => {
     const {
       title, company, city, localities, description,
       contactName, contactEmail, contactPhone,
-      jobType, category, experienceYears, salaryMin, salaryMax
+      jobType, role, remote, experienceMin, experienceMax,
+      salaryMin, salaryMax, termsAccepted, showContact
     } = req.body;
 
-    if (!title || !city || !description || !contactName || !contactPhone) {
-      return res.status(400).json({ success: false, error: 'Title, city, description, contact name and phone are required.' });
+    if (!title || !city || !description || !contactName || !contactPhone || !contactEmail) {
+      return res.status(400).json({ success: false, error: 'Title, city, description, contact name, phone and email are required.' });
+    }
+    if (!termsAccepted) {
+      return res.status(400).json({ success: false, error: 'You must accept the terms and conditions.' });
     }
 
     const job = await prisma.jobRequirement.create({
@@ -22,22 +26,26 @@ export const createJobRequirement = async (req, res) => {
         title: title.trim(),
         company: company?.trim() || null,
         city: city.trim(),
-        localities: Array.isArray(localities) ? localities : [],
+        localities: Array.isArray(localities) ? localities.slice(0, 5) : [],
         description: description.trim(),
         contactName: contactName.trim(),
         contactEmail: contactEmail?.trim() || null,
         contactPhone: contactPhone.trim(),
         jobType: jobType || 'Full Time',
-        category: category || 'Driver',
-        experienceYears: experienceYears ? parseInt(experienceYears) : 0,
+        role: role?.trim() || '',
+        remote: remote || 'No',
+        experienceMin: experienceMin ? parseInt(experienceMin) : 0,
+        experienceMax: experienceMax ? parseInt(experienceMax) : 0,
         salaryMin: salaryMin ? parseFloat(salaryMin) : null,
         salaryMax: salaryMax ? parseFloat(salaryMax) : null,
+        termsAccepted: Boolean(termsAccepted),
+        showContact: showContact !== false,
         status: 'ACTIVE',
       },
       include: { customer: { select: { name: true, phone: true } } }
     });
 
-    return res.status(201).json({ success: true, job, message: 'Job requirement posted successfully!' });
+    return res.status(201).json({ success: true, job, message: 'Job posted successfully!' });
   } catch (err) {
     console.error('[JobRequirement] createJobRequirement error:', err);
     return res.status(500).json({ success: false, error: err.message });
