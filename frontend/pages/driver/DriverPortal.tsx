@@ -528,7 +528,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
         <p className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">{pkg.description}</p>
         {(pkg as any).minHours > 0 && (
           <div className="mt-2 inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-lg">
-            <span className="text-[11px] font-black">Min {(pkg as any).minHours}hr · ₹{(pkg as any).extraPerHourRate}/extra hr</span>
+            <span className="text-[11px] font-black">Min {(pkg as any).minHours}hr{(pkg as any).baseFare > 0 ? ` ₹${(pkg as any).baseFare}` : ''} · ₹{(pkg as any).extraPerHourRate}/extra hr</span>
           </div>
         )}
         <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment · Non-Refundable</p>
@@ -1257,7 +1257,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     )}
                                     {sub.plan?.minHours > 0 && (
                                       <span className="whitespace-nowrap flex-shrink-0 text-[9px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full border text-blue-700 border-blue-300 bg-blue-50 font-bold">
-                                        Min {sub.plan.minHours}hr · ₹{sub.plan.extraPerHourRate}/extra hr
+                                        Min {sub.plan.minHours}hr{sub.plan.baseFare > 0 ? ` ₹${sub.plan.baseFare}` : ''} · ₹{sub.plan.extraPerHourRate}/extra hr
                                       </span>
                                     )}
                                   </div>
@@ -1995,7 +1995,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 <p className="text-2xl font-black mt-1">₹{selectedPackage.price}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{selectedPackage.duration} days · {selectedPackage.category}</p>
                 {(selectedPackage as any).minHours > 0 && (
-                  <p className="text-xs text-blue-300 font-semibold mt-1">Min {(selectedPackage as any).minHours}hr · ₹{(selectedPackage as any).extraPerHourRate}/extra hr</p>
+                  <p className="text-xs text-blue-300 font-semibold mt-1">Min {(selectedPackage as any).minHours}hr{(selectedPackage as any).baseFare > 0 ? ` ₹${(selectedPackage as any).baseFare}` : ''} · ₹{(selectedPackage as any).extraPerHourRate}/extra hr</p>
                 )}
               </div>
               <div className="p-5 space-y-4">
