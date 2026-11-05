@@ -60,6 +60,7 @@ model Driver {
   updatedAt                    DateTime          @updatedAt
   aadharPhoto                  String?
   isActive                     Boolean           @default(false)
+  payLaterAllowed              Boolean           @default(false)
   lastVerifiedAt               DateTime?
   nextVerificationDue          DateTime?
   currentAddress               String?
@@ -579,6 +580,8 @@ model JobRequirement {
   contactName     String?
   contactEmail    String
   contactPhone    String
+  whatsappNumber  String?
+  alternateMobile String?
   jobType         String    @default("Full Time Jobs")
   category        String?   @default("Other")
   role            String    @default("Other")

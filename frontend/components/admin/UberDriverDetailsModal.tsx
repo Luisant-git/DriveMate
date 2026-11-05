@@ -1,6 +1,7 @@
 ﻿import React, { useState } from 'react';
 import DocumentViewerModal from './DocumentViewerModal';
 import { API_BASE_URL } from '../../api/config.js';
+import apiClient from '../../api/axiosConfig.js';
 
 export interface DriverDocumentItem {
   label: string;
@@ -78,6 +79,8 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
   // rate × rides for older payloads that only carry the plan and duty counter.
   const excessPerRide = activeSub?.excessPerRide ?? activeSub?.plan?.excessAmountPerRide ?? 0;
   const dutiesDone = activeSub?.dutiesCompleted || 0;
+  // true when the total came from the rides themselves rather than rate × rides
+  const hasLedgerTotal = typeof activeSub?.totalExcess === 'number';
   const totalExcess = activeSub?.totalExcess ?? dutiesDone * excessPerRide;
   const excessPaid = activeSub?.excessPaid ?? activeSub?.commissionPaid ?? 0;
   const excessDue = activeSub?.excessDue ?? Math.max(0, totalExcess - excessPaid);
@@ -97,16 +100,11 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
 
     try {
       setIsSettling(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('auth-token');
-      const res = await fetch(`${API_BASE_URL}/api/subscriptions/admin/settle-commission/${activeSub.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ amount: amountNum })
+      // Admin JWT lives in 'auth-token'; a stray 'token' key used to shadow it.
+      const res = await apiClient.post(`/subscriptions/admin/settle-commission/${activeSub.id}`, {
+        amount: amountNum,
       });
-      const data = await res.json();
+      const data = res.data;
       if (data.success) {
         const paidNow = excessPaid + amountNum;
         activeSub.excessPaid = paidNow;
@@ -122,7 +120,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
         alert(data.error || 'Failed to collect excess amount');
       }
     } catch (err: any) {
-      alert(err.message || 'Error collecting excess amount');
+      alert(err.response?.data?.error || err.message || 'Error collecting excess amount');
     } finally {
       setIsSettling(false);
     }
@@ -614,7 +612,13 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                           <div>
                             <span className="text-[9px] font-black text-orange-800 uppercase tracking-wider block">Excess Amount Owed</span>
                             <p className="text-base font-black text-orange-700 leading-tight">₹{Math.round(excessDue)}</p>
-                            <p className="text-[10px] text-orange-600 font-semibold mt-0.5">({dutiesDone} completed rides × ₹{excessPerRide})</p>
+                            {/* The ledger sums the cut actually recorded on each ride, so it can
+                                exceed rides × ₹250 whenever a bill went past the reference bill. */}
+                            <p className="text-[10px] text-orange-600 font-semibold mt-0.5">
+                              {hasLedgerTotal
+                                ? `${dutiesDone} completed ride${dutiesDone === 1 ? '' : 's'} · ₹${excessPerRide} base each`
+                                : `(${dutiesDone} completed rides × ₹${excessPerRide})`}
+                            </p>
                           </div>
                           {excessDue > 0 ? (
                             <button

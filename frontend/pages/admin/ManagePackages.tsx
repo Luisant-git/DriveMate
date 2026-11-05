@@ -1,9 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const CATEGORIES = ['Silver', 'Gold', 'Platinum', 'Diamond'];
+const CATEGORIES = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
 
 interface Package {
   id: string;
@@ -42,7 +42,7 @@ const ManagePackages: React.FC = () => {
 
   const fetchPackages = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth-token');
       const res = await axios.get(`${API_URL}/api/subscriptions/plans`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -55,7 +55,7 @@ const ManagePackages: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth-token');
       if (editingId) {
         await axios.put(`${API_URL}/api/subscriptions/plans/${editingId}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
@@ -92,7 +92,7 @@ const ManagePackages: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure?')) return;
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth-token');
       await axios.delete(`${API_URL}/api/subscriptions/plans/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -104,7 +104,7 @@ const ManagePackages: React.FC = () => {
 
   const toggleActive = async (id: string, isActive: boolean) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth-token');
       await axios.put(`${API_URL}/api/subscriptions/plans/${id}`, { isActive: !isActive }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -202,7 +202,7 @@ const ManagePackages: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block mb-1">Price (₹)</label>
+                <label className="block mb-1">Price (?)</label>
                 <input
                   type="number"
                   value={formData.price === 0 ? "" : formData.price}
@@ -224,7 +224,7 @@ const ManagePackages: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block mb-1">Excess Amount / Ride (₹)</label>
+                <label className="block mb-1">Excess Amount / Ride (?)</label>
                 <input
                   type="number"
                   min={0}
@@ -276,7 +276,7 @@ const ManagePackages: React.FC = () => {
                 {categoryPackages.map((pkg) => (
                   <div key={pkg.id} className={`bg-white p-4 rounded shadow ${!pkg.isActive ? 'opacity-50' : ''}`}>
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-semibold">{pkg.category} ₹{pkg.price}</h3>
+                      <h3 className="text-lg font-semibold">{pkg.category} ?{pkg.price}</h3>
                       <span className={`px-2 py-1 rounded text-xs ${pkg.type === 'LOCAL' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
                         {pkg.type}
                       </span>
@@ -286,7 +286,7 @@ const ManagePackages: React.FC = () => {
                     <div className="mb-3">
                       <p className="text-sm"><strong>Duration:</strong> {pkg.duration} days</p>
                       {pkg.maxDuties > 0 && <p className="text-sm"><strong>Max Duties:</strong> {pkg.maxDuties}</p>}
-                      {pkg.excessAmountPerRide > 0 && <p className="text-sm text-orange-600"><strong>Excess / Ride:</strong> ₹{pkg.excessAmountPerRide}</p>}
+                      {pkg.excessAmountPerRide > 0 && <p className="text-sm text-orange-600"><strong>Excess / Ride:</strong> ?{pkg.excessAmountPerRide}</p>}
                     </div>
                     <div className="flex gap-2">
                       <button

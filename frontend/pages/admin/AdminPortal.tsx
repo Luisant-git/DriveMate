@@ -33,6 +33,9 @@ interface SubscriptionPlan {
   description?: string;
   type?: SubscriptionType;
   isActive?: boolean;
+  excessAmountPerRide?: number;
+  minHours?: number;
+  extraPerHourRate?: number;
 }
 
 interface PackageFormState {
@@ -42,7 +45,6 @@ interface PackageFormState {
   price: number;
   durationDays: number;
   maxDuties: number;
-  excessAmountPerRide: number;
   minHours: number;
   extraPerHourRate: number;
   description: string;
@@ -96,7 +98,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     price: 0,
     durationDays: 0,
     maxDuties: 0,
-    excessAmountPerRide: 0,
+    minHours: 0,
+    extraPerHourRate: 0,
     description: '',
   });
   const [isSavingPackage, setIsSavingPackage] = useState(false);
@@ -227,6 +230,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
   // --------------- PACKAGE MODAL HANDLERS ---------------
 
+  // The excess amount is never entered here — it is worked out per ride from the
+  // package, so the form only carries Min Hours and Extra/Hr Rate.
   const openAddPackageModal = () => {
     setEditingPackage(null);
     setPackageForm({
@@ -236,7 +241,6 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       price: 0,
       durationDays: 0,
       maxDuties: 0,
-      excessAmountPerRide: 0,
       minHours: 0,
       extraPerHourRate: 0,
       description: '',
@@ -246,17 +250,20 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   };
 
   const openEditPackageModal = (pkg: SubscriptionPlan) => {
+    const planType: SubscriptionType = ['Silver', 'Silver Plus'].includes(pkg.category || 'Silver')
+      ? 'LOCAL'
+      : ((pkg.type as SubscriptionType) || 'LOCAL');
+
     setEditingPackage(pkg);
     setPackageForm({
       category: pkg.category || 'Silver',
       name: pkg.name || '',
-      type: (pkg.category || 'Silver') === 'Silver' ? 'LOCAL' : ((pkg.type as SubscriptionType) || 'LOCAL'),
+      type: planType,
       price: pkg.price || 0,
       durationDays: pkg.duration || 30,
       maxDuties: pkg.maxDuties || 0,
-      excessAmountPerRide: (pkg as any).excessAmountPerRide || 0,
-      minHours: (pkg as any).minHours || 0,
-      extraPerHourRate: (pkg as any).extraPerHourRate || 0,
+      minHours: pkg.minHours || 0,
+      extraPerHourRate: pkg.extraPerHourRate || 0,
       description: pkg.description || '',
     });
     setPackageModalError(null);
@@ -281,7 +288,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
         maxDuties: packageForm.maxDuties,
         price: packageForm.price,
         description: packageForm.description,
-        excessAmountPerRide: packageForm.excessAmountPerRide,
+        // The excess amount is not sent — the server works it out from the plan.
         minHours: packageForm.minHours,
         extraPerHourRate: packageForm.extraPerHourRate,
       };
@@ -344,7 +351,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     { id: 'LEAD_PACKAGES', label: 'Lead Packages', icon: FaBox },
     { id: 'LEAD_SUBSCRIPTIONS', label: 'Lead Subscriptions', icon: FaFileAlt },
     { id: 'PACKAGES', label: 'Packages', icon: FaBox },
-    { id: 'SUBSCRIPTIONS', label: 'Subscriptions', icon: FaFileAlt },
+    { id: 'SUBSCRIPTIONS', label: 'Driver Subscriptions', icon: FaFileAlt },
     { id: 'PRICING', label: 'Pricing', icon: FaMoneyBillWave },
     { id: 'SERVICE_AREAS', label: 'Service Areas', icon: FaMapMarkerAlt },
     { id: 'PAYMENTS', label: 'Payments', icon: FaCreditCard },
@@ -477,7 +484,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   )}
 
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+                    {['All', 'Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setPackageCategoryFilter(cat)}
@@ -491,7 +498,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     ))}
                   </div>
 
-                  {['Silver', 'Gold', 'Platinum', 'Diamond'].map((category) => {
+                  {['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((category) => {
                     if (packageCategoryFilter !== 'All' && category !== packageCategoryFilter) return null;
                     const categoryPackages = packages
                       .filter((pkg) => (pkg.category || 'Silver') === category)
@@ -527,9 +534,6 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                                   {pkg.maxDuties ? ` | Max Duty: ${pkg.maxDuties}` : ''}
                                   {(pkg as any).minHours > 0 && (
                                     <span> | Min: {(pkg as any).minHours}hr ₹{(pkg as any).extraPerHourRate}/hr</span>
-                                  )}
-                                  {(pkg as any).excessAmountPerRide > 0 && (
-                                    <span className="text-orange-600"> | Excess: ₹{(pkg as any).excessAmountPerRide}/ride</span>
                                   )}
                                 </p>
                                 <div className="flex gap-2">
@@ -684,13 +688,14 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     setPackageForm((prev) => ({
                       ...prev,
                       category: newCat,
-                      // Silver is always LOCAL — reset type if switching to Silver
-                      type: newCat === 'Silver' ? 'LOCAL' : prev.type,
+                      // Silver tiers are always LOCAL — reset type if switching to Silver
+                      type: newCat === 'Silver' || newCat === 'Silver Plus' ? 'LOCAL' : prev.type,
                     }));
                   }}
                   required
                 >
                   <option value="Silver">Silver</option>
+                  <option value="Silver Plus">Silver Plus</option>
                   <option value="Gold">Gold</option>
                   <option value="Platinum">Platinum</option>
                   <option value="Diamond">Diamond</option>
@@ -712,21 +717,19 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Type
-                {packageForm.category === 'Silver' ? (
+                {packageForm.category === 'Silver' || packageForm.category === 'Silver Plus' ? (
                   <div className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 flex items-center gap-2">
                     <span className="font-bold text-gray-700">LOCAL</span>
-                    <span className="text-[10px] text-gray-400">(Silver is Local only)</span>
+                    <span className="text-[10px] text-gray-400">(Silver plans are Local only)</span>
                   </div>
                 ) : (
                   <select
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
                     value={packageForm.type}
-                    onChange={(e) =>
-                      setPackageForm((prev) => ({
-                        ...prev,
-                        type: e.target.value as SubscriptionType,
-                      }))
-                    }
+                    onChange={(e) => {
+                      const nextType = e.target.value as SubscriptionType;
+                      setPackageForm((prev) => ({ ...prev, type: nextType }));
+                    }}
                     required
                   >
                     <option value="LOCAL">LOCAL</option>
@@ -806,39 +809,33 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <label className="block text-xs font-bold text-gray-500 uppercase">
-                  Excess Amount / Ride (₹)
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.excessAmountPerRide || ''}
-                    placeholder="0"
-                    onChange={(e) =>
-                      setPackageForm((prev) => ({
-                        ...prev,
-                        excessAmountPerRide: Number(e.target.value),
-                      }))
-                    }
-                  />
-                </label>
+              <label className="block text-xs font-bold text-gray-500 uppercase">
+                Description
+                <textarea
+                  rows={3}
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 resize-none"
+                  value={packageForm.description}
+                  placeholder="LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/-"
+                  onChange={(e) => {
+                    const description = e.target.value;
+                    setPackageForm((prev) => ({ ...prev, description }));
+                  }}
+                />
+              </label>
 
+              {/* The excess amount has no field — it is worked out per ride */}
+              <div className="grid grid-cols-2 gap-4">
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Min Hours
                   <input
                     type="number"
                     min={0}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.minHours || ''}
-                    placeholder="0"
-                    onChange={(e) =>
-                      setPackageForm((prev) => ({
-                        ...prev,
-                        minHours: Number(e.target.value),
-                      }))
-                    }
+                    value={packageForm.minHours}
+                    onChange={(e) => {
+                      const minHours = Number(e.target.value) || 0;
+                      setPackageForm((prev) => ({ ...prev, minHours }));
+                    }}
                   />
                 </label>
 
@@ -848,34 +845,14 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={0}
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.extraPerHourRate || ''}
-                    placeholder="0"
-                    onChange={(e) =>
-                      setPackageForm((prev) => ({
-                        ...prev,
-                        extraPerHourRate: Number(e.target.value),
-                      }))
-                    }
+                    value={packageForm.extraPerHourRate}
+                    onChange={(e) => {
+                      const extraPerHourRate = Number(e.target.value) || 0;
+                      setPackageForm((prev) => ({ ...prev, extraPerHourRate }));
+                    }}
                   />
                 </label>
               </div>
-
-
-
-              <label className="block text-xs font-bold text-gray-500 uppercase">
-                Description
-                <textarea
-                  rows={3}
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 resize-none"
-                  value={packageForm.description}
-                  onChange={(e) =>
-                    setPackageForm((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                />
-              </label>
-
-
-
 
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 mt-2">
                 <button

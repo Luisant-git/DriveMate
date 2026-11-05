@@ -158,7 +158,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                 </div>
                 {/* Plan name */}
                 <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{sub.plan?.name}</p>
-                {/* Days + duties + excess amount */}
+                {/* Days + duties */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     {daysLeft}d left
@@ -166,11 +166,6 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                   {dutiesLeft !== null && (
                     <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full">
                       {dutiesLeft} duties left
-                    </span>
-                  )}
-                  {sub.plan?.excessAmountPerRide > 0 && (
-                    <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full">
-                      ₹{sub.plan.excessAmountPerRide} excess/ride
                     </span>
                   )}
                 </div>

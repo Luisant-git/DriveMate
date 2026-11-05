@@ -332,6 +332,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
   const getPkgCategory = (pkg: any) => {
     if (pkg.category) return pkg.category;
     const n = (pkg.name || '').toLowerCase();
+    if (n.includes('silver plus')) return 'Silver Plus';
     if (n.includes('silver')) return 'Silver';
     if (n.includes('gold')) return 'Gold';
     if (n.includes('platinum')) return 'Platinum';
@@ -1292,7 +1293,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
             </div>
 
             <div className="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
-              {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+              {['All', 'Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}

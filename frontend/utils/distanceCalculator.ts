@@ -46,9 +46,13 @@ export function getPackageByDistance(distanceKm: number): {
   return { hours: 8, description: '8 Hours Package (Minimum)' };
 }
 
+// Multi-day options are not priced rows in the admin panel, so they stay fixed
+const OUTSTATION_HOUR_OPTIONS = ['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs'];
+export const OUTSTATION_DAY_OPTIONS = ['1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'];
+
 // Filter duration options based on distance for outstation bookings
 export function getFilteredDurationOptions(distanceKm: number | null): string[] {
-  const allOptions = ['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'];
+  const allOptions = [...OUTSTATION_HOUR_OPTIONS, ...OUTSTATION_DAY_OPTIONS];
   
   // If no distance calculated yet, return all options
   if (!distanceKm) {

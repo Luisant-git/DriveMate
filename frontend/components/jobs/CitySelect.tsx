@@ -18,7 +18,7 @@ const CitySelect: React.FC<CitySelectProps> = ({
   onChange,
   required = false,
   placeholder = 'Type or select a city',
-  inputClassName = 'w-full bg-gray-100 border-none rounded-lg px-3 py-3 text-base font-semibold text-gray-900 placeholder:text-sm placeholder:font-medium placeholder:text-gray-500 focus:ring-2 focus:ring-black',
+  inputClassName = 'w-full bg-gray-100 border-none rounded-lg pl-3 pr-9 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-sm placeholder:font-medium placeholder:text-gray-500 focus:ring-2 focus:ring-black',
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
@@ -65,6 +65,14 @@ const CitySelect: React.FC<CitySelectProps> = ({
           onChange(typed);
         }}
       />
+      <svg
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
       {open && matches.length > 0 && (
         <div className="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
           {matches.map(city => (

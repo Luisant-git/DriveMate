@@ -1,5 +1,6 @@
 import prisma from '../config/database.js';
 import { sendTripCompletedInternal } from './whatsapp.controller.js';
+import { computeRideSplit } from '../utils/planPricing.js';
 
 // Customer creates a trip
 export const createTrip = async (req, res) => {
@@ -193,20 +194,19 @@ export const completeTrip = async (req, res) => {
     }
 
     // ── Excess amount calculation ────────────────────────────────────
-    // Primary rule: plan.excessAmountPerRide (Admin → Packages → Excess Amount / Ride)
-    //   adminCommission = excess per ride
-    //   driverPayout    = amount collected − excess
-    // Legacy fallback (plans without a configured excess amount):
-    //   parse description "LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90"
-    //   adminCommission = ₹250 + ₹10/extra hour
-    //   driverPayout    = (baseFare − 250) + (extraPerHour − 10) × extraHours
+    // The cut is derived, never typed: ₹250 on every ride, and beyond the
+    // ₹700 reference bill (₹450 fare + ₹250) the extra splits 90/10 — the
+    // driver keeps ₹90 of each ₹100 and ₹10 is added to the excess
+    // (see utils/planPricing.js). Min hours and the extra per hour rate come
+    // from the plan description, so the completed trip card can show the same
+    // three numbers this writes.
     let adminCommission = null;
     let driverPayout = null;
     let minHoursVal = null;
     let extraPerHourRate = null;
 
     try {
-      // Get the driver's active subscription plan description
+      // Get the driver's active subscription plan
       const activePlan = isLead
         ? await prisma.leadSubscription.findFirst({
           where: { leadId: userId, status: 'ACTIVE' },
@@ -219,58 +219,17 @@ export const completeTrip = async (req, res) => {
           orderBy: { startDate: 'desc' }
         });
 
-      const desc = activePlan?.plan?.description || '';
-      const hoursMatch = desc.match(/(\d+)\s*hour/i);
-      const fareMatch = desc.match(/hour\s+(\d+)/i);
-      const extraMatch = desc.match(/extra\s*per\s*hour\s*(\d+)/i);
+      // No active plan means no cut at all — never take ₹250 from a driver
+      // who is not on a package.
+      if (activePlan?.plan) {
+        const split = computeRideSplit({ plan: activePlan.plan, collected: finalAmount });
 
-      // Prefer explicit plan fields; fall back to description parsing
-      const planMinHours = activePlan?.plan?.minHours || 0;
-      const planExtraPerHour = activePlan?.plan?.extraPerHourRate || 0;
+        adminCommission = split.excessAmount;
+        driverPayout = split.driverPayout;
+        if (split.minHours > 0) minHoursVal = split.minHours;
+        if (split.extraPerHourRate > 0) extraPerHourRate = split.extraPerHourRate;
 
-      const minHours = planMinHours > 0 ? planMinHours : (hoursMatch ? Number(hoursMatch[1]) : 0);
-      const extraPerHour = planExtraPerHour > 0 ? planExtraPerHour : (extraMatch ? Number(extraMatch[1]) : 0);
-
-      // Look up baseFare from pricing table using minHours
-      let baseFare = fareMatch ? Number(fareMatch[1]) : 0;
-      if (minHours > 0) {
-        const pricing = await prisma.pricingPackage.findFirst({
-          where: { hours: minHours, isActive: true }
-        });
-        if (pricing) baseFare = pricing.minimumCharge;
-      }
-
-      // Excess amount configured on the plan takes priority: a flat cut per ride
-      const planExcess = activePlan?.plan?.excessAmountPerRide || 0;
-      const collectedInput = parseFloat(finalAmount);
-      const collectedAmount = Number.isFinite(collectedInput) ? collectedInput : baseFare;
-
-      if (planExcess > 0) {
-        adminCommission = planExcess;
-        driverPayout = Math.max(0, collectedAmount - planExcess);
-        if (minHours > 0) minHoursVal = minHours;
-        if (extraPerHour > 0) extraPerHourRate = extraPerHour;
-
-        console.log(`[Excess] Plan: ${activePlan?.plan?.name}, per ride: ₹${planExcess}, collected: ₹${collectedAmount}, driverPayout: ₹${driverPayout.toFixed(2)}`);
-      } else if (minHours > 0 && baseFare > 0 && extraPerHour > 0) {
-        // Legacy fallback for plans without a configured excess amount
-        const BASE_ADMIN_COMMISSION = 250;
-        const EXTRA_ADMIN_CUT = 10;
-
-        // Calculate actual trip hours from actualStartTime
-        let actualHours = minHours; // default to minimum
-        if (currentBooking?.actualStartTime) {
-          const diffMs = new Date().getTime() - new Date(currentBooking.actualStartTime).getTime();
-          actualHours = diffMs / 3600000;
-        }
-
-        const extraHours = Math.max(0, actualHours - minHours);
-        adminCommission = BASE_ADMIN_COMMISSION + (EXTRA_ADMIN_CUT * extraHours);
-        driverPayout = (baseFare - BASE_ADMIN_COMMISSION) + ((extraPerHour - EXTRA_ADMIN_CUT) * extraHours);
-        minHoursVal = minHours;
-        extraPerHourRate = extraPerHour;
-
-        console.log(`[Excess] Legacy plan: ${activePlan?.plan?.name}, minHours: ${minHours}, actualHours: ${actualHours.toFixed(2)}, extraHours: ${extraHours.toFixed(2)}, adminCommission: ₹${adminCommission.toFixed(2)}, driverPayout: ₹${driverPayout.toFixed(2)}`);
+        console.log(`[Excess] Plan: ${activePlan.plan.name}, collected: ₹${split.collected}, excess: ₹${split.excessAmount}, driverPayout: ₹${split.driverPayout}`);
       }
     } catch (commErr) {
       console.error('[Excess] Error calculating excess amount:', commErr.message);

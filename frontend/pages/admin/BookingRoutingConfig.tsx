@@ -107,25 +107,54 @@ export default function BookingRoutingConfig() {
   const getPlanNames = (planIds, plans) =>
     plans.filter(p => planIds.includes(p.id)).map(p => p.name);
 
-  const PlanCheckboxList = ({ plans, selectedIds, onToggle }) => (
-    <div className="space-y-1.5">
-      {plans.length === 0 ? (
-        <p className="text-xs text-gray-400">No plans available</p>
-      ) : plans.map(plan => {
-        const checked = selectedIds.includes(plan.id);
-        return (
-          <label key={plan.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition ${checked ? 'border-black bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-            <input type="checkbox" checked={checked} onChange={() => onToggle(plan.id)} className="w-4 h-4 accent-black flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
-              <p className="text-xs text-gray-500">₹{plan.price} · {plan.duration}d · {plan.type}</p>
-            </div>
-            {checked && <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded font-bold">ON</span>}
-          </label>
-        );
-      })}
-    </div>
-  );
+  // A BOTH package takes local and outstation duties, so it is valid in both
+  // rows. MONTHLY is a one-time service charge and never receives duties.
+  const PLAN_TYPES_FOR_SERVICE = {
+    'Local - Hourly': ['LOCAL', 'BOTH'],
+    'Outstation': ['OUTSTATION', 'BOTH'],
+  };
+
+  const typeLabel = (type) => (type === 'BOTH' ? 'BOTH (Local + Outstation)' : type);
+
+  const PlanCheckboxList = ({ plans, selectedIds, onToggle, serviceType }) => {
+    const allowedTypes = PLAN_TYPES_FOR_SERVICE[serviceType] || [];
+    // Without a service type there is nothing to compare against, so nothing is
+    // flagged. This keeps a missing prop from printing "undefined".
+    const isCompatible = (plan) => allowedTypes.length === 0 || allowedTypes.includes(plan.type);
+    // Matching plans first, so a BOTH plan is never buried under plans of the
+    // other service type.
+    const ordered = [...plans].sort(
+      (a, b) => Number(isCompatible(b)) - Number(isCompatible(a))
+    );
+
+    return (
+      <div className="space-y-1.5">
+        {ordered.length === 0 ? (
+          <p className="text-xs text-gray-400">No plans available</p>
+        ) : ordered.map(plan => {
+          const checked = selectedIds.includes(plan.id);
+          const compatible = isCompatible(plan);
+          return (
+            <label key={plan.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition ${checked ? 'border-black bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+              <input type="checkbox" checked={checked} onChange={() => onToggle(plan.id)} className="w-4 h-4 accent-black flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
+                <p className="text-xs text-gray-500">₹{plan.price} · {plan.duration}d · {typeLabel(plan.type)}</p>
+                {!compatible && (
+                  <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                    {plan.type === 'MONTHLY'
+                      ? 'Monthly plan — takes no duties'
+                      : `${plan.type} plan — won't be offered ${serviceType} jobs`}
+                  </p>
+                )}
+              </div>
+              {checked && <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded font-bold">ON</span>}
+            </label>
+          );
+        })}
+      </div>
+    );
+  };
 
   if (loading) return <div className="px-6 py-6 text-sm text-gray-500">Loading...</div>;
 
@@ -251,6 +280,7 @@ export default function BookingRoutingConfig() {
                   plans={driverPlans}
                   selectedIds={editForm.driverPlanIds}
                   onToggle={(id) => toggleEditPlan('driverPlanIds', id)}
+                  serviceType={editingConfig.serviceType}
                 />
               </div>
               <div>
@@ -259,6 +289,7 @@ export default function BookingRoutingConfig() {
                   plans={leadPlans}
                   selectedIds={editForm.leadPlanIds}
                   onToggle={(id) => toggleEditPlan('leadPlanIds', id)}
+                  serviceType={editingConfig.serviceType}
                 />
               </div>
 
@@ -316,6 +347,7 @@ export default function BookingRoutingConfig() {
                   plans={driverPlans}
                   selectedIds={addForm.driverPlanIds}
                   onToggle={(id) => toggleAddPlan('driverPlanIds', id)}
+                  serviceType={addForm.serviceType}
                 />
               </div>
 
@@ -325,6 +357,7 @@ export default function BookingRoutingConfig() {
                   plans={leadPlans}
                   selectedIds={addForm.leadPlanIds}
                   onToggle={(id) => toggleAddPlan('leadPlanIds', id)}
+                  serviceType={addForm.serviceType}
                 />
               </div>
 

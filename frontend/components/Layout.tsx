@@ -3,7 +3,7 @@ import { UserRole } from '../types';
 import ConfirmModal from './common/ConfirmModal';
 import UberLanguageSelector from './common/UberLanguageSelector';
 import { useLanguage } from '../context/LanguageContext';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo-final.png';
 import carlogo from '../assets/carlogo.png';
 
 interface LayoutProps {

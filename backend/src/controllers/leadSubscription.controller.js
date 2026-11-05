@@ -2,6 +2,7 @@ import prisma from '../config/database.js';
 
 const getPlanSortValue = (name) => {
   const lowerName = (name || '').toLowerCase();
+  if (lowerName.includes('silver plus')) return 1.5;
   if (lowerName.includes('silver')) return 1;
   if (lowerName.includes('gold')) return 2;
   if (lowerName.includes('platinum')) return 3;

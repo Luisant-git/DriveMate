@@ -1,4 +1,5 @@
 ﻿import prisma from '../config/database.js';
+import { derivePlanPricing } from '../utils/planPricing.js';
 
 // Helper function to update expired subscriptions
 const updateExpiredSubscriptions = async (driverId = null) => {
@@ -52,13 +53,28 @@ const updateExpiredSubscriptions = async (driverId = null) => {
   });
 };
 
-const VALID_CATEGORIES = ['Silver', 'Gold', 'Platinum', 'Diamond'];
+const VALID_CATEGORIES = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
+
+// Min hours and the extra per hour rate are the only numbers the admin form
+// carries, so a real number in the body wins and anything missing falls back to
+// what the description says. The excess amount is never taken from the body —
+// it is always derived.
+const pickNumber = (value, fallback) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 export const createSubscriptionPlan = async (req, res) => {
   try {
-    const { category, name, duration, price, description, type, maxDuties, excessAmountPerRide, minHours, extraPerHourRate } = req.body;
+    const {
+      category, name, duration, price, description, type, maxDuties,
+      minHours, extraPerHourRate,
+    } = req.body;
 
     const planCategory = VALID_CATEGORIES.includes(category) ? category : 'Silver';
+
+    const pricing = derivePlanPricing({ description, type });
 
     const plan = await prisma.subscriptionPlan.create({
       data: {
@@ -69,9 +85,9 @@ export const createSubscriptionPlan = async (req, res) => {
         description,
         type,
         maxDuties: maxDuties || 0,
-        excessAmountPerRide: excessAmountPerRide !== undefined ? parseFloat(excessAmountPerRide) : 0,
-        minHours: minHours !== undefined ? parseInt(minHours) : 0,
-        extraPerHourRate: extraPerHourRate !== undefined ? parseFloat(extraPerHourRate) : 0,
+        excessAmountPerRide: pricing.excessAmountPerRide,
+        minHours: pickNumber(minHours, pricing.minHours),
+        extraPerHourRate: pickNumber(extraPerHourRate, pricing.extraPerHourRate),
       },
     });
 
@@ -83,6 +99,8 @@ export const createSubscriptionPlan = async (req, res) => {
 
 const getPlanSortValue = (plan) => {
   const lowerName = (plan.category || plan.name || '').toLowerCase();
+  // "Silver Plus" sits above plain Silver but below Gold
+  if (lowerName.includes('silver plus')) return 1.5;
   if (lowerName.includes('silver')) return 1;
   if (lowerName.includes('gold')) return 2;
   if (lowerName.includes('platinum')) return 3;
@@ -119,7 +137,11 @@ export const getSubscriptionPlans = async (req, res) => {
 export const updateSubscriptionPlan = async (req, res) => {
   try {
     const id = (req.params.id);
-    const { category, name, duration, price, description, type, isActive, maxDuties, excessAmountPerRide } = req.body;
+    const { category, name, duration, price, description, type, isActive, maxDuties } = req.body;
+    const { excessAmountPerRide: _ignoredExcess, minHours, extraPerHourRate } = req.body;
+
+    const existing = await prisma.subscriptionPlan.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: 'Plan not found' });
 
     const updateData = {};
     if (category !== undefined) updateData.category = VALID_CATEGORIES.includes(category) ? category : 'Silver';
@@ -130,10 +152,16 @@ export const updateSubscriptionPlan = async (req, res) => {
     if (type !== undefined) updateData.type = type;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (maxDuties !== undefined) updateData.maxDuties = maxDuties;
-    if (excessAmountPerRide !== undefined) updateData.excessAmountPerRide = parseFloat(excessAmountPerRide);
-    const { minHours, extraPerHourRate } = req.body;
-    if (minHours !== undefined) updateData.minHours = parseInt(minHours);
-    if (extraPerHourRate !== undefined) updateData.extraPerHourRate = parseFloat(extraPerHourRate);
+
+    // Whatever the description says applies to this save, unless the admin typed
+    // a Min Hours or Extra/Hr Rate over the top of it in the package form.
+    const pricing = derivePlanPricing({
+      description: description !== undefined ? description : existing.description,
+      type: type !== undefined ? type : existing.type,
+    });
+    updateData.excessAmountPerRide = pricing.excessAmountPerRide;
+    updateData.minHours = pickNumber(minHours, pricing.minHours);
+    updateData.extraPerHourRate = pickNumber(extraPerHourRate, pricing.extraPerHourRate);
 
     const plan = await prisma.subscriptionPlan.update({
       where: { id },
@@ -174,6 +202,21 @@ export const purchaseSubscription = async (req, res) => {
     if (paid > plan.price) return res.status(400).json({ error: `Paid amount cannot exceed plan price ₹${plan.price}` });
 
     const isPartial = paid < plan.price;
+
+    // Pay Later (partial payment) is unlocked per driver by the admin.
+    // Until then the driver can only pay the full amount.
+    if (isPartial) {
+      const driver = await prisma.driver.findUnique({
+        where: { id: driverId },
+        select: { payLaterAllowed: true },
+      });
+      if (!driver?.payLaterAllowed) {
+        return res.status(403).json({
+          error: 'Pay Later is not approved for your account yet. Please pay the full amount or contact the admin.',
+        });
+      }
+    }
+
     const remaining = isPartial ? parseFloat((plan.price - paid).toFixed(2)) : 0;
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000);
@@ -330,6 +373,87 @@ export const rejectSubscription = async (req, res) => {
     });
 
     res.json({ success: true, subscription });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+// Admin toggle to put a subscription back in service, take it out of service or
+// reject it outright. Activating a plan whose period already lapsed restarts it
+// for the full plan duration, otherwise updateExpiredSubscriptions() would flip
+// it straight back.
+export const setSubscriptionStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['ACTIVE', 'CANCELLED', 'REJECTED'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Status must be ACTIVE, CANCELLED or REJECTED'
+      });
+    }
+
+    const existing = await prisma.subscription.findUnique({
+      where: { id },
+      include: { plan: true }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Subscription not found' });
+    }
+
+    if (existing.status === status) {
+      return res.json({
+        success: true,
+        subscription: existing,
+        message: `Subscription is already ${status.toLowerCase()}`
+      });
+    }
+
+    const data = { status };
+
+    if (status === 'ACTIVE' && existing.endDate < new Date()) {
+      const start = new Date();
+      const end = new Date(start);
+      end.setDate(end.getDate() + (existing.plan?.duration || 0));
+      data.startDate = start;
+      data.endDate = end;
+    }
+
+    const updated = await prisma.subscription.update({
+      where: { id },
+      data,
+      include: {
+        driver: { select: { name: true, phone: true } },
+        plan: true
+      }
+    });
+
+    // An activated plan can still be auto-deactivated by the next refresh, so
+    // tell the admin up front instead of letting the status silently revert.
+    const reasons = [];
+    if (status === 'ACTIVE') {
+      if ((updated.maxDuties || 0) > 0 && updated.dutiesCompleted >= (updated.maxDuties || 0)) {
+        reasons.push('all duties on this plan are already used');
+      }
+      if (updated.paymentStatus === 'OVERDUE' && updated.paymentDueDate && new Date(updated.paymentDueDate) < new Date()) {
+        reasons.push('the payment is still overdue');
+      }
+    }
+
+    res.json({
+      success: true,
+      subscription: updated,
+      message: status === 'ACTIVE'
+        ? 'Subscription activated'
+        : status === 'REJECTED'
+          ? 'Subscription rejected'
+          : 'Subscription deactivated',
+      warning: reasons.length
+        ? `Subscription activated, but it will be deactivated automatically because ${reasons.join(' and ')}.`
+        : undefined
+    });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }

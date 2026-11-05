@@ -10,6 +10,7 @@ import { approveLead, rejectLead, updateLeadDocument, changeLeadPassword,
   getAllLeads,
   toggleLeadActiveStatus,
   toggleDriverActiveStatus,
+  setDriverPayLaterPermission,
   getAllLeadSubscriptions,
   submitVerification,
   getVerificationHistory,
@@ -32,6 +33,7 @@ router.put('/drivers/:driverId/document', authenticateToken, updateDriverDocumen
 router.put('/drivers/:driverId/approve', authenticateToken, approveDriver);
 router.put('/drivers/:driverId/reject', authenticateToken, rejectDriver);
 router.put('/drivers/:driverId/active', authenticateToken, toggleDriverActiveStatus);
+router.put('/drivers/:driverId/pay-later', authenticateToken, setDriverPayLaterPermission);
 router.put('/drivers/:driverId/status', authenticateToken, updateDriverStatus);
 router.put('/drivers/:driverId/password', authenticateToken, changeDriverPassword);
 router.put('/leads/:leadId/active', authenticateToken, toggleLeadActiveStatus);

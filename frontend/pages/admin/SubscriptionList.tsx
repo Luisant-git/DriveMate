@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
+import apiClient from '../../api/axiosConfig.js';
 
 interface Subscription {
   id: string;
@@ -44,6 +45,22 @@ interface Package {
   duration: number;
 }
 
+// Shared status colours so the package cards and table never drift apart.
+const statusStyle = (status: string) => {
+  switch (status) {
+    case 'ACTIVE':
+      return { pill: 'text-green-700 bg-green-50 border-green-200', dot: 'bg-green-500' };
+    case 'REJECTED':
+      return { pill: 'text-red-700 bg-red-50 border-red-200', dot: 'bg-red-500' };
+    case 'CANCELLED':
+      return { pill: 'text-orange-700 bg-orange-50 border-orange-200', dot: 'bg-orange-500' };
+    case 'EXPIRED':
+      return { pill: 'text-gray-600 bg-gray-100 border-gray-200', dot: 'bg-gray-400' };
+    default:
+      return { pill: 'text-gray-600 bg-gray-50 border-gray-200', dot: 'bg-gray-400' };
+  }
+};
+
 const SubscriptionList: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +80,8 @@ const SubscriptionList: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
   const [viewTab, setViewTab] = useState<'PACKAGES' | 'EXCESS'>('PACKAGES');
+  const [excessSearch, setExcessSearch] = useState('');
+  const [packageSearch, setPackageSearch] = useState('');
   const [showSettleModal, setShowSettleModal] = useState(false);
   const [settleTargetSub, setSettleTargetSub] = useState<any>(null);
   const [settleAmount, setSettleAmount] = useState('');
@@ -78,33 +97,24 @@ const SubscriptionList: React.FC = () => {
     }
     const due = settleTargetSub.excessDue || 0;
     if (amountNum > due) {
-      alert(`Amount cannot exceed current excess due (₹${due})`);
+      alert(`Amount cannot exceed current excess due (₹${Math.round(due)})`);
       return;
     }
 
     try {
       setIsSettling(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('auth-token');
-      const res = await fetch(`${API_BASE_URL}/api/subscriptions/admin/settle-commission/${settleTargetSub.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ amount: amountNum })
+      // The admin JWT lives in 'auth-token'; apiClient always sends that one.
+      await apiClient.post(`/subscriptions/admin/settle-commission/${settleTargetSub.id}`, {
+        amount: Number(amountNum.toFixed(2)),
       });
-      const data = await res.json();
-      if (data.success) {
-        alert('Excess amount collected successfully!');
-        setShowSettleModal(false);
-        setSettleTargetSub(null);
-        setSettleAmount('');
-        fetchSubscriptions();
-      } else {
-        alert(data.error || 'Failed to collect excess amount');
-      }
+      alert('Excess amount collected successfully!');
+      setShowSettleModal(false);
+      setSettleTargetSub(null);
+      setSettleAmount('');
+      fetchSubscriptions();
     } catch (err: any) {
-      alert(err.message || 'Error collecting excess amount');
+      alert(err.response?.data?.error || err.message || 'Error collecting excess amount');
+      fetchSubscriptions();
     } finally {
       setIsSettling(false);
     }
@@ -213,6 +223,14 @@ const SubscriptionList: React.FC = () => {
   );
 
   const filteredSubscriptions = subscriptions.filter(sub => {
+    const q = packageSearch.trim().toLowerCase();
+    if (q) {
+      const hay = [sub.driver?.name, sub.driver?.phone, sub.plan?.name, (sub.plan as any)?.category, (sub.plan as any)?.type]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     if (filterPlan && sub.plan.id !== filterPlan) return false;
     if (filterStatus && sub.status !== filterStatus) return false;
     if (filterPayment === 'PENDING' && (!sub.remainingAmount || sub.remainingAmount <= 0)) return false;
@@ -220,25 +238,47 @@ const SubscriptionList: React.FC = () => {
     return true;
   });
 
-  const rejectSubscription = async (subscriptionId: string) => {
-    if (!window.confirm('Are you sure you want to reject this subscription?')) {
+  // Activate / deactivate / reject a subscription from the admin panel
+  const updateSubscriptionStatus = async (subscriptionId: string, nextStatus: 'ACTIVE' | 'CANCELLED' | 'REJECTED') => {
+    const copy = {
+      ACTIVE: {
+        verb: 'activate',
+        note: 'The driver will be able to receive duties on this plan again.',
+      },
+      CANCELLED: {
+        verb: 'deactivate',
+        note: 'The driver stops receiving duties on this plan. You can activate it again later.',
+      },
+      REJECTED: {
+        verb: 'reject',
+        note: 'A rejected plan is closed for good: it is never dispatched, it drops out of the excess ledger and the driver has to buy a package again. This can be undone with Activate.',
+      },
+    }[nextStatus];
+
+    if (!window.confirm(`Are you sure you want to ${copy.verb} this subscription?\n\n${copy.note}`)) {
       return;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/subscriptions/reject/${subscriptionId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/admin/status/${subscriptionId}`, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         },
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({ status: nextStatus })
       });
       const data = await response.json();
       if (data.success) {
+        if (data.warning) alert(data.warning);
         fetchSubscriptions();
+      } else {
+        alert(data.error || `Failed to ${copy.verb} subscription`);
       }
     } catch (error) {
-      console.error('Error rejecting subscription:', error);
+      console.error(`Error trying to ${copy.verb} subscription:`, error);
+      alert(`Could not ${copy.verb} the subscription. Please try again.`);
     }
   };
 
@@ -290,7 +330,28 @@ const SubscriptionList: React.FC = () => {
       (s.excessDue || 0) > 0
     )
   );
-  const pendingExcessCount = excessRows.filter(s => ((s as any).excessDue || 0) > 0).length;
+
+  // Each package keeps its own line in the ledger; the search box narrows the
+  // list down by driver, phone, package name or category.
+  const excessSearchTerm = excessSearch.trim().toLowerCase();
+  const filteredExcessRows = excessRows.filter((s: any) => {
+    if (!excessSearchTerm) return true;
+    const haystack = [s.driver?.name, s.driver?.phone, s.plan?.name, s.plan?.category, s.plan?.type]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(excessSearchTerm);
+  });
+
+  const excessDriverCount = new Set(
+    excessRows.map((s: any) => s.driverId || s.driver?.id).filter(Boolean)
+  ).size;
+  const pendingDriverCount = new Set(
+    excessRows
+      .filter((s: any) => (s.excessDue || 0) > 0)
+      .map((s: any) => s.driverId || s.driver?.id)
+      .filter(Boolean)
+  ).size;
   if (loading) {
     return <p className="text-sm text-gray-500 mb-4">Loading subscriptions...</p>;
   }
@@ -315,9 +376,9 @@ const SubscriptionList: React.FC = () => {
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${viewTab === 'EXCESS' ? 'bg-black text-white shadow-xs' : 'text-gray-500 hover:text-black'}`}
             >
               <span>Excess Amount</span>
-              {pendingExcessCount > 0 && (
+              {pendingDriverCount > 0 && (
                 <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                  {pendingExcessCount}
+                  {pendingDriverCount}
                 </span>
               )}
             </button>
@@ -335,8 +396,16 @@ const SubscriptionList: React.FC = () => {
 
       {viewTab === 'PACKAGES' && (
         <>
-          {/* Filters */}
+          {/* Filters + search */}
           <div className="flex flex-wrap gap-3">
+            <input
+              type="text"
+              value={packageSearch}
+              onChange={(e) => setPackageSearch(e.target.value)}
+              placeholder="Search driver, phone or plan..."
+              className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            />
+
             <select
               value={filterPlan}
               onChange={(e) => setFilterPlan(e.target.value)}
@@ -372,140 +441,171 @@ const SubscriptionList: React.FC = () => {
           </div>
 
           {/* Mobile View: Cards */}
-          <div className="md:hidden space-y-4">
-            {filteredSubscriptions.map((sub) => (
-              <div
-                key={sub.id}
-                className="border border-gray-200 rounded-xl p-4 shadow-sm bg-white"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-bold text-gray-900">{sub.driver.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
-                      sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
-                        sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
-                          sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
-                            'text-gray-600 bg-gray-50'
-                      }`}>
-                      {sub.status}
+          <div className="md:hidden space-y-3">
+            {filteredSubscriptions.map((sub) => {
+              const tone = statusStyle(sub.status);
+              return (
+                <div
+                  key={sub.id}
+                  className="border border-gray-200 rounded-xl p-3 shadow-sm bg-white"
+                >
+                  {/* Driver + amount */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">{sub.driver.name}</p>
+                      <p className="text-[11px] text-gray-500">{sub.driver.phone}</p>
+                    </div>
+                    <p className="text-base font-black text-gray-900 shrink-0">₹{sub.amount}</p>
+                  </div>
+
+                  {/* Package + type + pending amount */}
+                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 truncate max-w-[160px]">
+                      {sub.plan.name}
                     </span>
-                    {sub.status === 'ACTIVE' && (
-                      <button
-                        onClick={() => rejectSubscription(sub.id)}
-                        className="text-[10px] font-bold px-2 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
-                      >
-                        Reject
-                      </button>
+                    {sub.plan.type && (
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-50 text-sky-700 border border-sky-100">
+                        {sub.plan.type}
+                      </span>
+                    )}
+                    {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && (
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                        Due ₹{sub.remainingAmount}
+                      </span>
                     )}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-500">Plan: {sub.plan.name}</p>
-                  <p className="text-xs text-gray-500">Phone: {sub.driver.phone}</p>
-                  <p className="text-xs text-gray-500">
-                    Period: {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
+
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    {new Date(sub.startDate).toLocaleDateString()} – {new Date(sub.endDate).toLocaleDateString()}
+                    {sub.paymentDueDate && sub.paymentStatus === 'PARTIAL' && (
+                      <> · payment due {new Date(sub.paymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</>
+                    )}
                   </p>
-                  <p className="font-bold text-lg">₹{sub.amount}</p>
-                  {sub.paidAmount !== undefined && sub.paidAmount !== null && (
-                    <p className="text-xs text-gray-500">Paid: ₹{sub.paidAmount}</p>
-                  )}
-                  {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && (
-                    <p className="text-xs font-bold text-orange-600">Remaining: ₹{sub.remainingAmount}</p>
-                  )}
-                  {sub.paymentStatus && (
-                    <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded ${sub.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
-                      sub.paymentStatus === 'OVERDUE' ? 'bg-red-100 text-red-700' :
-                        'bg-orange-100 text-orange-700'
-                      }`}>{sub.paymentStatus}</span>
-                  )}
-                  {sub.paymentDueDate && sub.paymentStatus === 'PARTIAL' && (
-                    <p className="text-[10px] text-gray-500">Due: {new Date(sub.paymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                  )}
+
+                  {/* Status on the left, actions on the right — kept apart on purpose */}
+                  <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-1 rounded-full border ${tone.pill}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
+                      {sub.status}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {sub.status === 'ACTIVE' ? (
+                        <button
+                          onClick={() => updateSubscriptionStatus(sub.id, 'CANCELLED')}
+                          className="text-[10px] font-bold px-2 py-1 rounded text-orange-600 bg-orange-50 hover:bg-orange-100"
+                        >
+                          Deactivate
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => updateSubscriptionStatus(sub.id, 'ACTIVE')}
+                          className="text-[10px] font-bold px-2 py-1 rounded text-green-600 bg-green-50 hover:bg-green-100"
+                        >
+                          Activate
+                        </button>
+                      )}
+                      {sub.status !== 'REJECTED' && (
+                        <button
+                          onClick={() => updateSubscriptionStatus(sub.id, 'REJECTED')}
+                          className="text-[10px] font-bold px-2 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
+                        >
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Desktop View: Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Driver
-                  </th>
-                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Plan
-                  </th>
-                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Period
-                  </th>
-                  <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-8 py-5 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">
-                    Actions
-                  </th>
+          {/* Desktop View: fixed-grid table so every column lines up */}
+          <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white md:block">
+            <table className="w-full min-w-[1200px] table-fixed text-left">
+              <thead className="border-b border-gray-100 bg-gray-50">
+                <tr className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                  <th className="w-[250px] px-4 py-3">Driver</th>
+                  <th className="w-[220px] px-4 py-3">Plan</th>
+                  <th className="w-[130px] px-4 py-3 text-right">Amount</th>
+                  <th className="w-[190px] px-4 py-3">Period</th>
+                  <th className="w-[125px] px-4 py-3 text-right">Status</th>
+                  <th className="w-[285px] px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-100">
                 {filteredSubscriptions.map((sub) => (
-                  <tr key={sub.id} className={`hover:bg-gray-50/50 ${sub.paymentStatus === 'OVERDUE' ? 'bg-red-50/40' : sub.paymentStatus === 'PARTIAL' ? 'bg-orange-50/30' : ''}`}>
-                    <td className="px-8 py-5 text-sm">
-                      <div>
-                        <p className="font-medium">{sub.driver.name}</p>
-                        <p className="text-gray-500">{sub.driver.phone}</p>
+                  <tr key={sub.id} className={`transition hover:bg-gray-50/70 ${sub.paymentStatus === 'OVERDUE' ? 'bg-red-50/40' : sub.paymentStatus === 'PARTIAL' ? 'bg-orange-50/30' : ''}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold uppercase text-gray-600">
+                          {sub.driver.name?.charAt(0)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold leading-tight text-gray-900">{sub.driver.name}</p>
+                          <p className="text-xs leading-tight text-gray-500">{sub.driver.phone}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-sm">
-                      <div>
-                        <p className="font-medium">{sub.plan.name}</p>
-                        <p className="text-gray-500">{sub.plan.type}</p>
-                      </div>
+                    <td className="px-4 py-3">
+                      <p className="truncate text-sm font-semibold leading-tight text-gray-900">{sub.plan.name}</p>
+                      <p className="truncate text-[11px] font-bold uppercase leading-tight tracking-wide text-gray-400">{sub.plan.type}</p>
                     </td>
-                    <td className="px-8 py-5 text-sm">
-                      <div>
-                        <p className="font-medium">₹{sub.amount}</p>
-                        {sub.remainingAmount !== undefined && sub.remainingAmount !== null && (
-                          <p className={`text-xs ${sub.remainingAmount > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                            Remaining: ₹{sub.remainingAmount}
-                          </p>
-                        )}
-                      </div>
+                    <td className="px-4 py-3 text-right">
+                      <p className="text-sm font-bold leading-tight tabular-nums text-gray-900">₹{sub.amount}</p>
+                      {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 ? (
+                        <p className="text-[11px] font-bold leading-tight tabular-nums text-orange-600">₹{sub.remainingAmount} due</p>
+                      ) : (
+                        <p className="text-[11px] leading-tight text-gray-300">—</p>
+                      )}
                     </td>
-                    <td className="px-8 py-5 text-sm text-gray-500">
-                      {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
+                    <td className="px-4 py-3">
+                      <p className="whitespace-nowrap text-[13px] leading-tight tabular-nums text-gray-600">
+                        {new Date(sub.startDate).toLocaleDateString()} → {new Date(sub.endDate).toLocaleDateString()}
+                      </p>
+                      <p className={`text-[11px] leading-tight ${sub.paymentStatus === 'OVERDUE' ? 'font-bold text-red-600' : 'text-gray-400'}`}>
+                        {sub.paymentDueDate && sub.paymentStatus === 'PARTIAL'
+                          ? `Pay by ${new Date(sub.paymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+                          : sub.paymentStatus === 'OVERDUE' ? 'Payment overdue' : '—'}
+                      </p>
                     </td>
-                    <td className="px-8 py-5 text-right">
-                      <span className={`text-xs font-bold px-2 py-1 rounded ${sub.status === 'ACTIVE' ? 'text-green-600 bg-green-50' :
-                        sub.status === 'REJECTED' ? 'text-red-600 bg-red-50' :
-                          sub.status === 'CANCELLED' ? 'text-orange-600 bg-orange-50' :
-                            sub.status === 'EXPIRED' ? 'text-gray-600 bg-gray-50' :
-                              'text-gray-600 bg-gray-50'
-                        }`}>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-bold ${statusStyle(sub.status).pill}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusStyle(sub.status).dot}`} />
                         {sub.status}
                       </span>
                     </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                         {sub.remainingAmount !== undefined && sub.remainingAmount !== null && sub.remainingAmount > 0 && sub.status === 'ACTIVE' && (
                           <button
                             onClick={() => {
                               setSelectedSubscription(sub);
                               setShowPaymentModal(true);
                             }}
-                            className="text-xs font-bold px-3 py-1 rounded text-blue-600 bg-blue-50 hover:bg-blue-100"
+                            className="rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-100"
                           >
                             Update Payment
                           </button>
                         )}
-                        {sub.status === 'ACTIVE' && (
+                        {sub.status === 'ACTIVE' ? (
                           <button
-                            onClick={() => rejectSubscription(sub.id)}
-                            className="text-xs font-bold px-3 py-1 rounded text-red-600 bg-red-50 hover:bg-red-100"
+                            onClick={() => updateSubscriptionStatus(sub.id, 'CANCELLED')}
+                            className="rounded-md bg-orange-50 px-2.5 py-1.5 text-[11px] font-bold text-orange-600 transition hover:bg-orange-100"
+                          >
+                            Deactivate
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateSubscriptionStatus(sub.id, 'ACTIVE')}
+                            className="rounded-md bg-green-50 px-2.5 py-1.5 text-[11px] font-bold text-green-600 transition hover:bg-green-100"
+                          >
+                            Activate
+                          </button>
+                        )}
+                        {sub.status !== 'REJECTED' && (
+                          <button
+                            onClick={() => updateSubscriptionStatus(sub.id, 'REJECTED')}
+                            className="rounded-md bg-red-50 px-2.5 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100"
                           >
                             Reject
                           </button>
@@ -528,99 +628,190 @@ const SubscriptionList: React.FC = () => {
 
       {/* VIEW: EXCESS AMOUNT LEDGER */}
       {viewTab === 'EXCESS' && (
-        <div className="space-y-4">
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="font-extrabold text-orange-950 text-sm sm:text-base">Excess Amount Ledger</p>
-              <p className="text-xs text-orange-700">Excess amount owed by drivers — collected per completed ride.</p>
+        <div className="space-y-3">
+          <div className="bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-extrabold text-orange-950 text-sm">Excess Amount Ledger</p>
+              <p className="text-[11px] text-orange-700">Excess owed per completed ride.</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-white border border-orange-200 rounded-lg px-3 py-1.5 text-center">
-                <p className="text-[10px] uppercase font-bold text-gray-400">Drivers</p>
-                <p className="text-sm font-black text-gray-900">{excessRows.length}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="bg-white border border-orange-200 rounded-lg px-2.5 py-1 text-center">
+                <p className="text-[9px] uppercase font-bold text-gray-400">Drivers</p>
+                <p className="text-xs font-black text-gray-900">{excessDriverCount}</p>
               </div>
-              <div className="bg-white border border-orange-200 rounded-lg px-3 py-1.5 text-center">
-                <p className="text-[10px] uppercase font-bold text-gray-400">Pending Excess</p>
-                <p className="text-sm font-black text-orange-600">
+              <div className="bg-white border border-orange-200 rounded-lg px-2.5 py-1 text-center">
+                <p className="text-[9px] uppercase font-bold text-gray-400">Pending Excess</p>
+                <p className="text-xs font-black text-orange-600">
                   ₹{Math.round(excessRows.reduce((sum, s: any) => sum + (s.excessDue || 0), 0))}
                 </p>
               </div>
             </div>
           </div>
 
-          {excessRows.length === 0 ? (
+          {/* Search: driver, phone, package or category */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+            <input
+              type="text"
+              value={excessSearch}
+              onChange={(e) => setExcessSearch(e.target.value)}
+              placeholder="Search driver, phone or package..."
+              className="w-full pl-9 pr-9 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-black"
+            />
+            {excessSearch && (
+              <button
+                type="button"
+                onClick={() => setExcessSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {filteredExcessRows.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-sm text-gray-500">
-              No excess amount pending. It is recorded automatically each time a driver completes a ride on a package that has an excess amount set.
+              {excessRows.length === 0
+                ? 'No excess amount pending. It is recorded automatically each time a driver completes a ride on a package that has an excess amount set.'
+                : 'No package matches your search.'}
             </div>
           ) : (
-            <div className="overflow-x-auto bg-white border border-gray-200 rounded-xl shadow-xs">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-4">Driver</th>
-                    <th className="px-6 py-4">Package</th>
-                    <th className="px-6 py-4">Completed Rides</th>
-                    <th className="px-6 py-4">Excess / Ride</th>
-                    <th className="px-6 py-4">Total Excess</th>
-                    <th className="px-6 py-4">Collected</th>
-                    <th className="px-6 py-4">Balance Due</th>
-                    <th className="px-6 py-4 text-right">Action</th>
+            <>
+            {/* Mobile View: one compact card per package */}
+            <div className="md:hidden bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+              {filteredExcessRows.map((sub: any) => {
+                const rides = sub.dutiesCompleted || 0;
+                const rate = sub.excessPerRide || 0;
+                const paid = sub.excessPaid || 0;
+                const due = sub.excessDue || 0;
+                return (
+                  <div key={sub.id} className="px-3 py-2 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-900 truncate">{sub.driver?.name}</p>
+                        <p className="text-[10px] text-gray-500">{sub.driver?.phone}</p>
+                      </div>
+                      {due > 0 ? (
+                        <div className="text-right shrink-0">
+                          <p className="text-[9px] uppercase font-bold text-gray-400">Due</p>
+                          <p className="text-xs font-black text-red-600">₹{Math.round(due)}</p>
+                        </div>
+                      ) : (
+                        <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          ✓ Settled
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 truncate max-w-[150px]">
+                        {sub.plan?.name}
+                      </span>
+                      <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-50 text-gray-500 border border-gray-200">
+                        {sub.plan?.category}
+                      </span>
+                      {sub.plan?.type && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-gray-50 text-sky-700 border border-sky-100">
+                          {sub.plan.type}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] text-gray-500 font-semibold truncate">
+                        {rides} rides · ₹{rate}/ride · paid ₹{Math.round(paid)}
+                      </p>
+                      {due > 0 && (
+                        <button
+                          onClick={() => {
+                            setSettleTargetSub(sub);
+                            setSettleAmount(String(Math.round(due)));
+                            setShowSettleModal(true);
+                          }}
+                          className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-black text-white bg-black hover:bg-gray-800 transition"
+                        >
+                          + Collect
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop View: fixed-grid table, one row per package */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-xs md:block">
+              <table className="w-full min-w-[1160px] table-fixed text-left">
+                <thead className="border-b border-gray-100 bg-gray-50">
+                  <tr className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    <th className="w-[240px] px-4 py-3">Driver</th>
+                    <th className="w-[250px] px-4 py-3">Package</th>
+                    <th className="w-[85px] px-4 py-3 text-center">Rides</th>
+                    <th className="w-[125px] px-4 py-3 text-right">Excess / Ride</th>
+                    <th className="w-[105px] px-4 py-3 text-right">Total</th>
+                    <th className="w-[115px] px-4 py-3 text-right">Collected</th>
+                    <th className="w-[140px] px-4 py-3 text-right">Balance Due</th>
+                    <th className="w-[120px] px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {excessRows.map((sub: any) => {
-                    const rate = sub.excessPerRide || 0;
+                <tbody className="divide-y divide-gray-100">
+                  {filteredExcessRows.map((sub: any) => {
                     const rides = sub.dutiesCompleted || 0;
+                    const rate = sub.excessPerRide || 0;
                     const total = sub.totalExcess || 0;
                     const paid = sub.excessPaid || 0;
                     const due = sub.excessDue || 0;
                     return (
-                      <tr key={sub.id} className="hover:bg-gray-50/60 transition">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-gray-900">{sub.driver?.name}</p>
-                          <p className="text-xs text-gray-500">{sub.driver?.phone}</p>
+                      <tr key={sub.id} className="transition hover:bg-gray-50/70">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold uppercase text-gray-600">
+                              {sub.driver?.name?.charAt(0)}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold leading-tight text-gray-900">{sub.driver?.name}</p>
+                              <p className="text-xs leading-tight text-gray-500">{sub.driver?.phone}</p>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="font-bold text-gray-800">{sub.plan?.name}</span>
-                          <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                            {sub.plan?.category}
-                          </span>
+                        <td className="px-4 py-3">
+                          <p className="truncate text-sm font-semibold leading-tight text-gray-900">{sub.plan?.name}</p>
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <span className="whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                              {sub.plan?.category}
+                            </span>
+                            {sub.plan?.type && (
+                              <span className="whitespace-nowrap text-[10px] font-bold text-sky-600">{sub.plan.type}</span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="font-bold text-gray-900">{rides}</span> rides
-                        </td>
-                        <td className="px-6 py-4 font-bold text-gray-900">
-                          {rate > 0 ? `₹${rate}` : (total > 0 ? <span className="text-xs text-gray-500 font-bold">As recorded</span> : '—')}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-gray-900">
-                          ₹{Math.round(total)}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-emerald-600">
-                          ₹{Math.round(paid)}
-                        </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-gray-900">{rides}</td>
+                        <td className="px-4 py-3 text-right text-sm font-bold tabular-nums text-gray-900">₹{rate}</td>
+                        <td className="px-4 py-3 text-right text-sm font-bold tabular-nums text-gray-900">₹{Math.round(total)}</td>
+                        <td className="px-4 py-3 text-right text-sm font-bold tabular-nums text-emerald-600">₹{Math.round(paid)}</td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
                           {due > 0 ? (
-                            <span className="font-black text-red-600 text-sm">₹{Math.round(due)}</span>
+                            <span className="text-sm font-black tabular-nums text-red-600">₹{Math.round(due)}</span>
                           ) : (
-                            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                              ✓ All Settled
+                            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                              ✓ Settled
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 py-3 text-right">
                           {due > 0 ? (
                             <button
                               onClick={() => {
                                 setSettleTargetSub(sub);
-                                setSettleAmount(String(due));
+                                setSettleAmount(String(Math.round(due)));
                                 setShowSettleModal(true);
                               }}
-                              className="px-3 py-1.5 text-xs font-black text-white bg-black hover:bg-gray-800 rounded-lg shadow-xs transition"
+                              className="whitespace-nowrap rounded-md bg-black px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-gray-800"
                             >
-                              + Collect Excess
+                              + Collect
                             </button>
                           ) : (
-                            <span className="text-xs text-gray-400 font-semibold">Settled</span>
+                            <span className="text-[11px] font-semibold text-gray-300">—</span>
                           )}
                         </td>
                       </tr>
@@ -629,6 +820,7 @@ const SubscriptionList: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       )}
@@ -828,20 +1020,21 @@ const SubscriptionList: React.FC = () => {
 
             <form onSubmit={handleSettleExcess} className="p-5 space-y-4">
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-1 text-xs">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500 shrink-0">Package:</span>
+                  <span className="font-bold text-gray-900 text-right break-words">
+                    {settleTargetSub.plan?.name}
+                    {settleTargetSub.plan?.category ? ` · ${settleTargetSub.plan.category}` : ''}
+                  </span>
+                </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Package:</span>
-                  <span className="font-bold text-gray-900">{settleTargetSub.plan?.name}</span>
+                  <span className="text-gray-500">Excess / Ride:</span>
+                  <span className="font-bold text-gray-900">₹{settleTargetSub.excessPerRide || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Completed Rides:</span>
                   <span className="font-bold text-gray-900">{settleTargetSub.dutiesCompleted || 0}</span>
                 </div>
-                {(settleTargetSub.excessPerRide || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Excess / Ride:</span>
-                    <span className="font-bold text-gray-900">₹{settleTargetSub.excessPerRide} / ride</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span className="text-gray-500">Already Collected:</span>
                   <span className="font-bold text-emerald-700">₹{Math.round(settleTargetSub.excessPaid || 0)}</span>

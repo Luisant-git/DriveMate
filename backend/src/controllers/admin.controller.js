@@ -336,6 +336,26 @@ export const toggleDriverActiveStatus = async (req, res) => {
   }
 };
 
+export const setDriverPayLaterPermission = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const { payLaterAllowed } = req.body;
+
+    if (typeof payLaterAllowed !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'payLaterAllowed must be a boolean' });
+    }
+
+    const driver = await prisma.driver.update({
+      where: { id: driverId },
+      data: { payLaterAllowed }
+    });
+
+    res.json({ success: true, driver });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const getAllLeadSubscriptions = async (req, res) => {
   try {
     const subscriptions = await prisma.leadSubscription.findMany({

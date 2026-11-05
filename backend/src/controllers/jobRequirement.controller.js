@@ -1,5 +1,6 @@
 import prisma from '../config/database.js';
 import { randomUUID } from 'crypto';
+import { isPhoneVerified } from './auth.controller.js';
 
 const JOB_STATUSES = ['ACTIVE', 'CLOSED', 'REJECTED'];
 
@@ -15,22 +16,40 @@ const toFloatOrNull = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 
+// Candidates must reach the recruiter through the platform, so a description
+// carrying an Indian mobile number (plain, +91 prefixed or space separated) is refused.
+const MOBILE_NUMBER_PATTERN = /(?:\+?91[\s-]?)?[6-9]\d{9}/;
+const containsMobileNumber = (text) =>
+  MOBILE_NUMBER_PATTERN.test(String(text || '').replace(/[\s\-().]/g, ''));
+
 // POST /api/job-requirements
 export const createJobRequirement = async (req, res) => {
   try {
     const customerId = req.user.userId || req.user.id;
     const {
       title, company, city, localities, description,
-      contactEmail, contactPhone,
+      contactEmail, contactPhone, whatsappNumber, alternateMobile, phoneSameAsWhatsapp,
       jobType, category, role, experienceMin, experienceMax,
       salaryMin, salaryMax, remoteWork, showContact, termsAccepted
     } = req.body;
 
-    if (!title || !city || !description || !contactEmail || !contactPhone) {
-      return res.status(400).json({ success: false, error: 'Title, city, description, email and phone are required.' });
+    // Email is no longer collected on the form; the column stays for old rows.
+    if (!title || !city || !description || !contactPhone) {
+      return res.status(400).json({ success: false, error: 'Title, city, description and phone are required.' });
     }
+    if (containsMobileNumber(description)) {
+      return res.status(400).json({ success: false, error: 'Mobile numbers are not allowed in the job description.' });
+    }
+    const whatsapp = phoneSameAsWhatsapp
+      ? String(contactPhone).trim()
+      : String(whatsappNumber || '').trim();
     if (!role) {
       return res.status(400).json({ success: false, error: 'Role is required.' });
+    }
+    // The form verifies the recruiter number; enforcing it here keeps fake
+    // postings out even when the request skips the UI.
+    if (!isPhoneVerified(contactPhone)) {
+      return res.status(403).json({ success: false, error: 'Please verify the phone number with the OTP before posting.' });
     }
 
     const job = await prisma.jobRequirement.create({
@@ -43,8 +62,10 @@ export const createJobRequirement = async (req, res) => {
         localities: Array.isArray(localities) ? localities.slice(0, 5) : [],
         description: description.trim().slice(0, 3000),
         contactName: null,
-        contactEmail: contactEmail.trim(),
+        contactEmail: contactEmail ? String(contactEmail).trim().slice(0, 100) : '',
         contactPhone: contactPhone.trim(),
+        whatsappNumber: whatsapp || null,
+        alternateMobile: alternateMobile ? String(alternateMobile).trim() : null,
         jobType: jobType || 'Full Time Jobs',
         category: category || 'Other',
         role: role.trim(),

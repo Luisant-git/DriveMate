@@ -9,6 +9,7 @@ import {
   getActivePackagesForDrivers,
   getAllSubscriptions,
   rejectSubscription,
+  setSubscriptionStatus,
   adminCreateSubscription,
   updateSubscriptionPayment,
   getDriverAllActiveSubscriptions,
@@ -208,6 +209,9 @@ router.get('/all', authenticateToken, requireRole(['ADMIN']), getAllSubscription
 router.get('/active-packages', getActivePackagesForDrivers);
 
 router.put('/reject/:id', authenticateToken, requireRole(['ADMIN']), rejectSubscription);
+
+// Admin activate / deactivate a subscription
+router.put('/admin/status/:id', authenticateToken, requireRole(['ADMIN']), setSubscriptionStatus);
 
 router.get('/driver', authenticateToken, requireRole(['DRIVER']), getDriverSubscription);
 router.get('/driver/active-list', authenticateToken, requireRole(['DRIVER']), getDriverAllActiveSubscriptions);

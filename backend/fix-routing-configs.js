@@ -4,15 +4,17 @@ const prisma = new PrismaClient();
 async function fixRouting() {
   console.log('Fixing Booking Routing Configs...');
 
+  // A BOTH package takes local and outstation duties, so it belongs in both
+  // lists. MONTHLY is a one-time service charge and is deliberately excluded.
   const localPlans = await prisma.subscriptionPlan.findMany({
-    where: { type: 'LOCAL', isActive: true }
+    where: { type: { in: ['LOCAL', 'BOTH'] }, isActive: true }
   });
 
   const outstationPlans = await prisma.subscriptionPlan.findMany({
-    where: { type: 'OUTSTATION', isActive: true }
+    where: { type: { in: ['OUTSTATION', 'BOTH'] }, isActive: true }
   });
 
-  console.log(`Found ${localPlans.length} LOCAL plans and ${outstationPlans.length} OUTSTATION plans.`);
+  console.log(`Found ${localPlans.length} LOCAL/BOTH plans and ${outstationPlans.length} OUTSTATION/BOTH plans.`);
 
   // 1. Config for Local - Hourly (One Way)
   const localConfig = await prisma.bookingRoutingConfig.upsert({

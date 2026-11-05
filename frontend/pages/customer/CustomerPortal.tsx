@@ -7,7 +7,7 @@ import { uploadFile } from '../../api/upload';
 import { createBooking, getFareEstimate, getCustomerBookings, rateBooking, cancelBooking } from '../../api/booking';
 import { createJobRequirement, getMyJobRequirements, closeJobRequirement } from '../../api/jobRequirement';
 import { API_BASE_URL } from '../../api/config.js';
-import { checkAuth } from '../../api/auth';
+import { checkAuth, sendOTP, verifyOTPOnly } from '../../api/auth';
 import { toast } from 'react-toastify';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import RouteMap from '../../components/RouteMap';
@@ -15,21 +15,80 @@ import CustomerBookingStatus from './CustomerBookingStatus';
 import CustomerSosModal from '../../components/customer/CustomerSosModal';
 import JobRoleSelect from '../../components/jobs/JobRoleSelect';
 import CitySelect from '../../components/jobs/CitySelect';
+import LocalitySelect from '../../components/jobs/LocalitySelect';
+import { getLocalitiesForCity } from '../../constants/localities';
 import { JOB_TYPES, EXPERIENCE_OPTIONS, REMOTE_OPTIONS } from '../../constants/jobRoles';
 import TermsAndConditions from '../../components/TermsAndConditions';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import UberLanguageSelector from '../../components/common/UberLanguageSelector';
 import { useLanguage } from '../../context/LanguageContext';
 import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance, calculateLocalFareByDistance } from '../../utils/fareCalculator';
-import { calculateDistance, getPackageByDistance, getFilteredDurationOptions } from '../../utils/distanceCalculator';
+import { calculateDistance, getPackageByDistance, getFilteredDurationOptions, OUTSTATION_DAY_OPTIONS } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
 
 interface CustomerPortalProps {
     customer: Customer;
 }
 
-// Hourly usage options for local bookings
+// Hourly usage options for local bookings — overwritten on load by the hours the
+// admin has actually priced in Pricing Management
 const LOCAL_USAGE_OPTIONS = ['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'];
+
+// Normalised so "Salem, Tamil Nadu" and "Salem, Tamil Nadu, India" both count
+// as the same stop instead of slipping past the check.
+const normalizePlace = (value: string) =>
+    String(value || '').toLowerCase().replace(/,\s*india\s*$/, '').replace(/\s+/g, ' ').trim();
+
+const isSameLocation = (pickup: string, drop: string) => {
+    const from = normalizePlace(pickup);
+    const to = normalizePlace(drop);
+    return !!from && from === to;
+};
+
+const SAME_LOCATION_ERROR = 'Pickup and drop cannot be the same location';
+
+// Outstation packages start at this distance — anything shorter is a local trip
+const OUTSTATION_MIN_KM = 60;
+
+// Job type badge colours — mirrors the admin job board so both sides match
+const JOBTYPE_COLORS: Record<string, string> = {
+    'Full Time Jobs': 'bg-emerald-50 text-emerald-700',
+    'Part Time Jobs': 'bg-yellow-50 text-yellow-700',
+    'Work From Home': 'bg-cyan-50 text-cyan-700',
+    Internships: 'bg-pink-50 text-pink-700',
+    'Work Abroad': 'bg-indigo-50 text-indigo-700',
+};
+
+// Compact, tappable hint offering a one-tap service-type switch
+const SwitchHint: React.FC<{ title: string; detail: string; onClick: () => void }> = ({ title, detail, onClick }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="w-full flex items-center gap-2.5 mb-2 pl-3 pr-2.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-left transition hover:bg-amber-100 active:scale-[0.99]"
+    >
+        <span className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+        </span>
+        <span className="flex-1 min-w-0">
+            <span className="block text-[11px] font-bold text-amber-900 leading-tight">{title}</span>
+            <span className="block text-[10px] font-semibold text-amber-700 leading-snug mt-0.5">{detail}</span>
+        </span>
+        <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+        </svg>
+    </button>
+);
+
+/**
+ * Job descriptions must not carry contact numbers (candidates would bypass the
+ * platform), so any Indian mobile pattern — plain, +91 prefixed, or split with
+ * spaces/dashes — is rejected as soon as it is complete.
+ */
+const MOBILE_NUMBER_PATTERN = /(?:\+?91[\s-]?)?[6-9]\d{9}/;
+const containsMobileNumber = (text: string): boolean =>
+    MOBILE_NUMBER_PATTERN.test(String(text || '').replace(/[\s\-().]/g, ''));
 
 const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustomer }) => {
     const { t } = useLanguage();
@@ -39,10 +98,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
     // ── JOBS tab state ──────────────────────────────────────────
     const [myJobs, setMyJobs] = useState<any[]>([]);
+    // One job card expanded at a time — extra details stay collapsed by default
+    const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
     const [jobsLoading, setJobsLoading] = useState(false);
     const [showJobForm, setShowJobForm] = useState(false);
     const [jobSubmitting, setJobSubmitting] = useState(false);
-    const [jobLocality, setJobLocality] = useState('');
+    // Recruiter phone verification for the job form
+    const [jobOtp, setJobOtp] = useState('');
+    const [isJobOtpSent, setIsJobOtpSent] = useState(false);
+    const [isSendingJobOtp, setIsSendingJobOtp] = useState(false);
+    const [isVerifyingJobOtp, setIsVerifyingJobOtp] = useState(false);
+    const [verifiedJobPhone, setVerifiedJobPhone] = useState('');
     const emptyJobForm = {
         title: '',
         jobType: 'Full Time Jobs',
@@ -56,13 +122,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         localities: [] as string[],
         description: '',
         company: '',
-        contactEmail: '',
         contactPhone: '',
+        whatsappNumber: '',
+        alternateMobile: '',
+        phoneSameAsWhatsapp: true,
         showContact: true,
         remoteWork: 'No',
         termsAccepted: false,
     };
     const [jobFormData, setJobFormData] = useState(emptyJobForm);
+    // Localities offered for the city chosen above the picker
+    const cityLocalities = getLocalitiesForCity(jobFormData.city);
+    // Verification only counts while the phone field still holds the verified number
+    const isJobPhoneVerified = Boolean(verifiedJobPhone) && verifiedJobPhone === jobFormData.contactPhone;
     // ────────────────────────────────────────────────────────────
     const [driverType, setDriverType] = useState<BookingType>(BookingType.ACTING);
     const [serviceType, setServiceType] = useState<BookingType>(BookingType.LOCAL_HOURLY);
@@ -113,6 +185,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [minUsageHours, setMinUsageHours] = useState<number | null>(null);
     // LOCAL_HOURLY Min KM bands, e.g. 4h -> 40km … 12h -> 120km
     const [localPricing, setLocalPricing] = useState<{ hours: number; minimumKm: number }[]>([]);
+    const [localUsageOptions, setLocalUsageOptions] = useState<string[]>(LOCAL_USAGE_OPTIONS);
+    // OUTSTATION Min KM bands, e.g. 8h from 60km, 10h from 150km …
+    const [outstationPricing, setOutstationPricing] = useState<{ hours: number; minimumKm: number }[]>([]);
     const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
     const [outstationDailyFare, setOutstationDailyFare] = useState<number | null>(null);
     const [pickupError, setPickupError] = useState<string>('');
@@ -126,6 +201,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [isCancelling, setIsCancelling] = useState(false);
     // Friendly prompt shown when a Local Hourly trip is beyond the local KM range
     const [showOutstationSwitch, setShowOutstationSwitch] = useState(false);
+    const [showLocalSwitch, setShowLocalSwitch] = useState(false);
 
     const [confirmConfig, setConfirmConfig] = useState<{
         isOpen: boolean;
@@ -318,11 +394,38 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 const res = await fetch(`${API_BASE_URL}/api/pricing-packages`);
                 const data = await res.json();
                 if (cancelled || !data?.success) return;
-                const bands = (data.pricing || [])
-                    .filter((p: any) => p.packageType === 'LOCAL_HOURLY' && p.isActive && p.minimumKm)
+                const packages = (data.pricing || [])
+                    .filter((p: any) => p.packageType === 'LOCAL_HOURLY' && p.isActive);
+
+                const bands = packages
+                    .filter((p: any) => p.minimumKm)
                     .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
                     .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
                 setLocalPricing(bands);
+
+                // The Estimated Usage dropdown mirrors the hours the admin has priced,
+                // so adding, deactivating or deleting an hour there changes this list
+                const hours = Array.from(new Set<number>(
+                    packages.map((p: any) => Number(p.hours)).filter((h: number) => h > 0)
+                )).sort((a: number, b: number) => a - b);
+
+                if (hours.length > 0) {
+                    const options = hours.map((h: number) => `${h} Hrs`);
+                    setLocalUsageOptions(options);
+
+                    // Never leave a selection standing that the admin no longer offers
+                    if (!options.includes(formData.estimatedUsage)) {
+                        setFormData(prev => ({ ...prev, estimatedUsage: options[0] }));
+                        setTimeout(() => handleEstimateWithValues(options[0], false), 100);
+                    }
+                }
+
+                // Same for Outstation, but a band only applies from its Min KM upward
+                const outstationBands = (data.pricing || [])
+                    .filter((p: any) => p.packageType === 'OUTSTATION' && p.isActive && p.minimumKm)
+                    .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
+                    .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
+                setOutstationPricing(outstationBands);
             } catch (error) {
                 console.error('Failed to load local pricing bands:', error);
             }
@@ -341,6 +444,58 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         }
     };
 
+    // Adds a locality to the job form (shared by the dropdown and the free-text input)
+    const addJobLocality = (raw: string) => {
+        const value = raw.trim();
+        if (!value) return;
+        setJobFormData(prev =>
+            prev.localities.length >= 5 || prev.localities.includes(value)
+                ? prev
+                : { ...prev, localities: [...prev.localities, value] }
+        );
+    };
+
+    const handleSendJobOtp = async () => {
+        if (jobFormData.contactPhone.length !== 10) {
+            toast.error('Enter a valid 10-digit phone number.');
+            return;
+        }
+        setIsSendingJobOtp(true);
+        try {
+            const res = await sendOTP(jobFormData.contactPhone);
+            if (res.success) {
+                setIsJobOtpSent(true);
+                setJobOtp('');
+                toast.success(`OTP sent to +91 ${jobFormData.contactPhone} on WhatsApp`);
+            } else {
+                toast.error(res.error || res.message || 'Failed to send OTP');
+            }
+        } finally {
+            setIsSendingJobOtp(false);
+        }
+    };
+
+    const handleVerifyJobOtp = async () => {
+        if (jobOtp.length !== 6) {
+            toast.error('Enter the 6-digit OTP.');
+            return;
+        }
+        setIsVerifyingJobOtp(true);
+        try {
+            const res = await verifyOTPOnly(jobFormData.contactPhone, jobOtp);
+            if (res.success) {
+                setVerifiedJobPhone(jobFormData.contactPhone);
+                setIsJobOtpSent(false);
+                setJobOtp('');
+                toast.success('Phone number verified.');
+            } else {
+                toast.error(res.error || res.message || 'Invalid OTP');
+            }
+        } finally {
+            setIsVerifyingJobOtp(false);
+        }
+    };
+
     const handleJobSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!jobFormData.role.trim()) {
@@ -349,6 +504,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         }
         if (jobFormData.localities.length === 0) {
             toast.error('Please add at least one locality.');
+            return;
+        }
+        if (!isJobPhoneVerified) {
+            toast.error('Please verify the recruiter phone number with the OTP.');
             return;
         }
         setJobSubmitting(true);
@@ -361,14 +520,19 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 experienceMax: parseInt(jobFormData.experienceMax) || 0,
                 salaryMin: jobFormData.salaryMin ? parseFloat(jobFormData.salaryMin) : null,
                 salaryMax: jobFormData.salaryMax ? parseFloat(jobFormData.salaryMax) : null,
+                whatsappNumber: jobFormData.phoneSameAsWhatsapp ? jobFormData.contactPhone : jobFormData.whatsappNumber,
             });
             if (res.success) {
                 toast.success('Job posted successfully!');
                 setShowJobForm(false);
                 setJobFormData(emptyJobForm);
-                setJobLocality('');
+                setVerifiedJobPhone('');
+                setIsJobOtpSent(false);
+                setJobOtp('');
                 fetchMyJobs();
             } else {
+                // The server only trusts an OTP checked in the last 15 minutes
+                if ((res.error || '').toLowerCase().includes('verify the phone')) setVerifiedJobPhone('');
                 toast.error(res.error || 'Failed to post job');
             }
         } finally {
@@ -450,6 +614,32 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         }
     };
 
+    // Outstation hours are driven by the admin's pricing rows: a package applies
+    // from its Min KM upward, so a trip takes the band that covers it or a larger one
+    const getOutstationPackageByDistance = (distanceKm: number) => {
+        if (outstationPricing.length === 0) return getPackageByDistance(distanceKm);
+        const band = [...outstationPricing].reverse().find(p => distanceKm >= p.minimumKm)
+            || outstationPricing[0];
+        return { hours: band.hours, description: `${band.hours} Hrs Outstation Package` };
+    };
+
+    // Estimated Usage list for Outstation — only the hours the admin has priced
+    const outstationUsageOptions = (() => {
+        if (outstationPricing.length === 0) return getFilteredDurationOptions(calculatedDistance);
+
+        const requiredHours = getOutstationPackageByDistance(calculatedDistance ?? 0).hours;
+        const hours = Array.from(new Set(
+            outstationPricing.filter(p => p.hours >= requiredHours).map(p => p.hours)
+        )).sort((a, b) => a - b);
+
+        // Multi-day trips need day options too, which are not priced rows
+        const withDays = calculatedDistance === null || calculatedDistance > 150;
+        return [
+            ...hours.map(h => `${h} Hrs`),
+            ...(withDays ? OUTSTATION_DAY_OPTIONS : []),
+        ];
+    })();
+
     // Hours required for a LOCAL_HOURLY trip, plus whether the distance is out of local range
     const getLocalLimitForDistance = (distanceKm: number) => {
         if (localPricing.length === 0) return { hours: null as number | null, maxKm: null as number | null, exceeds: false };
@@ -461,9 +651,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const localDistanceExceeded = serviceType === BookingType.LOCAL_HOURLY && calculatedDistance !== null
         ? getLocalLimitForDistance(calculatedDistance)
         : null;
-    const localDistanceError = localDistanceExceeded?.exceeds
-        ? `This trip is ${Math.round(calculatedDistance as number)} km. Local Hourly covers up to ${localDistanceExceeded.maxKm} km — tap here to switch to Outstation.`
-        : '';
+    // An Outstation trip shorter than the outstation minimum is really a local trip
+    const outstationTooShort = serviceType === BookingType.OUTSTATION
+        && calculatedDistance !== null
+        && calculatedDistance > 0
+        && calculatedDistance < OUTSTATION_MIN_KM;
 
     // Remembers which route already triggered the prompt, so cancelling it does not
     // pop it straight back up on the next re-render.
@@ -486,7 +678,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         const pickup = formData.pickup;
         const drop = formData.drop;
         const distance = calculatedDistance;
-        const packageInfo = distance ? getPackageByDistance(distance) : null;
+        const packageInfo = distance ? getOutstationPackageByDistance(distance) : null;
 
         setServiceType(BookingType.OUTSTATION);
         setOutstationData({ pickup, drop });
@@ -520,6 +712,40 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             }
         }
         toast.success('Switched to Outstation — pickup and drop kept.');
+    };
+
+    // An Outstation trip under the outstation minimum is really a local trip, so
+    // carry the same pickup and drop into a Local Hourly package instead.
+    const handleSwitchToLocal = async () => {
+        setShowLocalSwitch(false);
+        const pickup = formData.pickup;
+        const drop = formData.drop;
+        const distance = calculatedDistance;
+
+        setServiceType(BookingType.LOCAL_HOURLY);
+        setFormData(prev => ({ ...prev, pickup, drop }));
+        setOutstationErrors({ pickup: '', drop: '' });
+        setMinUsageHours(null);
+
+        if (distance) {
+            const breakdown = await calculateLocalFareByDistance(
+                distance,
+                formData.whenNeeded === 'Immediately'
+            );
+            if (breakdown) {
+                setFareBreakdown(breakdown);
+                setEstimate(breakdown.totalFare);
+                setMinUsageHours(breakdown.hours ?? null);
+                setFormData(prev => ({
+                    ...prev,
+                    estimatedUsage: `${breakdown.hours} Hr${breakdown.hours && breakdown.hours > 1 ? 's' : ''}`,
+                }));
+            } else {
+                setEstimate(null);
+                setFareBreakdown(null);
+            }
+        }
+        toast.success('Switched to Local Hourly — pickup and drop kept.');
     };
 
     const getAutoEstimatedUsage = (durationMinutes: number): string => {
@@ -563,10 +789,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             return;
         }
 
+        // An Outstation trip shorter than the outstation minimum cannot be priced
+        // from a route — offer the Local Hourly switch instead of a dead end.
+        if (outstationTooShort) {
+            setShowLocalSwitch(true);
+            return;
+        }
+
         // Check if estimate is available
         if (!estimate || estimate <= 0) {
             // Out of Local Hourly range — reopen the switch prompt instead of a warning
-            if (localDistanceError) {
+            if (localDistanceExceeded?.exceeds) {
                 setShowOutstationSwitch(true);
                 return;
             }
@@ -628,6 +861,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         // Validate drop location completeness only for One Way trips
         if (!isRoundTrip && !formData.drop.includes(',')) {
             toast.error('Please select complete drop location from the suggestions');
+            return;
+        }
+
+        // Outstation is priced by the route distance, so the two stops must
+        // differ. Local Hourly stays allowed — it is a time-based package that
+        // may legitimately start and end at the same place.
+        const isOutstationTrip = serviceType === BookingType.OUTSTATION || serviceType === 'Outstation';
+        if (isOutstationTrip && isSameLocation(formData.pickup, formData.drop)) {
+            setOutstationErrors({ pickup: '', drop: SAME_LOCATION_ERROR });
+            toast.error(`${SAME_LOCATION_ERROR}. Please choose a different drop.`);
             return;
         }
 
@@ -1374,13 +1617,25 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 setEstimate(null);
                                                 setFareBreakdown(null);
 
+                                                // Outstation is priced by distance — a booking that
+                                                // starts and ends at the same stop cannot be priced
+                                                if (isSameLocation(value, formData.drop)) {
+                                                    setOutstationErrors({ ...outstationErrors, pickup: SAME_LOCATION_ERROR });
+                                                    return;
+                                                }
+
                                                 // Recalculate if both pickup and drop are available
                                                 if (value && formData.drop && value.includes(',') && formData.drop.includes(',')) {
                                                     const distanceData = await calculateDistance(value, formData.drop);
                                                     if (distanceData) {
-                                                        // Check if distance is less than 60km for outstation
-                                                        if (distanceData.distance < 60) {
-                                                            // Don't calculate fare for short distances
+                                                        // Outstation starts at OUTSTATION_MIN_KM — keep the
+                                                        // distance so the form can offer the Local switch
+                                                        if (distanceData.distance < OUTSTATION_MIN_KM) {
+                                                            setCalculatedDistance(distanceData.distance);
+                                                            setCalculatedDuration(distanceData.duration);
+                                                            setMinUsageHours(null);
+                                                            setEstimate(null);
+                                                            setFareBreakdown(null);
                                                             return;
                                                         }
 
@@ -1388,7 +1643,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         setCalculatedDuration(distanceData.duration);
 
                                                         // Auto-select package based on distance
-                                                        const packageInfo = getPackageByDistance(distanceData.distance);
+                                                        const packageInfo = getOutstationPackageByDistance(distanceData.distance);
                                                         setFormData(prev => ({ ...prev, pickup: value, estimatedUsage: `${packageInfo.hours} Hrs` }));
 
                                                         // Calculate fare based on distance
@@ -1479,6 +1734,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         }
                                                     } else if (serviceType === BookingType.OUTSTATION) {
                                                         setOutstationData({ ...outstationData, drop: value });
+                                                        // Outstation is priced by distance — never leave a
+                                                        // fare standing for a start-and-end-at-same-stop trip
+                                                        if (value && isSameLocation(formData.pickup, value)) {
+                                                            setOutstationErrors({ ...outstationErrors, drop: SAME_LOCATION_ERROR });
+                                                            setCalculatedDistance(null);
+                                                            setCalculatedDuration(null);
+                                                            setMinUsageHours(null);
+                                                            setEstimate(null);
+                                                            setFareBreakdown(null);
+                                                            return;
+                                                        }
                                                         setOutstationErrors({ ...outstationErrors, drop: '' });
                                                     }
 
@@ -1496,9 +1762,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     if (serviceType === BookingType.OUTSTATION && formData.pickup && value.includes(',')) {
                                                         const distanceData = await calculateDistance(formData.pickup, value);
                                                         if (distanceData) {
-                                                            // Check if distance is less than 60km for outstation
-                                                            if (distanceData.distance < 60) {
-                                                                // Don't calculate fare for short distances
+                                                            // Outstation starts at OUTSTATION_MIN_KM — keep the
+                                                            // distance so the form can offer the Local switch
+                                                            if (distanceData.distance < OUTSTATION_MIN_KM) {
+                                                                setCalculatedDistance(distanceData.distance);
+                                                                setCalculatedDuration(distanceData.duration);
+                                                                setMinUsageHours(null);
+                                                                setEstimate(null);
+                                                                setFareBreakdown(null);
                                                                 return;
                                                             }
 
@@ -1506,7 +1777,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                             setCalculatedDuration(distanceData.duration);
 
                                                             // Auto-select package based on distance
-                                                            const packageInfo = getPackageByDistance(distanceData.distance);
+                                                            const packageInfo = getOutstationPackageByDistance(distanceData.distance);
                                                             setFormData({ ...formData, drop: value, estimatedUsage: `${packageInfo.hours} Hrs` });
 
                                                             // Calculate fare based on distance
@@ -1770,14 +2041,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
-                                                {localDistanceError && (
-                                                    <button
-                                                        type="button"
+                                                {localDistanceExceeded?.exceeds && (
+                                                    <SwitchHint
+                                                        title="Switch to Outstation"
+                                                        detail={`${Math.round(calculatedDistance as number)} km — Local Hourly covers up to ${localDistanceExceeded.maxKm} km`}
                                                         onClick={() => setShowOutstationSwitch(true)}
-                                                        className="w-full text-left text-[11px] font-bold text-red-600 mb-1.5 leading-snug underline decoration-red-300 underline-offset-2 hover:text-red-700"
-                                                    >
-                                                        {localDistanceError}
-                                                    </button>
+                                                    />
                                                 )}
                                                 <div className="relative">
                                                     <div
@@ -1794,7 +2063,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                                     Minimum {minUsageHours} Hrs required for {calculatedDistance ?? ''} km
                                                                 </div>
                                                             )}
-                                                            {LOCAL_USAGE_OPTIONS.map(option => {
+                                                            {localUsageOptions.map(option => {
                                                                 const optionHours = parseInt(option, 10);
                                                                 const locked = minUsageHours !== null && optionHours < minUsageHours;
                                                                 return (
@@ -1874,6 +2143,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
+                                                {outstationTooShort && (
+                                                    <SwitchHint
+                                                        title="Switch to Local Hourly"
+                                                        detail={`${Math.round(calculatedDistance as number)} km — Outstation starts at ${OUTSTATION_MIN_KM} km`}
+                                                        onClick={() => setShowLocalSwitch(true)}
+                                                    />
+                                                )}
                                                 <div className="flex gap-2">
                                                     <div className="relative flex-1">
                                                         <div
@@ -1907,7 +2183,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         </div>
                                                         {openDropdown === 'usage' && (
                                                             <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                                {getFilteredDurationOptions(calculatedDistance).map(option => (
+                                                                {outstationUsageOptions.map(option => (
                                                                     <div
                                                                         key={option}
                                                                         onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
@@ -2101,14 +2377,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
-                                                {localDistanceError && (
-                                                    <button
-                                                        type="button"
+                                                {localDistanceExceeded?.exceeds && (
+                                                    <SwitchHint
+                                                        title="Switch to Outstation"
+                                                        detail={`${Math.round(calculatedDistance as number)} km — Local Hourly covers up to ${localDistanceExceeded.maxKm} km`}
                                                         onClick={() => setShowOutstationSwitch(true)}
-                                                        className="w-full text-left text-[11px] font-bold text-red-600 mb-1.5 leading-snug underline decoration-red-300 underline-offset-2 hover:text-red-700"
-                                                    >
-                                                        {localDistanceError}
-                                                    </button>
+                                                    />
                                                 )}
                                                 <div className="relative">
                                                     <div
@@ -2125,7 +2399,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                                     Minimum {minUsageHours} Hrs required for {calculatedDistance ?? ''} km
                                                                 </div>
                                                             )}
-                                                            {LOCAL_USAGE_OPTIONS.map(option => {
+                                                            {localUsageOptions.map(option => {
                                                                 const optionHours = parseInt(option, 10);
                                                                 const locked = minUsageHours !== null && optionHours < minUsageHours;
                                                                 return (
@@ -3039,39 +3313,21 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <label className="block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide">City <span className="text-red-500">*</span></label>
                                         <CitySelect
                                             value={jobFormData.city}
-                                            onChange={city => setJobFormData(p => ({ ...p, city }))}
+                                            onChange={city => setJobFormData(p => ({ ...p, city, localities: [] }))}
                                             required
                                         />
                                     </div>
 
-                                    {/* Localities */}
+                                    {/* Localities — the list follows the city chosen above */}
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Localities <span className="text-red-500">*</span> <span className="text-gray-400 font-normal normal-case">(Upto 5)</span></label>
-                                        <div className="flex gap-2">
-                                            <input type="text"
-                                                placeholder="Type or select a locality"
-                                                disabled={jobFormData.localities.length >= 5}
-                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black disabled:opacity-60"
-                                                value={jobLocality}
-                                                onChange={e => setJobLocality(e.target.value)}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        const v = jobLocality.trim();
-                                                        if (v && jobFormData.localities.length < 5 && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
-                                                        setJobLocality('');
-                                                    }
-                                                }}
-                                            />
-                                            <button type="button"
-                                                onClick={() => {
-                                                    const v = jobLocality.trim();
-                                                    if (v && jobFormData.localities.length < 5 && !jobFormData.localities.includes(v)) setJobFormData(p => ({ ...p, localities: [...p.localities, v] }));
-                                                    setJobLocality('');
-                                                }}
-                                                className="flex-shrink-0 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
-                                            >Add</button>
-                                        </div>
+                                        <LocalitySelect
+                                            key={jobFormData.city}
+                                            options={cityLocalities}
+                                            selected={jobFormData.localities}
+                                            onAdd={addJobLocality}
+                                            disabled={!jobFormData.city}
+                                        />
                                         {jobFormData.localities.length > 0 && (
                                             <div className="flex flex-wrap gap-1.5 mt-2">
                                                 {jobFormData.localities.map(loc => (
@@ -3091,9 +3347,20 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             placeholder="Type or paste the Job Description here. Only plain text is supported."
                                             className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black resize-none"
                                             value={jobFormData.description}
-                                            onChange={e => setJobFormData(p => ({ ...p, description: e.target.value }))}
+                                            onChange={e => {
+                                                const next = e.target.value;
+                                                // Phone numbers typed or pasted into the description are refused
+                                                if (containsMobileNumber(next)) {
+                                                    toast.error('Mobile numbers are not allowed in the job description.');
+                                                    return;
+                                                }
+                                                setJobFormData(p => ({ ...p, description: next }));
+                                            }}
                                         />
-                                        <p className="text-[10px] text-gray-400 mt-0.5 text-right">{jobFormData.description.length}/3000</p>
+                                        <div className="flex items-start justify-between gap-2 mt-0.5">
+                                            <p className="text-[10px] text-gray-400 leading-snug">Mobile numbers are not allowed.</p>
+                                            <p className="text-[10px] text-gray-400 text-right flex-shrink-0">{jobFormData.description.length}/3000</p>
+                                        </div>
                                     </div>
 
                                     {/* Recruiter Details */}
@@ -3110,23 +3377,85 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Email <span className="text-red-500">*</span></label>
-                                            <input type="email" required maxLength={100} placeholder="Please use your work email"
-                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                value={jobFormData.contactEmail}
-                                                onChange={e => setJobFormData(p => ({ ...p, contactEmail: e.target.value }))}
-                                            />
-                                        </div>
-                                        <div>
                                             <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Phone <span className="text-red-500">*</span></label>
-                                            <div className="flex gap-2">
-                                                <span className="flex items-center px-3 bg-gray-100 rounded-lg text-sm font-bold text-gray-600 flex-shrink-0">+91</span>
-                                                <input type="tel" required maxLength={10} placeholder="10-digit mobile"
-                                                    className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
-                                                    value={jobFormData.contactPhone}
-                                                    onChange={e => setJobFormData(p => ({ ...p, contactPhone: e.target.value.replace(/\D/g, '') }))}
+                                            {/* Wraps on narrow panels so the input never gets squeezed */}
+                                            <div className="flex flex-wrap items-stretch gap-2">
+                                                <div className="flex flex-1 basis-40 min-w-0 items-stretch gap-2">
+                                                    <span className="flex items-center px-2 bg-gray-100 rounded-lg text-xs font-bold text-gray-600 flex-shrink-0">+91</span>
+                                                    <input type="tel" required maxLength={10} placeholder="10-digit mobile"
+                                                        className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                        value={jobFormData.contactPhone}
+                                                        onChange={e => {
+                                                            setJobFormData(p => ({ ...p, contactPhone: e.target.value.replace(/\D/g, '') }));
+                                                            setIsJobOtpSent(false);
+                                                            setJobOtp('');
+                                                        }}
+                                                    />
+                                                </div>
+                                                <button type="button"
+                                                    disabled={jobFormData.contactPhone.length !== 10 || isSendingJobOtp || isJobPhoneVerified}
+                                                    onClick={handleSendJobOtp}
+                                                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold leading-tight transition ${isJobPhoneVerified ? 'bg-green-100 text-green-700' : 'bg-black text-white hover:bg-gray-800 disabled:opacity-50'}`}
+                                                >
+                                                    {isJobPhoneVerified ? 'Verified' : isSendingJobOtp ? 'Sending…' : 'Send OTP'}
+                                                </button>
+                                            </div>
+
+                                            {isJobOtpSent && !isJobPhoneVerified && (
+                                                <div className="flex flex-wrap items-stretch gap-2 mt-2">
+                                                    <input type="text" inputMode="numeric" autoFocus maxLength={6} placeholder="Enter OTP"
+                                                        className="flex-1 basis-40 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm text-center font-bold tracking-[0.3em] placeholder:font-medium placeholder:tracking-normal placeholder:text-gray-400 focus:ring-2 focus:ring-black"
+                                                        value={jobOtp}
+                                                        onChange={e => setJobOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                    />
+                                                    <button type="button"
+                                                        disabled={jobOtp.length !== 6 || isVerifyingJobOtp}
+                                                        onClick={handleVerifyJobOtp}
+                                                        className="flex-shrink-0 px-3 py-2 bg-green-600 text-white text-[11px] font-bold rounded-lg hover:bg-green-500 disabled:opacity-50"
+                                                    >
+                                                        {isVerifyingJobOtp ? 'Checking…' : 'Confirm'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {isJobPhoneVerified ? (
+                                                <p className="text-[10px] text-green-600 font-bold mt-1">Phone number verified</p>
+                                            ) : (
+                                                <p className="text-[10px] text-gray-400 mt-1">Verify this number with an OTP before posting.</p>
+                                            )}
+
+                                            <label className="flex items-center gap-2 mt-2 text-[11px] text-gray-600 cursor-pointer">
+                                                <input type="checkbox" checked={jobFormData.phoneSameAsWhatsapp}
+                                                    onChange={e => setJobFormData(p => ({
+                                                        ...p,
+                                                        phoneSameAsWhatsapp: e.target.checked,
+                                                        ...(e.target.checked && { whatsappNumber: p.contactPhone })
+                                                    }))}
+                                                    className="rounded border-gray-300 text-black focus:ring-black"
+                                                />
+                                                Phone same as WhatsApp number
+                                            </label>
+
+                                            {!jobFormData.phoneSameAsWhatsapp && (
+                                                <div className="mt-2">
+                                                    <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">WhatsApp Number</label>
+                                                    <input type="tel" maxLength={10} placeholder="10-digit WhatsApp number"
+                                                        className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                        value={jobFormData.whatsappNumber}
+                                                        onChange={e => setJobFormData(p => ({ ...p, whatsappNumber: e.target.value.replace(/\D/g, '') }))}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="mt-2">
+                                                <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Alternate Number <span className="text-gray-400 font-normal normal-case">(Optional)</span></label>
+                                                <input type="tel" maxLength={10} placeholder="10-digit alternate number"
+                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                                                    value={jobFormData.alternateMobile}
+                                                    onChange={e => setJobFormData(p => ({ ...p, alternateMobile: e.target.value.replace(/\D/g, '') }))}
                                                 />
                                             </div>
+
                                             <label className="flex items-center gap-2 mt-2 text-[11px] text-gray-600 cursor-pointer">
                                                 <input type="checkbox" checked={jobFormData.showContact}
                                                     onChange={e => setJobFormData(p => ({ ...p, showContact: e.target.checked }))}
@@ -3140,11 +3469,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {/* Remote work */}
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Can this job be done remotely? <span className="text-red-500">*</span></label>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-1.5">
                                             {REMOTE_OPTIONS.map(opt => (
                                                 <button key={opt} type="button"
                                                     onClick={() => setJobFormData(p => ({ ...p, remoteWork: opt }))}
-                                                    className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${jobFormData.remoteWork === opt ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                    className={`flex-1 min-w-0 px-1 py-1.5 rounded-lg text-[11px] font-bold border transition ${jobFormData.remoteWork === opt ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
                                                 >{opt}</button>
                                             ))}
                                         </div>
@@ -3163,7 +3492,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     </div>
 
                                     {/* Submit */}
-                                    <button type="submit" disabled={jobSubmitting || !jobFormData.termsAccepted}
+                                    <button type="submit" disabled={jobSubmitting || !jobFormData.termsAccepted || !isJobPhoneVerified}
                                         className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-60 flex items-center justify-center gap-2"
                                     >
                                         {jobSubmitting
@@ -3201,74 +3530,123 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     // Ignore junk entries such as the literal string "null"
                                     const localities: string[] = (job.localities || [])
                                         .filter((l: string) => l && l.trim() && l.trim().toLowerCase() !== 'null');
-                                    const subtitle = [job.company, job.city, job.jobType].filter(Boolean).join(' · ');
+                                    // Job type gets its own badge, so keep it out of the subtitle
+                                    const subtitle = [job.company, job.city].filter(Boolean).join(' · ');
+                                    const isExpanded = expandedJobId === job.id;
 
                                     return (
-                                        <div key={job.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                        <div key={job.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden transition hover:border-gray-300">
                                             {/* Status + date */}
-                                            <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 bg-gray-50 border-b border-gray-100">
-                                                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${isActive ? 'bg-green-100 text-green-800' : job.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-600'}`}>
+                                            <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-gray-100">
+                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive ? 'bg-green-50 text-green-700' : job.status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-green-500' : job.status === 'REJECTED' ? 'bg-red-500' : 'bg-gray-400'}`} />
                                                     {job.status}
                                                 </span>
-                                                <span className="text-[10px] text-gray-400 font-semibold whitespace-nowrap">{dateLabel}</span>
+                                                <span className="whitespace-nowrap text-[11px] font-semibold text-gray-400">{dateLabel}</span>
                                             </div>
 
-                                            {/* Title block */}
-                                            <div className="px-3.5 pt-3 space-y-0.5 min-w-0">
-                                                <h4 className="font-bold text-sm text-gray-900 leading-snug break-words">{job.title}</h4>
-                                                {subtitle && <p className="text-xs text-gray-500 font-semibold break-words">{subtitle}</p>}
+                                            {/* Logo tile + title */}
+                                            <div className="flex items-start gap-3 px-4 pt-3.5">
+                                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black text-white">
+                                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                    </svg>
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="line-clamp-2 break-words text-[15px] font-bold leading-snug text-gray-900">{job.title}</h4>
+                                                    {subtitle && <p className="mt-0.5 truncate text-xs font-medium text-gray-500">{subtitle}</p>}
+                                                </div>
                                             </div>
 
                                             {/* Key facts */}
-                                            <div className="px-3.5 pt-2.5 grid grid-cols-2 gap-2">
-                                                <div className="bg-gray-50 rounded-lg px-2.5 py-1.5 min-w-0">
-                                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Salary</p>
-                                                    <p className="text-xs font-bold text-gray-900 break-words mt-0.5">{salary ? `${salary}/mo` : '—'}</p>
+                                            <div className="mx-4 mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100">
+                                                <div className="min-w-0 bg-white px-3 py-2">
+                                                    <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Salary</p>
+                                                    <p className="mt-0.5 break-words text-[13px] font-bold text-gray-900">{salary ? `${salary}/mo` : 'Not disclosed'}</p>
                                                 </div>
-                                                <div className="bg-gray-50 rounded-lg px-2.5 py-1.5 min-w-0">
-                                                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Experience</p>
-                                                    <p className="text-xs font-bold text-gray-900 break-words mt-0.5">{experience}</p>
+                                                <div className="min-w-0 bg-white px-3 py-2">
+                                                    <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Experience</p>
+                                                    <p className="mt-0.5 break-words text-[13px] font-bold text-gray-900">{experience}</p>
                                                 </div>
                                             </div>
 
-                                            {/* Role / category / remote */}
-                                            {(job.role || (job.category && job.category !== 'Other') || job.remoteWork) && (
-                                                <div className="px-3.5 pt-2.5 flex flex-wrap gap-1.5">
-                                                    {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full break-words">{job.role}</span>}
-                                                    {job.category && job.category !== 'Other' && <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full break-words">{job.category}</span>}
-                                                    {job.remoteWork && <span className="text-[10px] font-bold bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">Remote: {job.remoteWork}</span>}
+                                            {/* Role / category / type / remote */}
+                                            {(job.role || (job.category && job.category !== 'Other') || job.jobType || job.remoteWork) && (
+                                                <div className="flex flex-wrap gap-1.5 px-4 pt-3">
+                                                    {job.role && <span className="break-words rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white">{job.role}</span>}
+                                                    {job.category && job.category !== 'Other' && <span className="break-words rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-600">{job.category}</span>}
+                                                    {job.jobType && <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${JOBTYPE_COLORS[job.jobType] || 'bg-gray-100 text-gray-600'}`}>{job.jobType}</span>}
+                                                    {job.remoteWork && <span className="rounded-md bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700">Remote: {job.remoteWork}</span>}
                                                 </div>
                                             )}
 
-                                            {/* Description */}
+                                            {/* Description — short preview, full text when expanded */}
                                             {description && (
-                                                <p className="px-3.5 pt-2 text-xs text-gray-600 leading-relaxed line-clamp-2 break-words">{description}</p>
+                                                <p className={`break-words px-4 pt-3 text-xs leading-relaxed text-gray-600 ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>{description}</p>
                                             )}
 
-                                            {/* Localities */}
-                                            {localities.length > 0 && (
-                                                <div className="px-3.5 pt-2 flex flex-wrap gap-1">
-                                                    {localities.map(l => (
-                                                        <span key={l} className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold break-words">{l}</span>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Contact + action */}
-                                            <div className="mt-3 border-t border-gray-100 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
-                                                <div className="flex-1 min-w-0 space-y-0.5">
-                                                    <p className="text-[11px] text-gray-500 break-all"><span className="font-bold text-gray-700">Email:</span> {job.contactEmail}</p>
-                                                    <p className="text-[11px] text-gray-500"><span className="font-bold text-gray-700">Phone:</span> +91 {job.contactPhone}</p>
-                                                    {!job.showContact && (
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wide">Hidden from candidates</p>
+                                            {/* Extra details — hidden until "More details" is tapped */}
+                                            {isExpanded && (
+                                                <div className="space-y-2.5 px-4 pt-3">
+                                                    {localities.length > 0 && (
+                                                        <div>
+                                                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-gray-400">Localities</p>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {localities.map(l => (
+                                                                    <span key={l} className="break-words rounded-md border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">{l}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     )}
+                                                    <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                                                        <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">Contact</p>
+                                                        <p className="flex items-center justify-between gap-2 text-[11px]">
+                                                            <span className="font-bold text-gray-700">Phone</span>
+                                                            <span className="font-semibold tabular-nums text-gray-900">+91 {job.contactPhone}</span>
+                                                        </p>
+                                                        <p className="mt-0.5 flex items-center justify-between gap-2 text-[11px]">
+                                                            <span className="font-bold text-gray-700">WhatsApp</span>
+                                                            <span className="font-semibold tabular-nums text-gray-900">+91 {job.whatsappNumber || job.contactPhone}</span>
+                                                        </p>
+                                                        {job.alternateMobile && (
+                                                            <p className="mt-0.5 flex items-center justify-between gap-2 text-[11px]">
+                                                                <span className="font-bold text-gray-700">Alternate</span>
+                                                                <span className="font-semibold tabular-nums text-gray-900">+91 {job.alternateMobile}</span>
+                                                            </p>
+                                                        )}
+                                                        {!job.showContact && (
+                                                            <p className="mt-1.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">Hidden from candidates</p>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                            )}
+
+                                            {/* More / Less + close action */}
+                                            <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/60 px-4 py-2">
+                                                <button
+                                                    onClick={() => setExpandedJobId(isExpanded ? null : job.id)}
+                                                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-gray-500 transition hover:bg-white hover:text-black"
+                                                >
+                                                    {isExpanded ? '▲ Less' : '▼ More details'}
+                                                </button>
                                                 {isActive && (
                                                     <button
-                                                        onClick={() => handleCloseJob(job.id)}
-                                                        className="flex-shrink-0 text-[11px] font-bold text-red-600 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 transition"
+                                                        onClick={() => {
+                                                            setConfirmConfig({
+                                                                isOpen: true,
+                                                                title: 'Close Job?',
+                                                                message: `Candidates will stop seeing this posting and it will be marked CLOSED. You can't reopen it from your account.`,
+                                                                type: 'danger',
+                                                                confirmText: 'Close Job',
+                                                                onConfirm: () => {
+                                                                    closeConfirm();
+                                                                    handleCloseJob(job.id);
+                                                                }
+                                                            });
+                                                        }}
+                                                        className="shrink-0 rounded-lg border border-red-100 bg-white px-3 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-50"
                                                     >
-                                                        Close
+                                                        Close Job
                                                     </button>
                                                 )}
                                             </div>
@@ -3768,6 +4146,67 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                 )}
             </div>
+
+            {/* Outstation → Local Hourly switch prompt */}
+            {showLocalSwitch && (
+                <div
+                    className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setShowLocalSwitch(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-5">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-gray-900">Switch to Local Hourly?</p>
+                                    <p className="text-xs text-gray-500 mt-1 leading-snug">
+                                        Your trip is <span className="font-bold text-gray-800">{Math.round(calculatedDistance || 0)} km</span>.
+                                        Outstation packages start at <span className="font-bold text-gray-800">{OUTSTATION_MIN_KM} km</span>, so this trip is priced as a Local Hourly package.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+                                <div className="flex gap-2">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 w-9 pt-0.5">From</span>
+                                    <span className="text-xs font-semibold text-gray-800 flex-1 break-words">{formData.pickup.split(',')[0]}</span>
+                                </div>
+                                <div className="h-px bg-gray-200" />
+                                <div className="flex gap-2">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 w-9 pt-0.5">To</span>
+                                    <span className="text-xs font-semibold text-gray-800 flex-1 break-words">{formData.drop.split(',')[0]}</span>
+                                </div>
+                            </div>
+
+                            <p className="text-[10px] text-gray-400 font-semibold mt-2">Pickup and drop are kept automatically — no need to re-enter them.</p>
+
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowLocalSwitch(false)}
+                                    className="flex-1 py-2.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSwitchToLocal}
+                                    className="flex-1 py-2.5 rounded-lg bg-black text-white text-xs font-bold hover:bg-gray-800"
+                                >
+                                    Switch to Local Hourly
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Local Hourly → Outstation switch prompt */}
             {showOutstationSwitch && (

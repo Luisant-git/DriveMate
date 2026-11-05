@@ -91,6 +91,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [selectedPackage, setSelectedPackage] = useState<SubscriptionPackage | null>(null);
   const [paymentMode, setPaymentMode] = useState<'FULL' | 'PARTIAL'>('FULL');
   const [partialAmount, setPartialAmount] = useState<string>('');
+  // Pay Later (part payment) is unlocked per driver by the admin
+  const [payLaterAllowed, setPayLaterAllowed] = useState<boolean>(Boolean((initialDriver as any)?.payLaterAllowed));
   const [showPayRemainingModal, setShowPayRemainingModal] = useState<boolean>(false);
   const [payRemainingTarget, setPayRemainingTarget] = useState<any>(null);
   const [payRemainingAmount, setPayRemainingAmount] = useState<string>('');
@@ -225,6 +227,27 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     });
   }, [initialDriver]);
 
+  // Pay Later is granted by the admin, so re-read it from the profile on mount
+  // and whenever the driver prop changes instead of relying on a stale login.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` },
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (active && res.ok && data?.success && data.user) {
+          setPayLaterAllowed(Boolean(data.user.payLaterAllowed));
+        }
+      } catch {
+        // Keep the last known permission if the profile call fails
+      }
+    })();
+    return () => { active = false; };
+  }, [initialDriver]);
+
   const fetchCurrentSubscription = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/subscriptions/driver`, {
@@ -325,6 +348,129 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     return baseAmount;
   };
 
+  // Handlers for the Complete Trip sheet at the bottom of this component.
+  const closeCompleteTrip = () => {
+    setEndingTripId(null);
+    setIsEndOtpSent(false);
+    setEndOtp('');
+  };
+
+  const handleSendEndOtp = async () => {
+    if (!endingTrip) return;
+    setIsSendingEndOtp(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/trips/${endingTrip.id}/send-end-otp`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+      });
+      const data = await res.json();
+      if (data.success) setIsEndOtpSent(true);
+      else alert(data.error || 'Failed to send OTP');
+    } catch { alert('Failed to send OTP'); }
+    finally { setIsSendingEndOtp(false); }
+  };
+
+  const handleCompleteTrip = async () => {
+    if (!endingTrip) return;
+    setIsCompletingTrip(true);
+    try {
+      const result = await tripAPI.completeTrip(endingTrip.id, { finalAmount: endTripFinalAmount, otp: endOtp });
+      if (result.success) {
+        closeCompleteTrip();
+        const completed = result.trip;
+        const payoutMsg = completed?.driverPayout
+          ? `✓ Trip completed!\n\nYour Payout: ₹${completed.driverPayout.toFixed(0)}\nExcess Amount: ₹${(completed.excessAmount ?? completed.adminCommission ?? 0).toFixed(0)}`
+          : '✓ Trip completed successfully!';
+        setConfirmConfig({ isOpen: true, title: 'Trip Completed', message: payoutMsg, type: 'success', confirmText: 'OK', onConfirm: () => setConfirmConfig(p => ({ ...p, isOpen: false })) });
+        const driverRes = await tripAPI.getDriverTrips();
+        if (driverRes.success) setTrips(driverRes.trips);
+        fetchCurrentSubscription();
+      } else { alert('Failed: ' + (result.error || 'Invalid OTP')); }
+    } catch { alert('Error completing trip. Try again.'); }
+    finally { setIsCompletingTrip(false); }
+  };
+
+  // Handlers for the Start ride sheet (also used for the >12h re-verify flow).
+  const openStartRide = (tripId: string) => {
+    setStartOtp('');
+    setIsStartOtpSent(false);
+    setTripPhotos({ front: null, back: null });
+    setStartingTripId(tripId);
+  };
+
+  const closeStartRide = () => {
+    setStartingTripId(null);
+    setIsStartOtpSent(false);
+    setStartOtp('');
+    setTripPhotos({ front: null, back: null });
+  };
+
+  const handleSendStartOtp = async () => {
+    if (!startTripTarget) return;
+    setIsSendingStartOtp(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/trips/${startTripTarget.id}/send-start-otp`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
+      });
+      const data = await res.json();
+      if (data.success) setIsStartOtpSent(true);
+      else alert(data.error || 'Failed to send OTP');
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      alert('Failed to send OTP');
+    } finally {
+      setIsSendingStartOtp(false);
+    }
+  };
+
+  const handleStartTrip = async () => {
+    if (!startTripTarget) return;
+    setIsStartingTrip(true);
+    try {
+      const uploadPhoto = async (file: File | null) => {
+        if (!file) return null;
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await uploadFile(fd);
+        return res.success ? res.fileId : null;
+      };
+
+      const frontUrl = await uploadPhoto(tripPhotos.front);
+      const backUrl = await uploadPhoto(tripPhotos.back);
+      const wasReverify = startTripTarget.status === 'ONGOING';
+
+      const result = await tripAPI.startTrip(startTripTarget.id, {
+        otp: startOtp,
+        ...(frontUrl && { carFrontPhoto: frontUrl }),
+        ...(backUrl && { carBackPhoto: backUrl })
+      });
+
+      if (result.success) {
+        closeStartRide();
+        setConfirmConfig({
+          isOpen: true,
+          title: wasReverify ? 'Verification Successful' : 'Trip Started',
+          message: wasReverify
+            ? 'Your vehicle photos and OTP have been verified successfully. You can now continue the ride.'
+            : '✓ OTP verified. The trip is now in progress.',
+          type: 'success',
+          confirmText: wasReverify ? 'Continue Ride' : 'OK',
+          onConfirm: () => setConfirmConfig(prev => ({ ...prev, isOpen: false }))
+        });
+        const driverRes = await tripAPI.getDriverTrips();
+        if (driverRes.success) setTrips(driverRes.trips || []);
+      } else {
+        alert('Failed to start trip: ' + (result.error || 'Invalid OTP'));
+      }
+    } catch (error) {
+      console.error('Error starting trip:', error);
+      alert('Error starting trip');
+    } finally {
+      setIsStartingTrip(false);
+    }
+  };
+
   const handleAcceptTrip = async (tripId: string) => {
     // This function is no longer used - admin assigns bookings
     alert('Bookings are assigned by admin. Please wait for assignment.');
@@ -333,6 +479,8 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
   const handleSubscriptionBuy = async (pkg: SubscriptionPackage) => {
     setSelectedPackage(pkg);
+    setPaymentMode('FULL');
+    setPartialAmount('');
     setShowPaymentModal(true);
   };
 
@@ -383,7 +531,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
             <span className="text-[11px] font-black">Min {(pkg as any).minHours}hr · ₹{(pkg as any).extraPerHourRate}/extra hr</span>
           </div>
         )}
-        <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment â€¢ Non-Refundable</p>
+        <p className="text-[10px] text-gray-400 font-bold mt-1.5 uppercase tracking-wide">One time payment · Non-Refundable</p>
 
         <button
           onClick={() => handleSubscriptionBuy(pkg)}
@@ -400,6 +548,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
   const handlePaymentMethodSelect = async (method: string) => {
     if (!selectedPackage) return;
+
+    if (paymentMode === 'PARTIAL' && !payLaterAllowed) {
+      alert('Pay Later is not approved for your account yet. Please pay the full amount or contact the admin.');
+      return;
+    }
 
     setShowPaymentModal(false);
     try {
@@ -526,21 +679,47 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
     return isMyTrip && hasValidStatus;
   }).sort((a, b) => `${a.startDate}T${a.startTime}`.localeCompare(`${b.startDate}T${b.startTime}`));
 
+  // Trips being closed out / started — drive the sheets further down.
+  const endingTrip = activeTrips.find((t: any) => t.id === endingTripId) || null;
+  const startTripTarget = activeTrips.find((t: any) => t.id === startingTripId) || null;
+
 
   // Sort Descending (Newest first) for history
   const pastTrips = trips.filter(t => t.status === 'COMPLETED' || t.status === 'CANCELLED')
     .sort((a, b) => `${b.startDate}T${b.startTime}`.localeCompare(`${a.startDate}T${a.startTime}`));
 
+  // Excess amount recorded per completed ride — the profile tab shows it as a
+  // history so a driver can see every cut that was taken.
+  const excessHistory = trips
+    .filter(t => t.status === 'COMPLETED')
+    .map(t => {
+      const stamp = (t as any).completedAt || (t as any).actualStartTime || null;
+      return {
+        id: t.id,
+        from: t.pickupLocation,
+        to: t.dropLocation,
+        amount: Number((t as any).excessAmount ?? (t as any).adminCommission ?? 0),
+        sortKey: stamp ? new Date(stamp).getTime() : 0,
+        when: stamp
+          ? new Date(stamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : t.startDate,
+      };
+    })
+    .filter(entry => entry.amount > 0)
+    .sort((a, b) => b.sortKey - a.sortKey);
+
+  const totalExcess = excessHistory.reduce((sum, entry) => sum + entry.amount, 0);
+
   return (
-    <div className="max-w-3xl mx-auto h-screen flex flex-col">
+    <div className="max-w-3xl mx-auto h-[100dvh] flex flex-col">
       {/* Top Header Bar - Fixed */}
       <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2">
           <p className="font-bold text-sm leading-none">SNP Driver</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <UberLanguageSelector variant="navbar" />
-          <p className="text-xs text-gray-400">Welcome, {driver.name}</p>
+          <p className="text-xs text-gray-400 truncate">Welcome, {driver.name}</p>
         </div>
       </div>
 
@@ -680,7 +859,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                         (() => {
                           const lastActivityTime = (trip as any).updatedAt || trip.actualStartTime;
                           const hoursSinceLastActivity = lastActivityTime ? Math.ceil((new Date().getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60 * 60)) : 0;
-                          if (hoursSinceLastActivity > 12 && startingTripId !== trip.id) {
+                          if (hoursSinceLastActivity > 12) {
                             return (
                               <div className="bg-yellow-50 p-4 rounded-xl space-y-4 border border-yellow-200">
                                 <div className="flex items-start gap-3">
@@ -691,486 +870,32 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                   </div>
                                 </div>
                                 <button
-                                  onClick={() => setStartingTripId(trip.id)}
+                                  onClick={() => openStartRide(trip.id)}
                                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg font-bold transition-all duration-200 shadow-md"
                                 >
                                   Re-verify & Continue Ride
                                 </button>
                               </div>
                             );
-                          } else if (hoursSinceLastActivity > 12 && startingTripId === trip.id) {
-                            return (
-                              <div className="bg-gray-800 p-4 rounded-xl space-y-4">
-                                <div className="space-y-4">
-                                  <div>
-                                    <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
-                                    <div className="relative">
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        id={`carFront-${trip.id}`}
-                                        className="hidden"
-                                        onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))}
-                                      />
-                                      <label
-                                        htmlFor={`carFront-${trip.id}`}
-                                        className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.front ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
-                                      >
-                                        {tripPhotos.front ? (
-                                          <>
-                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                            Photo Captured
-                                          </>
-                                        ) : (
-                                          <>
-                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                            Take Photo
-                                          </>
-                                        )}
-                                      </label>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
-                                    <div className="relative">
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        id={`carBack-${trip.id}`}
-                                        className="hidden"
-                                        onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))}
-                                      />
-                                      <label
-                                        htmlFor={`carBack-${trip.id}`}
-                                        className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.back ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
-                                      >
-                                        {tripPhotos.back ? (
-                                          <>
-                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                            Photo Captured
-                                          </>
-                                        ) : (
-                                          <>
-                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                            Take Photo
-                                          </>
-                                        )}
-                                      </label>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {isStartOtpSent ? (
-                                  <div className="space-y-3 mt-4">
-                                    <p className="text-green-400 text-sm font-bold text-center">OTP Sent successfully!</p>
-                                    <input
-                                      type="text"
-                                      placeholder="Enter OTP from Customer"
-                                      className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-sans text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                                      value={startOtp}
-                                      onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        disabled={isStartingTrip}
-                                        onClick={() => { setStartingTripId(null); setIsStartOtpSent(false); setStartOtp(''); }}
-                                        className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        disabled={startOtp.length < 6 || isStartingTrip}
-                                        onClick={async () => {
-                                          setIsStartingTrip(true);
-                                          try {
-                                            const formData = new FormData();
-                                            if (tripPhotos.front) formData.append('carFrontPhoto', tripPhotos.front);
-                                            if (tripPhotos.back) formData.append('carBackPhoto', tripPhotos.back);
-
-                                            let frontUrl = null;
-                                            let backUrl = null;
-
-                                            // Upload front photo
-                                            if (tripPhotos.front) {
-                                              const frontUpload = new FormData();
-                                              frontUpload.append('file', tripPhotos.front);
-                                              const fRes = await uploadFile(frontUpload);
-                                              if (fRes.success) frontUrl = fRes.fileId;
-                                            }
-
-                                            // Upload back photo
-                                            if (tripPhotos.back) {
-                                              const backUpload = new FormData();
-                                              backUpload.append('file', tripPhotos.back);
-                                              const bRes = await uploadFile(backUpload);
-                                              if (bRes.success) backUrl = bRes.fileId;
-                                            }
-
-                                            const result = await tripAPI.startTrip(trip.id, {
-                                              otp: startOtp,
-                                              ...(frontUrl && { carFrontPhoto: frontUrl }),
-                                              ...(backUrl && { carBackPhoto: backUrl })
-                                            });
-
-                                            if (result.success) {
-                                              setStartingTripId(null);
-                                              setIsStartOtpSent(false);
-                                              setStartOtp('');
-                                              const driverRes = await tripAPI.getDriverTrips();
-                                              if (driverRes.success) setTrips(driverRes.trips || []);
-
-                                              setConfirmConfig({
-                                                isOpen: true,
-                                                title: 'Verification Successful',
-                                                message: 'Your vehicle photos and OTP have been verified successfully. You can now continue the ride.',
-                                                type: 'success',
-                                                confirmText: 'Continue Ride',
-                                                onConfirm: () => setConfirmConfig(prev => ({ ...prev, isOpen: false }))
-                                              });
-                                            } else {
-                                              alert('Failed to re-verify trip: ' + (result.error || 'Invalid OTP'));
-                                            }
-                                          } catch (error) {
-                                            console.error('Error re-verifying trip:', error);
-                                            alert('Error re-verifying trip');
-                                          } finally {
-                                            setIsStartingTrip(false);
-                                          }
-                                        }}
-                                        className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50"
-                                      >
-                                        {isStartingTrip ? 'Verifying...' : 'Verify & Continue'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex gap-2 mt-3 w-full">
-                                    <button
-                                      disabled={isSendingStartOtp}
-                                      onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
-                                      className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
-                                      onClick={async () => {
-                                        setIsSendingStartOtp(true);
-                                        try {
-                                          const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
-                                            method: 'POST',
-                                            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
-                                          });
-                                          const data = await res.json();
-                                          if (data.success) {
-                                            setIsStartOtpSent(true);
-                                          } else {
-                                            alert(data.error || 'Failed to send OTP');
-                                          }
-                                        } catch (error) {
-                                          console.error('Send OTP error:', error);
-                                          alert('Failed to send OTP');
-                                        } finally {
-                                          setIsSendingStartOtp(false);
-                                        }
-                                      }}
-                                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
-                                    >
-                                      {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
                           }
 
                           return (
-                            <>
-                              {endingTripId === trip.id ? (
-                                <div className="bg-gray-800 p-4 rounded-xl space-y-3">
-                                  <p className="text-white text-sm font-bold text-center">Complete Trip</p>
-                                  <div className="bg-gray-700 rounded-lg p-3 text-center">
-                                    <p className="text-gray-400 text-[10px] uppercase font-bold">Final Amount</p>
-                                    <p className="text-white text-2xl font-black">₹{endTripFinalAmount}</p>
-                                    {(() => {
-                                      const activeSub = activeSubscriptions[0];
-                                      const planExtraPerHour = activeSub?.plan?.extraPerHourRate || 0;
-                                      const planMinHours = activeSub?.plan?.minHours || 0;
-                                      const baseAmount = parseFloat((activeTrips[0]?.estimatedCost || activeTrips[0]?.estimateAmount || 0).toString());
-                                      if (planExtraPerHour > 0 && endTripFinalAmount > baseAmount) {
-                                        return (
-                                          <p className="text-orange-300 text-[10px] mt-1 font-semibold">
-                                            Includes extra hrs @ ₹{planExtraPerHour}/hr
-                                          </p>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
-                                  </div>
-                                  {isEndOtpSent ? (
-                                    <div className="space-y-3">
-                                      <p className="text-green-400 text-sm font-bold text-center">OTP sent to customer!</p>
-                                      <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        placeholder="Enter OTP from Customer"
-                                        className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-sans text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                                        value={endOtp}
-                                        onChange={(e) => setEndOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                      />
-                                      <div className="flex gap-2">
-                                        <button disabled={isCompletingTrip}
-                                          onClick={() => { setEndingTripId(null); setIsEndOtpSent(false); setEndOtp(''); }}
-                                          className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm">Cancel</button>
-                                        <button
-                                          disabled={endOtp.length < 6 || isCompletingTrip}
-                                          onClick={async () => {
-                                            setIsCompletingTrip(true);
-                                            try {
-                                              const result = await tripAPI.completeTrip(trip.id, { finalAmount: endTripFinalAmount, otp: endOtp });
-                                              if (result.success) {
-                                                setEndingTripId(null); setIsEndOtpSent(false); setEndOtp('');
-                                                const trip = result.trip;
-                                                const payoutMsg = trip?.driverPayout
-                                                  ? `✓ Trip completed!\n\nYour Payout: ₹${trip.driverPayout.toFixed(0)}\nExcess Amount: ₹${(trip.excessAmount ?? trip.adminCommission ?? 0).toFixed(0)}`
-                                                  : '✓ Trip completed successfully!';
-                                                setConfirmConfig({ isOpen: true, title: 'Trip Completed', message: payoutMsg, type: 'success', confirmText: 'OK', onConfirm: () => setConfirmConfig(p => ({ ...p, isOpen: false })) });
-                                                const driverRes = await tripAPI.getDriverTrips();
-                                                if (driverRes.success) setTrips(driverRes.trips);
-                                                fetchCurrentSubscription();
-                                              } else { alert('Failed: ' + (result.error || 'Invalid OTP')); }
-                                            } catch { alert('Error completing trip. Try again.'); }
-                                            finally { setIsCompletingTrip(false); }
-                                          }}
-                                          className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50">
-                                          {isCompletingTrip ? 'Completing...' : 'Verify & Complete'}
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex gap-2">
-                                      <button onClick={() => { setEndingTripId(null); setEndOtp(''); }}
-                                        className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm">Cancel</button>
-                                      <button disabled={isSendingEndOtp}
-                                        onClick={async () => {
-                                          setIsSendingEndOtp(true);
-                                          try {
-                                            const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-end-otp`, {
-                                              method: 'POST',
-                                              headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
-                                            });
-                                            const data = await res.json();
-                                            if (data.success) { setIsEndOtpSent(true); }
-                                            else { alert(data.error || 'Failed to send OTP'); }
-                                          } catch { alert('Failed to send OTP'); }
-                                          finally { setIsSendingEndOtp(false); }
-                                        }}
-                                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50">
-                                        {isSendingEndOtp ? 'Sending...' : 'Send OTP to Customer'}
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    const autoCalculatedAmount = calculateFinalAmount(trip);
-                                    setEndTripFinalAmount(autoCalculatedAmount);
-                                    setEndingTripId(trip.id);
-                                    setIsEndOtpSent(false);
-                                    setEndOtp('');
-                                  }}
-                                  className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  Complete Trip
-                                </button>
-                              )}
-                            </>
+                            <button
+                              onClick={() => {
+                                setEndTripFinalAmount(calculateFinalAmount(trip));
+                                setEndingTripId(trip.id);
+                                setIsEndOtpSent(false);
+                                setEndOtp('');
+                              }}
+                              className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Complete Trip
+                            </button>
                           );
                         })()
-                      ) : startingTripId === trip.id ? (
-                        <div className="bg-gray-800 p-4 rounded-xl space-y-4">
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-xs text-gray-400 uppercase mb-1">Car Front View</label>
-                              <div className="relative">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  capture="environment"
-                                  id={`carFront-${trip.id}`}
-                                  className="hidden"
-                                  onChange={(e) => setTripPhotos(prev => ({ ...prev, front: e.target.files?.[0] || null }))}
-                                />
-                                <label
-                                  htmlFor={`carFront-${trip.id}`}
-                                  className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.front ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
-                                >
-                                  {tripPhotos.front ? (
-                                    <>
-                                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                      Photo Captured
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                      Take Photo
-                                    </>
-                                  )}
-                                </label>
-                              </div>
-                            </div>
-
-                            <div>
-                              <label className="block text-xs text-gray-400 uppercase mb-1">Car Back View</label>
-                              <div className="relative">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  capture="environment"
-                                  id={`carBack-${trip.id}`}
-                                  className="hidden"
-                                  onChange={(e) => setTripPhotos(prev => ({ ...prev, back: e.target.files?.[0] || null }))}
-                                />
-                                <label
-                                  htmlFor={`carBack-${trip.id}`}
-                                  className={`flex items-center justify-center w-full py-3 rounded-lg font-bold text-sm cursor-pointer transition shadow-sm ${tripPhotos.back ? 'bg-green-600/20 text-green-400 border border-green-600/30' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'}`}
-                                >
-                                  {tripPhotos.back ? (
-                                    <>
-                                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                      Photo Captured
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                      Take Photo
-                                    </>
-                                  )}
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-
-                          {isStartOtpSent ? (
-                            <div className="space-y-3 mt-4">
-                              <p className="text-green-400 text-sm font-bold text-center">OTP Sent successfully!</p>
-                              <input
-                                type="text"
-                                placeholder="Enter OTP from Customer"
-                                className="w-full bg-gray-700 text-white rounded-lg p-3 text-center tracking-widest font-sans text-lg border border-gray-600 focus:border-green-500 focus:outline-none"
-                                value={startOtp}
-                                onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  disabled={isStartingTrip}
-                                  onClick={() => { setStartingTripId(null); setIsStartOtpSent(false); setStartOtp(''); }}
-                                  className="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-sm"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  disabled={startOtp.length < 6 || isStartingTrip}
-                                  onClick={async () => {
-                                    setIsStartingTrip(true);
-                                    try {
-                                      const formData = new FormData();
-                                      if (tripPhotos.front) formData.append('carFrontPhoto', tripPhotos.front);
-                                      if (tripPhotos.back) formData.append('carBackPhoto', tripPhotos.back);
-
-                                      let frontUrl = null;
-                                      let backUrl = null;
-
-                                      // Upload front photo
-                                      if (tripPhotos.front) {
-                                        const frontUpload = new FormData();
-                                        frontUpload.append('file', tripPhotos.front);
-                                        const fRes = await uploadFile(frontUpload);
-                                        if (fRes.success) frontUrl = fRes.fileId;
-                                      }
-
-                                      // Upload back photo
-                                      if (tripPhotos.back) {
-                                        const backUpload = new FormData();
-                                        backUpload.append('file', tripPhotos.back);
-                                        const bRes = await uploadFile(backUpload);
-                                        if (bRes.success) backUrl = bRes.fileId;
-                                      }
-
-                                      const result = await tripAPI.startTrip(trip.id, {
-                                        otp: startOtp,
-                                        ...(frontUrl && { carFrontPhoto: frontUrl }),
-                                        ...(backUrl && { carBackPhoto: backUrl })
-                                      });
-
-                                      if (result.success) {
-                                        alert('✓ Trip Started successfully!');
-                                        setStartingTripId(null);
-                                        setIsStartOtpSent(false);
-                                        setStartOtp('');
-                                        const driverRes = await tripAPI.getDriverTrips();
-                                        if (driverRes.success) setTrips(driverRes.trips || []);
-                                      } else {
-                                        alert('Failed to start trip: ' + (result.error || 'Invalid OTP'));
-                                      }
-                                    } catch (error) {
-                                      console.error('Error starting trip:', error);
-                                      alert('Error starting trip');
-                                    } finally {
-                                      setIsStartingTrip(false);
-                                    }
-                                  }}
-                                  className="flex-2 bg-green-600 text-white py-3 rounded-lg font-bold text-sm hover:bg-green-500 disabled:opacity-50"
-                                >
-                                  {isStartingTrip ? 'Starting...' : 'Verify & Start'}
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex gap-2 mt-3 w-full">
-                              <button
-                                disabled={isSendingStartOtp}
-                                onClick={() => { setStartingTripId(null); setTripPhotos({ front: null, back: null }); }}
-                                className="flex-1 bg-gray-700 py-2 rounded-lg font-bold text-sm"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                disabled={!tripPhotos.front || !tripPhotos.back || isSendingStartOtp}
-                                onClick={async () => {
-                                  setIsSendingStartOtp(true);
-                                  try {
-                                    const res = await fetch(`${API_BASE_URL}/api/trips/${trip.id}/send-start-otp`, {
-                                      method: 'POST',
-                                      headers: { 'Authorization': `Bearer ${localStorage.getItem('auth-token')}` }
-                                    });
-                                    const data = await res.json();
-                                    if (data.success) {
-                                      setIsStartOtpSent(true);
-                                    } else {
-                                      alert(data.error || 'Failed to send OTP');
-                                    }
-                                  } catch (error) {
-                                    console.error('Send OTP error:', error);
-                                    alert('Failed to send OTP');
-                                  } finally {
-                                    setIsSendingStartOtp(false);
-                                  }
-                                }}
-                                className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-sm hover:bg-blue-500 disabled:opacity-50"
-                              >
-                                {isSendingStartOtp ? 'Sending...' : 'Send OTP'}
-                              </button>
-                            </div>
-                          )}
-                        </div>
                       ) : (
                         <div className="flex gap-3">
                           {(trip as any).cancellationRequested ? (
@@ -1180,7 +905,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             </div>
                           ) : (
                             <button
-                              onClick={() => setStartingTripId(trip.id)}
+                              onClick={() => openStartRide(trip.id)}
                               className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1309,26 +1034,35 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     <div className="flex justify-between items-center border-t border-gray-100 pt-2">
                       <div>
                         <p className="text-[10px] text-gray-400 font-bold">{trip.serviceType}</p>
-                        {(trip as any).rating && <p className="text-xs font-bold text-yellow-500">{'â˜…'.repeat((trip as any).rating)}</p>}
+                        {(trip as any).rating && <p className="text-xs font-bold text-yellow-500">{'★'.repeat((trip as any).rating)}</p>}
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-gray-400 uppercase font-bold mb-0.5">Final Amount</p>
-                        <p className="font-bold text-sm text-green-600">₹{(trip as any).finalAmount || trip.estimatedCost || 0}</p>
-                        {(trip as any).finalAmount > (trip.estimatedCost || 0) && (
-                          <p className="text-[10px] text-orange-500 font-bold mt-0.5">+₹{Math.round((trip as any).finalAmount - (trip.estimatedCost || 0))} extra hrs</p>
+                        <p className="font-bold text-sm text-green-600">₹{Math.round(Number((trip as any).finalAmount || trip.estimatedCost || 0))}</p>
+                        {trip.status === 'COMPLETED' && (trip as any).minHours > 0 && (trip as any).minHours <= 24 && (trip as any).extraPerHourRate > 0 && (
+                          <p className="text-[9px] text-gray-400 font-bold mt-0.5">₹{(trip as any).extraPerHourRate}/hr beyond {(trip as any).minHours}h</p>
                         )}
-                        {(trip as any).driverPayout > 0 && (
-                          <div className="mt-1.5 space-y-1">
-                            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1 text-right">
-                              <p className="text-[8px] text-emerald-600 font-bold uppercase tracking-wide">Your Payout</p>
-                              <p className="text-xs font-black text-emerald-700">₹{Math.round((trip as any).driverPayout)}</p>
+                        {(() => {
+                          // Cancelled rows carry no payout, so only completed trips
+                          // get the two money boxes.
+                          if (trip.status !== 'COMPLETED') return null;
+                          const payout = Number((trip as any).driverPayout || 0);
+                          const excess = Number((trip as any).excessAmount ?? (trip as any).adminCommission ?? 0);
+                          if (payout <= 0 && excess <= 0) return null;
+
+                          return (
+                            <div className="mt-1.5 space-y-1">
+                              <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1 text-right">
+                                <p className="text-[8px] text-emerald-600 font-bold uppercase tracking-wide">Your Payout</p>
+                                <p className="text-xs font-black text-emerald-700">₹{Math.round(payout)}</p>
+                              </div>
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg px-2 py-1 text-right">
+                                <p className="text-[8px] text-orange-500 font-bold uppercase tracking-wide">Excess Amount</p>
+                                <p className="text-xs font-black text-orange-600">₹{Math.round(excess)}</p>
+                              </div>
                             </div>
-                            <div className="bg-orange-50 border border-orange-200 rounded-lg px-2 py-1 text-right">
-                              <p className="text-[8px] text-orange-500 font-bold uppercase tracking-wide">Excess Amount</p>
-                              <p className="text-xs font-black text-orange-600">₹{Math.round((trip as any).excessAmount ?? (trip as any).adminCommission ?? 0)}</p>
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1348,7 +1082,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
             {/* Filter tabs */}
             <div className="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
-              {['All', 'Silver', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+              {['All', 'Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
@@ -1393,40 +1127,40 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     </div>
                   </div>
                 </div>
-                <div className="pt-10 sm:pt-12 px-4 sm:px-6 pb-4 sm:pb-6">
-                  <div className="flex justify-between items-start mb-4 sm:mb-6">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xl sm:text-2xl font-bold">{driver.name || profileData.name}</h2>
+                <div className="pt-10 sm:pt-12 px-3 sm:px-6 pb-4 sm:pb-6">
+                  <div className="flex flex-wrap items-start justify-between gap-2 mb-4 sm:mb-6">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-lg sm:text-2xl font-bold truncate">{driver.name || profileData.name}</h2>
                       </div>
-                      <p className="text-gray-500 text-xs sm:text-sm mt-1">{driver.phone || profileData.phone}</p>
+                      <p className="text-gray-500 text-xs sm:text-sm mt-1 truncate">{driver.phone || profileData.phone}</p>
                     </div>
-                    <button onClick={() => setIsEditingProfile(true)} className="text-sm font-bold text-accent hover:underline">Edit Profile</button>
+                    <button onClick={() => setIsEditingProfile(true)} className="flex-shrink-0 text-xs sm:text-sm font-bold text-accent hover:underline py-1">Edit Profile</button>
                   </div>
 
                   {/* Uber-style Stats */}
-                  <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-4">
+                  <div className="mb-5 sm:mb-6 grid grid-cols-2 gap-2 sm:gap-4">
                     <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 text-left">
                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                           </svg>
                         </div>
-                        <div className="flex-1 min-w-0 mt-1 sm:mt-0">
+                        <div className="flex-1 min-w-0">
                           <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Total trips</p>
                           <p className="text-lg sm:text-2xl font-bold text-black leading-none mt-1">{trips.length}</p>
                         </div>
                       </div>
                     </div>
                     <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 text-left">
                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 10.101c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                           </svg>
                         </div>
-                        <div className="flex-1 min-w-0 mt-1 sm:mt-0">
+                        <div className="flex-1 min-w-0">
                           <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase sm:font-normal sm:normal-case truncate">Avg Rating</p>
                           <div className="flex items-baseline gap-1 mt-1">
                             <p className="text-lg sm:text-2xl font-bold text-black leading-none">{(driver as any).rating?.toFixed(1) || '0.0'}</p>
@@ -1510,24 +1244,20 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                   </div>
                                   {/* Plan name */}
                                   <p className="text-sm sm:text-base font-bold text-black truncate mt-1">{sub.plan?.name}</p>
-                                  {/* Days + Duties + Excess pills */}
-                                  <div className="flex flex-wrap gap-2 mt-1.5">
-                                    <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-emerald-700 border-emerald-300 bg-emerald-50 font-bold">
+                                  {/* Days + Duties + Rate pills — one row on every screen; the row
+                                      scrolls sideways instead of stacking into three lines on a phone */}
+                                  <div className="flex flex-nowrap gap-1.5 sm:gap-2 mt-1.5 overflow-x-auto scrollbar-hide">
+                                    <span className="whitespace-nowrap flex-shrink-0 text-[9px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full border text-emerald-700 border-emerald-300 bg-emerald-50 font-bold">
                                       {daysLeft} days left
                                     </span>
                                     {dutiesLeft !== null && (
-                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-purple-700 border-purple-300 bg-purple-50 font-bold">
+                                      <span className="whitespace-nowrap flex-shrink-0 text-[9px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full border text-purple-700 border-purple-300 bg-purple-50 font-bold">
                                         {dutiesLeft} duties left
                                       </span>
                                     )}
                                     {sub.plan?.minHours > 0 && (
-                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-blue-700 border-blue-300 bg-blue-50 font-bold">
+                                      <span className="whitespace-nowrap flex-shrink-0 text-[9px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-full border text-blue-700 border-blue-300 bg-blue-50 font-bold">
                                         Min {sub.plan.minHours}hr · ₹{sub.plan.extraPerHourRate}/extra hr
-                                      </span>
-                                    )}
-                                    {sub.plan?.excessAmountPerRide > 0 && (
-                                      <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full border text-orange-700 border-orange-300 bg-orange-50 font-bold">
-                                        ₹{sub.plan.excessAmountPerRide} excess / ride
                                       </span>
                                     )}
                                   </div>
@@ -1579,15 +1309,59 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     </div>
                   )}
 
+                  {/* Excess Amount History — every cut taken on a completed ride */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3 px-1">
+                      <p className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-gray-700">
+                        Excess Amount History
+                      </p>
+                      <span className="text-[10px] font-bold text-gray-400">
+                        {excessHistory.length} ride{excessHistory.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-orange-500">Total Excess</p>
+                          <p className="text-lg sm:text-xl font-black text-orange-600 leading-none mt-1">
+                            ₹{Math.round(totalExcess)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {excessHistory.length === 0 ? (
+                        <p className="text-xs text-gray-400 mt-3">
+                          No excess amount recorded yet — it appears here after a trip is completed.
+                        </p>
+                      ) : (
+                        <div className="mt-3 space-y-1.5 max-h-72 overflow-y-auto">
+                          {excessHistory.map(entry => (
+                            <div key={entry.id} className="flex items-center justify-between gap-2 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-2">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-gray-800 leading-tight line-clamp-2">
+                                  {entry.from} → {entry.to}
+                                </p>
+                                <p className="text-[9px] font-semibold text-gray-400 mt-0.5">{entry.when}</p>
+                              </div>
+                              <span className="text-xs font-black text-orange-600 flex-shrink-0">
+                                ₹{Math.round(entry.amount)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-4">
-                    <div className="p-4 bg-gray-50 rounded-xl">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-xl">
                       <p className="text-xs text-gray-400 font-bold uppercase mb-2">Documents & Details</p>
                       <div className="space-y-2 text-sm">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                           <span className="text-gray-500">License:</span>
                           <span className="font-medium text-right break-all">{driver.licenseNo || profileData.licenseNo}</span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                           <span className="text-gray-500">Aadhar:</span>
                           <span className="font-medium text-right break-all">{driver.aadharNo || profileData.aadharNo}</span>
                         </div>
@@ -1603,7 +1377,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     </div>
 
                     {/* Languages Known Card */}
-                    <div className="p-4 bg-gray-50 rounded-xl">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-xl">
                       <p className="text-xs text-gray-400 font-bold uppercase mb-2">🗣️ Languages Known</p>
                       {((driver as any).languagesKnown || (profileData as any).languagesKnown || []).length > 0 ? (
                         <div className="flex flex-wrap gap-2">
@@ -1616,7 +1390,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       )}
                     </div>
 
-                    <div className="p-4 bg-gray-50 rounded-xl">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-xl">
                       <p className="text-xs text-gray-400 font-bold uppercase mb-2">Payment & Contact</p>
                       <div className="space-y-2 text-sm">
                         <div className="flex flex-col sm:flex-row sm:justify-between border-b border-gray-200 pb-2">
@@ -1650,7 +1424,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 rounded-xl">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-xl">
                       <p className="text-xs text-gray-400 font-bold uppercase mb-2">Document Uploads</p>
                       <div className="space-y-2 text-sm">
                         {/* Photo */}
@@ -1672,7 +1446,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'Photo', url: getDocUrl(driver.photo)! })}
-                                className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-2 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View Photo"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1686,7 +1460,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
                         {/* Driving License */}
                         <div className="flex flex-col py-1 border-b border-gray-100 pb-2">
-                          <div className="flex justify-between items-center">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                             <span className="text-gray-500 font-medium">Driving License:</span>
                             <div className="flex items-center gap-1.5">
                               <button
@@ -1704,7 +1478,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                 <button
                                   type="button"
                                   onClick={() => setViewingDoc({ title: 'Driving License', url: getDocUrl(driver.dlPhoto)! })}
-                                  className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                  className="p-2 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                   title="View Driving License"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1760,7 +1534,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'PAN Card', url: getDocUrl(driver.panPhoto)! })}
-                                className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-2 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View PAN Card"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1791,7 +1565,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'Aadhar Card', url: getDocUrl(driver.aadharPhoto)! })}
-                                className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-2 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View Aadhar Card"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1805,7 +1579,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
                         {/* Police Verification - Updated to show both upload and verification status */}
                         <div className="flex flex-col border-t border-gray-200 pt-2 mt-1 space-y-1">
-                          <div className="flex justify-between items-center">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
                             <span className="text-gray-500 font-medium">Police Verification:</span>
                             <div className="flex items-center gap-1.5">
                               <button
@@ -1823,7 +1597,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                 <button
                                   type="button"
                                   onClick={() => setViewingDoc({ title: 'Police Verification', url: getDocUrl(driver.policeVerificationPhoto)! })}
-                                  className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                  className="p-2 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                   title="View Police Verification"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1864,7 +1638,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-xl">
+                  <div className="p-3 sm:p-4 bg-gray-50 rounded-xl">
                     <p className="text-xs text-gray-400 font-bold uppercase mb-2">Settings & Language</p>
                     <UberLanguageSelector variant="inline" />
                   </div>
@@ -2228,16 +2002,23 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 {/* Pay Full / Pay Partial toggle */}
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase mb-2">Payment Option</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className={`grid gap-2 ${payLaterAllowed ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <button onClick={() => setPaymentMode('FULL')}
                       className={`py-2.5 rounded-xl text-sm font-bold border-2 transition ${paymentMode === 'FULL' ? 'border-black bg-black text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
                       Pay Full
                     </button>
-                    <button onClick={() => setPaymentMode('PARTIAL')}
-                      className={`py-2.5 rounded-xl text-sm font-bold border-2 transition ${paymentMode === 'PARTIAL' ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
-                      Pay Later
-                    </button>
+                    {payLaterAllowed && (
+                      <button onClick={() => setPaymentMode('PARTIAL')}
+                        className={`py-2.5 rounded-xl text-sm font-bold border-2 transition ${paymentMode === 'PARTIAL' ? 'border-orange-500 bg-orange-500 text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                        Pay Later
+                      </button>
+                    )}
                   </div>
+                  {!payLaterAllowed && (
+                    <p className="text-[11px] text-gray-500 font-semibold mt-1.5 leading-snug">
+                      Pay Later is available only after admin approval. Contact the admin to enable it.
+                    </p>
+                  )}
                 </div>
 
                 {/* Partial amount input */}
@@ -2514,6 +2295,294 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
         )
       }
 
+            {/* Complete Trip sheet — rider, route, fare and OTP on one screen */}
+            {endingTrip && (() => {
+              const tripData: any = endingTrip;
+              const rider: any = tripData.customer || {};
+              const riderPhone = typeof rider.phone === 'string' ? rider.phone : '';
+              const canCall = /^[+]?\d/.test(riderPhone);
+              const baseAmount = parseFloat((tripData.estimatedCost || tripData.estimateAmount || 0).toString()) || 0;
+              const planExtraPerHour = activeSubscriptions[0]?.plan?.extraPerHourRate || 0;
+              const hasExtraHours = planExtraPerHour > 0 && endTripFinalAmount > baseAmount;
+      
+              return (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                  <div className="absolute inset-0 bg-black/60" onClick={closeCompleteTrip} />
+                  <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92dvh] flex flex-col animate-fade-in">
+                    <div className="sm:hidden w-10 h-1 bg-gray-300 rounded-full mx-auto mt-2.5" />
+      
+                    <div className="flex items-start justify-between gap-3 px-4 sm:px-5 pt-3 pb-3 border-b border-gray-100">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Trip in progress</p>
+                        <h3 className="text-base sm:text-lg font-black text-gray-900 leading-tight">Complete trip</h3>
+                      </div>
+                      <button onClick={closeCompleteTrip} aria-label="Close"
+                        className="w-9 h-9 flex-shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+      
+                    <div className="px-4 sm:px-5 py-4 space-y-4 overflow-y-auto">
+                      {/* Rider */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-black text-white flex items-center justify-center text-base font-black flex-shrink-0">
+                          {(rider.name || 'R').trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 truncate">{rider.name || 'Customer'}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{riderPhone || 'No phone on file'}</p>
+                        </div>
+                        {canCall && (
+                          <a href={`tel:${riderPhone}`} aria-label="Call rider"
+                            className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                            <svg className="w-4 h-4 text-gray-800" fill="currentColor" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.2 1l-2.3 2.2z" /></svg>
+                          </a>
+                        )}
+                      </div>
+      
+                      {/* Route */}
+                      <div className="rounded-2xl border border-gray-200 p-3.5 flex gap-3">
+                        <div className="flex flex-col items-center pt-1.5 flex-shrink-0">
+                          <div className="w-2 h-2 rounded-full bg-black" />
+                          <div className="w-px flex-1 bg-gray-300 my-1" />
+                          <div className="w-2 h-2 rounded-sm bg-gray-900" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-3">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Pickup</p>
+                            <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">{tripData.pickupLocation}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Drop-off</p>
+                            <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">{tripData.dropLocation}</p>
+                          </div>
+                        </div>
+                      </div>
+      
+                      {/* Fare */}
+                      <div className="rounded-2xl bg-gray-50 p-4 text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Amount collected</p>
+                        <p className="text-3xl font-black text-gray-900 leading-none mt-1.5">₹{endTripFinalAmount}</p>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          Base ₹{baseAmount}{hasExtraHours ? ` · incl. extra hrs @ ₹${planExtraPerHour}/hr` : ''}
+                        </p>
+                      </div>
+      
+                      {/* OTP */}
+                      {isEndOtpSent ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                            <p className="text-xs font-bold text-green-600">OTP sent to rider&apos;s phone</p>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Enter the 6-digit OTP</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              autoFocus
+                              placeholder="------"
+                              value={endOtp}
+                              onChange={(e) => setEndOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 text-center text-2xl font-black tracking-[0.5em] pl-[0.5em] text-gray-900 placeholder-gray-300 focus:border-black focus:bg-white outline-none transition"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <button disabled={isCompletingTrip} onClick={closeCompleteTrip}
+                              className="py-3.5 rounded-xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 disabled:opacity-50 transition">
+                              Cancel
+                            </button>
+                            <button disabled={endOtp.length < 6 || isCompletingTrip} onClick={handleCompleteTrip}
+                              className="py-3.5 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 disabled:opacity-40 transition">
+                              {isCompletingTrip ? 'Completing...' : 'Verify & Complete'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          <button disabled={isSendingEndOtp} onClick={handleSendEndOtp}
+                            className="w-full py-3.5 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 disabled:opacity-50 transition">
+                            {isSendingEndOtp ? 'Sending OTP...' : 'Send OTP to rider'}
+                          </button>
+                          <button onClick={closeCompleteTrip}
+                            className="w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 transition">
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+      
+            {/* Start ride sheet — rider, route, vehicle photos and OTP on one screen */}
+            {startTripTarget && (() => {
+              const tripData: any = startTripTarget;
+              const rider: any = tripData.customer || {};
+              const riderPhone = typeof rider.phone === 'string' ? rider.phone : '';
+              const canCall = /^[+]?\d/.test(riderPhone);
+              const isReverify = tripData.status === 'ONGOING';
+              const photosReady = Boolean(tripPhotos.front && tripPhotos.back);
+              const photoTiles = [
+                { key: 'front' as const, label: 'Front view', file: tripPhotos.front },
+                { key: 'back' as const, label: 'Back view', file: tripPhotos.back },
+              ];
+      
+              return (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                  <div className="absolute inset-0 bg-black/60" onClick={closeStartRide} />
+                  <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92dvh] flex flex-col animate-fade-in">
+                    <div className="sm:hidden w-10 h-1 bg-gray-300 rounded-full mx-auto mt-2.5" />
+      
+                    <div className="flex items-start justify-between gap-3 px-4 sm:px-5 pt-3 pb-3 border-b border-gray-100">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          {isReverify ? 'Re-verification needed' : 'Ready to go'}
+                        </p>
+                        <h3 className="text-base sm:text-lg font-black text-gray-900 leading-tight">
+                          {isReverify ? 'Re-verify & continue' : 'Start ride'}
+                        </h3>
+                      </div>
+                      <button onClick={closeStartRide} aria-label="Close"
+                        className="w-9 h-9 flex-shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+      
+                    <div className="px-4 sm:px-5 py-4 space-y-4 overflow-y-auto">
+                      {isReverify && (
+                        <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                          <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                          <p className="text-[11px] text-amber-800 font-semibold leading-snug">
+                            Trip passed 12 hours. Capture fresh vehicle photos and verify the OTP to continue.
+                          </p>
+                        </div>
+                      )}
+      
+                      {/* Rider */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-full bg-black text-white flex items-center justify-center text-base font-black flex-shrink-0">
+                          {(rider.name || 'R').trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 truncate">{rider.name || 'Customer'}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{riderPhone || 'No phone on file'}</p>
+                        </div>
+                        {canCall && (
+                          <a href={`tel:${riderPhone}`} aria-label="Call rider"
+                            className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+                            <svg className="w-4 h-4 text-gray-800" fill="currentColor" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.2 1l-2.3 2.2z" /></svg>
+                          </a>
+                        )}
+                      </div>
+      
+                      {/* Route */}
+                      <div className="rounded-2xl border border-gray-200 p-3.5 flex gap-3">
+                        <div className="flex flex-col items-center pt-1.5 flex-shrink-0">
+                          <div className="w-2 h-2 rounded-full bg-black" />
+                          <div className="w-px flex-1 bg-gray-300 my-1" />
+                          <div className="w-2 h-2 rounded-sm bg-gray-900" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-3">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Pickup</p>
+                            <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">{tripData.pickupLocation}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Drop-off</p>
+                            <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">{tripData.dropLocation}</p>
+                          </div>
+                        </div>
+                      </div>
+      
+                      {/* Vehicle photos */}
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Vehicle photos</p>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {photoTiles.map((tile) => {
+                            const inputId = `sheet-${tile.key}-${tripData.id}`;
+                            return (
+                              <div key={tile.key}>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  id={inputId}
+                                  className="hidden"
+                                  onChange={(e) => setTripPhotos(prev => ({ ...prev, [tile.key]: e.target.files?.[0] || null }))}
+                                />
+                                <label htmlFor={inputId}
+                                  className={`h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-[11px] font-bold cursor-pointer transition ${tile.file ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                                  {tile.file ? (
+                                    <>
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                      Captured
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                      {tile.label}
+                                    </>
+                                  )}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+      
+                      {/* OTP */}
+                      {isStartOtpSent ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                            <p className="text-xs font-bold text-green-600">OTP sent to rider&apos;s phone</p>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Enter the 6-digit OTP</label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              autoFocus
+                              placeholder="------"
+                              value={startOtp}
+                              onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 text-center text-2xl font-black tracking-[0.5em] pl-[0.5em] text-gray-900 placeholder-gray-300 focus:border-black focus:bg-white outline-none transition"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <button disabled={isStartingTrip} onClick={closeStartRide}
+                              className="py-3.5 rounded-xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 disabled:opacity-50 transition">
+                              Cancel
+                            </button>
+                            <button disabled={startOtp.length < 6 || isStartingTrip} onClick={handleStartTrip}
+                              className="py-3.5 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 disabled:opacity-40 transition">
+                              {isStartingTrip ? 'Starting...' : isReverify ? 'Verify & Continue' : 'Verify & Start'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          <button disabled={!photosReady || isSendingStartOtp} onClick={handleSendStartOtp}
+                            className="w-full py-3.5 rounded-xl bg-black text-white font-bold text-sm hover:bg-gray-800 disabled:opacity-40 transition">
+                            {isSendingStartOtp ? 'Sending OTP...' : 'Send OTP to rider'}
+                          </button>
+                          {!photosReady && (
+                            <p className="text-[10px] text-gray-400 text-center">Capture both photos to enable this</p>
+                          )}
+                          <button onClick={closeStartRide}
+                            className="w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 transition">
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+      
       <ConfirmModal {...confirmConfig} onCancel={closeConfirm} />
     </div >
   );

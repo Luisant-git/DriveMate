@@ -110,6 +110,8 @@ export const autoRouteBooking = async (bookingId) => {
       if (lowerName.includes('diamond')) return 4;
       if (lowerName.includes('platinum')) return 3;
       if (lowerName.includes('gold')) return 2;
+      // "Silver Plus" is dispatched after Gold but ahead of plain Silver
+      if (lowerName.includes('silver plus')) return 1.5;
       if (lowerName.includes('silver')) return 1;
       return 0;
     };

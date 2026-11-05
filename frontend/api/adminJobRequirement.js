@@ -1,7 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL;
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token') || localStorage.getItem('auth-token');
+  // Admin JWT is stored in 'auth-token'; falling back to a stray 'token' key
+  // from another app on the same origin produced "Invalid token" errors.
+  const token = localStorage.getItem('auth-token');
   return {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),

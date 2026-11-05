@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { adminGetAllJobs, adminUpdateJobStatus, adminDeleteJob } from '../../api/adminJobRequirement';
 import { JOB_CATEGORIES, JOB_TYPES } from '../../constants/jobRoles';
 
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-800',
-  CLOSED: 'bg-gray-200 text-gray-700',
-  REJECTED: 'bg-red-100 text-red-700',
+// Shared status colours so the header pill and every row stay in sync.
+const STATUS_TONE: Record<string, { pill: string; dot: string }> = {
+  ACTIVE: { pill: 'bg-green-50 text-green-700', dot: 'bg-green-500' },
+  CLOSED: { pill: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' },
+  REJECTED: { pill: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
+const FALLBACK_TONE = { pill: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' };
 
 const JOBTYPE_COLORS: Record<string, string> = {
   'Full Time Jobs': 'bg-emerald-50 text-emerald-700',
@@ -179,27 +181,41 @@ export default function AdminJobRequirements() {
         </div>
       ) : (
         <div className="space-y-3">
-          {jobs.map(job => (
-            <div key={job.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          {jobs.map(job => {
+            const tone = STATUS_TONE[job.status] || FALLBACK_TONE;
+            const salaryLabel = (job.salaryMin || job.salaryMax)
+              ? `₹${job.salaryMin || '?'} – ₹${job.salaryMax || '?'}/mo`
+              : 'Not disclosed';
+            const experienceLabel = (job.experienceMin > 0 || job.experienceMax > 0)
+              ? `${job.experienceMin || 0}–${job.experienceMax || 0} yrs`
+              : 'Fresher';
+            const subtitle = [job.company, job.city, job.jobType].filter(Boolean).join(' · ');
+
+            return (
+            <div key={job.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden transition hover:border-gray-300">
 
               {/* ── Card top bar ── */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${STATUS_COLORS[job.status] || 'bg-gray-100'}`}>
+              <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${tone.pill}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
                     {job.status}
                   </span>
-                  <span className="text-[10px] text-gray-400 font-medium">
+                  <span className="whitespace-nowrap text-[11px] font-semibold text-gray-400">
                     {new Date(job.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
                   {job.customer && (
-                    <span className="text-[10px] font-bold text-gray-600 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
-                      #{job.customer.customerNo} · {job.customer.name}
+                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-gray-900 text-[8px] font-black uppercase text-white">
+                        {(job.customer.name || 'C').charAt(0)}
+                      </span>
+                      <span className="truncate">#{job.customer.customerNo} · {job.customer.name}</span>
                     </span>
                   )}
                 </div>
                 <button
                   onClick={() => setExpandedId(expandedId === job.id ? null : job.id)}
-                  className="text-[11px] font-bold text-gray-500 hover:text-black px-2 py-1 rounded transition"
+                  className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-500 transition hover:bg-gray-100 hover:text-black"
                 >
                   {expandedId === job.id ? '▲ Less' : '▼ More'}
                 </button>
@@ -207,100 +223,122 @@ export default function AdminJobRequirements() {
 
               {/* ── Card body ── */}
               <div className="px-4 py-3">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-sm text-gray-900 leading-tight">{job.title}</h4>
-                    {job.company && <p className="text-xs text-gray-500 mt-0.5">{job.company}</p>}
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      <span className="text-[10px] font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">📍 {job.city}</span>
-                      {job.role && <span className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{job.role}</span>}
-                      {job.category && <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{job.category}</span>}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${JOBTYPE_COLORS[job.jobType] || 'bg-gray-100 text-gray-600'}`}>{job.jobType}</span>
-                      {(job.salaryMin || job.salaryMax) && (
-                        <span className="text-[10px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full">
-                          ₹{job.salaryMin || '?'} – ₹{job.salaryMax || '?'}/mo
-                        </span>
-                      )}
-                      {(job.experienceMin > 0 || job.experienceMax > 0) && (
-                        <span className="text-[10px] font-bold bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full">
-                          {job.experienceMin || 0}–{job.experienceMax || 0} yrs exp
-                        </span>
-                      )}
-                      {job.remoteWork && (
-                        <span className="text-[10px] font-bold bg-cyan-50 text-cyan-700 px-2 py-0.5 rounded-full">Remote: {job.remoteWork}</span>
-                      )}
-                    </div>
+                {/* Logo tile + title */}
+                <div className="flex items-start gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black text-white">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="line-clamp-2 break-words text-[15px] font-bold leading-snug text-gray-900">{job.title}</h4>
+                    {subtitle && <p className="mt-0.5 truncate text-xs font-medium text-gray-500">{subtitle}</p>}
                   </div>
+                </div>
 
-                  {/* Action buttons */}
-                  <div className="flex gap-1.5 flex-shrink-0 self-start">
-                    {job.status !== 'ACTIVE' && (
-                      <button
-                        onClick={() => handleStatusChange(job.id, 'ACTIVE')}
-                        disabled={actionLoading === job.id + 'ACTIVE'}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition disabled:opacity-50"
-                      >Activate</button>
-                    )}
-                    {job.status !== 'CLOSED' && (
-                      <button
-                        onClick={() => handleStatusChange(job.id, 'CLOSED')}
-                        disabled={actionLoading === job.id + 'CLOSED'}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 transition disabled:opacity-50"
-                      >Close</button>
-                    )}
-                    {job.status !== 'REJECTED' && (
-                      <button
-                        onClick={() => handleStatusChange(job.id, 'REJECTED')}
-                        disabled={actionLoading === job.id + 'REJECTED'}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition disabled:opacity-50"
-                      >Reject</button>
-                    )}
-                    <button
-                      onClick={() => handleDelete(job.id)}
-                      disabled={actionLoading === job.id + 'del'}
-                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition disabled:opacity-50"
-                    >Delete</button>
+                {/* Key facts */}
+                <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100">
+                  <div className="min-w-0 bg-white px-3 py-2">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Salary</p>
+                    <p className="mt-0.5 break-words text-[13px] font-bold text-gray-900">{salaryLabel}</p>
                   </div>
+                  <div className="min-w-0 bg-white px-3 py-2">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">Experience</p>
+                    <p className="mt-0.5 break-words text-[13px] font-bold text-gray-900">{experienceLabel}</p>
+                  </div>
+                </div>
+
+                {/* Role / category / type / remote */}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="rounded-md border border-gray-100 bg-gray-50 px-2 py-1 text-[10px] font-bold text-gray-600">📍 {job.city}</span>
+                  {job.role && <span className="break-words rounded-md bg-gray-900 px-2 py-1 text-[10px] font-bold text-white">{job.role}</span>}
+                  {job.category && <span className="break-words rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-600">{job.category}</span>}
+                  <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${JOBTYPE_COLORS[job.jobType] || 'bg-gray-100 text-gray-600'}`}>{job.jobType}</span>
+                  {job.remoteWork && (
+                    <span className="rounded-md bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700">Remote: {job.remoteWork}</span>
+                  )}
+                </div>
+
+                {/* Action buttons */}
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-1.5">
+                  {job.status !== 'ACTIVE' && (
+                    <button
+                      onClick={() => handleStatusChange(job.id, 'ACTIVE')}
+                      disabled={actionLoading === job.id + 'ACTIVE'}
+                      className="rounded-lg border border-green-200 bg-white px-3 py-1.5 text-[11px] font-bold text-green-700 transition hover:bg-green-50 disabled:opacity-50"
+                    >Activate</button>
+                  )}
+                  {job.status !== 'CLOSED' && (
+                    <button
+                      onClick={() => handleStatusChange(job.id, 'CLOSED')}
+                      disabled={actionLoading === job.id + 'CLOSED'}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-bold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                    >Close</button>
+                  )}
+                  {job.status !== 'REJECTED' && (
+                    <button
+                      onClick={() => handleStatusChange(job.id, 'REJECTED')}
+                      disabled={actionLoading === job.id + 'REJECTED'}
+                      className="rounded-lg border border-red-100 bg-white px-3 py-1.5 text-[11px] font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                    >Reject</button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(job.id)}
+                    disabled={actionLoading === job.id + 'del'}
+                    className="rounded-lg bg-red-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-red-700 disabled:opacity-50"
+                  >Delete</button>
                 </div>
 
                 {/* Expanded details */}
                 {expandedId === job.id && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                  <div className="mt-3 space-y-3 border-t border-gray-100 pt-3">
                     {/* Description */}
                     <div>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Job Description</p>
-                      <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">{job.description}</p>
+                      <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-gray-400">Job Description</p>
+                      <p className="whitespace-pre-wrap break-words rounded-xl border border-gray-100 bg-gray-50/60 p-3 text-xs leading-relaxed text-gray-700">{job.description}</p>
                     </div>
 
                     {/* Localities */}
                     {job.localities?.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Localities</p>
+                        <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-gray-400">Localities</p>
                         <div className="flex flex-wrap gap-1.5">
                           {job.localities.map((l: string) => (
-                            <span key={l} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">{l}</span>
+                            <span key={l} className="rounded-md border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">{l}</span>
                           ))}
                         </div>
                       </div>
                     )}
 
                     {/* Recruiter + Customer */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1.5">Recruiter Details</p>
-                        {job.company && <p className="text-xs font-bold text-gray-900">Hiring for: {job.company}</p>}
-                        <a href={`mailto:${job.contactEmail}`} className="text-xs font-bold text-blue-600 hover:underline block mt-0.5">{job.contactEmail}</a>
-                        <a href={`tel:${job.contactPhone}`} className="text-xs text-gray-600 block mt-0.5">+91 {job.contactPhone}</a>
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {job.showContact === false ? 'Contact details hidden from candidates' : 'Contact details visible to candidates'}
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                        <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">Recruiter Details</p>
+                        {job.company && <p className="break-words text-xs font-bold text-gray-900">Hiring for {job.company}</p>}
+                        <a href={`tel:${job.contactPhone}`} className="mt-1 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="font-bold text-gray-700">Phone</span>
+                          <span className="font-semibold tabular-nums text-gray-900">+91 {job.contactPhone}</span>
+                        </a>
+                        <a href={`tel:${job.whatsappNumber || job.contactPhone}`} className="mt-0.5 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="font-bold text-gray-700">WhatsApp</span>
+                          <span className="font-semibold tabular-nums text-gray-900">+91 {job.whatsappNumber || job.contactPhone}</span>
+                        </a>
+                        {job.alternateMobile && (
+                          <p className="mt-0.5 flex items-center justify-between gap-2 text-[11px]">
+                            <span className="font-bold text-gray-700">Alternate</span>
+                            <span className="font-semibold tabular-nums text-gray-900">+91 {job.alternateMobile}</span>
+                          </p>
+                        )}
+                        <p className="mt-1.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                          {job.showContact === false ? 'Hidden from candidates' : 'Visible to candidates'}
                         </p>
                       </div>
                       {job.customer && (
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase mb-1.5">Posted By (Customer)</p>
-                          <p className="text-xs font-bold text-gray-900">#{job.customer.customerNo} · {job.customer.name}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{job.customer.phone}</p>
-                          {job.customer.email && <p className="text-xs text-gray-500">{job.customer.email}</p>}
+                        <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">Posted By (Customer)</p>
+                          <p className="break-words text-xs font-bold text-gray-900">#{job.customer.customerNo} · {job.customer.name}</p>
+                          <p className="mt-1 text-[11px] font-semibold tabular-nums text-gray-500">{job.customer.phone}</p>
+                          {job.customer.email && <p className="break-words text-[11px] text-gray-500">{job.customer.email}</p>}
                         </div>
                       )}
                     </div>
@@ -308,7 +346,8 @@ export default function AdminJobRequirements() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

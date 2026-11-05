@@ -23,6 +23,15 @@ const VerificationBadge = ({ driver, onClick }) => {
   return <button onClick={onClick} className={`${base} bg-green-100 text-green-700 border-green-200 hover:bg-green-200`}>Verified ▸</button>;
 };
 
+// Read-only version of the badge for the verification modal (no fake ▶ button).
+const verificationTone = (driver) => {
+  const s = getVerificationStatus(driver);
+  if (s === 'NEVER') return { label: 'Never Verified', cls: 'bg-gray-100 text-gray-600 border-gray-200' };
+  if (s === 'OVERDUE') return { label: 'Overdue', cls: 'bg-red-50 text-red-700 border-red-200' };
+  if (s === 'DUE_SOON') return { label: 'Due Soon', cls: 'bg-yellow-50 text-yellow-700 border-yellow-200' };
+  return { label: 'Verified', cls: 'bg-green-50 text-green-700 border-green-200' };
+};
+
 export default function Driver() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -419,6 +428,15 @@ export default function Driver() {
     }
   };
 
+  const togglePayLater = async (driverId, currentValue) => {
+    try {
+      const res = await apiClient.put(`/admin/drivers/${driverId}/pay-later`, { payLaterAllowed: !currentValue });
+      if (res.data.success) fetchDrivers();
+    } catch (error) {
+      console.error('Error toggling pay later permission:', error);
+    }
+  };
+
   const docUrl = (path) => {
     if (!path) return null;
     return path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
@@ -574,6 +592,7 @@ export default function Driver() {
 
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Active</th>
+                  <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pay Later</th>
                   <th className="px-3 py-3 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -609,6 +628,14 @@ export default function Driver() {
                         className={`px-2 py-1 rounded-full text-[10px] font-bold transition ${driver.isActive ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
                       >
                         {driver.isActive ? 'Active' : 'Deactive'}
+                      </button>
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        onClick={() => togglePayLater(driver.id, driver.payLaterAllowed)}
+                        className={`px-2 py-1 rounded-full text-[10px] font-bold transition ${driver.payLaterAllowed ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      >
+                        {driver.payLaterAllowed ? 'Allowed' : 'Blocked'}
                       </button>
                     </td>
                     <td className="px-3 py-3">
@@ -854,228 +881,193 @@ export default function Driver() {
 
       {/* Verification Modal */}
       {verifyDriver && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-              <div>
-                <h3 className="text-base font-bold text-gray-900">Quarterly Verification</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{verifyDriver.name} · {verifyDriver.phone}</p>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4">
+          <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl">
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Quarterly Verification</p>
+                <p className="truncate text-sm font-bold text-gray-900">{verifyDriver.name}</p>
+                <p className="text-[11px] text-gray-500">{verifyDriver.phone}</p>
               </div>
-              <button onClick={() => setVerifyDriver(null)} className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button onClick={() => setVerifyDriver(null)} aria-label="Close" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 transition hover:bg-gray-200">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-5 space-y-5">
-              {/* Status bar */}
-              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+              {/* Status summary — static chip, nothing clickable */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
                 <div>
-                  <p className="text-xs text-gray-500">Last Verified</p>
-                  <p className="text-sm font-bold">{verifyDriver.lastVerifiedAt ? new Date(verifyDriver.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never'}</p>
+                  <p className="text-[10px] font-bold uppercase text-gray-400">Last Verified</p>
+                  <p className="text-sm font-bold text-gray-900">{verifyDriver.lastVerifiedAt ? new Date(verifyDriver.lastVerifiedAt).toLocaleDateString('en-GB') : 'Never'}</p>
                 </div>
-                <div className="w-px h-8 bg-gray-200" />
                 <div>
-                  <p className="text-xs text-gray-500">Next Due</p>
-                  <p className="text-sm font-bold">{verifyDriver.nextVerificationDue ? new Date(verifyDriver.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
+                  <p className="text-[10px] font-bold uppercase text-gray-400">Next Due</p>
+                  <p className="text-sm font-bold text-gray-900">{verifyDriver.nextVerificationDue ? new Date(verifyDriver.nextVerificationDue).toLocaleDateString('en-GB') : '—'}</p>
                 </div>
-                <div className="ml-auto">
-                  <VerificationBadge driver={verifyDriver} onClick={() => {}} />
-                </div>
+                <span className={`ml-auto shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold ${verificationTone(verifyDriver).cls}`}>
+                  {verificationTone(verifyDriver).label}
+                </span>
               </div>
 
-              {/* Driving License Status in Verification Modal */}
-              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase">Driving License Document</p>
-                  <span className="text-sm font-bold text-gray-900">
-                    {verifyDriver.dlPhoto ? '✅ Uploaded' : '❌ Not Uploaded'}
+              {/* Driving License */}
+              <div className="overflow-hidden rounded-xl border border-gray-200">
+                <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-gray-900">Driving License</p>
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${verifyDriver.dlPhoto ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {verifyDriver.dlPhoto ? 'Uploaded' : 'Not uploaded'}
                   </span>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 items-end">
-                  <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      Expiry Date *
-                    </label>
-                    <input 
+                <div className="space-y-2.5 p-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase text-gray-500">Expiry Date *</label>
+                    <input
                       type="date"
                       min={new Date().toISOString().split('T')[0]}
                       value={verifyLicenseExpiry}
                       onChange={e => setVerifyLicenseExpiry(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none shadow-sm"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                   
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    {verifyDriver.dlPhoto && (
-                      <div className="flex gap-1.5 flex-1 sm:flex-none">
-                        <button 
-                          onClick={() => window.open(docUrl(verifyDriver.dlPhoto), '_blank')}
-                          className="flex-1 text-xs bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition font-bold"
-                        >
-                          View
-                        </button>
-                        <button 
-                          onClick={handleDeleteLicense}
-                          className="px-2.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg transition"
-                          title="Remove Document"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    )}
-                    <div className="relative flex-1 sm:flex-none">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        id="updateLicense" 
-                        className="hidden" 
-                        onChange={handleUploadLicense}
-                        disabled={isUploadingDoc}
-                      />
-                      <label 
-                        htmlFor="updateLicense" 
-                        className={`flex items-center justify-center gap-1.5 w-full text-xs bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.open(docUrl(verifyDriver.dlPhoto), '_blank')}
+                      disabled={!verifyDriver.dlPhoto}
+                      className="flex-1 rounded-lg bg-gray-100 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      View
+                    </button>
+                    <div className="flex-1">
+                      <input type="file" accept="image/*" id="updateLicense" className="hidden" onChange={handleUploadLicense} disabled={isUploadingDoc} />
+                      <label htmlFor="updateLicense" className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-black py-2 text-xs font-bold text-white transition hover:bg-gray-800 ${isUploadingDoc ? 'cursor-not-allowed opacity-50' : ''}`}>
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         {isUploadingDoc ? 'Uploading...' : 'Upload New'}
                       </label>
                     </div>
+                    {verifyDriver.dlPhoto && (
+                      <button onClick={handleDeleteLicense} title="Remove document" className="flex w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Police Verification Status in Verification Modal */}
-              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase">Police Verification Document</p>
-                  <span className="text-sm font-bold text-gray-900">
-                    {verifyDriver.policeVerificationPhoto ? '✅ Uploaded' : '❌ Not Uploaded'}
+              {/* Police Verification */}
+              <div className="overflow-hidden rounded-xl border border-gray-200">
+                <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-gray-900">Police Verification</p>
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${verifyDriver.policeVerificationPhoto ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {verifyDriver.policeVerificationPhoto ? 'Uploaded' : 'Not uploaded'}
                   </span>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 items-end">
-                  <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      Expiry Date *
-                    </label>
-                    <input 
-                      type="date"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={verifyPoliceExpiry}
-                      onChange={e => setVerifyPoliceExpiry(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none shadow-sm"
-                    />
-                  </div>
-                  <div className="flex-1 w-full">
-                    <label className="block text-xs font-bold text-gray-600 mb-1 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                      Certificate No
-                    </label>
-                    <div className="flex gap-1.5">
-                      <input 
-                        type="text"
-                        value={verifyPoliceNo}
-                        onChange={e => setVerifyPoliceNo(e.target.value)}
-                        placeholder="e.g. POL-VER-2026-XXXX"
-                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-black outline-none shadow-sm"
+                <div className="space-y-2.5 p-3">
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase text-gray-500">Expiry Date *</label>
+                      <input
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={verifyPoliceExpiry}
+                        onChange={e => setVerifyPoliceExpiry(e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black"
                       />
-                      <button
-                        type="button"
-                        onClick={handleSavePoliceCertificateNo}
-                        className="px-2.5 py-2 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition shadow-sm active:scale-95 flex-shrink-0"
-                        title="Save Certificate Number"
-                      >
-                        Save
-                      </button>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold uppercase text-gray-500">Certificate No</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={verifyPoliceNo}
+                          onChange={e => setVerifyPoliceNo(e.target.value)}
+                          placeholder="POL-VER-2026-XXXX"
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-black"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSavePoliceCertificateNo}
+                          title="Save Certificate Number"
+                          className="shrink-0 rounded-lg bg-gray-900 px-2.5 text-[11px] font-bold text-white transition hover:bg-black"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    {verifyDriver.policeVerificationPhoto && (
-                      <div className="flex gap-1.5 flex-1 sm:flex-none">
-                        <button 
-                          onClick={() => window.open(docUrl(verifyDriver.policeVerificationPhoto), '_blank')}
-                          className="flex-1 text-xs bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition font-bold"
-                        >
-                          View
-                        </button>
-                        <button 
-                          onClick={handleDeletePoliceVerification}
-                          className="px-2.5 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-lg transition"
-                          title="Remove Document"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    )}
-                    <div className="relative flex-1 sm:flex-none">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        id="updatePoliceVerif" 
-                        className="hidden" 
-                        onChange={handleUploadPoliceVerification}
-                        disabled={isUploadingDoc}
-                      />
-                      <label 
-                        htmlFor="updatePoliceVerif" 
-                        className={`flex items-center justify-center gap-1.5 w-full text-xs bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.open(docUrl(verifyDriver.policeVerificationPhoto), '_blank')}
+                      disabled={!verifyDriver.policeVerificationPhoto}
+                      className="flex-1 rounded-lg bg-gray-100 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      View
+                    </button>
+                    <div className="flex-1">
+                      <input type="file" accept="image/*" id="updatePoliceVerif" className="hidden" onChange={handleUploadPoliceVerification} disabled={isUploadingDoc} />
+                      <label htmlFor="updatePoliceVerif" className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-black py-2 text-xs font-bold text-white transition hover:bg-gray-800 ${isUploadingDoc ? 'cursor-not-allowed opacity-50' : ''}`}>
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         {isUploadingDoc ? 'Uploading...' : 'Upload New'}
                       </label>
                     </div>
+                    {verifyDriver.policeVerificationPhoto && (
+                      <button onClick={handleDeletePoliceVerification} title="Remove document" className="flex w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Verify form */}
+              {/* Verify result */}
               {showVerifyForm ? (
-                <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-                  <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification Result</p>
+                <div className="space-y-2.5 rounded-xl border border-gray-200 p-3">
+                  <p className="text-[10px] font-bold uppercase text-gray-500">Mark Verification Result</p>
                   <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                    className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm outline-none focus:ring-2 focus:ring-black"
                     rows={3}
                     placeholder="Notes (optional)"
                     value={verifyNotes}
                     onChange={e => setVerifyNotes(e.target.value)}
                   />
-                  <div className="flex gap-2">
-                    <button onClick={() => submitVerification('PASSED')} disabled={verifySubmitting} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50 transition">
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => submitVerification('PASSED')} disabled={verifySubmitting} className="min-w-[110px] flex-1 rounded-lg bg-green-600 py-2 text-xs font-bold text-white transition hover:bg-green-700 disabled:opacity-50">
                       {verifySubmitting ? 'Saving...' : '✓ Mark as Passed'}
                     </button>
-                    <button onClick={() => submitVerification('FAILED')} disabled={verifySubmitting} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition">
+                    <button onClick={() => submitVerification('FAILED')} disabled={verifySubmitting} className="min-w-[110px] flex-1 rounded-lg bg-red-600 py-2 text-xs font-bold text-white transition hover:bg-red-700 disabled:opacity-50">
                       {verifySubmitting ? 'Saving...' : '✗ Mark as Failed'}
                     </button>
-                    <button onClick={() => setShowVerifyForm(false)} className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition">Cancel</button>
+                    <button onClick={() => setShowVerifyForm(false)} className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-bold text-gray-600 transition hover:bg-gray-200">Cancel</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setShowVerifyForm(true)} className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+                <button onClick={() => setShowVerifyForm(true)} className="w-full rounded-xl bg-black py-2.5 text-sm font-bold text-white transition hover:bg-gray-800">
                   Start Verification
                 </button>
               )}
 
               {/* History */}
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2">Verification History</p>
+                <p className="mb-2 text-[10px] font-bold uppercase text-gray-500">Verification History</p>
                 {verifyHistoryLoading ? (
                   <p className="text-xs text-gray-400">Loading...</p>
                 ) : verifyHistory.length === 0 ? (
                   <p className="text-xs text-gray-400">No verification history yet</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {verifyHistory.map(r => (
-                      <div key={r.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${r.status === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <div key={r.id} className="flex items-start gap-2 rounded-lg bg-gray-50 px-2.5 py-2">
+                        <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${r.status === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                           {r.status}
                         </span>
-                        <div>
-                          <p className="text-xs text-gray-500">{new Date(r.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                          {r.notes && <p className="text-xs text-gray-700 mt-0.5">{r.notes}</p>}
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-gray-700">
+                            {new Date(r.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </p>
+                          {r.notes && <p className="break-words text-[11px] text-gray-500">{r.notes}</p>}
                         </div>
                       </div>
                     ))}

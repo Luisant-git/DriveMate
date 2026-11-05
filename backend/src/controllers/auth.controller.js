@@ -6,6 +6,22 @@ import { customerLoginOtp } from './whatsapp.controller.js';
 // In-memory OTP store (in production, use Redis)
 const otpStore = new Map();
 
+// Phones that recently cleared an OTP check. Flows that must prove the contact
+// number belongs to the user (e.g. posting a job requirement) read this.
+const verifiedPhoneStore = new Map();
+const VERIFIED_PHONE_TTL_MS = 15 * 60 * 1000;
+
+export const isPhoneVerified = (phone) => {
+  const key = String(phone || '').trim();
+  const expiresAt = verifiedPhoneStore.get(key);
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    verifiedPhoneStore.delete(key);
+    return false;
+  }
+  return true;
+};
+
 const getFileUrl = (filename) => {
   if (!filename) return null;
   return `${process.env.FRONTEND_URL}/uploads/${filename}`;
@@ -297,6 +313,7 @@ export const verifyOTPOnly = async (req, res) => {
 
     // OTP is valid, delete it
     otpStore.delete(phone);
+    verifiedPhoneStore.set(String(phone).trim(), Date.now() + VERIFIED_PHONE_TTL_MS);
 
     res.json({ success: true, message: 'OTP verified successfully' });
   } catch (error) {
