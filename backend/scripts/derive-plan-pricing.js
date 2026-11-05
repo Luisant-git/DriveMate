@@ -1,6 +1,7 @@
-// Re-derives Min Hours, Extra/Hr Rate and Excess Amount for every package from
-// its description, so packages saved before the derivation existed stop showing
-// 0 — or, worse, a fare stored as hours ("MINI 4 HOUR 450" saved as 450 hours).
+// Re-derives Min Hours, Min Rate (base fare), Extra/Hr Rate and Excess Amount for
+// every package from its description, so packages saved before the derivation
+// existed stop showing 0 — or, worse, a fare stored as hours
+// ("MINI 4 HOUR 450" saved as 450 hours).
 // Run once after deploying: node scripts/derive-plan-pricing.js
 import prisma from '../src/config/database.js';
 import { derivePlanPricing } from '../src/utils/planPricing.js';
@@ -13,6 +14,7 @@ const run = async () => {
     const pricing = derivePlanPricing({ description: plan.description, type: plan.type });
 
     const unchanged = Number(plan.minHours) === pricing.minHours
+      && Number(plan.baseFare) === pricing.baseFare
       && Number(plan.extraPerHourRate) === pricing.extraPerHourRate
       && Number(plan.excessAmountPerRide) === pricing.excessAmountPerRide;
     if (unchanged) continue;
@@ -21,6 +23,7 @@ const run = async () => {
       where: { id: plan.id },
       data: {
         minHours: pricing.minHours,
+        baseFare: pricing.baseFare,
         extraPerHourRate: pricing.extraPerHourRate,
         excessAmountPerRide: pricing.excessAmountPerRide,
       },
@@ -29,7 +32,7 @@ const run = async () => {
     changed++;
     console.log(
       `  ${plan.category} ₹${plan.price} (${plan.type}) ${plan.name}\n` +
-      `      minHours ${plan.minHours} -> ${pricing.minHours} · extra ${plan.extraPerHourRate} -> ${pricing.extraPerHourRate} · excess ${plan.excessAmountPerRide} -> ${pricing.excessAmountPerRide}`
+      `      minHours ${plan.minHours} -> ${pricing.minHours} · minRate ${plan.baseFare} -> ${pricing.baseFare} · extra ${plan.extraPerHourRate} -> ${pricing.extraPerHourRate} · excess ${plan.excessAmountPerRide} -> ${pricing.excessAmountPerRide}`
     );
   }
 

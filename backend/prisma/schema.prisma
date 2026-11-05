@@ -157,6 +157,7 @@ model SubscriptionPlan {
   excessAmountPerRide Float?   @default(0)
   minHours            Int?     @default(0)
   extraPerHourRate    Float?   @default(0)
+  baseFare            Float?   @default(0)
   types               String[] @default([])
   category            String   @default("GENERAL")
   subscriptions       Subscription[]

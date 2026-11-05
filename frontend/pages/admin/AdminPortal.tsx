@@ -35,6 +35,7 @@ interface SubscriptionPlan {
   isActive?: boolean;
   excessAmountPerRide?: number;
   minHours?: number;
+  baseFare?: number;
   extraPerHourRate?: number;
 }
 
@@ -46,6 +47,7 @@ interface PackageFormState {
   durationDays: number;
   maxDuties: number;
   minHours: number;
+  baseFare: number;
   extraPerHourRate: number;
   description: string;
 }
@@ -99,6 +101,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
     durationDays: 0,
     maxDuties: 0,
     minHours: 0,
+    baseFare: 0,
     extraPerHourRate: 0,
     description: '',
   });
@@ -242,6 +245,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       durationDays: 0,
       maxDuties: 0,
       minHours: 0,
+      baseFare: 0,
       extraPerHourRate: 0,
       description: '',
     });
@@ -263,6 +267,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
       durationDays: pkg.duration || 30,
       maxDuties: pkg.maxDuties || 0,
       minHours: pkg.minHours || 0,
+      baseFare: pkg.baseFare || 0,
       extraPerHourRate: pkg.extraPerHourRate || 0,
       description: pkg.description || '',
     });
@@ -290,6 +295,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
         description: packageForm.description,
         // The excess amount is not sent — the server works it out from the plan.
         minHours: packageForm.minHours,
+        baseFare: packageForm.baseFare,
         extraPerHourRate: packageForm.extraPerHourRate,
       };
 
@@ -823,18 +829,35 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 />
               </label>
 
-              {/* The excess amount has no field — it is worked out per ride */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* The excess amount has no field — it is worked out per ride.
+                  Min Rate is the fare for the min hours: "MINI 4 HOUR 450". */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <label className="block text-xs font-bold text-gray-500 uppercase">
                   Min Hours
                   <input
                     type="number"
                     min={0}
+                    placeholder="0"
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.minHours}
+                    value={packageForm.minHours || ''}
                     onChange={(e) => {
                       const minHours = Number(e.target.value) || 0;
                       setPackageForm((prev) => ({ ...prev, minHours }));
+                    }}
+                  />
+                </label>
+
+                <label className="block text-xs font-bold text-gray-500 uppercase">
+                  Min Rate (₹)
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    value={packageForm.baseFare || ''}
+                    onChange={(e) => {
+                      const baseFare = Number(e.target.value) || 0;
+                      setPackageForm((prev) => ({ ...prev, baseFare }));
                     }}
                   />
                 </label>
@@ -844,8 +867,9 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <input
                     type="number"
                     min={0}
+                    placeholder="0"
                     className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
-                    value={packageForm.extraPerHourRate}
+                    value={packageForm.extraPerHourRate || ''}
                     onChange={(e) => {
                       const extraPerHourRate = Number(e.target.value) || 0;
                       setPackageForm((prev) => ({ ...prev, extraPerHourRate }));

@@ -55,10 +55,10 @@ const updateExpiredSubscriptions = async (driverId = null) => {
 
 const VALID_CATEGORIES = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
 
-// Min hours and the extra per hour rate are the only numbers the admin form
-// carries, so a real number in the body wins and anything missing falls back to
-// what the description says. The excess amount is never taken from the body —
-// it is always derived.
+// Min hours, the min (base) rate and the extra per hour rate are the only
+// numbers the admin form carries, so a real number in the body wins and
+// anything missing falls back to what the description says. The excess amount
+// is never taken from the body — it is always derived.
 const pickNumber = (value, fallback) => {
   if (value === undefined || value === null || value === '') return fallback;
   const parsed = Number(value);
@@ -69,7 +69,7 @@ export const createSubscriptionPlan = async (req, res) => {
   try {
     const {
       category, name, duration, price, description, type, maxDuties,
-      minHours, extraPerHourRate,
+      minHours, baseFare, extraPerHourRate,
     } = req.body;
 
     const planCategory = VALID_CATEGORIES.includes(category) ? category : 'Silver';
@@ -87,6 +87,7 @@ export const createSubscriptionPlan = async (req, res) => {
         maxDuties: maxDuties || 0,
         excessAmountPerRide: pricing.excessAmountPerRide,
         minHours: pickNumber(minHours, pricing.minHours),
+        baseFare: pickNumber(baseFare, pricing.baseFare),
         extraPerHourRate: pickNumber(extraPerHourRate, pricing.extraPerHourRate),
       },
     });
@@ -138,7 +139,7 @@ export const updateSubscriptionPlan = async (req, res) => {
   try {
     const id = (req.params.id);
     const { category, name, duration, price, description, type, isActive, maxDuties } = req.body;
-    const { excessAmountPerRide: _ignoredExcess, minHours, extraPerHourRate } = req.body;
+    const { excessAmountPerRide: _ignoredExcess, minHours, baseFare, extraPerHourRate } = req.body;
 
     const existing = await prisma.subscriptionPlan.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ error: 'Plan not found' });
@@ -154,13 +155,14 @@ export const updateSubscriptionPlan = async (req, res) => {
     if (maxDuties !== undefined) updateData.maxDuties = maxDuties;
 
     // Whatever the description says applies to this save, unless the admin typed
-    // a Min Hours or Extra/Hr Rate over the top of it in the package form.
+    // a Min Hours, Min Rate or Extra/Hr Rate over the top of it in the package form.
     const pricing = derivePlanPricing({
       description: description !== undefined ? description : existing.description,
       type: type !== undefined ? type : existing.type,
     });
     updateData.excessAmountPerRide = pricing.excessAmountPerRide;
     updateData.minHours = pickNumber(minHours, pricing.minHours);
+    updateData.baseFare = pickNumber(baseFare, pricing.baseFare);
     updateData.extraPerHourRate = pickNumber(extraPerHourRate, pricing.extraPerHourRate);
 
     const plan = await prisma.subscriptionPlan.update({

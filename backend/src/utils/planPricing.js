@@ -98,11 +98,13 @@ export const resolvePlanRates = (plan) => {
   const parsed = parsePlanDescription(plan?.description || '', plan?.type || 'LOCAL');
   const storedHours = Number(plan?.minHours) || 0;
   const storedExtra = Number(plan?.extraPerHourRate) || 0;
+  const storedBase = Number(plan?.baseFare) || 0;
 
   return {
     minHours: storedHours > 0 && storedHours <= 24 ? storedHours : parsed.minHours,
     extraPerHourRate: storedExtra > 0 ? storedExtra : parsed.extraPerHourRate,
-    baseFare: parsed.baseFare,
+    // Min Rate typed in Admin -> Packages wins over the amount in the description
+    baseFare: storedBase > 0 ? storedBase : parsed.baseFare,
   };
 };
 
