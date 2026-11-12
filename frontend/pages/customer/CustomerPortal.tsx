@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect } from 'react';
 import { Customer, BookingType, Trip } from '../../types';
 import { getRecommendedPackage } from '../../services/geminiService';
@@ -16,6 +16,7 @@ import CustomerSosModal from '../../components/customer/CustomerSosModal';
 import JobRoleSelect from '../../components/jobs/JobRoleSelect';
 import CitySelect from '../../components/jobs/CitySelect';
 import LocalitySelect from '../../components/jobs/LocalitySelect';
+import FormattedJobDescription from '../../components/jobs/FormattedJobDescription';
 import { getLocalitiesForCity } from '../../constants/localities';
 import { JOB_TYPES, EXPERIENCE_OPTIONS, REMOTE_OPTIONS } from '../../constants/jobRoles';
 import TermsAndConditions from '../../components/TermsAndConditions';
@@ -57,6 +58,38 @@ const JOBTYPE_COLORS: Record<string, string> = {
     'Work From Home': 'bg-cyan-50 text-cyan-700',
     Internships: 'bg-pink-50 text-pink-700',
     'Work Abroad': 'bg-indigo-50 text-indigo-700',
+};
+
+// Job status styling & customer-facing message — mirrors the admin job board
+const JOB_STATUS_META: Record<string, { label: string; pill: string; dot: string; note: string; noteClass: string }> = {
+    PENDING: {
+        label: 'PENDING APPROVAL',
+        pill: 'bg-amber-50 text-amber-700',
+        dot: 'bg-amber-500',
+        note: 'Waiting for admin approval before going live.',
+        noteClass: 'bg-amber-50/70 border-amber-100 text-amber-800',
+    },
+    ACTIVE: {
+        label: 'APPROVED · ACTIVE',
+        pill: 'bg-green-50 text-green-700',
+        dot: 'bg-green-500',
+        note: 'Approved by admin and visible to candidates.',
+        noteClass: 'bg-green-50/70 border-green-100 text-green-800',
+    },
+    CLOSED: {
+        label: 'CLOSED',
+        pill: 'bg-gray-100 text-gray-600',
+        dot: 'bg-gray-400',
+        note: 'This job posting is closed and hidden from candidates.',
+        noteClass: 'bg-gray-50 border-gray-200 text-gray-600',
+    },
+    REJECTED: {
+        label: 'REJECTED',
+        pill: 'bg-red-50 text-red-700',
+        dot: 'bg-red-500',
+        note: 'Rejected by admin. This posting is not visible to candidates.',
+        noteClass: 'bg-red-50/70 border-red-100 text-red-700',
+    },
 };
 
 // Compact, tappable hint offering a one-tap service-type switch
@@ -444,6 +477,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         }
     };
 
+    // Refresh job statuses whenever the customer opens the Jobs tab
+    useEffect(() => {
+        if (activeTab === 'JOBS') {
+            fetchMyJobs();
+        }
+    }, [activeTab]);
+
     // Adds a locality to the job form (shared by the dropdown and the free-text input)
     const addJobLocality = (raw: string) => {
         const value = raw.trim();
@@ -523,7 +563,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 whatsappNumber: jobFormData.phoneSameAsWhatsapp ? jobFormData.contactPhone : jobFormData.whatsappNumber,
             });
             if (res.success) {
-                toast.success('Job posted successfully!');
+                toast.success(res.message || 'Job submitted for admin approval!');
                 setShowJobForm(false);
                 setJobFormData(emptyJobForm);
                 setVerifiedJobPhone('');
@@ -3194,13 +3234,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <h3 className="text-base sm:text-lg font-bold leading-snug break-words">Job Postings</h3>
                                 <p className="text-xs text-gray-500 mt-0.5 leading-snug break-words">Post a job requirement to hire employees</p>
                             </div>
-                            <button
-                                onClick={() => setShowJobForm(v => !v)}
-                                className="flex-shrink-0 bg-black text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5 whitespace-nowrap"
-                            >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-                                {showJobForm ? 'Cancel' : 'Post Job'}
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={fetchMyJobs}
+                                    disabled={jobsLoading}
+                                    title="Refresh job statuses"
+                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-black transition disabled:opacity-50"
+                                >
+                                    <svg className={`w-3.5 h-3.5 ${jobsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => setShowJobForm(v => !v)}
+                                    className="bg-black text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5 whitespace-nowrap"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                                    {showJobForm ? 'Cancel' : 'Post Job'}
+                                </button>
+                            </div>
                         </div>
 
                         {/* ── POST JOB FORM ── */}
@@ -3518,6 +3571,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <div className="space-y-3">
                                 {myJobs.map(job => {
                                     const isActive = job.status === 'ACTIVE';
+                                    const statusMeta = JOB_STATUS_META[job.status] || {
+                                        label: job.status || 'UNKNOWN',
+                                        pill: 'bg-gray-100 text-gray-600',
+                                        dot: 'bg-gray-400',
+                                        note: '',
+                                        noteClass: 'bg-gray-50 border-gray-200 text-gray-600',
+                                    };
                                     const dateLabel = new Date(job.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                                     const salary = job.salaryMin && job.salaryMax
                                         ? `₹${job.salaryMin} – ₹${job.salaryMax}`
@@ -3538,12 +3598,18 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <div key={job.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden transition hover:border-gray-300">
                                             {/* Status + date */}
                                             <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-gray-100">
-                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive ? 'bg-green-50 text-green-700' : job.status === 'REJECTED' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-green-500' : job.status === 'REJECTED' ? 'bg-red-500' : 'bg-gray-400'}`} />
-                                                    {job.status}
+                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusMeta.pill}`}>
+                                                    <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+                                                    {statusMeta.label}
                                                 </span>
                                                 <span className="whitespace-nowrap text-[11px] font-semibold text-gray-400">{dateLabel}</span>
                                             </div>
+
+                                            {statusMeta.note && (
+                                                <div className={`mx-4 mt-3 rounded-xl border px-3 py-2 text-[11px] font-semibold ${statusMeta.noteClass}`}>
+                                                    {statusMeta.note}
+                                                </div>
+                                            )}
 
                                             {/* Logo tile + title */}
                                             <div className="flex items-start gap-3 px-4 pt-3.5">
@@ -3580,9 +3646,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 </div>
                                             )}
 
-                                            {/* Description — short preview, full text when expanded */}
+                                            {/* Description — short preview, full formatted text when expanded */}
                                             {description && (
-                                                <p className={`break-words px-4 pt-3 text-xs leading-relaxed text-gray-600 ${isExpanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>{description}</p>
+                                                isExpanded ? (
+                                                    <FormattedJobDescription text={description} className="px-4 pt-3 text-xs" />
+                                                ) : (
+                                                    <p className="break-words px-4 pt-3 text-xs leading-relaxed text-gray-600 line-clamp-2">
+                                                        {description.replace(/\*\*/g, '')}
+                                                    </p>
+                                                )
                                             )}
 
                                             {/* Extra details — hidden until "More details" is tapped */}

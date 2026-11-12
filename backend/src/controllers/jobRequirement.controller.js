@@ -2,7 +2,7 @@ import prisma from '../config/database.js';
 import { randomUUID } from 'crypto';
 import { isPhoneVerified } from './auth.controller.js';
 
-const JOB_STATUSES = ['ACTIVE', 'CLOSED', 'REJECTED'];
+const JOB_STATUSES = ['PENDING', 'ACTIVE', 'CLOSED', 'REJECTED'];
 
 // Normalises the free-form numbers coming from the posting form
 const toInt = (value, fallback = 0) => {
@@ -76,12 +76,12 @@ export const createJobRequirement = async (req, res) => {
         remoteWork: remoteWork || 'No',
         showContact: showContact === undefined ? true : Boolean(showContact),
         termsAccepted: Boolean(termsAccepted),
-        status: 'ACTIVE',
+        status: 'PENDING',
       },
       include: { customer: { select: { name: true, phone: true } } }
     });
 
-    return res.status(201).json({ success: true, job, message: 'Job posted successfully!' });
+    return res.status(201).json({ success: true, job, message: 'Job submitted for admin approval!' });
   } catch (err) {
     console.error('[JobRequirement] create error:', err);
     return res.status(500).json({ success: false, error: err.message });
@@ -114,21 +114,32 @@ const buildJobFilter = ({ city, category, role, jobType, status, search }) => {
   return where;
 };
 
-// GET /api/job-requirements  — public listing (all active jobs, paginated)
+// GET /api/job-requirements  — public listing (all approved & active jobs, paginated)
 export const getAllJobRequirements = async (req, res) => {
   try {
-    const { city, category, role, jobType, page = 1, limit = 20 } = req.query;
-    const where = buildJobFilter({ city, category, role, jobType, status: 'ACTIVE' });
+    const { city, category, role, jobType, search, page = 1, limit = 20 } = req.query;
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const safeLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const where = buildJobFilter({ city, category, role, jobType, search, status: 'ACTIVE' });
 
-    const jobs = await prisma.jobRequirement.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      take: parseInt(limit),
-      include: { customer: { select: { name: true } } }
-    });
-    const total = await prisma.jobRequirement.count({ where });
-    return res.json({ success: true, jobs, total });
+    const [rawJobs, total] = await Promise.all([
+      prisma.jobRequirement.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
+        include: { customer: { select: { name: true } } }
+      }),
+      prisma.jobRequirement.count({ where }),
+    ]);
+
+    const jobs = rawJobs.map(job => (
+      job.showContact === false
+        ? { ...job, contactPhone: null, whatsappNumber: null, alternateMobile: null }
+        : job
+    ));
+
+    return res.json({ success: true, jobs, total, page: safePage, limit: safeLimit });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -142,6 +153,9 @@ export const deleteJobRequirement = async (req, res) => {
     const job = await prisma.jobRequirement.findUnique({ where: { id } });
     if (!job) return res.status(404).json({ success: false, error: 'Job not found' });
     if (job.customerId !== customerId) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (job.status === 'REJECTED') {
+      return res.status(400).json({ success: false, error: 'Rejected jobs cannot be closed.' });
+    }
 
     await prisma.jobRequirement.update({ where: { id }, data: { status: 'CLOSED' } });
     return res.json({ success: true, message: 'Job closed.' });
@@ -156,23 +170,45 @@ export const deleteJobRequirement = async (req, res) => {
 export const adminGetAllJobs = async (req, res) => {
   try {
     const { city, category, role, jobType, status, search, page = 1, limit = 50 } = req.query;
-    const where = buildJobFilter({ city, category, role, jobType, status, search });
+    const baseWhere = buildJobFilter({ city, category, role, jobType, search });
+    const where = status ? { ...baseWhere, status } : baseWhere;
 
-    const jobs = await prisma.jobRequirement.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      take: parseInt(limit),
-      include: { customer: { select: { name: true, phone: true, email: true, customerNo: true } } }
-    });
-    const total = await prisma.jobRequirement.count({ where });
-    return res.json({ success: true, jobs, total });
+    const [jobs, total, groupedCounts] = await Promise.all([
+      prisma.jobRequirement.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+        include: { customer: { select: { name: true, phone: true, email: true, customerNo: true } } }
+      }),
+      prisma.jobRequirement.count({ where }),
+      prisma.jobRequirement.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { _all: true },
+      }),
+    ]);
+
+    const countMap = groupedCounts.reduce((acc, row) => {
+      acc[row.status] = row._count._all;
+      return acc;
+    }, {});
+
+    const counts = {
+      total: Object.values(countMap).reduce((sum, n) => sum + n, 0),
+      pending: countMap.PENDING || 0,
+      active: countMap.ACTIVE || 0,
+      closed: countMap.CLOSED || 0,
+      rejected: countMap.REJECTED || 0,
+    };
+
+    return res.json({ success: true, jobs, total, counts });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// PATCH /api/job-requirements/admin/:id/status — admin changes status (ACTIVE/CLOSED/REJECTED)
+// PATCH /api/job-requirements/admin/:id/status — admin changes status (PENDING/ACTIVE/CLOSED/REJECTED)
 export const adminUpdateJobStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -187,6 +223,9 @@ export const adminUpdateJobStatus = async (req, res) => {
     });
     return res.json({ success: true, job });
   } catch (err) {
+    if (err.code === 'P2025') {
+      return res.status(404).json({ success: false, error: 'Job not found' });
+    }
     return res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -198,6 +237,9 @@ export const adminDeleteJob = async (req, res) => {
     await prisma.jobRequirement.delete({ where: { id } });
     return res.json({ success: true, message: 'Job deleted.' });
   } catch (err) {
+    if (err.code === 'P2025') {
+      return res.status(404).json({ success: false, error: 'Job not found' });
+    }
     return res.status(500).json({ success: false, error: err.message });
   }
 };
