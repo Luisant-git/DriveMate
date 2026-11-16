@@ -190,6 +190,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiRecommendation, setAiRecommendation] = useState<{ recommendedType: BookingType, reason: string } | null>(null);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [showUsageModal, setShowUsageModal] = useState<boolean>(false);
+    const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
     const [showExtraChargesModal, setShowExtraChargesModal] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -1262,6 +1264,243 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </div>
             )}
 
+            {/* Uber-Inspired Estimated Usage Modal Bottom Sheet */}
+            {showUsageModal && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowUsageModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md p-5 sm:p-6 space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 border border-gray-100 max-h-[85vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Pull bar for mobile */}
+                        <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto sm:hidden -mt-1 mb-1"></div>
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between pb-1">
+                            <div>
+                                <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
+                                    Estimated Usage
+                                </h3>
+                                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                                    Select how many hours you need the driver
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowUsageModal(false)}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Distance / Minimum requirement banner */}
+                        {minUsageHours !== null && (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs font-bold text-amber-800">
+                                <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <span>Minimum {minUsageHours} Hrs required for your trip distance ({calculatedDistance ?? ''} km)</span>
+                            </div>
+                        )}
+
+                        {/* Usage options grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
+                            {(serviceType === BookingType.OUTSTATION ? outstationUsageOptions : localUsageOptions).map((option) => {
+                                const optionHours = parseInt(option, 10);
+                                const locked = minUsageHours !== null && optionHours < minUsageHours;
+                                const isSelected = formData.estimatedUsage === option;
+
+                                return (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        disabled={locked}
+                                        onClick={() => {
+                                            if (locked) return;
+                                            setFormData({ ...formData, estimatedUsage: option });
+                                            setShowUsageModal(false);
+                                            setTimeout(() => handleEstimateWithValues(option), 100);
+                                        }}
+                                        className={`p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-95 border ${
+                                            locked
+                                                ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                                                : isSelected
+                                                ? 'bg-[#E8F0FE] border-2 border-black shadow-xs ring-1 ring-black/10'
+                                                : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300 shadow-2xs cursor-pointer'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-base font-black text-gray-900 tracking-tight">{option}</span>
+                                            {isSelected && (
+                                                <div className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center shadow-xs">
+                                                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                            {locked ? `Min ${minUsageHours}h required` : `${optionHours} Hours`}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Uber-Inspired Schedule Details Modal Bottom Sheet */}
+            {showScheduleModal && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowScheduleModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-lg p-5 sm:p-6 space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 border border-gray-100 max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Pull bar for mobile */}
+                        <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto sm:hidden -mt-1 mb-1"></div>
+
+                        {/* Header */}
+                        <div className="flex items-center justify-between pb-1">
+                            <div>
+                                <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
+                                    Schedule Details
+                                </h3>
+                                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                                    Choose your pickup date and departure time
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowScheduleModal(false)}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Departure Section */}
+                        <div className="space-y-3">
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                {serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' ? 'Departure (From)' : 'Pickup Date & Time'}
+                            </label>
+
+                            {/* Date Input */}
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:bg-white focus:border-black transition outline-hidden"
+                                    value={formData.date}
+                                    onChange={(e) => {
+                                        const newDate = e.target.value;
+                                        setFormData({ ...formData, date: newDate });
+                                        if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && formData.returnDate) {
+                                            setTimeout(() => applyOutstationDaysEstimate(null, newDate, formData.returnDate), 100);
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            {/* Time Slots */}
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 mb-1">Available Pickup Times</label>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-40 overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
+                                    {getTimeSlots(formData.date).map((slot) => {
+                                        const isTimeSelected = formData.time === slot.value;
+                                        return (
+                                            <button
+                                                key={slot.value}
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, time: slot.value })}
+                                                className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                    isTimeSelected
+                                                        ? 'bg-black text-white shadow-xs'
+                                                        : 'bg-white hover:bg-gray-200/70 text-gray-700 border border-gray-200/50'
+                                                }`}
+                                            >
+                                                {slot.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Return Section (Only for Outstation Round Trip) */}
+                        {serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && (
+                            <div className="space-y-3 pt-3 border-t border-gray-100">
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                    Return (To)
+                                </label>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Return Date</label>
+                                    <input
+                                        type="date"
+                                        min={formData.date || new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:bg-white focus:border-black transition outline-hidden"
+                                        value={formData.returnDate}
+                                        onChange={(e) => {
+                                            const newReturnDate = e.target.value;
+                                            setFormData({ ...formData, returnDate: newReturnDate });
+                                            if (newReturnDate) {
+                                                setTimeout(() => applyOutstationDaysEstimate(null, formData.date, newReturnDate), 100);
+                                            }
+                                        }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 mb-1">Return Time</label>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-100">
+                                        {getTimeSlots(formData.returnDate).map((slot) => {
+                                            const isReturnSelected = formData.returnTime === slot.value;
+                                            return (
+                                                <button
+                                                    key={slot.value}
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, returnTime: slot.value })}
+                                                    className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition cursor-pointer ${
+                                                        isReturnSelected
+                                                            ? 'bg-black text-white shadow-xs'
+                                                            : 'bg-white hover:bg-gray-200/70 text-gray-700 border border-gray-200/50'
+                                                    }`}
+                                                >
+                                                    {slot.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Confirm CTA */}
+                        <div className="pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowScheduleModal(false);
+                                    setTimeout(() => handleEstimate(false), 100);
+                                }}
+                                className="w-full bg-black hover:bg-gray-800 text-white font-bold py-3.5 px-4 rounded-2xl transition active:scale-[0.99] shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                                <span>Done</span>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showDriverProfile && selectedDriverOrLead && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
                     <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
@@ -2187,404 +2426,220 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </>
                             )}
 
-                            {/* When Needed Dropdown - Show for LOCAL_HOURLY and OUTSTATION */}
+                            {/* 1. When do you need? — Uber-style Segmented Toggle Pill */}
                             {driverType !== BookingType.MONTHLY && (serviceType === BookingType.LOCAL_HOURLY || serviceType === BookingType.OUTSTATION) && (
-                                <div className="relative mb-3">
-                                    <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">When do you need?</label>
-                                    <div
-                                        onClick={() => setOpenDropdown(openDropdown === 'whenNeeded' ? null : 'whenNeeded')}
-                                        className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                                    >
-                                        <span>{formData.whenNeeded}</span>
-                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'whenNeeded' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                <div className="mb-3">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                            When do you need?
+                                        </label>
+                                        <span className="text-[10px] font-bold text-gray-400">
+                                            {formData.whenNeeded === 'Immediately' ? '⚡ Instant Dispatch' : '📅 Advance Reserve'}
+                                        </span>
                                     </div>
-                                    {openDropdown === 'whenNeeded' && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                            {['Immediately', 'Schedule'].map((option) => (
-                                                <div
-                                                    key={option}
-                                                    onClick={() => { setFormData({ ...formData, whenNeeded: option }); setOpenDropdown(null); setTimeout(() => handleEstimate(option === 'Immediately'), 100); }}
-                                                    className={`p-2.5 cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
-                                                >
-                                                    <h4 className="font-bold text-xs">{option}</h4>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <div className="bg-gray-100 p-1 rounded-2xl flex items-center border border-gray-200/60">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setFormData({ ...formData, whenNeeded: 'Immediately' });
+                                                setTimeout(() => handleEstimate(true), 100);
+                                            }}
+                                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 ${
+                                                formData.whenNeeded === 'Immediately'
+                                                    ? 'bg-black text-white shadow-xs'
+                                                    : 'text-gray-600 hover:text-black hover:bg-gray-200/50'
+                                            }`}
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            </svg>
+                                            <span>Immediately</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const todayStr = new Date().toISOString().split('T')[0];
+                                                const nextSlots = getTimeSlots(formData.date || todayStr);
+                                                const nextTime = formData.time || (nextSlots.length > 0 ? nextSlots[0].value : '10:00');
+                                                setFormData({
+                                                    ...formData,
+                                                    whenNeeded: 'Schedule',
+                                                    date: formData.date || todayStr,
+                                                    time: nextTime
+                                                });
+                                                setShowScheduleModal(true);
+                                                setTimeout(() => handleEstimate(false), 100);
+                                            }}
+                                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 ${
+                                                formData.whenNeeded === 'Schedule'
+                                                    ? 'bg-black text-white shadow-xs'
+                                                    : 'text-gray-600 hover:text-black hover:bg-gray-200/50'
+                                            }`}
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>Schedule Details</span>
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
-                            {driverType !== BookingType.MONTHLY && (
-                                <div className="mt-3 sm:mt-4 space-y-3 pb-4">
-                                    <h3 className="font-bold text-sm mb-2">Schedule Details</h3>
-                                    {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Immediately' && (
-                                        <>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
-                                                {localDistanceExceeded?.exceeds && (
-                                                    <SwitchHint
-                                                        title="Switch to Outstation"
-                                                        detail={`${Math.round(calculatedDistance as number)} km — Local Hourly covers up to ${localDistanceExceeded.maxKm} km`}
-                                                        onClick={() => setShowOutstationSwitch(true)}
-                                                    />
-                                                )}
-                                                <div className="relative">
-                                                    <div
-                                                        onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                    >
-                                                        <span>{formData.estimatedUsage}</span>
-                                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            {driverType !== BookingType.MONTHLY && (serviceType === BookingType.LOCAL_HOURLY || serviceType === BookingType.OUTSTATION) && (
+                                <div className="space-y-3.5 pb-4">
+                                    {/* Schedule Details Trigger Card (Visible when Schedule is selected) */}
+                                    {formData.whenNeeded === 'Schedule' && (
+                                        <div className="animate-in fade-in duration-150">
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wider">
+                                                Schedule Details
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowScheduleModal(true)}
+                                                className="w-full bg-white hover:bg-gray-50/90 rounded-2xl p-3 flex items-center justify-between text-left transition-all border border-gray-200 hover:border-gray-300 shadow-2xs cursor-pointer group"
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
                                                     </div>
-                                                    {openDropdown === 'usage' && (
-                                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                            {minUsageHours !== null && (
-                                                                <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 text-[10px] font-bold text-amber-700">
-                                                                    Minimum {minUsageHours} Hrs required for {calculatedDistance ?? ''} km
-                                                                </div>
-                                                            )}
-                                                            {localUsageOptions.map(option => {
-                                                                const optionHours = parseInt(option, 10);
-                                                                const locked = minUsageHours !== null && optionHours < minUsageHours;
-                                                                return (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => {
-                                                                            if (locked) return;
-                                                                            setFormData({ ...formData, estimatedUsage: option });
-                                                                            setOpenDropdown(null);
-                                                                            setTimeout(() => handleEstimateWithValues(option), 100);
-                                                                        }}
-                                                                        className={`p-3 text-xs font-bold flex items-center justify-between gap-2 ${locked
-                                                                            ? 'text-gray-300 cursor-not-allowed'
-                                                                            : `cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}`}
-                                                                    >
-                                                                        <span>{option}</span>
-                                                                        {locked && <span className="text-[9px] font-bold text-gray-400 uppercase">Min {minUsageHours} Hrs</span>}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
+                                                    <div className="min-w-0">
+                                                        <h4 className="font-bold text-xs text-gray-900 truncate">
+                                                            {formData.date ? `${formData.date} • ${getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time || 'Select time'}` : 'Tap to set date & time'}
+                                                        </h4>
+                                                        <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                                                            {serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && formData.returnDate
+                                                                ? `Return: ${formData.returnDate} • ${getTimeSlots(formData.returnDate).find(s => s.value === formData.returnTime)?.label || formData.returnTime || 'Select'}`
+                                                                : 'Reserved driver pickup schedule'}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <UberVehicleSelector
-                                                vehicleType={formData.vehicleType}
-                                                carType={formData.carType}
-                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
-                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
-                                            />
-                                        </>
+                                                <div className="flex items-center gap-1 text-xs font-bold text-gray-600 group-hover:text-black shrink-0">
+                                                    <span>Change</span>
+                                                    <svg className="w-4 h-4 text-gray-400 group-hover:text-black transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                        </div>
                                     )}
+
+                                    {/* Outstation Trip Type Selector */}
                                     {serviceType === BookingType.OUTSTATION && (
-                                        <>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Select Trip Type and Estimated Usage</label>
+                                        <div>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                                    Trip Type
+                                                </label>
                                                 {outstationTooShort && (
+                                                    <span className="text-[10px] text-amber-600 font-bold">
+                                                        Outstation starts at {OUTSTATION_MIN_KM} km
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {outstationTooShort && (
+                                                <div className="mb-2">
                                                     <SwitchHint
                                                         title="Switch to Local Hourly"
                                                         detail={`${Math.round(calculatedDistance as number)} km — Outstation starts at ${OUTSTATION_MIN_KM} km`}
                                                         onClick={() => setShowLocalSwitch(true)}
                                                     />
-                                                )}
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'tripType' ? null : 'tripType')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.tripType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'tripType' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'tripType' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['One Way', 'Round Trip'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, tripType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.estimatedUsage}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'usage' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                                {outstationUsageOptions.map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, estimatedUsage: option }); setOpenDropdown(null); setTimeout(() => handleEstimateWithValues(option), 100); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {formData.whenNeeded === 'Schedule' && (
-                                                <div>
-                                                    <label className="block text-xs font-bold text-gray-500 mb-2">{formData.tripType === 'Round Trip' ? 'From Date & Time' : 'Date & Time'}</label>
-                                                    <div className="flex gap-2 sm:gap-3">
-                                                        <input
-                                                            type="date"
-                                                            min={new Date().toISOString().split('T')[0]}
-                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                            value={formData.date}
-                                                            onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                                        />
-                                                        <div className="relative flex-1">
-                                                            <div
-                                                                onClick={() => setOpenDropdown(openDropdown === 'timeSlot' ? null : 'timeSlot')}
-                                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                            >
-                                                                <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
-                                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                            </div>
-                                                            {openDropdown === 'timeSlot' && (
-                                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                                    {getTimeSlots(formData.date).map(slot => (
-                                                                        <div
-                                                                            key={slot.value}
-                                                                            onClick={() => { setFormData({ ...formData, time: slot.value }); setOpenDropdown(null); }}
-                                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
-                                                                        >
-                                                                            {slot.label}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             )}
-                                            {/* Commented out Immediate Outstation Departure banner as requested
-                                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-                                        <div>
-                                            <p className="text-xs font-extrabold text-emerald-900">⚡ Immediate Outstation Departure</p>
-                                            <p className="text-[11px] text-emerald-700 font-medium mt-0.5">Dispatched to nearby drivers right away.</p>
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] bg-emerald-600 text-white font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
-                                        Instant
-                                    </span>
-                                </div>
-                                */}
-                                            {formData.tripType === 'Round Trip' && (
-                                                <div>
-                                                    <label className="block text-xs font-bold text-gray-500 mb-2">To Date & Time (Return)</label>
-                                                    <div className="flex gap-2 sm:gap-3">
-                                                        <input
-                                                            type="date"
-                                                            min={formData.date || undefined}
-                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                            value={formData.returnDate}
-                                                            onChange={e => {
-                                                                const newReturnDate = e.target.value;
-                                                                setFormData({ ...formData, returnDate: newReturnDate });
-                                                                if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip' && newReturnDate) {
-                                                                    setTimeout(() => applyOutstationDaysEstimate(null, formData.date, newReturnDate), 100);
+                                            <div className="bg-gray-100 p-1 rounded-2xl flex items-center border border-gray-200/60">
+                                                {(['One Way', 'Round Trip'] as const).map((type) => {
+                                                    const isSelected = formData.tripType === type;
+                                                    return (
+                                                        <button
+                                                            key={type}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, tripType: type });
+                                                                if (type === 'Round Trip') {
+                                                                    const retDate = formData.returnDate || formData.date;
+                                                                    setTimeout(() => applyOutstationDaysEstimate(null, formData.date, retDate), 100);
+                                                                } else {
+                                                                    setTimeout(() => handleEstimateWithValues(formData.estimatedUsage), 100);
                                                                 }
                                                             }}
-                                                        />
-                                                        <div className="relative flex-1">
-                                                            <div
-                                                                onClick={() => setOpenDropdown(openDropdown === 'returnTimeSlot' ? null : 'returnTimeSlot')}
-                                                                className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                            >
-                                                                <span>{formData.returnTime ? getTimeSlots(formData.returnDate).find(s => s.value === formData.returnTime)?.label || formData.returnTime : 'Select time'}</span>
-                                                                <svg className={`w-4 h-4 transition-transform ${openDropdown === 'returnTimeSlot' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                            </div>
-                                                            {openDropdown === 'returnTimeSlot' && (
-                                                                <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                                    {getTimeSlots(formData.returnDate).map(slot => (
-                                                                        <div
-                                                                            key={slot.value}
-                                                                            onClick={() => { setFormData({ ...formData, returnTime: slot.value }); setOpenDropdown(null); }}
-                                                                            className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.returnTime === slot.value ? 'bg-gray-100' : ''}`}
-                                                                        >
-                                                                            {slot.label}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <UberVehicleSelector
-                                                vehicleType={formData.vehicleType}
-                                                carType={formData.carType}
-                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
-                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
-                                            />
-                                        </>
-                                    )}
-                                    {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
-                                        <>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-                                                <div className="flex gap-2 sm:gap-3">
-                                                    <input
-                                                        type="date"
-                                                        className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                        value={formData.date}
-                                                        onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                                    />
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'timeSlot2' ? null : 'timeSlot2')}
-                                                            className="w-full bg-gray-100 rounded-lg p-2 sm:p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
+                                                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                                                isSelected
+                                                                    ? 'bg-black text-white shadow-xs'
+                                                                    : 'text-gray-600 hover:text-black hover:bg-gray-200/50'
+                                                            }`}
                                                         >
-                                                            <span>{formData.time ? getTimeSlots(formData.date).find(s => s.value === formData.time)?.label || formData.time : 'Select time'}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'timeSlot2' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'timeSlot2' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                                {getTimeSlots(formData.date).map(slot => (
-                                                                    <div
-                                                                        key={slot.value}
-                                                                        onClick={() => { setFormData({ ...formData, time: slot.value }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.time === slot.value ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {slot.label}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                            <span>{type}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Estimated Usage</label>
-                                                {localDistanceExceeded?.exceeds && (
-                                                    <SwitchHint
-                                                        title="Switch to Outstation"
-                                                        detail={`${Math.round(calculatedDistance as number)} km — Local Hourly covers up to ${localDistanceExceeded.maxKm} km`}
-                                                        onClick={() => setShowOutstationSwitch(true)}
-                                                    />
-                                                )}
-                                                <div className="relative">
-                                                    <div
-                                                        onClick={() => setOpenDropdown(openDropdown === 'usage' ? null : 'usage')}
-                                                        className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                    >
-                                                        <span>{formData.estimatedUsage}</span>
-                                                        <svg className={`w-4 h-4 transition-transform ${openDropdown === 'usage' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                    </div>
-                                                    {openDropdown === 'usage' && (
-                                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-48 overflow-y-auto">
-                                                            {minUsageHours !== null && (
-                                                                <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 text-[10px] font-bold text-amber-700">
-                                                                    Minimum {minUsageHours} Hrs required for {calculatedDistance ?? ''} km
-                                                                </div>
-                                                            )}
-                                                            {localUsageOptions.map(option => {
-                                                                const optionHours = parseInt(option, 10);
-                                                                const locked = minUsageHours !== null && optionHours < minUsageHours;
-                                                                return (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => {
-                                                                            if (locked) return;
-                                                                            setFormData({ ...formData, estimatedUsage: option });
-                                                                            setOpenDropdown(null);
-                                                                            setTimeout(() => handleEstimateWithValues(option), 100);
-                                                                        }}
-                                                                        className={`p-3 text-xs font-bold flex items-center justify-between gap-2 ${locked
-                                                                            ? 'text-gray-300 cursor-not-allowed'
-                                                                            : `cursor-pointer hover:bg-gray-50 ${formData.estimatedUsage === option ? 'bg-gray-100' : ''}`}`}
-                                                                    >
-                                                                        <span>{option}</span>
-                                                                        {locked && <span className="text-[9px] font-bold text-gray-400 uppercase">Min {minUsageHours} Hrs</span>}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <UberVehicleSelector
-                                                vehicleType={formData.vehicleType}
-                                                carType={formData.carType}
-                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
-                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
-                                            />
-                                        </>
+                                        </div>
                                     )}
 
-                                    {false && (
-                                        <>
-                                            <div className="relative">
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">When is driver needed?</label>
-                                                <div
-                                                    onClick={() => setOpenDropdown(openDropdown === 'when' ? null : 'when')}
-                                                    className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                >
-                                                    <span>{formData.whenNeeded}</span>
-                                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'when' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                </div>
-                                                {openDropdown === 'when' && (
-                                                    <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                        {['Now', 'Schedule Later'].map(option => (
-                                                            <div
-                                                                key={option}
-                                                                onClick={() => { setFormData({ ...formData, whenNeeded: option }); setOpenDropdown(null); }}
-                                                                className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.whenNeeded === option ? 'bg-gray-100' : ''}`}
-                                                            >
-                                                                {option}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                    {/* Estimated Usage Trigger Card (Uber Bottom Sheet Trigger) */}
+                                    <div>
+                                        {serviceType === BookingType.LOCAL_HOURLY && localDistanceExceeded?.exceeds && (
+                                            <div className="mb-2">
+                                                <SwitchHint
+                                                    title="Switch to Outstation"
+                                                    detail={`${Math.round(calculatedDistance as number)} km — Local Hourly covers up to ${localDistanceExceeded.maxKm} km`}
+                                                    onClick={() => setShowOutstationSwitch(true)}
+                                                />
                                             </div>
-                                            {formData.whenNeeded === 'Schedule Later' && (
-                                                <div>
-                                                    <label className="block text-xs font-bold text-gray-500 mb-2">Date & Time</label>
-                                                    <div className="flex gap-2 sm:gap-3">
-                                                        <input
-                                                            type="date"
-                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                            value={formData.date}
-                                                            onChange={e => {
-                                                                const newDate = e.target.value;
-                                                                setFormData({ ...formData, date: newDate });
-                                                                if (serviceType === BookingType.OUTSTATION && formData.tripType === 'Round Trip') {
-                                                                    setTimeout(() => applyOutstationDaysEstimate(null, newDate, formData.returnDate), 100);
-                                                                }
-                                                            }}
-                                                        />
-                                                        <input
-                                                            type="time"
-                                                            className="flex-1 bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-xs font-bold [&::-webkit-datetime-edit]:text-xs sm:[&::-webkit-datetime-edit]:text-xs"
-                                                            value={formData.time}
-                                                            onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                                        />
-                                                    </div>
-                                                </div>
+                                        )}
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                                Estimated Usage
+                                            </label>
+                                            {minUsageHours !== null && (
+                                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">
+                                                    Min {minUsageHours} Hrs required
+                                                </span>
                                             )}
-                                            <UberVehicleSelector
-                                                vehicleType={formData.vehicleType}
-                                                carType={formData.carType}
-                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
-                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
-                                            />
-                                        </>
-                                    )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowUsageModal(true)}
+                                            className="w-full bg-white hover:bg-gray-50/90 rounded-2xl p-3 flex items-center justify-between text-left transition-all border border-gray-200 hover:border-gray-300 shadow-2xs cursor-pointer group"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <circle cx="12" cy="12" r="9" />
+                                                        <polyline points="12 6 12 12 16 14" />
+                                                    </svg>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-sm text-gray-900 truncate">
+                                                            {formData.estimatedUsage}
+                                                        </h4>
+                                                        <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-gray-100 text-gray-700 rounded-md tracking-wider shrink-0">
+                                                            Duration
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                                                        {serviceType === BookingType.OUTSTATION ? 'Outstation travel hours' : 'Local hourly driver service'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs font-bold text-gray-600 group-hover:text-black shrink-0">
+                                                <span>Select Hours</span>
+                                                <svg className="w-4 h-4 text-gray-400 group-hover:text-black transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {/* 3D Vehicle Selector (Single row 4-card layout) */}
+                                    <UberVehicleSelector
+                                        vehicleType={formData.vehicleType}
+                                        carType={formData.carType}
+                                        onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
+                                        onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
+                                    />
                                 </div>
                             )}
 
