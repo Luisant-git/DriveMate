@@ -95,11 +95,15 @@ const RouteMap: React.FC<RouteMapProps> = ({ pickup, drop, apiKey }) => {
               
               // Use setTimeout to ensure map is fully rendered
               setTimeout(() => {
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                const bottomPadding = isMobile ? Math.min(Math.round(window.innerHeight * 0.80), 600) : 50;
+                const leftPadding = !isMobile ? 410 : 30;
+
                 mapInstanceRef.current?.fitBounds(bounds, {
-                  top: 50,
-                  right: 50,
-                  bottom: 300,
-                  left: 50
+                  top: 30,
+                  right: 30,
+                  bottom: bottomPadding,
+                  left: leftPadding
                 });
               }, 100);
             }

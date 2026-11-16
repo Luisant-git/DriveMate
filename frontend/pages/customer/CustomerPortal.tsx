@@ -1797,10 +1797,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             )}
 
             {/* Floating Panel */}
-            <div className={`absolute md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden ${formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[60vh] rounded-t-3xl' : 'inset-0'
+            <div className={`absolute md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden transition-all duration-300 ${formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[82vh] sm:max-h-[85vh] rounded-t-3xl shadow-2xl border-t border-gray-100' : 'inset-0'
                 }`}>
 
-                {/* Header & Tabs */}
+                {/* Mobile Bottom Sheet Pull Bar */}
+                {formData.pickup && formData.drop && (
+                    <div className="w-10 h-1 bg-gray-300 hover:bg-gray-400 rounded-full mx-auto mt-2.5 -mb-0.5 md:hidden shrink-0 transition-colors" />
+                )}
+
                 {/* Header & Tabs */}
                 <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
                     <div className="flex items-center gap-2">
