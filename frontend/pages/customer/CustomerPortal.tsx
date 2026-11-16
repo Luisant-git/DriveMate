@@ -1797,15 +1797,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </div>
             )}
 
-            {/* Floating Panel - Top 38% Google Map + Bottom 62% Sheet on Mobile (Uber Layout), Sleek Card on Desktop */}
+            {/* Floating Panel - Full page initially; switches to 30% Google Map + 70% Sheet on Mobile once location is searched */}
             <div className={`absolute inset-x-0 bottom-0 ${
-                activeTab === 'BOOK' 
-                    ? (isMobileSheetExpanded ? 'h-[88vh] max-h-[88vh] rounded-t-3xl' : 'h-[62vh] max-h-[62vh] rounded-t-3xl') 
+                activeTab === 'BOOK' && formData.pickup && formData.drop
+                    ? (isMobileSheetExpanded ? 'h-[90vh] max-h-[90vh] rounded-t-3xl border-t border-gray-200' : 'h-[70vh] max-h-[70vh] rounded-t-3xl border-t border-gray-200')
                     : 'h-full inset-0 rounded-none'
-            } shadow-2xl border-t border-gray-200 md:border-t-0 md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden transition-all duration-300 ease-out`}>
+            } shadow-2xl md:border-t-0 md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden transition-all duration-300 ease-out`}>
 
-                {/* Mobile Bottom Sheet Pull Bar - Tap to toggle expand/collapse */}
-                {activeTab === 'BOOK' && (
+                {/* Mobile Bottom Sheet Pull Bar - Shown only when 30/70 sheet is active */}
+                {activeTab === 'BOOK' && formData.pickup && formData.drop && (
                     <button
                         type="button"
                         onClick={() => setIsMobileSheetExpanded(prev => !prev)}
