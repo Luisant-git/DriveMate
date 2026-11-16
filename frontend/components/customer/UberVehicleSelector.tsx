@@ -20,25 +20,25 @@ const VEHICLES: VehicleOption[] = [
     id: 'Hatchback',
     name: 'Hatchback',
     models: 'Swift, i20',
-    image: '/assets/images/cars/clean-hatchback.png?v=4'
+    image: '/assets/images/cars/clean-hatchback.png?v=5'
   },
   {
     id: 'Sedan',
     name: 'Sedan',
     models: 'Dzire, City',
-    image: '/assets/images/cars/clean-sedan.png?v=4'
+    image: '/assets/images/cars/clean-sedan.png?v=5'
   },
   {
     id: 'SUV',
     name: 'SUV',
     models: 'Creta, Thar',
-    image: '/assets/images/cars/clean-suv.png?v=4'
+    image: '/assets/images/cars/clean-suv.png?v=5'
   },
   {
     id: 'MPV',
     name: 'MPV',
     models: 'Innova, XL6',
-    image: '/assets/images/cars/clean-mpv.png?v=4'
+    image: '/assets/images/cars/clean-mpv.png?v=5'
   }
 ];
 
