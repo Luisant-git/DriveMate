@@ -1157,85 +1157,104 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                 </div>
             )}
-            {/* Service Area / Location Unavailable Modal */}
+            {/* Uber-style Service Unavailable Modal - Fully Responsive */}
             {showUnavailableAreaModal && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200"
                     onClick={() => setShowUnavailableAreaModal(false)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl border border-gray-150 w-full max-w-md p-6 space-y-4"
+                        className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-5 sm:p-7 space-y-4 sm:space-y-5 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 border border-gray-100"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-2xl shadow-xs">
-                                    📍
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-black text-gray-900 leading-tight">Service Area Notice</h3>
-                                    <p className="text-xs text-gray-500 mt-0.5">Coverage limited to 40 km radius</p>
-                                </div>
+                        {/* Pull bar for mobile */}
+                        <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto sm:hidden -mt-1 mb-1"></div>
+
+                        {/* Uber Header: Black Icon & Clean Close */}
+                        <div className="flex items-center justify-between">
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black text-white flex items-center justify-center shadow-md">
+                                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowUnavailableAreaModal(false)}
-                                className="text-gray-400 hover:text-black rounded-lg p-1 transition"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center transition"
                             >
-                                ✕
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                         </div>
 
-                        <div className="bg-red-50/80 border border-red-200 rounded-xl p-3.5 text-xs text-red-900 leading-relaxed">
-                            <p className="font-bold text-red-950 flex items-center gap-1.5">
-                                <span>⛔</span>
-                                <span>Service Not Available in {unavailableAreaName ? `"${unavailableAreaName.split(',')[0]}"` : 'this location'}</span>
-                            </p>
-                            <p className="text-red-700 text-[11px] mt-1">
-                                Acting driver pickup is only available within <strong>40 km</strong> of our active hubs.
+                        {/* Uber Bold Typography */}
+                        <div className="space-y-1.5 sm:space-y-2">
+                            <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight leading-tight">
+                                Service unavailable in this area
+                            </h2>
+                            <p className="text-xs sm:text-sm text-gray-500 leading-relaxed font-normal">
+                                {unavailableAreaName ? (
+                                    <>Service is currently unavailable in <span className="font-bold text-gray-900">{unavailableAreaName.split(',')[0]}</span>. Pickups must be within 40 km of an active service city.</>
+                                ) : (
+                                    <>Service is currently unavailable in this area. Pickups must be within 40 km of an active service city.</>
+                                )}
                             </p>
                         </div>
 
-                        <div>
-                            <p className="text-xs font-bold text-gray-700 mb-2 flex items-center justify-between">
-                                <span>Active Cities (40 km Radius):</span>
-                                <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-black">
-                                    11 Live Hubs
-                                </span>
+                        {/* Interactive City Chips */}
+                        <div className="space-y-2 pt-0.5 sm:pt-1">
+                            <p className="text-[11px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                Active Cities (Within 40 km)
                             </p>
-                            <div className="grid grid-cols-2 gap-1.5 text-xs">
+                            <div className="grid grid-cols-2 xs:grid-cols-3 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 max-h-44 sm:max-h-36 overflow-y-auto pr-1">
                                 {[
-                                    { city: 'Bengaluru', state: 'Karnataka' },
-                                    { city: 'Chennai', state: 'Tamil Nadu' },
-                                    { city: 'Hyderabad', state: 'Telangana' },
-                                    { city: 'Mumbai', state: 'Maharashtra' },
-                                    { city: 'Pune', state: 'Maharashtra' },
-                                    { city: 'Delhi', state: 'Delhi' },
-                                    { city: 'Kolkata', state: 'West Bengal' },
-                                    { city: 'Ahmedabad', state: 'Gujarat' },
-                                    { city: 'Surat', state: 'Gujarat' },
-                                    { city: 'Jaipur', state: 'Rajasthan' },
-                                    { city: 'Vijayawada', state: 'Andhra Pradesh' },
-                                ].map((item) => (
-                                    <div
-                                        key={item.city}
-                                        className="flex items-center gap-1.5 p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-800 text-[11px] font-semibold"
+                                    'Bengaluru',
+                                    'Chennai',
+                                    'Hyderabad',
+                                    'Mumbai',
+                                    'Pune',
+                                    'Delhi',
+                                    'Kolkata',
+                                    'Ahmedabad',
+                                    'Surat',
+                                    'Jaipur',
+                                    'Vijayawada'
+                                ].map((city) => (
+                                    <button
+                                        key={city}
+                                        type="button"
+                                        onClick={() => {
+                                            setFormData(prev => ({ ...prev, pickup: `${city}, India` }));
+                                            setShowUnavailableAreaModal(false);
+                                        }}
+                                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-black hover:text-white text-gray-800 text-[11px] sm:text-xs font-bold transition active:scale-95 border border-gray-200"
                                     >
-                                        <span className="text-emerald-500 text-xs">✓</span>
-                                        <span>{item.city}</span>
-                                        <span className="text-[10px] text-gray-400">({item.state})</span>
-                                    </div>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                        <span className="truncate">{city}</span>
+                                    </button>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="pt-2">
+                        {/* Uber Actions */}
+                        <div className="pt-1 sm:pt-2 space-y-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowUnavailableAreaModal(false);
+                                }}
+                                className="w-full bg-black hover:bg-neutral-850 active:scale-[0.99] text-white font-bold py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm transition shadow-sm"
+                            >
+                                Change pickup location
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => setShowUnavailableAreaModal(false)}
-                                className="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition shadow-sm"
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 sm:py-3 rounded-xl text-xs transition"
                             >
-                                Change Pickup Location
+                                Dismiss
                             </button>
                         </div>
                     </div>
@@ -1829,17 +1848,20 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         readOnly={true}
                                     />
                                     {((serviceType === BookingType.LOCAL_HOURLY && ((formData.tripType === 'One Way' && oneWayErrors.pickup) || (formData.tripType === 'Round Trip' && roundTripErrors.pickup))) || (serviceType === BookingType.OUTSTATION && outstationErrors.pickup)) && (
-                                        <div className="flex items-center justify-between text-xs text-red-600 font-bold mt-1 bg-red-50 p-2 rounded-lg border border-red-200">
-                                            <span>⚠️ {oneWayErrors.pickup || roundTripErrors.pickup || outstationErrors.pickup}</span>
+                                        <div className="flex items-center justify-between gap-2 mt-1.5 px-0.5">
+                                            <p className="text-xs font-bold text-red-600 flex items-center gap-1.5 min-w-0">
+                                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-600 shrink-0"></span>
+                                                <span className="truncate">Service unavailable in this area</span>
+                                            </p>
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setUnavailableAreaName(formData.pickup);
                                                     setShowUnavailableAreaModal(true);
                                                 }}
-                                                className="underline text-black font-extrabold ml-2 hover:text-red-700 shrink-0"
+                                                className="text-[11px] font-bold text-gray-800 hover:text-black underline shrink-0 whitespace-nowrap"
                                             >
-                                                View Active Cities
+                                                See active cities →
                                             </button>
                                         </div>
                                     )}
