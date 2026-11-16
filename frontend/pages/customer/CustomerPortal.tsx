@@ -235,6 +235,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     // Friendly prompt shown when a Local Hourly trip is beyond the local KM range
     const [showOutstationSwitch, setShowOutstationSwitch] = useState(false);
     const [showLocalSwitch, setShowLocalSwitch] = useState(false);
+    const [showUnavailableAreaModal, setShowUnavailableAreaModal] = useState<boolean>(false);
+    const [unavailableAreaName, setUnavailableAreaName] = useState<string>('');
 
     const [confirmConfig, setConfirmConfig] = useState<{
         isOpen: boolean;
@@ -916,6 +918,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
         // Prevent booking if pickup service area error is active
         if (outstationErrors.pickup || oneWayErrors.pickup || roundTripErrors.pickup) {
+            setUnavailableAreaName(formData.pickup);
+            setShowUnavailableAreaModal(true);
             toast.error('Sorry, service is not available in the selected pickup area');
             return;
         }
@@ -943,6 +947,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
 
             if (!pickupAvailability.available) {
+                setUnavailableAreaName(formData.pickup);
+                setShowUnavailableAreaModal(true);
                 toast.error('Sorry, service not available in pickup area (must be within 40 km of an active city)');
                 return;
             }
@@ -1147,6 +1153,90 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <p className="text-sm text-gray-700">• Food Extra</p>
                                 <p className="text-sm text-gray-700">• Staying Accommodation (Not Mandatory)</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Service Area / Location Unavailable Modal */}
+            {showUnavailableAreaModal && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+                    onClick={() => setShowUnavailableAreaModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl border border-gray-150 w-full max-w-md p-6 space-y-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-2xl shadow-xs">
+                                    📍
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900 leading-tight">Service Area Notice</h3>
+                                    <p className="text-xs text-gray-500 mt-0.5">Coverage limited to 40 km radius</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowUnavailableAreaModal(false)}
+                                className="text-gray-400 hover:text-black rounded-lg p-1 transition"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="bg-red-50/80 border border-red-200 rounded-xl p-3.5 text-xs text-red-900 leading-relaxed">
+                            <p className="font-bold text-red-950 flex items-center gap-1.5">
+                                <span>⛔</span>
+                                <span>Service Not Available in {unavailableAreaName ? `"${unavailableAreaName.split(',')[0]}"` : 'this location'}</span>
+                            </p>
+                            <p className="text-red-700 text-[11px] mt-1">
+                                Acting driver pickup is only available within <strong>40 km</strong> of our active hubs.
+                            </p>
+                        </div>
+
+                        <div>
+                            <p className="text-xs font-bold text-gray-700 mb-2 flex items-center justify-between">
+                                <span>Active Cities (40 km Radius):</span>
+                                <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-black">
+                                    11 Live Hubs
+                                </span>
+                            </p>
+                            <div className="grid grid-cols-2 gap-1.5 text-xs">
+                                {[
+                                    { city: 'Bengaluru', state: 'Karnataka' },
+                                    { city: 'Chennai', state: 'Tamil Nadu' },
+                                    { city: 'Hyderabad', state: 'Telangana' },
+                                    { city: 'Mumbai', state: 'Maharashtra' },
+                                    { city: 'Pune', state: 'Maharashtra' },
+                                    { city: 'Delhi', state: 'Delhi' },
+                                    { city: 'Kolkata', state: 'West Bengal' },
+                                    { city: 'Ahmedabad', state: 'Gujarat' },
+                                    { city: 'Surat', state: 'Gujarat' },
+                                    { city: 'Jaipur', state: 'Rajasthan' },
+                                    { city: 'Vijayawada', state: 'Andhra Pradesh' },
+                                ].map((item) => (
+                                    <div
+                                        key={item.city}
+                                        className="flex items-center gap-1.5 p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-800 text-[11px] font-semibold"
+                                    >
+                                        <span className="text-emerald-500 text-xs">✓</span>
+                                        <span>{item.city}</span>
+                                        <span className="text-[10px] text-gray-400">({item.state})</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowUnavailableAreaModal(false)}
+                                className="w-full bg-black hover:bg-gray-800 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition shadow-sm"
+                            >
+                                Change Pickup Location
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1719,6 +1809,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         setFareBreakdown(null);
                                                         setCalculatedDistance(null);
                                                         setCalculatedDuration(null);
+                                                        setUnavailableAreaName(value);
+                                                        setShowUnavailableAreaModal(true);
                                                     } else {
                                                         if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
                                                             setOneWayErrors(prev => ({ ...prev, pickup: '' }));
@@ -1736,9 +1828,21 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         showMyLocation={true}
                                         readOnly={true}
                                     />
-                                    {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.pickup}</p>}
-                                    {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip' && roundTripErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{roundTripErrors.pickup}</p>}
-                                    {serviceType === BookingType.OUTSTATION && outstationErrors.pickup && <p className="text-xs text-red-600 font-bold mt-1">{outstationErrors.pickup}</p>}
+                                    {((serviceType === BookingType.LOCAL_HOURLY && ((formData.tripType === 'One Way' && oneWayErrors.pickup) || (formData.tripType === 'Round Trip' && roundTripErrors.pickup))) || (serviceType === BookingType.OUTSTATION && outstationErrors.pickup)) && (
+                                        <div className="flex items-center justify-between text-xs text-red-600 font-bold mt-1 bg-red-50 p-2 rounded-lg border border-red-200">
+                                            <span>⚠️ {oneWayErrors.pickup || roundTripErrors.pickup || outstationErrors.pickup}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setUnavailableAreaName(formData.pickup);
+                                                    setShowUnavailableAreaModal(true);
+                                                }}
+                                                className="underline text-black font-extrabold ml-2 hover:text-red-700 shrink-0"
+                                            >
+                                                View Active Cities
+                                            </button>
+                                        </div>
+                                    )}
                                     {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
                                         <>
                                             <LocationAutocomplete

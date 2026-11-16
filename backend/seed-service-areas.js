@@ -171,3 +171,4 @@ seedServiceAreas()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
