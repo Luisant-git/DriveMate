@@ -1261,6 +1261,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                     </div>
                 </div>
             )}
+
             {showDriverProfile && selectedDriverOrLead && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
                     <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md">
@@ -2019,33 +2020,49 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         onClick={() => setOpenDropdown(openDropdown === 'service' ? null : 'service')}
                                         className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
                                     >
-                                        <span>{driverType}</span>
+                                        <div className="flex items-center">
+                                            <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
+                                                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                            </div>
+                                            <div className="text-left">
+                                                <h4 className="font-bold text-xs">{driverType}</h4>
+                                                <p className="text-[10px] text-gray-500">Reliable & Verified</p>
+                                            </div>
+                                        </div>
                                         <svg className={`w-4 h-4 transition-transform ${openDropdown === 'service' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                     </div>
                                     {openDropdown === 'service' && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden max-h-64 overflow-y-auto">
-                                            {[
-                                                BookingType.ACTING,
-                                                BookingType.SPARE,
-                                                BookingType.TEMPORARY,
-                                                BookingType.VALET,
-                                                BookingType.DAILY
-                                            ].map((type) => (
-                                                <div
-                                                    key={type}
-                                                    onClick={() => { setDriverType(type); setOpenDropdown(null); }}
-                                                    className={`flex items-center p-2.5 cursor-pointer hover:bg-gray-50 ${driverType === type ? 'bg-gray-100' : ''}`}
-                                                >
-                                                    <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
-                                                        <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                        <>
+                                            <div className="fixed inset-0 z-20" onClick={() => setOpenDropdown(null)} />
+                                            <div className="absolute z-30 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                                                {[
+                                                    BookingType.ACTING,
+                                                    BookingType.SPARE,
+                                                    BookingType.TEMPORARY,
+                                                    BookingType.VALET,
+                                                    BookingType.DAILY
+                                                ].map((type) => (
+                                                    <div
+                                                        key={type}
+                                                        onClick={() => { setDriverType(type); setOpenDropdown(null); }}
+                                                        className={`flex items-center justify-between p-2.5 cursor-pointer hover:bg-gray-50 ${driverType === type ? 'bg-gray-100' : ''}`}
+                                                    >
+                                                        <div className="flex items-center">
+                                                            <div className="w-8 h-8 bg-gray-200 rounded-md mr-2.5 flex items-center justify-center shrink-0">
+                                                                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" /><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a.75.75 0 01.75.75v.5a.75.75 0 01-.75.75H5a2 2 0 01-2-2V5a1 1 0 00-1-1z" /><path d="M11 16.5c0 .414.336.75.75.75h4.5a2 2 0 002-2V9.5a1 1 0 00-1-1h-2.5A2.5 2.5 0 0112.25 6H9.75a.75.75 0 00-.75.75v9c0 .414.336.75.75.75z" /></svg>
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-xs">{type}</h4>
+                                                                <p className="text-[10px] text-gray-500">Reliable & Verified</p>
+                                                            </div>
+                                                        </div>
+                                                        {driverType === type && (
+                                                            <svg className="w-4 h-4 text-black mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                                        )}
                                                     </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-xs">{type}</h4>
-                                                        <p className="text-[10px] text-gray-500">Reliable & Verified</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             )}
