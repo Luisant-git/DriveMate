@@ -16,14 +16,70 @@ export const geocodeAddress = async (req, res) => {
 
     if (response.data.status === 'OK' && response.data.results.length > 0) {
       const result = response.data.results[0];
+      let city = '';
+      let state = '';
+      let area = '';
+      for (const comp of (result.address_components || [])) {
+        if (comp.types.includes('locality')) city = comp.long_name;
+        if (!city && comp.types.includes('administrative_area_level_2')) city = comp.long_name;
+        if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+        if (comp.types.includes('sublocality_level_1') || comp.types.includes('sublocality') || comp.types.includes('neighborhood')) {
+          area = comp.long_name;
+        }
+      }
       res.json({
         success: true,
         lat: result.geometry.location.lat,
         lng: result.geometry.location.lng,
         formatted_address: result.formatted_address,
+        area: area || city || result.formatted_address.split(',')[0],
+        city: city || state,
+        state
       });
     } else {
       res.status(404).json({ success: false, error: 'Address not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const reverseGeocode = async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, error: 'Latitude and longitude are required' });
+    }
+
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(lat)},${encodeURIComponent(lng)}&key=${GOOGLE_MAPS_API_KEY}`
+    );
+
+    if (response.data.status === 'OK' && response.data.results.length > 0) {
+      const result = response.data.results[0];
+      let city = '';
+      let state = '';
+      let area = '';
+      for (const comp of (result.address_components || [])) {
+        if (comp.types.includes('locality')) city = comp.long_name;
+        if (!city && comp.types.includes('administrative_area_level_2')) city = comp.long_name;
+        if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+        if (comp.types.includes('sublocality_level_1') || comp.types.includes('sublocality') || comp.types.includes('neighborhood')) {
+          area = comp.long_name;
+        }
+      }
+      res.json({
+        success: true,
+        lat: result.geometry.location.lat,
+        lng: result.geometry.location.lng,
+        formatted_address: result.formatted_address,
+        area: area || city || result.formatted_address.split(',')[0],
+        city: city || state,
+        state
+      });
+    } else {
+      res.status(404).json({ success: false, error: 'Location not found' });
     }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

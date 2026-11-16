@@ -14,18 +14,26 @@ export const getAllServiceAreas = async (req, res) => {
 export const createServiceArea = async (req, res) => {
   try {
     const { name, city, state, radius, latitude, longitude } = req.body;
-    
+
+    const parsedRadius = parseFloat(radius);
+    const parsedLat = parseFloat(latitude);
+    const parsedLng = parseFloat(longitude);
+
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      return res.status(400).json({ success: false, error: 'Valid latitude and longitude are required' });
+    }
+
     const area = await prisma.serviceArea.create({
       data: {
-        name,
-        city,
-        state,
-        radius: parseFloat(radius),
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude)
+        name: name ? String(name).trim() : 'Service Area',
+        city: city ? String(city).trim() : '',
+        state: state ? String(state).trim() : '',
+        radius: isNaN(parsedRadius) || parsedRadius <= 0 ? 40 : parsedRadius,
+        latitude: parsedLat,
+        longitude: parsedLng
       }
     });
-    
+
     res.status(201).json({ success: true, area });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -36,20 +44,28 @@ export const updateServiceArea = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, city, state, radius, latitude, longitude, isActive } = req.body;
-    
+
+    const parsedRadius = parseFloat(radius);
+    const parsedLat = parseFloat(latitude);
+    const parsedLng = parseFloat(longitude);
+
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      return res.status(400).json({ success: false, error: 'Valid latitude and longitude are required' });
+    }
+
     const area = await prisma.serviceArea.update({
       where: { id },
       data: {
-        name,
-        city,
-        state,
-        radius: parseFloat(radius),
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
-        isActive
+        name: name ? String(name).trim() : 'Service Area',
+        city: city ? String(city).trim() : '',
+        state: state ? String(state).trim() : '',
+        radius: isNaN(parsedRadius) || parsedRadius <= 0 ? 40 : parsedRadius,
+        latitude: parsedLat,
+        longitude: parsedLng,
+        ...(isActive !== undefined && { isActive: Boolean(isActive) })
       }
     });
-    
+
     res.json({ success: true, area });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

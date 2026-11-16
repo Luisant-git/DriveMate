@@ -1,5 +1,5 @@
 import express from 'express';
-import { geocodeAddress, getDirections, findNearbyDrivers, getPlaceAutocomplete } from '../controllers/maps.controller.js';
+import { geocodeAddress, reverseGeocode, getDirections, findNearbyDrivers, getPlaceAutocomplete } from '../controllers/maps.controller.js';
 import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -10,8 +10,6 @@ const router = express.Router();
  *   get:
  *     summary: Geocode an address to coordinates
  *     tags: [Maps]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: address
@@ -32,7 +30,30 @@ const router = express.Router();
  *                 longitude:
  *                   type: number
  */
-router.get('/geocode', authenticateToken, geocodeAddress);
+router.get('/geocode', geocodeAddress);
+
+/**
+ * @swagger
+ * /api/maps/reverse-geocode:
+ *   get:
+ *     summary: Reverse geocode coordinates to an address and locality
+ *     tags: [Maps]
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Reverse geocoded address, area, city, and state
+ */
+router.get('/reverse-geocode', reverseGeocode);
 
 /**
  * @swagger
