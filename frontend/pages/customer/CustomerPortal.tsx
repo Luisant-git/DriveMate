@@ -914,6 +914,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             return;
         }
 
+        // Prevent booking if pickup service area error is active
+        if (outstationErrors.pickup || oneWayErrors.pickup || roundTripErrors.pickup) {
+            toast.error('Sorry, service is not available in the selected pickup area');
+            return;
+        }
+
         // Show payment modal instead of directly submitting
         setShowPaymentModal(true);
     };
@@ -922,38 +928,28 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         setSelectedPaymentMethod(method);
         setShowPaymentModal(false);
 
-        // Skip service area validation for Outstation bookings
         const isOutstationBooking = serviceType === 'Outstation' ||
             serviceType === BookingType.OUTSTATION ||
             serviceType?.toLowerCase().includes('outstation');
 
-        console.log('Service Type Check:', {
-            serviceType,
-            BookingTypeOUTSTATION: BookingType.OUTSTATION,
-            isOutstationBooking,
-            willSkipValidation: isOutstationBooking
-        });
+        // Check service availability for pickup location on ALL bookings (Local & Outstation)
+        const pickupResponse = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
+        );
+        const pickupData = await pickupResponse.json();
 
-        if (!isOutstationBooking) {
-            // Check service availability for pickup location
-            const pickupResponse = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.pickup)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
-            );
-            const pickupData = await pickupResponse.json();
+        if (pickupData.results && pickupData.results[0]) {
+            const pickupLocation = pickupData.results[0].geometry.location;
+            const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
 
-            if (pickupData.results && pickupData.results[0]) {
-                const pickupLocation = pickupData.results[0].geometry.location;
-                console.log('Pickup coordinates:', pickupLocation);
-                const pickupAvailability = await checkServiceAvailability(pickupLocation.lat, pickupLocation.lng);
-                console.log('Pickup availability:', pickupAvailability);
-
-                if (!pickupAvailability.available) {
-                    toast.error('Sorry, service not available in pickup area');
-                    return;
-                }
+            if (!pickupAvailability.available) {
+                toast.error('Sorry, service not available in pickup area (must be within 40 km of an active city)');
+                return;
             }
+        }
 
-            // Check service availability for drop location
+        // Check service availability for drop location ONLY for Local bookings (Outstation drop can be anywhere)
+        if (!isOutstationBooking) {
             const dropResponse = await fetch(
                 `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(formData.drop)}&key=AIzaSyAfUP27GUuOL0cBm_ROdjE2n6EyVKesIu8`
             );
@@ -961,9 +957,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
             if (dropData.results && dropData.results[0]) {
                 const dropLocation = dropData.results[0].geometry.location;
-                console.log('Drop coordinates:', dropLocation);
                 const dropAvailability = await checkServiceAvailability(dropLocation.lat, dropLocation.lng);
-                console.log('Drop availability:', dropAvailability);
 
                 if (!dropAvailability.available) {
                     toast.error('Sorry, service not available in drop area');
@@ -1713,12 +1707,25 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     const location = data.results[0].geometry.location;
                                                     const availability = await checkServiceAvailability(location.lat, location.lng);
                                                     if (!availability.available) {
+                                                        const errorMsg = 'Sorry, service not available in this pickup area';
                                                         if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
-                                                            setOneWayErrors({ ...oneWayErrors, pickup: 'Sorry, service not available in this area' });
+                                                            setOneWayErrors(prev => ({ ...prev, pickup: errorMsg }));
                                                         } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
-                                                            setRoundTripErrors({ ...roundTripErrors, pickup: 'Sorry, service not available in this area' });
+                                                            setRoundTripErrors(prev => ({ ...prev, pickup: errorMsg }));
                                                         } else if (serviceType === BookingType.OUTSTATION) {
-                                                            setOutstationErrors({ ...outstationErrors, pickup: 'Sorry, service not available in this area' });
+                                                            setOutstationErrors(prev => ({ ...prev, pickup: errorMsg }));
+                                                        }
+                                                        setEstimate(null);
+                                                        setFareBreakdown(null);
+                                                        setCalculatedDistance(null);
+                                                        setCalculatedDuration(null);
+                                                    } else {
+                                                        if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way') {
+                                                            setOneWayErrors(prev => ({ ...prev, pickup: '' }));
+                                                        } else if (serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'Round Trip') {
+                                                            setRoundTripErrors(prev => ({ ...prev, pickup: '' }));
+                                                        } else if (serviceType === BookingType.OUTSTATION) {
+                                                            setOutstationErrors(prev => ({ ...prev, pickup: '' }));
                                                         }
                                                     }
                                                 }
@@ -1844,7 +1851,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                             const location = data.results[0].geometry.location;
                                                             const availability = await checkServiceAvailability(location.lat, location.lng);
                                                             if (!availability.available) {
-                                                                setOneWayErrors({ ...oneWayErrors, drop: 'Sorry, service not available in this area' });
+                                                                setOneWayErrors(prev => ({ ...prev, drop: 'Sorry, service not available in drop area' }));
+                                                                setEstimate(null);
+                                                                setFareBreakdown(null);
+                                                            } else {
+                                                                setOneWayErrors(prev => ({ ...prev, drop: '' }));
                                                             }
                                                         }
                                                     }
