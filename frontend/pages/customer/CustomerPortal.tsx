@@ -192,6 +192,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [showUsageModal, setShowUsageModal] = useState<boolean>(false);
     const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
+    const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState<boolean>(false);
     const [showExtraChargesModal, setShowExtraChargesModal] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -1796,11 +1797,27 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </div>
             )}
 
-            {/* Floating Panel - Full page on mobile, sleek floating card on desktop */}
-            <div className="absolute inset-0 h-full md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden">
+            {/* Floating Panel - Top 38% Google Map + Bottom 62% Sheet on Mobile (Uber Layout), Sleek Card on Desktop */}
+            <div className={`absolute inset-x-0 bottom-0 ${
+                activeTab === 'BOOK' 
+                    ? (isMobileSheetExpanded ? 'h-[88vh] max-h-[88vh] rounded-t-3xl' : 'h-[62vh] max-h-[62vh] rounded-t-3xl') 
+                    : 'h-full inset-0 rounded-none'
+            } shadow-2xl border-t border-gray-200 md:border-t-0 md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden transition-all duration-300 ease-out`}>
+
+                {/* Mobile Bottom Sheet Pull Bar - Tap to toggle expand/collapse */}
+                {activeTab === 'BOOK' && (
+                    <button
+                        type="button"
+                        onClick={() => setIsMobileSheetExpanded(prev => !prev)}
+                        className="w-full flex items-center justify-center pt-2.5 pb-1 md:hidden cursor-pointer group"
+                        title={isMobileSheetExpanded ? "Collapse to show more map" : "Expand to show more form"}
+                    >
+                        <div className="w-10 h-1 bg-gray-300 group-hover:bg-gray-400 rounded-full transition-colors" />
+                    </button>
+                )}
 
                 {/* Header & Tabs */}
-                <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center shrink-0">
+                <div className="bg-white px-4 sm:px-6 pt-2 pb-2 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-2">
                         <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
                     </div>
