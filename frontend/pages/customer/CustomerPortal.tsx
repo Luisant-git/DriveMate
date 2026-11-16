@@ -1796,17 +1796,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 </div>
             )}
 
-            {/* Floating Panel */}
-            <div className={`absolute md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden transition-all duration-300 ${formData.pickup && formData.drop ? 'inset-x-0 bottom-0 h-auto max-h-[82vh] sm:max-h-[85vh] rounded-t-3xl shadow-2xl border-t border-gray-100' : 'inset-0'
-                }`}>
-
-                {/* Mobile Bottom Sheet Pull Bar */}
-                {formData.pickup && formData.drop && (
-                    <div className="w-10 h-1 bg-gray-300 hover:bg-gray-400 rounded-full mx-auto mt-2.5 -mb-0.5 md:hidden shrink-0 transition-colors" />
-                )}
+            {/* Floating Panel - Full page on mobile, sleek floating card on desktop */}
+            <div className="absolute inset-0 h-full md:relative md:top-4 md:left-4 md:w-[380px] md:h-auto md:max-h-[calc(100vh-120px)] bg-white md:rounded-2xl shadow-floating flex flex-col z-10 overflow-hidden">
 
                 {/* Header & Tabs */}
-                <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center">
+                <div className="bg-white px-4 sm:px-6 pt-3 pb-2 border-b border-gray-100 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-2">
                         <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
                     </div>
@@ -2863,28 +2857,48 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             </div>
                         </div>
 
-                        <div className="p-3 border-t border-gray-100 bg-white sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                        {/* Fixed Bottom Booking Bar - Always Visible Without Scroll */}
+                        <div className="p-3 sm:p-4 border-t border-gray-100 bg-white shrink-0 sticky bottom-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+                            {/* Live Fare & Vehicle Summary in bar when estimate is calculated */}
+                            {estimate && (
+                                <div className="flex items-center justify-between mb-2 px-1">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wide truncate">
+                                            {formData.vehicleType || 'Sedan'}
+                                        </span>
+                                        <span className="text-gray-300">•</span>
+                                        <span className="text-[11px] font-semibold text-gray-500 truncate">
+                                            {formData.estimatedUsage}
+                                        </span>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                        <span className="text-xs text-gray-400 font-medium mr-1">Total:</span>
+                                        <span className="text-sm sm:text-base font-black text-gray-900">₹{estimate}</span>
+                                    </div>
+                                </div>
+                            )}
+
                             {!isAuthenticated && (
-                                <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <div className="flex items-center gap-2 text-yellow-800 text-sm">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="mb-2 p-2.5 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div className="flex items-center gap-2 text-yellow-800 text-xs font-bold">
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                                         </svg>
-                                        <span className="font-medium">Please log in to book rides and get estimates</span>
+                                        <span className="truncate">Please log in to book rides</span>
                                     </div>
                                 </div>
                             )}
                             <button
                                 onClick={handleBookingSubmit}
                                 disabled={!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)}
-                                className={`w-full py-3 rounded-lg font-bold text-base transition shadow-lg ${!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)
+                                className={`w-full py-3 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] ${!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-black text-white hover:bg-gray-900'
                                     }`}
                             >
                                 {authChecking ? 'Checking...' :
                                     serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60 ? 'Distance too short for outstation' :
-                                        'Request Driver'}
+                                        estimate ? `Request Driver • ₹${estimate}` : 'Request Driver'}
                             </button>
                         </div>
                     </>
