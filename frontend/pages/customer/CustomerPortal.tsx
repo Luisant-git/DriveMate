@@ -26,6 +26,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { calculateFare, parseDurationToHours, FareBreakdown, calculateOutstationFareByDistance, calculateLocalFareByDistance } from '../../utils/fareCalculator';
 import { calculateDistance, getPackageByDistance, getFilteredDurationOptions, OUTSTATION_DAY_OPTIONS } from '../../utils/distanceCalculator';
 import { checkServiceAvailability } from '../../api/serviceArea';
+import UberVehicleSelector from '../../components/customer/UberVehicleSelector';
 
 interface CustomerPortalProps {
     customer: Customer;
@@ -2090,28 +2091,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             {/* Monthly Driver Form */}
                             {driverType === BookingType.MONTHLY && (
                                 <>
-                                    <div className="relative mb-3">
-                                        <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">Vehicle Type</label>
-                                        <div
-                                            onClick={() => setOpenDropdown(openDropdown === 'monthlyVehicle' ? null : 'monthlyVehicle')}
-                                            className="w-full bg-gray-100 rounded-lg p-2.5 text-sm font-bold cursor-pointer flex justify-between items-center"
-                                        >
-                                            <span>{formData.vehicleType}</span>
-                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'monthlyVehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                        </div>
-                                        {openDropdown === 'monthlyVehicle' && (
-                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                    <div
-                                                        key={option}
-                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
-                                                        className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                    >
-                                                        {option}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                    <div className="mb-3">
+                                        <UberVehicleSelector
+                                            vehicleType={formData.vehicleType}
+                                            carType={formData.carType}
+                                            onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
+                                            onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
+                                        />
                                     </div>
 
                                     <div className="relative mb-3">
@@ -2265,55 +2251,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     )}
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.carType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'car' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Manual', 'Automatic', 'Both'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.vehicleType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'vehicle' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <UberVehicleSelector
+                                                vehicleType={formData.vehicleType}
+                                                carType={formData.carType}
+                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
+                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
+                                            />
                                         </>
                                     )}
                                     {serviceType === BookingType.OUTSTATION && (
@@ -2466,55 +2409,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     </div>
                                                 </div>
                                             )}
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.carType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'car' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Manual', 'Automatic', 'Both'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.vehicleType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'vehicle' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <UberVehicleSelector
+                                                vehicleType={formData.vehicleType}
+                                                carType={formData.carType}
+                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
+                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
+                                            />
                                         </>
                                     )}
                                     {serviceType === BookingType.LOCAL_HOURLY && formData.whenNeeded === 'Schedule' && (
@@ -2601,55 +2501,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     )}
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.carType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'car' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Manual', 'Automatic', 'Both'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.vehicleType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'vehicle' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <UberVehicleSelector
+                                                vehicleType={formData.vehicleType}
+                                                carType={formData.carType}
+                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
+                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
+                                            />
                                         </>
                                     )}
 
@@ -2703,55 +2560,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     </div>
                                                 </div>
                                             )}
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-500 mb-2">Car Type</label>
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'car' ? null : 'car')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.carType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'car' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'car' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Manual', 'Automatic', 'Both'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, carType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.carType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="relative flex-1">
-                                                        <div
-                                                            onClick={() => setOpenDropdown(openDropdown === 'vehicle' ? null : 'vehicle')}
-                                                            className="w-full bg-gray-100 rounded-lg p-3 text-xs font-bold cursor-pointer flex justify-between items-center"
-                                                        >
-                                                            <span>{formData.vehicleType}</span>
-                                                            <svg className={`w-4 h-4 transition-transform ${openDropdown === 'vehicle' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                                        </div>
-                                                        {openDropdown === 'vehicle' && (
-                                                            <div className="absolute z-20 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-                                                                {['Hatchback', 'Sedan', 'SUV', 'MPV'].map(option => (
-                                                                    <div
-                                                                        key={option}
-                                                                        onClick={() => { setFormData({ ...formData, vehicleType: option }); setOpenDropdown(null); }}
-                                                                        className={`p-3 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.vehicleType === option ? 'bg-gray-100' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <UberVehicleSelector
+                                                vehicleType={formData.vehicleType}
+                                                carType={formData.carType}
+                                                onSelectVehicle={(vehicle) => setFormData({ ...formData, vehicleType: vehicle })}
+                                                onSelectTransmission={(trans) => setFormData({ ...formData, carType: trans })}
+                                            />
                                         </>
                                     )}
                                 </div>
