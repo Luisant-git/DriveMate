@@ -67,8 +67,8 @@ export const UberVehicleSelector: React.FC<UberVehicleSelectorProps> = ({
                 onClick={() => onSelectTransmission(trans)}
                 className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all active:scale-95 ${
                   isSelected
-                    ? 'bg-black text-white shadow-xs'
-                    : 'text-gray-600 hover:text-black hover:bg-gray-200/50'
+                    ? 'bg-[#0B192C] text-white shadow-xs'
+                    : 'text-gray-600 hover:text-[#0B192C] hover:bg-gray-200/50'
                 }`}
               >
                 {trans}
@@ -92,13 +92,13 @@ export const UberVehicleSelector: React.FC<UberVehicleSelectorProps> = ({
               onClick={() => onSelectVehicle(v.id)}
               className={`relative flex flex-col items-center justify-between p-2 sm:p-2.5 rounded-2xl text-center transition-all duration-150 active:scale-[0.97] cursor-pointer min-h-[92px] sm:min-h-[104px] border ${
                 isSelected
-                  ? 'bg-[#E8F0FE] border-2 border-black shadow-xs ring-1 ring-black/10'
+                  ? 'bg-[#F0F7FF] border-2 border-[#0B192C] shadow-xs ring-1 ring-[#0B192C]/15'
                   : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/70 shadow-2xs'
               }`}
             >
               {/* Active Selection Check Indicator */}
               {isSelected && (
-                <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-black text-white flex items-center justify-center shadow-xs">
+                <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#0B192C] text-white flex items-center justify-center shadow-xs">
                   <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
