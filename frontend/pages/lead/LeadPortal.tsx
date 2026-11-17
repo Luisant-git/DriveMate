@@ -347,9 +347,9 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
     const isDisabled = hasActivePlan && !isActive;
     const categoryName = getPkgCategory(pkg);
     return (
-      <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-black bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
+      <div key={pkg.id} className={`border-2 rounded-xl p-4 sm:p-6 relative ${isActive ? 'border-[#0B192C] bg-gray-50' : isDisabled ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-gray-100 bg-white'}`}>
         {isActive && (
-          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-xs font-bold">
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#0B192C] text-white px-3 py-1 rounded-full text-xs font-bold">
             CURRENT PLAN
           </div>
         )}
@@ -361,7 +361,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
         <button
           onClick={() => handleSubscriptionBuy(pkg)}
           disabled={isActive || isDisabled}
-          className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+          className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-bold text-xs sm:text-sm ${isActive || isDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#0B192C] text-white hover:bg-[#1E3E62]'}`}
         >
           {isActive ? 'Active' : 'Choose Package & Pay'}
         </button>
@@ -501,7 +501,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
   return (
     <div className="max-w-3xl mx-auto h-screen flex flex-col">
       {/* Top Header Bar - Fixed */}
-      <div className="bg-black text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
+      <div className="bg-[#0B192C] text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
         <p className="font-bold text-sm leading-none">SNP Lead</p>
         <div className="flex items-center gap-2">
           <UberLanguageSelector variant="navbar" />
@@ -521,7 +521,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400'}`}
+            className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab.id ? 'border-[#0B192C] text-black' : 'border-transparent text-gray-400'}`}
           >
             {tab.label}
           </button>
@@ -540,7 +540,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                   key={subTab}
                   onClick={() => setRequestsSubTab(subTab as any)}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded transition ${requestsSubTab === subTab
-                    ? 'bg-black text-white'
+                    ? 'bg-[#0B192C] text-white'
                     : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
@@ -567,7 +567,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                   Ongoing Trips
                 </h3>
                 {activeTrips.map(trip => (
-                  <div key={trip.id} className="bg-black text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
+                  <div key={trip.id} className="bg-[#0B192C] text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
                     <div className="flex justify-between items-center mb-3 sm:mb-4 border-b border-gray-800 pb-2">
                       <span className="font-bold text-base sm:text-lg flex items-center gap-2">
                         {trip.status === 'ONGOING' ? 'On Trip' : 'Upcoming'}
@@ -1189,7 +1189,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                 activeTrips.map(trip => (
                   <div key={trip.id} className="bg-gray-50 border-2 border-gray-300 rounded-xl p-4 sm:p-5 mb-3 shadow-md flex flex-col gap-2">
                     <div className="flex justify-between items-start">
-                      <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{trip.serviceType}</span>
+                      <span className="bg-[#0B192C] text-white text-xs font-bold px-2 py-1 rounded">{trip.serviceType}</span>
                       <span className={`text-xs font-bold px-2 py-1 rounded uppercase ${(trip as any).cancellationRequested ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'}`}>{(trip as any).cancellationRequested ? 'Cancellation Pending' : trip.status}</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
@@ -1298,7 +1298,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${selectedCategory === cat
-                    ? 'bg-black text-white'
+                    ? 'bg-[#0B192C] text-white'
                     : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
                     }`}
                 >
@@ -1332,7 +1332,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
           <div className="animate-fade-in pb-6 sm:pb-10">
             {!isEditingProfile ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="bg-black h-20 sm:h-24 relative">
+                <div className="bg-[#0B192C] h-20 sm:h-24 relative">
                   <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
                       {lead.photo && lead.photo !== '' ? (
@@ -1367,7 +1367,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                   <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-4">
                     <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center text-left gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 sm:w-12 sm:h-12 bg-[#0B192C] rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                           </svg>
@@ -1416,7 +1416,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                 <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
                                 <button
                                   onClick={() => setActiveTab('PACKAGES')}
-                                  className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
+                                  className="text-xs px-3 py-1 mt-2 bg-[#0B192C] text-white rounded hover:bg-[#1E3E62]"
                                 >
                                   Make Plan
                                 </button>
@@ -1431,7 +1431,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                       <div className="mb-6">
                         <div className="bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm">
                           <div className="flex items-center gap-2.5 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-[#0B192C] rounded-full flex items-center justify-center flex-shrink-0">
                               <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                               </svg>
@@ -1477,7 +1477,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                             <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
                             <button
                               onClick={() => setActiveTab('PACKAGES')}
-                              className="text-xs px-3 py-1 mt-2 bg-black text-white rounded hover:bg-gray-800"
+                              className="text-xs px-3 py-1 mt-2 bg-[#0B192C] text-white rounded hover:bg-[#1E3E62]"
                             >
                               Make Plan
                             </button>
@@ -1566,7 +1566,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'Photo', url: getDocUrl(lead.photo)! })}
-                                className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-1.5 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View Photo"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1598,7 +1598,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                 <button
                                   type="button"
                                   onClick={() => setViewingDoc({ title: 'Driving License', url: getDocUrl(lead.dlPhoto)! })}
-                                  className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                  className="p-1.5 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                   title="View Driving License"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1654,7 +1654,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'PAN Card', url: getDocUrl(lead.panPhoto)! })}
-                                className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-1.5 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View PAN Card"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1685,7 +1685,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'Aadhar Card', url: getDocUrl(lead.aadharPhoto)! })}
-                                className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-1.5 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View Aadhar Card"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1717,7 +1717,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                 <button
                                   type="button"
                                   onClick={() => setViewingDoc({ title: 'Police Verification', url: getDocUrl(lead.policeVerificationPhoto)! })}
-                                  className="p-1.5 text-gray-700 hover:text-black hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                  className="p-1.5 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                   title="View Police Verification"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2013,7 +2013,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
                                     if (!currentImgUrl) return;
                                     setViewingDoc({ title: item.title, url: currentImgUrl });
                                   }}
-                                  className="p-1 text-gray-600 hover:text-black hover:bg-gray-200/80 rounded-md transition"
+                                  className="p-1 text-gray-600 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-md transition"
                                   title={`View ${item.title}`}
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2081,7 +2081,7 @@ const LeadPortal: React.FC<LeadPortalProps> = ({ lead: initialLead, onLogout }) 
 
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsEditingProfile(false)} className="flex-1 py-3 font-bold text-sm">Cancel</button>
-                  <button type="submit" className="flex-1 bg-black text-white py-3 rounded-lg font-bold text-sm">Save Changes</button>
+                  <button type="submit" className="flex-1 bg-[#0B192C] text-white py-3 rounded-lg font-bold text-sm">Save Changes</button>
                 </div>
               </form>
             )}

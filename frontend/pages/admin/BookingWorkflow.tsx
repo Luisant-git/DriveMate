@@ -397,7 +397,7 @@ export default function BookingWorkflow() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div className="flex items-center gap-4">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900">Pending Bookings</h2>
-              <button onClick={() => setShowCreateModal(true)} className="bg-black text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+              <button onClick={() => setShowCreateModal(true)} className="bg-[#0B192C] text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition">
                 + Book a Ride
               </button>
             </div>
@@ -622,7 +622,7 @@ export default function BookingWorkflow() {
                                 <select
                                   onChange={(e) => e.target.value && fetchAvailableDrivers(booking.id, e.target.value)}
                                   disabled={loading}
-                                  className="w-full bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition cursor-pointer"
+                                  className="w-full bg-[#0B192C] text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] disabled:opacity-50 transition cursor-pointer"
                                   defaultValue=""
                                 >
                                   <option value="" disabled className="bg-white text-black">Select Package</option>
@@ -670,7 +670,7 @@ export default function BookingWorkflow() {
                                 </div>
                                 <button 
                                   onClick={() => viewResponses(booking.id, !!booking.selectedLeadPackageId)} 
-                                  className="w-full bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 transition"
+                                  className="w-full bg-[#0B192C] text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] transition"
                                 >
                                   View ({booking.selectedLeadPackageId ? (booking.leadResponses?.length || 0) : (booking.driverResponses?.length || 0)})
                                 </button>
@@ -691,7 +691,7 @@ export default function BookingWorkflow() {
         <div className="space-y-4">
           <button 
             onClick={() => setSelectedBooking(null)} 
-            className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-black transition"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#0B192C] transition"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -761,7 +761,7 @@ export default function BookingWorkflow() {
                       {isAccepted && (
                         <button 
                           onClick={() => allocateDriver(person.id, !!response.lead)} 
-                          className="w-full bg-black text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95"
+                          className="w-full bg-[#0B192C] text-white px-4 py-3 rounded-xl font-semibold text-sm hover:bg-[#1E3E62] transition active:scale-95"
                         >
                           Allocate This {response.driver ? 'Driver' : 'Lead'}
                         </button>
@@ -794,7 +794,7 @@ export default function BookingWorkflow() {
                     type="button"
                     onClick={() => setCreateForm({...createForm, serviceType: 'Local - Hourly', duration: '4 Hrs'})}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
-                      createForm.serviceType === 'Local - Hourly' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      createForm.serviceType === 'Local - Hourly' ? 'bg-[#0B192C] text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     LOCAL
@@ -803,7 +803,7 @@ export default function BookingWorkflow() {
                     type="button"
                     onClick={() => setCreateForm({...createForm, serviceType: 'Outstation', duration: '8 Hrs'})}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
-                      createForm.serviceType === 'Outstation' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      createForm.serviceType === 'Outstation' ? 'bg-[#0B192C] text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     OUTSTATION
@@ -849,7 +849,7 @@ export default function BookingWorkflow() {
                     setShowCustDropdown(true);
                   }}
                   onFocus={() => setShowCustDropdown(true)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white"
                 />
                 {showCustDropdown && (
                   <>
@@ -889,11 +889,11 @@ export default function BookingWorkflow() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Customer Name *</label>
-                  <input required type="text" value={createForm.customerName} onChange={e => setCreateForm({...createForm, customerName: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="John Doe" />
+                  <input required type="text" value={createForm.customerName} onChange={e => setCreateForm({...createForm, customerName: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="John Doe" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Phone Number *</label>
-                  <input required type="tel" value={createForm.customerPhone} onChange={e => setCreateForm({...createForm, customerPhone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" placeholder="9876543210" />
+                  <input required type="tel" value={createForm.customerPhone} onChange={e => setCreateForm({...createForm, customerPhone: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="9876543210" />
                 </div>
               </div>
               
@@ -903,7 +903,7 @@ export default function BookingWorkflow() {
                   value={createForm.pickupLocation} 
                   onChange={value => setCreateForm({...createForm, pickupLocation: value})} 
                   placeholder="Enter pickup address" 
-                  className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-black outline-none" 
+                  className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                   showMyLocation={false} 
                 />
               </div>
@@ -915,7 +915,7 @@ export default function BookingWorkflow() {
                     value={createForm.dropLocation} 
                     onChange={value => setCreateForm({...createForm, dropLocation: value})} 
                     placeholder="Enter drop address" 
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-black outline-none" 
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                     showMyLocation={false} 
                   />
                 </div>
@@ -961,7 +961,7 @@ export default function BookingWorkflow() {
                       type="datetime-local" 
                       value={createForm.startDateTime} 
                       onChange={e => setCreateForm({...createForm, startDateTime: e.target.value})} 
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                     />
                   </div>
                   {createForm.tripType === 'Round Trip' && (
@@ -972,13 +972,13 @@ export default function BookingWorkflow() {
                           type="date" 
                           value={createForm.returnDate} 
                           onChange={e => setCreateForm({...createForm, returnDate: e.target.value})} 
-                          className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                          className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                         />
                         <input 
                           type="time" 
                           value={createForm.returnTime} 
                           onChange={e => setCreateForm({...createForm, returnTime: e.target.value})} 
-                          className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                          className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                         />
                       </div>
                     </div>
@@ -993,13 +993,13 @@ export default function BookingWorkflow() {
                         type="date" 
                         value={createForm.returnDate} 
                         onChange={e => setCreateForm({...createForm, returnDate: e.target.value})} 
-                        className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                        className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                       />
                       <input 
                         type="time" 
                         value={createForm.returnTime} 
                         onChange={e => setCreateForm({...createForm, returnTime: e.target.value})} 
-                        className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-black outline-none" 
+                        className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                       />
                     </div>
                   </div>
@@ -1012,7 +1012,7 @@ export default function BookingWorkflow() {
                 <select 
                   value={createForm.driverType} 
                   onChange={e => setCreateForm({...createForm, driverType: e.target.value})} 
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
                 >
                   <option value="Acting Driver">Acting Driver</option>
                   <option value="Spare Driver">Spare Driver</option>
@@ -1072,7 +1072,7 @@ export default function BookingWorkflow() {
                   <select 
                     value={createForm.duration} 
                     onChange={e => setCreateForm({...createForm, duration: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white"
                   >
                     {createForm.serviceType === 'Local - Hourly' ? (
                       ['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
@@ -1094,7 +1094,7 @@ export default function BookingWorkflow() {
                   <select 
                     value={createForm.carType} 
                     onChange={e => setCreateForm({...createForm, carType: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
                   >
                     <option value="Manual">Manual</option>
                     <option value="Automatic">Automatic</option>
@@ -1106,7 +1106,7 @@ export default function BookingWorkflow() {
                   <select 
                     value={createForm.vehicleType} 
                     onChange={e => setCreateForm({...createForm, vehicleType: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
                   >
                     <option value="Hatchback">Hatchback</option>
                     <option value="Sedan">Sedan</option>
@@ -1124,7 +1124,7 @@ export default function BookingWorkflow() {
                   <select 
                     value={createForm.paymentMethod} 
                     onChange={e => setCreateForm({...createForm, paymentMethod: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none bg-white font-medium"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
                   >
                     <option value="CASH">Cash on Completion</option>
                     <option value="UPI">Online / UPI (Paid)</option>
@@ -1179,7 +1179,7 @@ export default function BookingWorkflow() {
                         }}
                         className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 ${
                           isSelected
-                            ? 'bg-black text-white shadow-sm'
+                            ? 'bg-[#0B192C] text-white shadow-sm'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -1198,7 +1198,7 @@ export default function BookingWorkflow() {
                     type="checkbox" 
                     checked={termsAccepted} 
                     onChange={e => setTermsAccepted(e.target.checked)} 
-                    className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded focus:ring-black cursor-pointer"
+                    className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded focus:ring-[#0B192C] cursor-pointer"
                   />
                   <span className="text-gray-600">
                     Customer accepts the{' '}
@@ -1215,7 +1215,7 @@ export default function BookingWorkflow() {
 
               <div className="flex gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
-                <button type="submit" disabled={creatingBooking || !termsAccepted} className="flex-1 py-2.5 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 transition">
+                <button type="submit" disabled={creatingBooking || !termsAccepted} className="flex-1 py-2.5 text-sm font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62] disabled:opacity-50 transition">
                   {creatingBooking ? 'Creating & Routing...' : 'Create Booking'}
                 </button>
               </div>

@@ -77,7 +77,7 @@ export const UberLanguageSelector: React.FC<UberLanguageSelectorProps> = ({
           className={`flex items-center justify-between p-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 cursor-pointer transition active:scale-[0.99] ${className}`}
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-[#0B192C] text-white flex items-center justify-center shadow-xs">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
@@ -109,7 +109,7 @@ export const UberLanguageSelector: React.FC<UberLanguageSelectorProps> = ({
             {/* Header */}
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-[#0B192C] text-white flex items-center justify-center shadow-sm">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
@@ -127,7 +127,7 @@ export const UberLanguageSelector: React.FC<UberLanguageSelectorProps> = ({
               <button 
                 type="button"
                 onClick={closeLanguageModal}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black flex items-center justify-center transition"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-[#0B192C] flex items-center justify-center transition"
                 title="Close"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +147,7 @@ export const UberLanguageSelector: React.FC<UberLanguageSelectorProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('lang.search', 'Search language...')}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 hover:bg-gray-100/80 focus:bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-black focus:border-black outline-none transition"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 hover:bg-gray-100/80 focus:bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] outline-none transition"
                 />
               </div>
             </div>
@@ -207,7 +207,7 @@ export const UberLanguageSelector: React.FC<UberLanguageSelectorProps> = ({
               <button 
                 type="button" 
                 onClick={closeLanguageModal}
-                className="px-5 py-2.5 bg-black hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95"
+                className="px-5 py-2.5 bg-[#0B192C] hover:bg-[#1E3E62] text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95"
               >
                 {t('lang.done', 'Done')}
               </button>

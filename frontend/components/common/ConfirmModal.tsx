@@ -45,7 +45,7 @@ export default function ConfirmModal({
       )
     },
     info: {
-      bg: 'bg-black hover:bg-gray-800',
+      bg: 'bg-[#0B192C] hover:bg-[#1E3E62]',
       iconBg: 'bg-blue-100',
       iconText: 'text-blue-600',
       icon: (

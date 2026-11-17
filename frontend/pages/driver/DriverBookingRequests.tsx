@@ -259,7 +259,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
                           </button>
                           <button
                             onClick={() => respondToRequest(request.id, 'ACCEPTED')}
-                            className="flex-1 bg-black text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-gray-800 transition active:scale-95 shadow-md"
+                            className="flex-1 bg-[#0B192C] text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm hover:bg-[#1E3E62] transition active:scale-95 shadow-md"
                           >
                             Accept
                           </button>
@@ -430,7 +430,7 @@ export default function DriverBookingRequests({ onNavigateToPackages, activeSubT
             <div className="p-5 bg-white border-t border-gray-100">
               <button
                 onClick={() => setSuccessModal({ isOpen: false, title: '', message: '' })}
-                className="w-full bg-black text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition active:scale-95 shadow-md text-base"
+                className="w-full bg-[#0B192C] text-white font-bold py-3.5 rounded-xl hover:bg-[#1E3E62] transition active:scale-95 shadow-md text-base"
               >
                 Done
               </button>

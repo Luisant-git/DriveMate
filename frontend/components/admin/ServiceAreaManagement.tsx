@@ -180,7 +180,7 @@ export default function ServiceAreaManagement() {
         <button
           type="button"
           onClick={handleOpenAddModal}
-          className="bg-black hover:bg-gray-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition"
+          className="bg-[#0B192C] hover:bg-[#1E3E62] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -192,7 +192,7 @@ export default function ServiceAreaManagement() {
       {/* ── Active Coverage Callout ── */}
       <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-black text-white shadow-sm text-sm font-bold">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0B192C] text-white shadow-sm text-sm font-bold">
             40km
           </span>
           <div>
@@ -315,7 +315,7 @@ export default function ServiceAreaManagement() {
                   setShowModal(false);
                   setEditingArea(null);
                 }}
-                className="text-gray-400 hover:text-black rounded-lg p-1 text-sm font-bold"
+                className="text-gray-400 hover:text-[#0B192C] rounded-lg p-1 text-sm font-bold"
               >
                 ✕
               </button>
@@ -330,7 +330,7 @@ export default function ServiceAreaManagement() {
                 value={searchLocation}
                 onChange={handleLocationSearchSelect}
                 placeholder="Search location (e.g. Bangalore, Mysuru, Salem)..."
-                className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-black placeholder-gray-400"
+                className="bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] placeholder-gray-400"
                 showMyLocation={false}
               />
             </div>
@@ -342,7 +342,7 @@ export default function ServiceAreaManagement() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                  className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                   placeholder="e.g., Bangalore Central"
                   required
                 />
@@ -355,7 +355,7 @@ export default function ServiceAreaManagement() {
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                     placeholder="e.g., Bangalore"
                     required
                   />
@@ -366,7 +366,7 @@ export default function ServiceAreaManagement() {
                     type="text"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-black"
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                     placeholder="e.g., Karnataka"
                     required
                   />
@@ -389,7 +389,7 @@ export default function ServiceAreaManagement() {
                     max="500"
                     value={formData.radius}
                     onChange={(e) => setFormData({ ...formData, radius: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:ring-2 focus:ring-black"
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold focus:ring-2 focus:ring-[#0B192C]"
                     placeholder="40"
                     required
                   />
@@ -407,7 +407,7 @@ export default function ServiceAreaManagement() {
                         onClick={() => setFormData({ ...formData, radius: String(km) })}
                         className={`text-[11px] font-bold px-2.5 py-1 rounded-md border transition ${
                           active
-                            ? 'bg-black text-white border-black shadow-xs'
+                            ? 'bg-[#0B192C] text-white border-[#0B192C] shadow-xs'
                             : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                         }`}
                       >
@@ -427,7 +427,7 @@ export default function ServiceAreaManagement() {
                     step="any"
                     value={formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-black"
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-[#0B192C]"
                     placeholder="e.g., 12.9716"
                     required
                   />
@@ -439,7 +439,7 @@ export default function ServiceAreaManagement() {
                     step="any"
                     value={formData.longitude}
                     onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-black"
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-mono focus:ring-2 focus:ring-[#0B192C]"
                     placeholder="e.g., 77.5946"
                     required
                   />
@@ -459,7 +459,7 @@ export default function ServiceAreaManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-black hover:bg-gray-800 text-white rounded-xl py-2.5 font-bold text-sm transition"
+                  className="flex-1 bg-[#0B192C] hover:bg-[#1E3E62] text-white rounded-xl py-2.5 font-bold text-sm transition"
                 >
                   {editingArea ? 'Update' : 'Create'}
                 </button>

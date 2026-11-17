@@ -201,7 +201,7 @@ export default function PendingDriverApproval() {
             setSelectedBooking(null);
             setShowChooseDriver(false);
           }} 
-          className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-black transition mb-4"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#0B192C] transition mb-4"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -236,7 +236,7 @@ export default function PendingDriverApproval() {
             onClick={() => setShowChooseDriver(false)}
             className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
               !showChooseDriver 
-                ? 'bg-black text-white' 
+                ? 'bg-[#0B192C] text-white' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -246,7 +246,7 @@ export default function PendingDriverApproval() {
             onClick={handleChooseAnotherDriver}
             className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
               showChooseDriver 
-                ? 'bg-black text-white' 
+                ? 'bg-[#0B192C] text-white' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -337,7 +337,7 @@ export default function PendingDriverApproval() {
                   placeholder="Search name or phone..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition w-full sm:w-64 shadow-sm"
+                  className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#0B192C] focus:ring-1 focus:ring-[#0B192C] transition w-full sm:w-64 shadow-sm"
                 />
                 <svg className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -421,7 +421,7 @@ export default function PendingDriverApproval() {
                                 className={`px-4 py-2 rounded-lg font-semibold text-xs transition ${
                                   isBusy 
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
-                                    : 'bg-black text-white hover:bg-gray-800'
+                                    : 'bg-[#0B192C] text-white hover:bg-[#1E3E62]'
                                 }`}
                               >
                                 Allocate
@@ -568,7 +568,7 @@ export default function PendingDriverApproval() {
                         <button 
                           onClick={() => viewAcceptedDrivers(booking)}
                           disabled={loading}
-                          className="bg-black text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-gray-800 disabled:opacity-50 transition"
+                          className="bg-[#0B192C] text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] disabled:opacity-50 transition"
                         >
                           Review & Allocate
                         </button>

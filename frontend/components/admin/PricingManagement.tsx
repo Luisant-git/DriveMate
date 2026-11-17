@@ -152,20 +152,20 @@ export default function PricingManagement() {
         <h2 className="text-xl md:text-2xl font-bold text-gray-900">Pricing Charges</h2>
         <button 
           onClick={() => activeTab === 'MONTHLY' ? openMonthlyModal() : openModal()} 
-          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition w-full md:w-auto"
+          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition w-full md:w-auto"
         >
           {activeTab === 'MONTHLY' ? 'Add Monthly Pricing' : 'Add Pricing'}
         </button>
       </div>
 
       <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
-        <button onClick={() => setActiveTab('LOCAL')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'LOCAL' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('LOCAL')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'LOCAL' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Local Hourly Pricing
         </button>
-        <button onClick={() => setActiveTab('OUTSTATION')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'OUTSTATION' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('OUTSTATION')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'OUTSTATION' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Outstation Pricing
         </button>
-        <button onClick={() => setActiveTab('MONTHLY')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'MONTHLY' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('MONTHLY')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'MONTHLY' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Monthly Driver Pricing
         </button>
       </div>
@@ -229,7 +229,7 @@ export default function PricingManagement() {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => openMonthlyModal(pricing)}
-                        className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
+                        className="w-8 h-8 bg-[#0B192C] text-white rounded-lg hover:bg-[#1E3E62] transition flex items-center justify-center"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,7 +295,7 @@ export default function PricingManagement() {
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-semibold text-sm">
+                      <div className="w-8 h-8 bg-[#0B192C] text-white rounded-lg flex items-center justify-center font-semibold text-sm">
                         {pkg.hours}
                       </div>
                       <p className="text-sm font-semibold text-gray-900">{pkg.hours} Hour{pkg.hours > 1 ? 's' : ''}</p>
@@ -320,7 +320,7 @@ export default function PricingManagement() {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => openModal(pkg)}
-                        className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
+                        className="w-8 h-8 bg-[#0B192C] text-white rounded-lg hover:bg-[#1E3E62] transition flex items-center justify-center"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +386,7 @@ export default function PricingManagement() {
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-semibold text-sm">
+                      <div className="w-8 h-8 bg-[#0B192C] text-white rounded-lg flex items-center justify-center font-semibold text-sm">
                         {pkg.hours}
                       </div>
                       <p className="text-sm font-semibold text-gray-900">{pkg.hours} Hour{pkg.hours > 1 ? 's' : ''}</p>
@@ -411,7 +411,7 @@ export default function PricingManagement() {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => openModal(pkg)}
-                        className="w-8 h-8 bg-black text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center"
+                        className="w-8 h-8 bg-[#0B192C] text-white rounded-lg hover:bg-[#1E3E62] transition flex items-center justify-center"
                         title="Edit"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,40 +458,40 @@ export default function PricingManagement() {
               <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Service Type</label>
-                  <select value={formData.packageType} onChange={(e) => setFormData({...formData, packageType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required disabled={editingPkg}>
+                  <select value={formData.packageType} onChange={(e) => setFormData({...formData, packageType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required disabled={editingPkg}>
                     <option value="LOCAL_HOURLY">Local Hourly</option>
                     <option value="OUTSTATION">Outstation</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Hours</label>
-                  <input type="number" value={formData.hours} onChange={(e) => setFormData({...formData, hours: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required disabled={editingPkg} placeholder="e.g. 4" />
+                  <input type="number" value={formData.hours} onChange={(e) => setFormData({...formData, hours: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required disabled={editingPkg} placeholder="e.g. 4" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum Charge (Scheduled) (₹)</label>
-                  <input type="number" value={formData.minimumCharge} onChange={(e) => setFormData({...formData, minimumCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required placeholder="e.g. 500" />
+                  <input type="number" value={formData.minimumCharge} onChange={(e) => setFormData({...formData, minimumCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 500" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Immediate Charge (₹)</label>
-                  <input type="number" value={formData.immediateCharge} onChange={(e) => setFormData({...formData, immediateCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 550 (Optional)" />
+                  <input type="number" value={formData.immediateCharge} onChange={(e) => setFormData({...formData, immediateCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 550 (Optional)" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum KM</label>
-                  <input type="number" value={formData.minimumKm} onChange={(e) => setFormData({...formData, minimumKm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 40" />
+                  <input type="number" value={formData.minimumKm} onChange={(e) => setFormData({...formData, minimumKm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 40" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (Scheduled) (₹)</label>
-                  <input type="number" value={formData.extraPerHour} onChange={(e) => setFormData({...formData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required placeholder="e.g. 100" />
+                  <input type="number" value={formData.extraPerHour} onChange={(e) => setFormData({...formData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 100" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (Immediate) (₹)</label>
-                  <input type="number" value={formData.extraPerHourImm} onChange={(e) => setFormData({...formData, extraPerHourImm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 110 (Optional)" />
+                  <input type="number" value={formData.extraPerHourImm} onChange={(e) => setFormData({...formData, extraPerHourImm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 110 (Optional)" />
                 </div>
                 <div className="flex gap-2 pt-4">
                   <button type="button" onClick={closeModal} className="flex-1 px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
                     Cancel
                   </button>
-                  <button type="submit" className="flex-1 px-4 py-2 text-xs font-bold text-white bg-black rounded-lg hover:bg-gray-800">
+                  <button type="submit" className="flex-1 px-4 py-2 text-xs font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62]">
                     {editingPkg ? 'Update' : 'Add'}
                   </button>
                 </div>
@@ -521,7 +521,7 @@ export default function PricingManagement() {
               <form onSubmit={handleMonthlySubmit} className="space-y-3 md:space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Vehicle Type</label>
-                  <select value={monthlyFormData.vehicleType} onChange={(e) => setMonthlyFormData({...monthlyFormData, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required>
+                  <select value={monthlyFormData.vehicleType} onChange={(e) => setMonthlyFormData({...monthlyFormData, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
                     <option value="Mini">Mini</option>
                     <option value="Sedan">Sedan</option>
                     <option value="SUV/MPV">SUV/MPV</option>
@@ -530,7 +530,7 @@ export default function PricingManagement() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Hours Per Day</label>
-                  <select value={monthlyFormData.hoursPerDay} onChange={(e) => setMonthlyFormData({...monthlyFormData, hoursPerDay: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required>
+                  <select value={monthlyFormData.hoursPerDay} onChange={(e) => setMonthlyFormData({...monthlyFormData, hoursPerDay: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
                     <option value="8">8 Hours</option>
                     <option value="10">10 Hours</option>
                     <option value="12">12 Hours</option>
@@ -539,7 +539,7 @@ export default function PricingManagement() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Days Per Week</label>
-                  <select value={monthlyFormData.daysPerWeek} onChange={(e) => setMonthlyFormData({...monthlyFormData, daysPerWeek: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required>
+                  <select value={monthlyFormData.daysPerWeek} onChange={(e) => setMonthlyFormData({...monthlyFormData, daysPerWeek: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
                     {monthlyFormData.hoursPerDay === '1 day' ? (
                       <option value="12">12 Hours</option>
                     ) : (
@@ -554,29 +554,29 @@ export default function PricingManagement() {
                   <>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Charge for 5 Days (₹)</label>
-                      <input type="number" value={monthlyFormData.charge5Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 18000" />
+                      <input type="number" value={monthlyFormData.charge5Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 18000" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Charge for 6 Days (₹)</label>
-                      <input type="number" value={monthlyFormData.charge6Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge6Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 20000" />
+                      <input type="number" value={monthlyFormData.charge6Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge6Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 20000" />
                     </div>
                   </>
                 )}
                 {monthlyFormData.hoursPerDay === '1 day' && (
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Charge (₹)</label>
-                    <input type="number" value={monthlyFormData.charge5Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" placeholder="e.g. 850" />
+                    <input type="number" value={monthlyFormData.charge5Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 850" />
                   </div>
                 )}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (₹)</label>
-                  <input type="number" value={monthlyFormData.extraPerHour} onChange={(e) => setMonthlyFormData({...monthlyFormData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5" required placeholder="e.g. 90" />
+                  <input type="number" value={monthlyFormData.extraPerHour} onChange={(e) => setMonthlyFormData({...monthlyFormData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 90" />
                 </div>
                 <div className="flex gap-2 pt-4">
                   <button type="button" onClick={closeMonthlyModal} className="flex-1 px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
                     Cancel
                   </button>
-                  <button type="submit" className="flex-1 px-4 py-2 text-xs font-bold text-white bg-black rounded-lg hover:bg-gray-800">
+                  <button type="submit" className="flex-1 px-4 py-2 text-xs font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62]">
                     {editingMonthly ? 'Update' : 'Add'}
                   </button>
                 </div>

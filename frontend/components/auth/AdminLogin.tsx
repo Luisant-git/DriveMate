@@ -50,7 +50,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
 
   return (
     <form onSubmit={handleLogin} className="animate-fade-in flex-grow flex flex-col">
-      <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
+      <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold">
         ← Back
       </button>
       <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Admin Portal</h2>
@@ -61,7 +61,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Email</label>
           <input 
             type="email"
-            className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-black outline-none"
+            className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
             placeholder="admin@snp.com"
             value={loginData.email}
             onChange={(e) => setLoginData({...loginData, email: e.target.value})}
@@ -72,7 +72,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Password</label>
           <input 
             type="password" 
-            className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-black outline-none"
+            className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
             placeholder="••••••••"
             value={loginData.password}
             onChange={(e) => setLoginData({...loginData, password: e.target.value})}
@@ -83,7 +83,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
       <button 
         type="submit" 
         disabled={!loginData.email || !loginData.password || isLoading}
-        className="w-full mt-6 bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
+        className="w-full mt-6 bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
       >
         {isLoading ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

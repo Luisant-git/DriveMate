@@ -212,7 +212,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               key={page}
               onClick={() => setCurrentPage(page)}
               className={`w-8 h-8 rounded text-xs font-bold flex items-center justify-center transition ${currentPage === page
-                ? 'bg-black text-white'
+                ? 'bg-[#0B192C] text-white'
                 : 'hover:bg-gray-50 text-gray-600'
                 }`}
             >
@@ -370,7 +370,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   return (
     <div className="flex flex-col h-screen bg-gray-50 w-full">
       {/* Top Header with SNP and Logout */}
-      <div className="bg-black text-white h-16 flex items-center justify-between px-4 z-50 flex-shrink-0">
+      <div className="bg-[#0B192C] text-white h-16 flex items-center justify-between px-4 z-50 flex-shrink-0">
         <h1 className="text-2xl font-bold tracking-tight">SNP</h1>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     key={item.id}
                     onClick={() => handleTabChange(item.id as any)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${activeTab === item.id
-                      ? 'bg-black text-white'
+                      ? 'bg-[#0B192C] text-white'
                       : 'text-gray-700 hover:bg-gray-100'
                       }`}
                   >
@@ -478,7 +478,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
                     <button
-                      className="w-full md:w-auto bg-black text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
+                      className="w-full md:w-auto bg-[#0B192C] text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
                       onClick={openAddPackageModal}
                     >
                       Add Package
@@ -495,7 +495,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                         key={cat}
                         onClick={() => setPackageCategoryFilter(cat)}
                         className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${packageCategoryFilter === cat
-                          ? 'bg-black text-white'
+                          ? 'bg-[#0B192C] text-white'
                           : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
                           }`}
                       >
@@ -687,7 +687,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Category
                 <select
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 bg-white"
                   value={packageForm.category}
                   onChange={(e) => {
                     const newCat = e.target.value;
@@ -712,7 +712,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 Name
                 <input
                   type="text"
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5"
                   value={packageForm.name}
                   onChange={(e) =>
                     setPackageForm((prev) => ({ ...prev, name: e.target.value }))
@@ -730,7 +730,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   </div>
                 ) : (
                   <select
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 bg-white"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 bg-white"
                     value={packageForm.type}
                     onChange={(e) => {
                       const nextType = e.target.value as SubscriptionType;
@@ -751,7 +751,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <input
                     type="number"
                     min={0}
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5"
                     value={packageForm.price || ''}
                     placeholder="0"
                     onChange={(e) =>
@@ -784,7 +784,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <input
                     type="number"
                     min={1}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 disabled:bg-gray-100 disabled:text-gray-400"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 disabled:bg-gray-100 disabled:text-gray-400"
                     value={packageForm.durationDays === 36500 ? '' : (packageForm.durationDays || '')}
                     placeholder={packageForm.durationDays === 36500 ? 'Unlimited' : '30'}
                     disabled={packageForm.durationDays === 36500}
@@ -802,7 +802,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   <input
                     type="number"
                     min={0}
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5"
                     value={packageForm.maxDuties || ''}
                     placeholder="0"
                     onChange={(e) =>
@@ -819,7 +819,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 Description
                 <textarea
                   rows={3}
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 resize-none"
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 resize-none"
                   value={packageForm.description}
                   placeholder="LOCAL : MINI 4 HOUR 450 EXTRA PER HOUR 90/-"
                   onChange={(e) => {
@@ -838,7 +838,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={0}
                     placeholder="0"
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5"
                     value={packageForm.minHours || ''}
                     onChange={(e) => {
                       const minHours = Number(e.target.value) || 0;
@@ -853,7 +853,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={0}
                     placeholder="0"
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5"
                     value={packageForm.baseFare || ''}
                     onChange={(e) => {
                       const baseFare = Number(e.target.value) || 0;
@@ -868,7 +868,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     type="number"
                     min={0}
                     placeholder="0"
-                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5"
                     value={packageForm.extraPerHourRate || ''}
                     onChange={(e) => {
                       const extraPerHourRate = Number(e.target.value) || 0;
@@ -889,7 +889,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 <button
                   type="submit"
                   disabled={isSavingPackage}
-                  className="px-4 py-2 text-xs font-bold text-white bg-black rounded-lg disabled:opacity-60"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#0B192C] rounded-lg disabled:opacity-60"
                 >
                   {isSavingPackage ? 'Saving...' : 'Save'}
                 </button>

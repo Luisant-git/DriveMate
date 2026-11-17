@@ -76,7 +76,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
   if (step === 'PHONE') {
     return (
       <form onSubmit={handleSendOtp} className="animate-fade-in flex-grow flex flex-col">
-        <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
+        <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold">
           ← Back
         </button>
         <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">What's your number?</h2>
@@ -93,7 +93,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
             <input 
               type="tel" 
               autoFocus
-              className="flex-1 bg-gray-100 border-none rounded-lg p-3 font-bold text-lg focus:ring-2 focus:ring-black outline-none"
+              className="flex-1 bg-gray-100 border-none rounded-lg p-3 font-bold text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
               placeholder="98765 43210"
               value={phoneNumber}
               onChange={(e) => {
@@ -107,7 +107,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
         <button 
           type="submit" 
           disabled={phoneNumber.length < 10 || isLoading}
-          className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mb-4"
+          className="w-full bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mb-4"
         >
           {isLoading ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -129,7 +129,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
 
   return (
     <form onSubmit={handleVerifyOtp} className="animate-fade-in flex-grow flex flex-col">
-      <button type="button" onClick={() => setStep('PHONE')} className="mb-4 text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold">
+      <button type="button" onClick={() => setStep('PHONE')} className="mb-4 text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold">
         ← Edit Number
       </button>
       <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Verify account</h2>
@@ -141,7 +141,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
           type="text" 
           autoFocus
           maxLength={6}
-          className="w-full bg-gray-100 border-none rounded-lg p-4 font-bold text-2xl tracking-[0.5em] text-center focus:ring-2 focus:ring-black outline-none"
+          className="w-full bg-gray-100 border-none rounded-lg p-4 font-bold text-2xl tracking-[0.5em] text-center focus:ring-2 focus:ring-[#0B192C] outline-none"
           placeholder="••••••"
           value={otp}
           onChange={(e) => {
@@ -150,7 +150,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
           }}
         />
         <div className="mt-4 text-center">
-          <button type="button" onClick={handleSendOtp} className="text-xs font-bold text-gray-400 hover:text-black">
+          <button type="button" onClick={handleSendOtp} className="text-xs font-bold text-gray-400 hover:text-[#0B192C]">
             Resend Code
           </button>
         </div>
@@ -159,7 +159,7 @@ const CustomerLogin: React.FC<CustomerLoginProps> = ({ onLogin }) => {
       <button 
         type="submit" 
         disabled={otp.length < 6 || isLoading}
-        className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
+        className="w-full bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
       >
         {isLoading ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -1176,7 +1176,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                         {/* Uber Header: Black Icon & Clean Close */}
                         <div className="flex items-center justify-between">
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black text-white flex items-center justify-center shadow-md">
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#0B192C] text-white flex items-center justify-center shadow-md">
                                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1233,7 +1233,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             setFormData(prev => ({ ...prev, pickup: `${city}, India` }));
                                             setShowUnavailableAreaModal(false);
                                         }}
-                                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-black hover:text-white text-gray-800 text-[11px] sm:text-xs font-bold transition active:scale-95 border border-gray-200"
+                                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-[#0B192C] hover:text-white text-gray-800 text-[11px] sm:text-xs font-bold transition active:scale-95 border border-gray-200"
                                     >
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                                         <span className="truncate">{city}</span>
@@ -1608,7 +1608,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Languages Known</p>
                                             <div className="flex flex-wrap gap-1.5 mt-1">
                                                 {selectedDriverOrLead.languagesKnown.map((lang: string) => (
-                                                    <span key={lang} className="bg-black text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                                                    <span key={lang} className="bg-[#0B192C] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
                                                         {lang}
                                                     </span>
                                                 ))}
@@ -1760,7 +1760,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <input
                                     type="file"
                                     accept="image/*,.pdf,.doc,.docx,.txt"
-                                    className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#0B192C] file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#0B192C] file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-[#0B192C] file:text-white hover:file:bg-gray-800"
                                     onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
@@ -1822,10 +1822,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
                     </div>
                     <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
-                        <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-black'}`}>Book</button>
-                        <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-black'}`}>Trips</button>
-                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-black'}`}>Hiring</button>
-                        <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-black'}`}>Profile</button>
+                        <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Book</button>
+                        <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Trips</button>
+                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Hiring</button>
+                        <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Profile</button>
                     </div>
                 </div>
 
@@ -1892,7 +1892,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
                                             }}
                                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${serviceType === BookingType.LOCAL_HOURLY
-                                                ? 'bg-black text-white'
+                                                ? 'bg-[#0B192C] text-white'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
@@ -1907,7 +1907,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 setTimeout(() => handleEstimateWithValues('8 Hrs', true), 100);
                                             }}
                                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${serviceType === BookingType.OUTSTATION
-                                                ? 'bg-black text-white'
+                                                ? 'bg-[#0B192C] text-white'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
@@ -1952,11 +1952,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             {/* Location Inputs */}
                             <div className="relative mb-4">
                                 <div className="absolute left-4 top-4 bottom-4 w-4 flex flex-col items-center">
-                                    <div className="w-2 h-2 bg-black rounded-full"></div>
+                                    <div className="w-2 h-2 bg-[#0B192C] rounded-full"></div>
                                     {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
                                         <>
                                             <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
-                                            <div className="w-2 h-2 bg-black border border-black"></div>
+                                            <div className="w-2 h-2 bg-[#0B192C] border border-[#0B192C]"></div>
                                         </>
                                     )}
                                 </div>
@@ -2115,7 +2115,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     setUnavailableAreaName(formData.pickup);
                                                     setShowUnavailableAreaModal(true);
                                                 }}
-                                                className="text-[11px] font-bold text-gray-800 hover:text-black underline shrink-0 whitespace-nowrap"
+                                                className="text-[11px] font-bold text-gray-800 hover:text-[#0B192C] underline shrink-0 whitespace-nowrap"
                                             >
                                                 See active cities →
                                             </button>
@@ -2261,7 +2261,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             value={aiQuery}
                             onChange={(e) => setAiQuery(e.target.value)}
                         />
-                        <button onClick={handleAiAssist} className="bg-black text-white rounded-lg w-8 flex items-center justify-center">
+                        <button onClick={handleAiAssist} className="bg-[#0B192C] text-white rounded-lg w-8 flex items-center justify-center">
                             {isAiLoading ? '...' : '→'}
                         </button>
                     </div> */}
@@ -2627,7 +2627,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <div className="bg-gray-50 rounded-2xl p-4 mb-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                                <div className="w-10 h-10 bg-[#0B192C] rounded-full flex items-center justify-center">
                                                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                                     </svg>
@@ -2718,7 +2718,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <div className="mx-4 mb-4">
                                     <div className="bg-gray-50 rounded-2xl p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-[#0B192C] rounded-full flex items-center justify-center">
                                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                                 </svg>
@@ -2941,9 +2941,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <div className="px-4 py-3 flex gap-3">
                                                 {/* Dot line */}
                                                 <div className="flex flex-col items-center pt-1 flex-shrink-0">
-                                                    <div className="w-2.5 h-2.5 rounded-full bg-black"></div>
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-[#0B192C]"></div>
                                                     <div className="w-px flex-1 bg-gray-300 my-1"></div>
-                                                    <div className="w-2.5 h-2.5 rounded-full border-2 border-black bg-white"></div>
+                                                    <div className="w-2.5 h-2.5 rounded-full border-2 border-[#0B192C] bg-white"></div>
                                                 </div>
                                                 {/* Addresses */}
                                                 <div className="flex flex-col justify-between gap-3 flex-1 min-w-0">
@@ -3002,7 +3002,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
                                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
                                                         <div className="flex items-center gap-2.5">
-                                                            <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
+                                                            <div className="w-10 h-10 bg-[#0B192C] text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
                                                                 {booking.lead.name?.[0] || 'D'}
                                                             </div>
                                                             <div className="flex-grow min-w-0">
@@ -3045,7 +3045,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
                                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
                                                         <div className="flex items-center gap-2.5">
-                                                            <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
+                                                            <div className="w-10 h-10 bg-[#0B192C] text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
                                                                 {(booking.driver || booking.lead).name?.[0] || 'D'}
                                                             </div>
                                                             <div className="flex-grow min-w-0">
@@ -3124,7 +3124,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                                         />
                                                                         <button
                                                                             onClick={() => submitRating(booking.id)}
-                                                                            className="bg-black text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition self-start"
+                                                                            className="bg-[#0B192C] text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-[#1E3E62] transition self-start"
                                                                         >
                                                                             Submit Rating
                                                                         </button>
@@ -3195,7 +3195,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <div className="mt-3 pt-3 border-t border-gray-100">
                                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Driver Details</p>
                                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                                                        <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
+                                                        <div className="w-10 h-10 bg-[#0B192C] text-white rounded-full flex items-center justify-center font-bold">
                                                             {(trip.driver || trip.lead).name?.[0] || 'D'}
                                                         </div>
                                                         <div className="flex-grow">
@@ -3260,7 +3260,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     onClick={fetchMyJobs}
                                     disabled={jobsLoading}
                                     title="Refresh job statuses"
-                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-black transition disabled:opacity-50"
+                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-[#0B192C] transition disabled:opacity-50"
                                 >
                                     <svg className={`w-3.5 h-3.5 ${jobsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -3268,7 +3268,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </button>
                                 <button
                                     onClick={() => setShowJobForm(v => !v)}
-                                    className="bg-black text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-800 transition flex items-center gap-1.5 whitespace-nowrap"
+                                    className="bg-[#0B192C] text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#1E3E62] transition flex items-center gap-1.5 whitespace-nowrap"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                                     {showJobForm ? 'Cancel' : 'Post Job'}
@@ -3280,7 +3280,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         {showJobForm && (
                             <form onSubmit={handleJobSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                                 {/* Form header */}
-                                <div className="bg-black text-white px-4 py-3.5">
+                                <div className="bg-[#0B192C] text-white px-4 py-3.5">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Posting</p>
                                     <h4 className="text-sm font-black mt-0.5">Post a Job</h4>
                                 </div>
@@ -3310,7 +3310,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 const checked = jobFormData.jobType === jt;
                                                 return (
                                                     <label key={jt}
-                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition ${checked ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
+                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition ${checked ? 'border-[#0B192C] bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
                                                     >
                                                         <input
                                                             type="checkbox"
@@ -3406,7 +3406,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 {jobFormData.localities.map(loc => (
                                                     <span key={loc} className="flex items-center gap-1 bg-gray-200 text-gray-800 text-xs font-bold px-2.5 py-1 rounded-full">
                                                         {loc}
-                                                        <button type="button" onClick={() => setJobFormData(p => ({ ...p, localities: p.localities.filter(l => l !== loc) }))} className="hover:text-black text-gray-500 leading-none">×</button>
+                                                        <button type="button" onClick={() => setJobFormData(p => ({ ...p, localities: p.localities.filter(l => l !== loc) }))} className="hover:text-[#0B192C] text-gray-500 leading-none">×</button>
                                                     </span>
                                                 ))}
                                             </div>
@@ -3468,7 +3468,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <button type="button"
                                                     disabled={jobFormData.contactPhone.length !== 10 || isSendingJobOtp || isJobPhoneVerified}
                                                     onClick={handleSendJobOtp}
-                                                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold leading-tight transition ${isJobPhoneVerified ? 'bg-green-100 text-green-700' : 'bg-black text-white hover:bg-gray-800 disabled:opacity-50'}`}
+                                                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold leading-tight transition ${isJobPhoneVerified ? 'bg-green-100 text-green-700' : 'bg-[#0B192C] text-white hover:bg-[#1E3E62] disabled:opacity-50'}`}
                                                 >
                                                     {isJobPhoneVerified ? 'Verified' : isSendingJobOtp ? 'Sending…' : 'Send OTP'}
                                                 </button>
@@ -3633,7 +3633,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                                             {/* Logo tile + title */}
                                             <div className="flex items-start gap-3 px-4 pt-3.5">
-                                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black text-white">
+                                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0B192C] text-white">
                                                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                     </svg>
@@ -3717,7 +3717,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/60 px-4 py-2">
                                                 <button
                                                     onClick={() => setExpandedJobId(isExpanded ? null : job.id)}
-                                                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-gray-500 transition hover:bg-white hover:text-black"
+                                                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-gray-500 transition hover:bg-white hover:text-[#0B192C]"
                                                 >
                                                     {isExpanded ? '▲ Less' : '▼ More details'}
                                                 </button>
@@ -3757,7 +3757,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <div className="space-y-6">
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-3 sm:gap-4">
-                                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-black text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#0B192C] text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
                                             {customer.name?.[0] || 'C'}
                                         </div>
                                         <div>
@@ -3811,7 +3811,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {((customer as any).languagesKnown || []).length > 0 ? (
                                         <div className="flex flex-wrap gap-2">
                                             {((customer as any).languagesKnown as string[]).map((lang: string) => (
-                                                <span key={lang} className="bg-black text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
+                                                <span key={lang} className="bg-[#0B192C] text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
                                             ))}
                                         </div>
                                     ) : (
@@ -4096,7 +4096,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                             <button
                                                                 type="button"
                                                                 onClick={() => window.open(fullUrl!, '_blank')}
-                                                                className="px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800"
+                                                                className="px-3 py-1.5 bg-[#0B192C] text-white text-xs font-bold rounded-lg hover:bg-[#1E3E62]"
                                                             >
                                                                 View PDF
                                                             </button>
@@ -4152,7 +4152,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <input
                                             type="file"
                                             accept="image/*,.pdf,.doc,.docx,.txt"
-                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-black file:text-white hover:file:bg-gray-800"
+                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#0B192C] file:text-white hover:file:bg-gray-800"
                                             onChange={async (e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {

@@ -238,7 +238,7 @@ const DriverRegister: React.FC = () => {
   return (
     <form onSubmit={handleRegister} className="animate-fade-in flex-grow flex flex-col w-full max-w-lg mx-auto">
       <div className="flex justify-between items-center mb-4 px-1">
-        <button type="button" onClick={() => step === 1 ? navigate('/driver/login') : prevStep()} className="text-gray-400 hover:text-black flex items-center gap-1 text-sm font-bold transition">
+        <button type="button" onClick={() => step === 1 ? navigate('/driver/login') : prevStep()} className="text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold transition">
           ← {step === 1 ? 'Back to Login' : 'Back'}
         </button>
         <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
@@ -270,7 +270,7 @@ const DriverRegister: React.FC = () => {
                 type="text" 
                 maxLength={6}
                 placeholder="Enter 6-digit code"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-center tracking-[0.5em] text-lg font-bold placeholder:tracking-normal placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm" 
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-center tracking-[0.5em] text-lg font-bold placeholder:tracking-normal placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm" 
                 value={primaryOtp} 
                 onChange={(e) => setPrimaryOtp(e.target.value.replace(/\D/g, ''))} 
               />
@@ -285,7 +285,7 @@ const DriverRegister: React.FC = () => {
                   type="text" 
                   maxLength={6}
                   placeholder="Enter 6-digit code"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-center tracking-[0.5em] text-lg font-bold placeholder:tracking-normal placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm" 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-center tracking-[0.5em] text-lg font-bold placeholder:tracking-normal placeholder:text-sm placeholder:font-normal placeholder:text-gray-400 focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm" 
                   value={altOtp} 
                   onChange={(e) => setAltOtp(e.target.value.replace(/\D/g, ''))} 
                 />
@@ -299,7 +299,7 @@ const DriverRegister: React.FC = () => {
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Full Name *</label>
               <input 
                 type="text"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm"
                 value={registerData.name}
                 onChange={(e) => setRegisterData({...registerData, name: e.target.value})}
                 required
@@ -311,7 +311,7 @@ const DriverRegister: React.FC = () => {
               <input 
                 type="tel"
                 maxLength={10}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm"
                 value={registerData.phone}
                 onChange={(e) => setRegisterData({...registerData, phone: e.target.value})}
                 required
@@ -323,7 +323,7 @@ const DriverRegister: React.FC = () => {
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 pr-10 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 pr-10 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm"
                   value={registerData.password}
                   onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
                   required
@@ -350,7 +350,7 @@ const DriverRegister: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Permanent Address *</label>
               <textarea 
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all resize-none shadow-sm"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all resize-none shadow-sm"
                 rows={2}
                 value={registerData.permanentAddress}
                 onChange={(e) => {
@@ -378,7 +378,7 @@ const DriverRegister: React.FC = () => {
                     setRegisterData({...registerData, currentAddress: ''});
                   }
                 }}
-                className="w-4 h-4 text-black bg-gray-50 border-gray-300 rounded focus:ring-black focus:ring-2 cursor-pointer"
+                className="w-4 h-4 text-black bg-gray-50 border-gray-300 rounded focus:ring-[#0B192C] focus:ring-2 cursor-pointer"
               />
               <label htmlFor="sameAddress" className="text-xs font-bold text-gray-600 cursor-pointer">
                 Current Address is same as Permanent Address
@@ -389,7 +389,7 @@ const DriverRegister: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Current Address *</label>
                 <textarea 
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all resize-none shadow-sm"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all resize-none shadow-sm"
                   rows={2}
                   value={registerData.currentAddress}
                   onChange={(e) => setRegisterData({...registerData, currentAddress: e.target.value})}
@@ -407,7 +407,7 @@ const DriverRegister: React.FC = () => {
                 <input 
                   type="text"
                   maxLength={12}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm"
                   value={registerData.aadharNo}
                   onChange={(e) => setRegisterData({...registerData, aadharNo: e.target.value})}
                   required
@@ -418,7 +418,7 @@ const DriverRegister: React.FC = () => {
                 <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Driving License No*</label>
                 <input 
                   type="text"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm mb-2"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm mb-2"
                   value={registerData.licenseNo}
                   onChange={(e) => setRegisterData({...registerData, licenseNo: e.target.value})}
                   required
@@ -430,7 +430,7 @@ const DriverRegister: React.FC = () => {
                 <input 
                   type="date"
                   min={new Date().toISOString().split('T')[0]}
-                  className={`w-full bg-gray-50 border ${registerData.licenseExpiryDate && !isValidDLExpiry(registerData.licenseExpiryDate) ? 'border-red-500' : 'border-gray-200'} rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm`}
+                  className={`w-full bg-gray-50 border ${registerData.licenseExpiryDate && !isValidDLExpiry(registerData.licenseExpiryDate) ? 'border-red-500' : 'border-gray-200'} rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm`}
                   value={registerData.licenseExpiryDate}
                   onChange={(e) => setRegisterData({...registerData, licenseExpiryDate: e.target.value})}
                   required
@@ -445,7 +445,7 @@ const DriverRegister: React.FC = () => {
               <input 
                 type="text"
                 maxLength={10}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm"
                 placeholder="Enter mobile number"
                 value={registerData.gpayNo}
                 onChange={(e) => setRegisterData({...registerData, gpayNo: e.target.value})}
@@ -460,7 +460,7 @@ const DriverRegister: React.FC = () => {
                   <input 
                     type="tel"
                     maxLength={10}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all"
                     value={registerData.alternateMobile1}
                     onChange={(e) => setRegisterData({...registerData, alternateMobile1: e.target.value})}
                   />
@@ -470,7 +470,7 @@ const DriverRegister: React.FC = () => {
                   <input 
                     type="tel"
                     maxLength={10}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all"
                     value={registerData.alternateMobile2}
                     onChange={(e) => setRegisterData({...registerData, alternateMobile2: e.target.value})}
                   />
@@ -480,7 +480,7 @@ const DriverRegister: React.FC = () => {
                   <input 
                     type="tel"
                     maxLength={10}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all"
                     value={registerData.alternateMobile3}
                     onChange={(e) => setRegisterData({...registerData, alternateMobile3: e.target.value})}
                   />
@@ -490,7 +490,7 @@ const DriverRegister: React.FC = () => {
                   <input 
                     type="tel"
                     maxLength={10}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all"
                     value={registerData.alternateMobile4}
                     onChange={(e) => setRegisterData({...registerData, alternateMobile4: e.target.value})}
                   />
@@ -635,7 +635,7 @@ const DriverRegister: React.FC = () => {
                 <input 
                   type="date"
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm"
                   value={registerData.policeVerificationExpiryDate}
                   onChange={(e) => setRegisterData({...registerData, policeVerificationExpiryDate: e.target.value})}
                   required
@@ -646,7 +646,7 @@ const DriverRegister: React.FC = () => {
                 <input 
                   type="text"
                   placeholder="e.g. POL-VER-2026-XXXX"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all shadow-sm font-mono"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition-all shadow-sm font-mono"
                   value={registerData.policeVerificationNo || ''}
                   onChange={(e) => setRegisterData({...registerData, policeVerificationNo: e.target.value})}
                 />
@@ -662,7 +662,7 @@ const DriverRegister: React.FC = () => {
             type="button" 
             onClick={nextStep}
             disabled={step === 1 ? !isStep1Valid : step === 2 ? !isStep2Valid : false}
-            className="w-full bg-black text-white py-2 rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            className="w-full bg-[#0B192C] text-white py-2 rounded-xl font-bold text-sm hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
             Continue to Next Step
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -692,7 +692,7 @@ const DriverRegister: React.FC = () => {
             type="button" 
             onClick={handleVerifyOTP}
             disabled={primaryOtp.length !== 6 || (registerData.alternateMobile1 ? altOtp.length !== 6 : false) || isLoading}
-            className="w-full bg-black text-white py-2 rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            className="w-full bg-[#0B192C] text-white py-2 rounded-xl font-bold text-sm hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">

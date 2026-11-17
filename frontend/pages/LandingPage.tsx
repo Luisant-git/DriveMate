@@ -8,7 +8,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
     const [activeTab, setActiveTab] = useState<'local' | 'outstation'>('local');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     return (
-        <div className="flex flex-col min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+        <div className="flex flex-col min-h-screen bg-white text-black font-sans selection:bg-[#0B192C] selection:text-white">
             {/* Fixed Social Media Sidebar */}
             <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-4">
                 <a href="https://www.facebook.com/share/18P8cPUbxU/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
@@ -65,16 +65,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 {mobileMenuOpen && (
                     <div className="md:hidden absolute top-full left-0 right-0 bg-white px-6 py-6 shadow-lg transition-all duration-300 ease-in-out z-40">
                         <nav className="flex flex-col gap-4">
-                            <button className="text-left py-3 text-gray-800 hover:text-black font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
                                 Hire a Driver
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-black font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
                                 Outstation Cabs
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-black font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
                                 Partner Program
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-black font-semibold transition-colors">
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors">
                                 Support
                             </button>
                         </nav>
@@ -95,7 +95,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                                 Book verified acting drivers for your personal vehicle or premium outstation returns. Transparent upfront pricing, zero hidden fees.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                <button className="bg-black text-white px-6 py-3 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-gray-900 transition-all shadow-lg" onClick={onGetStarted}>
+                                <button className="bg-[#0B192C] text-white px-6 py-3 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all shadow-lg" onClick={onGetStarted}>
                                     Book Driver
                                 </button>
                                 <button className="bg-gray-100 text-black px-6 py-3 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-gray-200 transition-all" onClick={onGetStarted}>
@@ -162,8 +162,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-10">
                             <div className="max-w-xl">
                                 <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter mb-6">Where are you going?</h2>
-                                <div className="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 items-center gap-2 group hover:border-black transition-all">
-                                    <div className="flex-1 flex items-center px-4 gap-3 text-gray-400 group-hover:text-black">
+                                <div className="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 items-center gap-2 group hover:border-[#0B192C] transition-all">
+                                    <div className="flex-1 flex items-center px-4 gap-3 text-gray-400 group-hover:text-[#0B192C]">
                                         <div className="w-2 h-2 rounded-full bg-current"></div>
                                         <input
                                             type="text"
@@ -181,13 +181,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <div className="flex bg-gray-200/50 p-1 rounded-2xl">
                                 <button
                                     onClick={() => setActiveTab('local')}
-                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'local' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-black'}`}
+                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'local' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-[#0B192C]'}`}
                                 >
                                     Local
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('outstation')}
-                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outstation' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-black'}`}
+                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outstation' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-[#0B192C]'}`}
                                 >
                                     Outstation
                                 </button>
@@ -203,7 +203,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                                             <h3 className="text-2xl font-semibold tracking-tight">Local Acting Drivers</h3>
                                             <p className="text-sm text-gray-500 mt-2">Professional drivers for your city needs</p>
                                         </div>
-                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1">View All Local</button>
+                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-[#0B192C] pb-1">View All Local</button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                         <div className="group cursor-pointer" onClick={onGetStarted}>
@@ -242,13 +242,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                                             <h3 className="text-2xl font-semibold tracking-tight">Outstation Trips</h3>
                                             <p className="text-sm text-gray-500 mt-2">Explore beyond the city limits</p>
                                         </div>
-                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-black pb-1">Explore More</button>
+                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-[#0B192C] pb-1">Explore More</button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                         <div className="group cursor-pointer" onClick={onGetStarted}>
                                             <div className="relative aspect-[16/10] overflow-hidden rounded-2xl mb-6 shadow-sm group-hover:shadow-2xl transition-all duration-700">
                                                 <img src="https://sikkolucabs.com/img/cab_search.jpg" alt="Round Trip" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                                <div className="absolute top-4 right-4 bg-black text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest">BEST VALUE</div>
+                                                <div className="absolute top-4 right-4 bg-[#0B192C] text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest">BEST VALUE</div>
                                             </div>
                                             <h4 className="text-xl font-bold mb-2">Round-Trips</h4>
                                             <p className="text-sm text-gray-500 leading-relaxed mb-6">Book expert drivers for long-distance family vacations or road trips with ease.</p>
@@ -287,7 +287,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <p className="text-base md:text-lg text-gray-600 mb-10 max-w-md mx-auto md:mx-0">
                                 Join the network of 5,000+ drivers and earn on your own terms. Flexible hours and weekly payouts.
                             </p>
-                            <button className="bg-black text-white px-8 py-3.5 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-gray-900 transition-all shadow-xl" onClick={onGetStarted}>
+                            <button className="bg-[#0B192C] text-white px-8 py-3.5 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all shadow-xl" onClick={onGetStarted}>
                                 Join As Partner
                             </button>
                         </div>
@@ -305,7 +305,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <section className="bg-gray-50 px-6 md:px-12 py-16 md:py-20">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10">
-                            <div className="p-8 md:p-10 bg-white border border-gray-100 rounded-2xl flex flex-col justify-between group hover:border-black transition-colors cursor-pointer">
+                            <div className="p-8 md:p-10 bg-white border border-gray-100 rounded-2xl flex flex-col justify-between group hover:border-[#0B192C] transition-colors cursor-pointer">
                                 <div>
                                     <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Mobile First</div>
                                     <h3 className="text-xl md:text-2xl font-semibold mb-4 text-black">Partner App</h3>
@@ -315,7 +315,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                                     Download Now <span className="text-2xl">→</span>
                                 </div>
                             </div>
-                            <div className="p-8 md:p-10 bg-white border border-gray-100 rounded-2xl flex flex-col justify-between group hover:border-black transition-colors cursor-pointer">
+                            <div className="p-8 md:p-10 bg-white border border-gray-100 rounded-2xl flex flex-col justify-between group hover:border-[#0B192C] transition-colors cursor-pointer">
                                 <div>
                                     <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">User First</div>
                                     <h3 className="text-xl md:text-2xl font-semibold mb-4 text-black">Customer App</h3>
@@ -331,7 +331,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             </main>
 
             {/* Footer */}
-            <footer className="bg-black text-white px-6 md:px-12 pt-20 pb-10 border-t border-gray-900">
+            <footer className="bg-[#0B192C] text-white px-6 md:px-12 pt-20 pb-10 border-t border-gray-900">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 md:gap-16 mb-20">
                         <div className="col-span-1">

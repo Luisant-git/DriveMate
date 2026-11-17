@@ -237,7 +237,7 @@ export default function OverdueReport() {
         <button
           onClick={() => setTab('DRIVER')}
           className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
-            tab === 'DRIVER' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            tab === 'DRIVER' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
           Drivers
@@ -246,7 +246,7 @@ export default function OverdueReport() {
         <button
           onClick={() => setTab('LEAD')}
           className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
-            tab === 'LEAD' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            tab === 'LEAD' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
           Leads
@@ -362,7 +362,7 @@ export default function OverdueReport() {
                       <td className="px-4 py-4">
                         <button
                           onClick={() => handleVerify(entity)}
-                          className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-800 transition shadow-sm"
+                          className="bg-[#0B192C] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#1E3E62] transition shadow-sm"
                         >
                           Verify Now
                         </button>
@@ -402,7 +402,7 @@ export default function OverdueReport() {
               a.download = `overdue-${tab.toLowerCase()}-report-${new Date().toISOString().split('T')[0]}.csv`;
               a.click();
             }}
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800 transition"
+            className="flex items-center gap-2 bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -463,7 +463,7 @@ export default function OverdueReport() {
                       min={new Date().toISOString().split('T')[0]}
                       value={verifyLicenseExpiry}
                       onChange={e => setVerifyLicenseExpiry(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none shadow-sm"
+                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none shadow-sm"
                     />
                   </div>
                   
@@ -496,7 +496,7 @@ export default function OverdueReport() {
                       />
                       <label 
                         htmlFor="updateLicense" 
-                        className={`flex items-center justify-center gap-1.5 w-full text-xs bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`flex items-center justify-center gap-1.5 w-full text-xs bg-[#0B192C] text-white px-3 py-2 rounded-lg hover:bg-[#1E3E62] transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         {isUploadingDoc ? 'Uploading...' : 'Upload New'}
@@ -526,7 +526,7 @@ export default function OverdueReport() {
                       min={new Date().toISOString().split('T')[0]}
                       value={verifyPoliceExpiry}
                       onChange={e => setVerifyPoliceExpiry(e.target.value)}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black outline-none shadow-sm"
+                      className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none shadow-sm"
                     />
                   </div>
                   
@@ -559,7 +559,7 @@ export default function OverdueReport() {
                       />
                       <label 
                         htmlFor="updatePoliceVerif" 
-                        className={`flex items-center justify-center gap-1.5 w-full text-xs bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`flex items-center justify-center gap-1.5 w-full text-xs bg-[#0B192C] text-white px-3 py-2 rounded-lg hover:bg-[#1E3E62] transition cursor-pointer font-bold inline-block text-center shadow-md ${isUploadingDoc ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         {isUploadingDoc ? 'Uploading...' : 'Upload New'}
@@ -574,7 +574,7 @@ export default function OverdueReport() {
                 <div className="border border-gray-200 rounded-xl p-4 space-y-3">
                   <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification Result</p>
                   <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-black focus:outline-none"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-[#0B192C] focus:outline-none"
                     rows={3}
                     placeholder="Notes (optional)"
                     value={verifyNotes}
@@ -591,7 +591,7 @@ export default function OverdueReport() {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setShowVerifyForm(true)} className="w-full bg-black text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition">
+                <button onClick={() => setShowVerifyForm(true)} className="w-full bg-[#0B192C] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition">
                   Start Verification
                 </button>
               )}

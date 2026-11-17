@@ -227,7 +227,7 @@ const LeadSubscriptionList: React.FC = () => {
         <h3 className="font-bold text-lg">Lead Subscriptions</h3>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-black text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-800 transition"
+          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#1E3E62] transition"
         >
           + Create Lead Subscription
         </button>
@@ -367,7 +367,7 @@ const LeadSubscriptionList: React.FC = () => {
                   setShowLeadDropdown(true);
                 }}
                 onFocus={() => setShowLeadDropdown(true)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
               />
               {showLeadDropdown && !selectedLead && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -401,7 +401,7 @@ const LeadSubscriptionList: React.FC = () => {
                   setSelectedPackage(pkg || null);
                   if (pkg) setPaidAmount(pkg.price.toString());
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
               >
                 <option value="">Choose a package</option>
                 {packages.map(pkg => (
@@ -424,7 +424,7 @@ const LeadSubscriptionList: React.FC = () => {
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
                 placeholder="Enter paid amount"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
               />
               {selectedPackage && paidAmount && (
                 <p className="text-xs text-gray-600 mt-1">
@@ -439,7 +439,7 @@ const LeadSubscriptionList: React.FC = () => {
                 <button
                   onClick={() => setPaymentMethod('CASH')}
                   className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${
-                    paymentMethod === 'CASH' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    paymentMethod === 'CASH' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   Cash
@@ -447,7 +447,7 @@ const LeadSubscriptionList: React.FC = () => {
                 <button
                   onClick={() => setPaymentMethod('UPI')}
                   className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${
-                    paymentMethod === 'UPI' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    paymentMethod === 'UPI' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   UPI
@@ -470,7 +470,7 @@ const LeadSubscriptionList: React.FC = () => {
               </button>
               <button
                 onClick={createSubscription}
-                className="flex-1 bg-black text-white py-2 rounded-lg font-semibold text-sm hover:bg-gray-800 transition"
+                className="flex-1 bg-[#0B192C] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#1E3E62] transition"
               >
                 Create
               </button>
@@ -500,7 +500,7 @@ const LeadSubscriptionList: React.FC = () => {
                 value={additionalPayment}
                 onChange={(e) => setAdditionalPayment(e.target.value)}
                 placeholder="Enter payment amount"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
               />
             </div>
             <div className="flex gap-3">
@@ -516,7 +516,7 @@ const LeadSubscriptionList: React.FC = () => {
               </button>
               <button
                 onClick={updatePayment}
-                className="flex-1 bg-black text-white py-2 rounded-lg font-semibold text-sm hover:bg-gray-800 transition"
+                className="flex-1 bg-[#0B192C] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#1E3E62] transition"
               >
                 Update
               </button>
