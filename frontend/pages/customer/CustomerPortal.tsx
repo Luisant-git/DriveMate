@@ -2909,232 +2909,258 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
                                     const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-                                    return (
-                                        <div key={booking.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                                    const assignedDriver = booking.driver || booking.lead;
+                                    const hasDriver = !!(assignedDriver && (booking.driverId || booking.leadId));
 
-                                            {/* ── Top bar: date + status ── */}
-                                            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-gray-900">🚗 {formattedDate} · {formattedTime}</span>
-                                                    {booking.endDateTime && (
-                                                        <span className="text-[11px] text-gray-500 mt-0.5">🏠 Return: {formattedReturnDate} · {formattedReturnTime}</span>
-                                                    )}
+                                    return (
+                                        <div
+                                            key={booking.id}
+                                            className="bg-white rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden"
+                                        >
+                                            {/* ── Top Bar: Date, Time & Status Pill ── */}
+                                            <div className="flex items-center justify-between px-3.5 sm:px-4 py-2.5 bg-gray-50/80 border-b border-gray-100">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="w-7 h-7 rounded-lg bg-[#0B192C]/5 text-[#0B192C] flex items-center justify-center shrink-0">
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <span className="text-xs font-bold text-gray-900 block truncate">
+                                                            {formattedDate} • {formattedTime}
+                                                        </span>
+                                                        {booking.endDateTime && (
+                                                            <span className="text-[10px] text-gray-500 font-medium block truncate">
+                                                                Return: {formattedReturnDate} • {formattedReturnTime}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black tracking-wide flex-shrink-0 ${booking.cancellationRequested ? 'bg-yellow-100 text-yellow-800' :
-                                                    (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'bg-green-100 text-green-800' :
-                                                        booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                                                            booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                                                booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                                                                    booking.status === 'ONGOING' ? 'bg-emerald-100 text-emerald-800' :
-                                                                        booking.status === 'COMPLETED' ? 'bg-gray-100 text-gray-600' :
-                                                                            'bg-gray-100 text-gray-600'
-                                                    }`}>
-                                                    {booking.cancellationRequested ? 'CANCEL PENDING' :
-                                                        booking.status === 'CANCELLED' ? 'CANCELLED' :
-                                                            booking.status === 'COMPLETED' ? 'COMPLETED' :
-                                                                (booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) ? 'DRIVER ALLOCATED' :
-                                                                    booking.status}
+
+                                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black tracking-wide shrink-0 uppercase border ${
+                                                    booking.cancellationRequested ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                    booking.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                    (booking.status === 'CONFIRMED' && hasDriver) ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    booking.status === 'CONFIRMED' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                                                    booking.status === 'ONGOING' ? 'bg-purple-50 text-purple-700 border-purple-200 animate-pulse' :
+                                                    booking.status === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                    'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                                }`}>
+                                                    {booking.cancellationRequested ? 'Cancel Pending' :
+                                                     booking.status === 'COMPLETED' ? 'Completed' :
+                                                     (booking.status === 'CONFIRMED' && hasDriver) ? 'Driver Allocated' :
+                                                     booking.status === 'CONFIRMED' ? 'Confirmed' :
+                                                     booking.status === 'ONGOING' ? 'In Progress' :
+                                                     booking.status === 'CANCELLED' ? 'Cancelled' :
+                                                     'Pending'}
                                                 </span>
                                             </div>
 
-                                            {/* ── Route ── */}
-                                            <div className="px-4 py-3 flex gap-3">
-                                                {/* Dot line */}
-                                                <div className="flex flex-col items-center pt-1 flex-shrink-0">
-                                                    <div className="w-2.5 h-2.5 rounded-full bg-[#0B192C]"></div>
-                                                    <div className="w-px flex-1 bg-gray-300 my-1"></div>
-                                                    <div className="w-2.5 h-2.5 rounded-full border-2 border-[#0B192C] bg-white"></div>
-                                                </div>
-                                                {/* Addresses */}
-                                                <div className="flex flex-col justify-between gap-3 flex-1 min-w-0">
-                                                    <div>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Pickup</p>
-                                                        <p className="text-xs font-semibold text-gray-900 break-words leading-snug">{booking.pickupLocation}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Drop</p>
-                                                        <p className="text-xs font-semibold text-gray-900 break-words leading-snug">{booking.dropLocation}</p>
-                                                    </div>
-                                                </div>
-                                                {/* Amount */}
-                                                {booking.estimateAmount && (
-                                                    <div className="flex flex-col items-end justify-center flex-shrink-0">
-                                                        <p className="text-lg font-black text-green-600">₹{booking.estimateAmount}</p>
-                                                        {booking.paymentMethod && (
-                                                            <span className="text-[10px] text-gray-400 font-bold">{booking.paymentMethod}</span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* ── Footer: status message + cancel ── */}
-                                            <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap">
-                                                {/* Finding drivers */}
-                                                {(booking.status === 'PENDING' || (booking.status === 'CONFIRMED' && !(booking.driverId || booking.leadId))) && (
-                                                    <p className="text-[11px] text-blue-600 font-semibold">🔍 Finding drivers{booking.selectedPackageType ? ` · ${booking.selectedPackageType}` : ''}...</p>
-                                                )}
-                                                {(booking.status === 'CONFIRMED' && (booking.driverId || booking.leadId)) && (
-                                                    <p className="text-[11px] text-green-600 font-semibold">✓ Driver on the way</p>
-                                                )}
-                                                {booking.status === 'ONGOING' && (
-                                                    <p className="text-[11px] text-emerald-600 font-semibold">🚗 Trip in progress</p>
-                                                )}
-                                                {booking.status === 'COMPLETED' && (
-                                                    <p className="text-[11px] text-gray-500 font-semibold">✓ Trip completed</p>
-                                                )}
-                                                {booking.cancellationRequested && (
-                                                    <p className="text-[11px] text-yellow-600 font-semibold">⏳ Cancellation requested</p>
-                                                )}
-                                                {/* Cancel button */}
-                                                {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
-                                                    <button
-                                                        onClick={() => setCancelModalBookingId(booking.id)}
-                                                        className="ml-auto text-[11px] text-red-600 font-bold px-3 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 transition"
-                                                    >
-                                                        Cancel Trip
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            {/* Lead Details - Show when lead is allocated */}
-                                            {booking.lead && booking.leadId && (
-                                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
-                                                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className="w-10 h-10 bg-[#0B192C] text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
-                                                                {booking.lead.name?.[0] || 'D'}
-                                                            </div>
-                                                            <div className="flex-grow min-w-0">
-                                                                <p className="font-bold text-sm truncate">{booking.lead.name || 'Driver'}</p>
-                                                                <p className="text-xs text-gray-600">{booking.lead.phone || 'N/A'}</p>
-                                                                {booking.lead.rating > 0 && (
-                                                                    <div className="flex items-center gap-1 mt-0.5">
-                                                                        <span className="text-[11px] font-bold text-gray-700">{booking.lead.rating.toFixed(1)}</span>
-                                                                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                                        <span className="text-[10px] text-gray-500">({booking.lead.totalRides || 0} rides)</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                            <a
-                                                                href={`tel:${booking.lead.phone}`}
-                                                                className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                                                            </a>
+                                            {/* ── Route & Fare Card ── */}
+                                            <div className="p-3.5 sm:p-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    {/* Route Line & Locations */}
+                                                    <div className="flex gap-2.5 flex-1 min-w-0">
+                                                        {/* Dot Timeline */}
+                                                        <div className="flex flex-col items-center pt-1 shrink-0">
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100"></div>
+                                                            <div className="w-0.5 flex-1 bg-gray-200 my-1 min-h-[22px]"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-xs bg-[#0B192C] ring-2 ring-gray-100"></div>
                                                         </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedDriver(booking.lead);
-                                                                setShowDriverProfile(true);
-                                                            }}
-                                                            className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
-                                                        >
-                                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                            </svg>
-                                                            <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
 
-                                            {/* Driver Details - Show when driver is allocated */}
-                                            {(booking.driver || booking.lead) && (booking.driverId || booking.leadId) && (
-                                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase">✓ Your Driver</p>
-                                                    <div className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200 space-y-2.5">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className="w-10 h-10 bg-[#0B192C] text-white rounded-full flex items-center justify-center font-bold text-base shrink-0">
-                                                                {(booking.driver || booking.lead).name?.[0] || 'D'}
+                                                        {/* Addresses */}
+                                                        <div className="flex flex-col justify-between gap-2.5 flex-1 min-w-0">
+                                                            <div className="min-w-0">
+                                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Pickup</p>
+                                                                <p className="text-xs font-semibold text-gray-900 truncate leading-snug" title={booking.pickupLocation}>
+                                                                    {booking.pickupLocation}
+                                                                </p>
                                                             </div>
-                                                            <div className="flex-grow min-w-0">
-                                                                <p className="font-bold text-sm truncate">{(booking.driver || booking.lead).name || 'Driver'}</p>
-                                                                <p className="text-xs text-gray-600">{(booking.driver || booking.lead).phone || 'N/A'}</p>
-                                                                {(booking.driver || booking.lead).rating > 0 && (
-                                                                    <div className="flex items-center gap-1 mt-0.5">
-                                                                        <span className="text-[11px] font-bold text-gray-700">{(booking.driver || booking.lead).rating.toFixed(1)}</span>
-                                                                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                                        <span className="text-[10px] text-gray-500">({(booking.driver || booking.lead).totalRides || 0} rides)</span>
-                                                                    </div>
-                                                                )}
+                                                            <div className="min-w-0">
+                                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Drop</p>
+                                                                <p className="text-xs font-semibold text-gray-900 truncate leading-snug" title={booking.dropLocation}>
+                                                                    {booking.dropLocation}
+                                                                </p>
                                                             </div>
-                                                            <a
-                                                                href={`tel:${(booking.driver || booking.lead).phone}`}
-                                                                className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition shadow-lg shrink-0"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                                                            </a>
                                                         </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedDriver((booking.driver || booking.lead));
-                                                                setShowDriverProfile(true);
-                                                            }}
-                                                            className="w-full bg-white hover:bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 flex items-center justify-center gap-2 transition shadow-sm"
-                                                        >
-                                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                                            </svg>
-                                                            <span className="text-xs font-bold text-gray-700">Show Driver Profile</span>
-                                                        </button>
                                                     </div>
-                                                </div>
-                                            )}
 
-                                            {/* Rating UI for Completed Trips */}
-                                            {booking.status === 'COMPLETED' && (
-                                                <div className="mt-3 pt-3 border-t border-gray-100">
-                                                    {booking.rating ? (
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
-                                                                <span>Your Rating:</span>
-                                                                <span>{'★'.repeat(booking.rating)}</span>
-                                                            </div>
-                                                            {booking.feedback && (
-                                                                <p className="text-xs text-gray-600 italic">"{booking.feedback}"</p>
+                                                    {/* Fare Box */}
+                                                    {booking.estimateAmount && (
+                                                        <div className="bg-gray-50/90 rounded-xl p-2.5 text-right shrink-0 border border-gray-100 min-w-[70px]">
+                                                            <p className="text-base sm:text-lg font-black text-gray-900 leading-tight">
+                                                                ₹{booking.estimateAmount}
+                                                            </p>
+                                                            {booking.paymentMethod && (
+                                                                <span className="inline-block mt-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                                                                    {booking.paymentMethod}
+                                                                </span>
                                                             )}
                                                         </div>
-                                                    ) : (
-                                                        <div>
-                                                            <p className="text-xs font-bold mb-2">Rate your driver:</p>
-                                                            <div className="flex flex-col gap-3">
-                                                                <div className="flex gap-2">
+                                                    )}
+                                                </div>
+
+                                                {/* ── Driver Details (Unified, No Duplication) ── */}
+                                                {hasDriver && (
+                                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                                        <div className="bg-[#F8FAFC] rounded-xl p-2.5 sm:p-3 border border-slate-200/70">
+                                                            <div className="flex items-center justify-between gap-2 mb-2">
+                                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                                                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                    <span>Your Driver</span>
+                                                                </span>
+                                                                {assignedDriver.rating > 0 && (
+                                                                    <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-gray-200/80 shadow-2xs">
+                                                                        <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                                        <span className="text-[11px] font-black text-gray-800">{assignedDriver.rating.toFixed(1)}</span>
+                                                                        <span className="text-[10px] text-gray-400">({assignedDriver.totalRides || 0} rides)</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex items-center justify-between gap-2.5">
+                                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                                    <div className="w-9 h-9 rounded-full bg-[#0B192C] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                                                                        {assignedDriver.name?.[0] || 'D'}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="font-bold text-xs sm:text-sm text-gray-900 truncate">
+                                                                            {assignedDriver.name || 'Assigned Driver'}
+                                                                        </p>
+                                                                        <p className="text-[11px] text-gray-500 truncate font-medium">
+                                                                            {assignedDriver.phone || 'Verified Chauffeur'}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setSelectedDriver(assignedDriver);
+                                                                            setShowDriverProfile(true);
+                                                                        }}
+                                                                        className="px-2.5 py-1.5 bg-white hover:bg-gray-100 text-gray-700 text-[11px] font-bold rounded-lg border border-gray-200 transition shadow-2xs cursor-pointer"
+                                                                    >
+                                                                        Profile
+                                                                    </button>
+                                                                    {assignedDriver.phone && (
+                                                                        <a
+                                                                            href={`tel:${assignedDriver.phone}`}
+                                                                            className="w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center transition shadow-xs"
+                                                                            title="Call Driver"
+                                                                        >
+                                                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                                                            </svg>
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* ── Status Message & Action Row ── */}
+                                                <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between gap-2 flex-wrap">
+                                                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600">
+                                                        {(booking.status === 'PENDING' || (booking.status === 'CONFIRMED' && !hasDriver)) && (
+                                                            <span className="text-blue-600 flex items-center gap-1">
+                                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+                                                                Finding nearby drivers...
+                                                            </span>
+                                                        )}
+                                                        {booking.status === 'CONFIRMED' && hasDriver && (
+                                                            <span className="text-emerald-700 flex items-center gap-1">
+                                                                ✓ Driver dispatched & on the way
+                                                            </span>
+                                                        )}
+                                                        {booking.status === 'ONGOING' && (
+                                                            <span className="text-purple-700 flex items-center gap-1">
+                                                                🚗 Trip currently in progress
+                                                            </span>
+                                                        )}
+                                                        {booking.status === 'COMPLETED' && (
+                                                            <span className="text-gray-500 flex items-center gap-1">
+                                                                ✓ Trip completed
+                                                            </span>
+                                                        )}
+                                                        {booking.cancellationRequested && (
+                                                            <span className="text-amber-700 flex items-center gap-1">
+                                                                ⏳ Cancellation request submitted
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Cancel Trip Button */}
+                                                    {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && !booking.cancellationRequested && (
+                                                        <button
+                                                            onClick={() => setCancelModalBookingId(booking.id)}
+                                                            className="text-[11px] text-red-600 font-bold px-3 py-1 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200/60 transition cursor-pointer"
+                                                        >
+                                                            Cancel Trip
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* ── Rating & Feedback Section (Completed Trips) ── */}
+                                                {booking.status === 'COMPLETED' && (
+                                                    <div className="mt-3 pt-2.5 border-t border-gray-100">
+                                                        {booking.rating ? (
+                                                            <div className="bg-amber-50/60 rounded-xl p-2.5 border border-amber-100 flex items-center justify-between gap-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[11px] font-bold text-amber-900">Your Rating:</span>
+                                                                    <span className="text-amber-500 text-xs tracking-wider">{'★'.repeat(booking.rating)}</span>
+                                                                </div>
+                                                                {booking.feedback && (
+                                                                    <p className="text-xs text-gray-700 italic truncate max-w-[180px]">
+                                                                        "{booking.feedback}"
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-2">
+                                                                <p className="text-[11px] font-bold text-gray-700">Rate your chauffeur:</p>
+                                                                <div className="flex gap-1.5">
                                                                     {[1, 2, 3, 4, 5].map(star => (
                                                                         <button
                                                                             key={star}
+                                                                            type="button"
                                                                             onClick={() => handleRating(booking.id, star)}
-                                                                            className={`w-8 h-8 rounded-full font-bold border flex items-center justify-center transition ${(ratingData[booking.id]?.rating || 0) >= star
-                                                                                ? 'bg-yellow-50 text-yellow-500 border-yellow-200'
-                                                                                : 'bg-gray-50 text-gray-300 hover:text-yellow-500 border-gray-200 hover:bg-yellow-50'
-                                                                                }`}
+                                                                            className={`w-7 h-7 rounded-lg text-sm font-bold flex items-center justify-center transition cursor-pointer ${(ratingData[booking.id]?.rating || 0) >= star
+                                                                                ? 'bg-amber-400 text-white shadow-xs scale-105'
+                                                                                : 'bg-white text-gray-300 hover:text-amber-400 border border-gray-200'
+                                                                            }`}
                                                                         >
                                                                             ★
                                                                         </button>
                                                                     ))}
                                                                 </div>
                                                                 {(ratingData[booking.id]?.rating || 0) > 0 && (
-                                                                    <div className="flex flex-col gap-2">
+                                                                    <div className="space-y-2 pt-1 animate-in fade-in duration-150">
                                                                         <textarea
                                                                             value={ratingData[booking.id]?.feedback || ''}
                                                                             onChange={(e) => handleFeedbackChange(booking.id, e.target.value)}
                                                                             placeholder="How was your trip? (Optional)"
-                                                                            className="w-full text-sm p-2 border border-gray-200 rounded-lg resize-none focus:ring-1 focus:ring-[#0B192C] outline-none"
+                                                                            className="w-full text-xs p-2.5 bg-white border border-gray-200 rounded-lg resize-none focus:ring-1 focus:ring-[#0B192C] outline-hidden"
                                                                             rows={2}
                                                                         />
                                                                         <button
+                                                                            type="button"
                                                                             onClick={() => submitRating(booking.id)}
-                                                                            className="bg-[#0B192C] text-white text-xs font-bold py-2 px-4 rounded-lg hover:bg-[#1E3E62] transition self-start"
+                                                                            className="bg-[#0B192C] hover:bg-[#1E3E62] text-white text-xs font-bold py-1.5 px-3 rounded-lg transition shadow-xs cursor-pointer"
                                                                         >
                                                                             Submit Rating
                                                                         </button>
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })
