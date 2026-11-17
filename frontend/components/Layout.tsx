@@ -35,7 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentUser, onLogout, onSwit
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans text-black">
       {/* Uber-style Minimal Navbar */}
-      <nav className={`bg-[#152B4D] text-white h-16 sticky top-0 z-50 border-b border-[#1E3E62]/40 ${currentUser?.role === UserRole.ADMIN ? 'hidden' : ''}`}>
+      <nav className={`bg-[#0B192C] text-white h-16 sticky top-0 z-50 ${currentUser?.role === UserRole.ADMIN ? 'hidden' : ''}`}>
         <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center cursor-pointer">
