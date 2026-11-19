@@ -129,7 +129,7 @@ const App: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<LandingPage onGetStarted={() => navigate('/customer/login')} />} />
+      <Route path="/" element={<LandingPage onGetStarted={() => navigate('/customer/login')} onDriverPartner={() => navigate('/driver/login')} />} />
       
       {/* Auth Routes */}
       <Route path="/login" element={<Navigate to="/customer/login" replace />} />

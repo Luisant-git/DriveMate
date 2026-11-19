@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import carlogo from '../assets/carlogo.png';
 
 interface LandingPageProps {
     onGetStarted: () => void;
+    onDriverPartner?: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner }) => {
+    const navigate = useNavigate();
+    const goToDriverLogin = onDriverPartner || (() => navigate('/driver/login'));
     const [activeTab, setActiveTab] = useState<'local' | 'outstation'>('local');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     return (
@@ -33,11 +38,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B192C] text-white w-full border-b border-[#1E3E62] relative">
                 <div className="flex justify-between items-center px-3 md:px-12 py-3">
-                    <div className="text-lg md:text-xl font-bold tracking-tighter">SNPNBC</div>
+                    <div className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <img
+                            src={carlogo}
+                            alt="SNP Consultant and Services"
+                            className="h-8 sm:h-9 md:h-10 w-auto object-contain"
+                        />
+                    </div>
                     <nav className="hidden md:flex gap-6">
                         <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors" onClick={onGetStarted}>Hire a Driver</button>
                         <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors" onClick={onGetStarted}>Outstation Cabs</button>
-                        <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors" onClick={onGetStarted}>Partner Program</button>
+                        <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors" onClick={goToDriverLogin}>Partner Program</button>
                         <button className="text-xs uppercase tracking-wider font-semibold hover:text-gray-300 transition-colors">Support</button>
                     </nav>
                     <div className="flex items-center gap-2 md:gap-4">
@@ -71,7 +82,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
                                 Outstation Cabs
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={goToDriverLogin}>
                                 Partner Program
                             </button>
                             <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors">
@@ -120,35 +131,35 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <section className="bg-gray-50 px-6 md:px-12 py-16 md:py-20 border-y border-gray-100">
                     <div className="max-w-6xl mx-auto">
                         <h2 className="text-3xl md:text-4xl font-semibold mb-12 tracking-tighter text-center md:text-left">Why SNP?</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="group">
-                                <div className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-lg mb-4 group-hover:scale-110 transition-transform">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                            <div className="group bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col">
+                                <div className="w-12 h-12 bg-[#0B192C] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-base font-bold mb-2">Verified Experts</h3>
-                                <p className="text-xs md:text-sm text-gray-500 leading-relaxed">Every driver is background-checked and professionally trained for your safety.</p>
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">Verified Experts</h3>
+                                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">Every driver is background-checked and professionally trained for your safety.</p>
                             </div>
-                            <div className="group">
-                                <div className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-lg mb-4 group-hover:scale-110 transition-transform">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <div className="group bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col">
+                                <div className="w-12 h-12 bg-[#0B192C] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                                         <polyline points="17 2 12 7 7 2" />
                                     </svg>
                                 </div>
-                                <h3 className="text-base font-bold mb-2">Flat Pricing</h3>
-                                <p className="text-xs md:text-sm text-gray-500 leading-relaxed">No surges, no surprises. Pay exactly what you see at the time of booking.</p>
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">Flat Pricing</h3>
+                                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">No surges, no surprises. Pay exactly what you see at the time of booking.</p>
                             </div>
-                            <div className="group">
-                                <div className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-lg mb-4 group-hover:scale-110 transition-transform">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <div className="group bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col">
+                                <div className="w-12 h-12 bg-[#0B192C] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
                                     </svg>
                                 </div>
-                                <h3 className="text-base font-bold mb-2">Anywhere, Anytime</h3>
-                                <p className="text-xs md:text-sm text-gray-500 leading-relaxed">Round-the-clock availability for both local and interstate journeys.</p>
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">Anywhere, Anytime</h3>
+                                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">Round-the-clock availability for both local and interstate journeys.</p>
                             </div>
                         </div>
                     </div>
@@ -287,7 +298,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <p className="text-base md:text-lg text-gray-600 mb-10 max-w-md mx-auto md:mx-0">
                                 Join the network of 5,000+ drivers and earn on your own terms. Flexible hours and weekly payouts.
                             </p>
-                            <button className="bg-[#0B192C] text-white px-8 py-3.5 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all shadow-xl" onClick={onGetStarted}>
+                            <button className="bg-[#0B192C] text-white px-8 py-3.5 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all shadow-xl cursor-pointer" onClick={goToDriverLogin}>
                                 Join As Partner
                             </button>
                         </div>
@@ -305,21 +316,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <section className="bg-gray-50 px-6 md:px-12 py-16 md:py-20">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10">
-                            <div className="p-8 md:p-10 bg-white border border-gray-100 rounded-2xl flex flex-col justify-between group hover:border-[#0B192C] transition-colors cursor-pointer">
+                            <div onClick={goToDriverLogin} className="p-6 sm:p-8 md:p-10 bg-white rounded-2xl border border-gray-200/90 hover:border-gray-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer">
                                 <div>
                                     <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Mobile First</div>
-                                    <h3 className="text-xl md:text-2xl font-semibold mb-4 text-black">Partner App</h3>
-                                    <p className="text-sm md:text-base text-gray-500 mb-8">Manage your fleet and bookings on the go with real-time analytics.</p>
+                                    <h3 className="text-xl md:text-2xl font-semibold mb-3 text-black">Partner App</h3>
+                                    <p className="text-sm md:text-base text-gray-500 mb-8 leading-relaxed">Manage your fleet and bookings on the go with real-time analytics.</p>
                                 </div>
                                 <div className="text-sm font-bold uppercase tracking-widest text-black flex items-center gap-3 group-hover:gap-5 transition-all">
-                                    Download Now <span className="text-2xl">→</span>
+                                    Join As Partner <span className="text-2xl">→</span>
                                 </div>
                             </div>
-                            <div className="p-8 md:p-10 bg-white border border-gray-100 rounded-2xl flex flex-col justify-between group hover:border-[#0B192C] transition-colors cursor-pointer">
+                            <div onClick={onGetStarted} className="p-6 sm:p-8 md:p-10 bg-white rounded-2xl border border-gray-200/90 hover:border-gray-300 shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer">
                                 <div>
                                     <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">User First</div>
-                                    <h3 className="text-xl md:text-2xl font-semibold mb-4 text-black">Customer App</h3>
-                                    <p className="text-sm md:text-base text-gray-500 mb-8">Book, track and pay seamlessly. Get your driver in minutes.</p>
+                                    <h3 className="text-xl md:text-2xl font-semibold mb-3 text-black">Customer App</h3>
+                                    <p className="text-sm md:text-base text-gray-500 mb-8 leading-relaxed">Book, track and pay seamlessly. Get your driver in minutes.</p>
                                 </div>
                                 <div className="text-sm font-bold uppercase tracking-widest text-black flex items-center gap-3 group-hover:gap-5 transition-all">
                                     Download Now <span className="text-2xl">→</span>
@@ -335,7 +346,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <div className="max-w-6xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 md:gap-16 mb-20">
                         <div className="col-span-1">
-                            <div className="text-xl font-bold tracking-tighter mb-6">SNPNBC Consultant and Manpower Services</div>
+                            <img src={carlogo} alt="SNP Consultant and Services" className="h-10 w-auto object-contain mb-4" />
+                            <div className="text-xl font-bold tracking-tighter mb-4">SNPNBC Consultant and Manpower Services</div>
                             <p className="text-[11px] text-gray-300 leading-relaxed uppercase tracking-wider">
                                 No.21/A, Kengeri Main Road, <br /> Near Manthri Alpine Apartment, <br /> Channasandra, Bengaluru - 560098
                             </p>
@@ -353,7 +365,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <h4 className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Resources</h4>
                             <ul className="space-y-3 text-[12px]">
                                 <li><a href="#" className="hover:text-gray-400 transition-colors">Safety Guidelines</a></li>
-                                <li><a href="#" className="hover:text-gray-400 transition-colors">Partner Portal</a></li>
+                                <li><button onClick={goToDriverLogin} className="hover:text-gray-400 transition-colors text-left cursor-pointer">Partner Portal</button></li>
                                 <li><a href="#" className="hover:text-gray-400 transition-colors">Help Center</a></li>
                                 <li><a href="#" className="hover:text-gray-400 transition-colors">Emergency</a></li>
                             </ul>
