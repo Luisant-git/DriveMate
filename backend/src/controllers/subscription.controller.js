@@ -55,6 +55,53 @@ const updateExpiredSubscriptions = async (driverId = null) => {
 
 const VALID_CATEGORIES = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
 
+export const resolvePlanCategory = (plan = {}) => {
+  const currentCat = (plan.category || '').trim();
+  if (currentCat && !['general', 'all'].includes(currentCat.toLowerCase())) {
+    return currentCat;
+  }
+  const name = (plan.name || '').toLowerCase();
+  const desc = (plan.description || '').toLowerCase();
+  const combined = `${name} ${desc}`;
+
+  if (
+    combined.includes('diamond') ||
+    combined.includes('new - 72') ||
+    combined.includes('new - 84') ||
+    combined.includes('new - 96') ||
+    combined.includes('new - 9') ||
+    combined.includes('new - 11') ||
+    combined.includes('new - 23')
+  ) {
+    return 'Diamond';
+  }
+  if (
+    combined.includes('platinum') ||
+    combined.includes('old - 36') ||
+    combined.includes('old - 52') ||
+    combined.includes('old - 63') ||
+    combined.includes('old - 5') ||
+    combined.includes('old - 7') ||
+    combined.includes('old - 17') ||
+    combined.includes('old - 18')
+  ) {
+    return 'Platinum';
+  }
+  if (combined.includes('gold')) {
+    return 'Gold';
+  }
+  if (combined.includes('silver plus')) {
+    return 'Silver Plus';
+  }
+  if (combined.includes('silver') || combined.includes('spare driver')) {
+    return 'Silver';
+  }
+  if (combined.includes('monthly') || plan.type === 'MONTHLY') {
+    return 'Monthly';
+  }
+  return 'Silver';
+};
+
 // Min hours, the min (base) rate and the extra per hour rate are the only
 // numbers the admin form carries, so a real number in the body wins and
 // anything missing falls back to what the description says. The excess amount
@@ -69,10 +116,11 @@ export const getSubscriptionCategories = async (req, res) => {
   try {
     const defaultCategories = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
     const plans = await prisma.subscriptionPlan.findMany({
-      select: { category: true },
-      distinct: ['category'],
+      select: { category: true, name: true, description: true },
     });
-    const dbCategories = plans.map((p) => p.category).filter(Boolean);
+    const dbCategories = plans
+      .map((p) => resolvePlanCategory(p))
+      .filter((c) => c && !['general', 'all'].includes(c.toLowerCase()));
     const allCategories = Array.from(new Set([...defaultCategories, ...dbCategories]));
     res.json(allCategories);
   } catch (error) {
@@ -141,6 +189,18 @@ const sortPlans = (plans) => {
 export const getSubscriptionPlans = async (req, res) => {
   try {
     const plans = await prisma.subscriptionPlan.findMany();
+
+    // Automatically resolve and persist any plan stuck under GENERAL or missing category
+    for (const plan of plans) {
+      const resolved = resolvePlanCategory(plan);
+      if (plan.category !== resolved) {
+        plan.category = resolved;
+        prisma.subscriptionPlan.update({
+          where: { id: plan.id },
+          data: { category: resolved }
+        }).catch((err) => console.error(`Failed to update category for plan ${plan.id}:`, err));
+      }
+    }
 
     const sortedPlans = sortPlans(plans);
 

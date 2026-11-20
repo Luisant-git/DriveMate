@@ -90,6 +90,53 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packageCategoryFilter, setPackageCategoryFilter] = useState<string>('All');
 
+  const resolvePlanCategory = (plan: Partial<SubscriptionPlan> | any): string => {
+    const currentCat = (plan?.category || '').trim();
+    if (currentCat && !['general', 'all'].includes(currentCat.toLowerCase())) {
+      return currentCat;
+    }
+    const name = (plan?.name || '').toLowerCase();
+    const desc = (plan?.description || '').toLowerCase();
+    const combined = `${name} ${desc}`;
+
+    if (
+      combined.includes('diamond') ||
+      combined.includes('new - 72') ||
+      combined.includes('new - 84') ||
+      combined.includes('new - 96') ||
+      combined.includes('new - 9') ||
+      combined.includes('new - 11') ||
+      combined.includes('new - 23')
+    ) {
+      return 'Diamond';
+    }
+    if (
+      combined.includes('platinum') ||
+      combined.includes('old - 36') ||
+      combined.includes('old - 52') ||
+      combined.includes('old - 63') ||
+      combined.includes('old - 5') ||
+      combined.includes('old - 7') ||
+      combined.includes('old - 17') ||
+      combined.includes('old - 18')
+    ) {
+      return 'Platinum';
+    }
+    if (combined.includes('gold')) {
+      return 'Gold';
+    }
+    if (combined.includes('silver plus')) {
+      return 'Silver Plus';
+    }
+    if (combined.includes('silver') || combined.includes('spare driver')) {
+      return 'Silver';
+    }
+    if (combined.includes('monthly') || plan?.type === 'MONTHLY') {
+      return 'Monthly';
+    }
+    return 'Silver';
+  };
+
   // Category Master state
   const DEFAULT_PACKAGE_CATEGORIES = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
@@ -106,8 +153,9 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
 
   // Combined unique list of categories from defaults + custom + existing packages
   const allCategories = useMemo(() => {
-    const pkgCats = packages.map((p) => p.category).filter(Boolean) as string[];
-    return Array.from(new Set([...DEFAULT_PACKAGE_CATEGORIES, ...customCategories, ...pkgCats]));
+    const pkgCats = packages.map((p) => resolvePlanCategory(p)).filter(Boolean) as string[];
+    return Array.from(new Set([...DEFAULT_PACKAGE_CATEGORIES, ...customCategories, ...pkgCats]))
+      .filter((c) => !['general', 'all'].includes(c.toLowerCase()));
   }, [packages, customCategories]);
 
   const handleAddCategory = (name: string) => {
@@ -213,9 +261,14 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
         console.error('Failed to fetch packages:', res.message || res.error);
         setPackages([]);
       } else if (Array.isArray(res.data)) {
-        setPackages(res.data as SubscriptionPlan[]);
+        const normalized = (res.data as SubscriptionPlan[]).map((p) => ({
+          ...p,
+          category: resolvePlanCategory(p),
+        }));
+        setPackages(normalized);
       } else if (res.data && typeof res.data === 'object') {
-        setPackages([res.data as SubscriptionPlan]);
+        const p = res.data as SubscriptionPlan;
+        setPackages([{ ...p, category: resolvePlanCategory(p) }]);
       } else {
         setPackages([]);
       }
@@ -329,13 +382,14 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   };
 
   const openEditPackageModal = (pkg: SubscriptionPlan) => {
-    const planType: SubscriptionType = ['Silver', 'Silver Plus'].includes(pkg.category || 'Silver')
+    const resolvedCat = resolvePlanCategory(pkg);
+    const planType: SubscriptionType = ['Silver', 'Silver Plus'].includes(resolvedCat)
       ? 'LOCAL'
       : ((pkg.type as SubscriptionType) || 'LOCAL');
 
     setEditingPackage(pkg);
     setPackageForm({
-      category: pkg.category || 'Silver',
+      category: resolvedCat,
       name: pkg.name || '',
       type: planType,
       price: pkg.price || 0,
@@ -594,7 +648,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   {allCategories.map((category) => {
                     if (packageCategoryFilter !== 'All' && category !== packageCategoryFilter) return null;
                     const categoryPackages = packages
-                      .filter((pkg) => (pkg.category || 'Silver') === category)
+                      .filter((pkg) => (pkg.category || resolvePlanCategory(pkg)) === category)
                       .sort((a, b) => a.price - b.price);
 
                     if (categoryPackages.length === 0) return null;
@@ -605,14 +659,16 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                           {category}
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                          {categoryPackages.map((pkg) => (
+                          {categoryPackages.map((pkg) => {
+                            const catName = pkg.category || resolvePlanCategory(pkg);
+                            return (
                             <div
                               key={pkg.id}
                               className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition bg-white"
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <h4 className="font-bold text-lg">{pkg.category || 'Silver'} ₹{pkg.price}</h4>
+                                  <h4 className="font-bold text-lg">{catName} ₹{pkg.price}</h4>
                                 </div>
                                 <span className="bg-gray-100 text-xs font-bold px-2 py-1 rounded">
                                   {pkg.type === 'BOTH' ? 'LOCAL + OUTSTATION' : pkg.type || 'N/A'}
@@ -648,7 +704,8 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                                 </div>
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
