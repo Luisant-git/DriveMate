@@ -60,7 +60,7 @@ const RouteMap: React.FC<RouteMapProps> = ({ pickup, drop, apiKey }) => {
       directionsRendererRef.current = new google.maps.DirectionsRenderer({
         suppressMarkers: false,
         polylineOptions: {
-          strokeColor: '#0A5C36',
+          strokeColor: '#0B192C',
           strokeWeight: 4,
         },
         preserveViewport: false

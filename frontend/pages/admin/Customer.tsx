@@ -123,7 +123,7 @@ export default function Customer() {
               placeholder="Search by name, phone or ID..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] transition shadow-sm font-medium"
+              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] transition shadow-sm font-medium"
             />
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function Customer() {
                       </td>
                       <td className="px-3.5 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-[#0A5C36] text-white flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-[#0B192C] text-white flex items-center justify-center font-bold text-xs shrink-0">
                             {customer.name ? customer.name[0].toUpperCase() : 'C'}
                           </div>
                           <span className="text-xs font-bold text-gray-900 truncate max-w-[140px]">
@@ -215,7 +215,7 @@ export default function Customer() {
                       <td className="px-3.5 py-3 text-center">
                         <button 
                           onClick={() => setSelectedCustomer(customer)}
-                          className="px-2.5 py-1 bg-[#0A5C36] hover:bg-[#0D7445] text-white rounded text-xs font-bold transition flex items-center gap-1 mx-auto"
+                          className="px-2.5 py-1 bg-[#0B192C] hover:bg-[#1E3E62] text-white rounded text-xs font-bold transition flex items-center gap-1 mx-auto"
                           title="View Details"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,7 +261,7 @@ export default function Customer() {
             <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Profile Card */}
               <div className="flex items-center gap-3.5 pb-3 border-b border-gray-100">
-                <div className="w-12 h-12 rounded-full bg-[#0A5C36] text-white flex items-center justify-center font-bold text-lg shrink-0">
+                <div className="w-12 h-12 rounded-full bg-[#0B192C] text-white flex items-center justify-center font-bold text-lg shrink-0">
                   {selectedCustomer.name ? selectedCustomer.name[0].toUpperCase() : 'C'}
                 </div>
                 <div>
@@ -374,7 +374,7 @@ export default function Customer() {
                               url: idUrl!,
                               entityName: selectedCustomer.name || 'Customer'
                             })}
-                            className="px-2.5 py-1.5 bg-[#0A5C36] text-white text-xs font-bold rounded-lg hover:bg-[#0D7445] transition"
+                            className="px-2.5 py-1.5 bg-[#0B192C] text-white text-xs font-bold rounded-lg hover:bg-[#1E3E62] transition"
                           >
                             View
                           </button>
@@ -402,7 +402,7 @@ export default function Customer() {
               <button
                 type="button"
                 onClick={() => setSelectedCustomer(null)}
-                className="w-full py-2 bg-[#0A5C36] hover:bg-[#0D7445] text-white font-bold text-xs rounded-xl transition"
+                className="w-full py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-white font-bold text-xs rounded-xl transition"
               >
                 Close
               </button>

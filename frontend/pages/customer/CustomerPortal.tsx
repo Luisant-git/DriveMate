@@ -1287,7 +1287,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                         {/* Uber Header: Black Icon & Clean Close */}
                         <div className="flex items-center justify-between">
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#0A5C36] text-white flex items-center justify-center shadow-md">
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#0B192C] text-white flex items-center justify-center shadow-md">
                                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1344,7 +1344,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             setFormData(prev => ({ ...prev, pickup: `${city}, India` }));
                                             setShowUnavailableAreaModal(false);
                                         }}
-                                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-[#0A5C36] hover:text-white text-gray-800 text-[11px] sm:text-xs font-bold transition active:scale-95 border border-gray-200"
+                                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-100 hover:bg-[#0B192C] hover:text-white text-gray-800 text-[11px] sm:text-xs font-bold transition active:scale-95 border border-gray-200"
                                     >
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                                         <span className="truncate">{city}</span>
@@ -1441,14 +1441,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             locked
                                                 ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
                                                 : isSelected
-                                                ? 'bg-[#ECFDF5] border-2 border-[#0A5C36] shadow-xs ring-1 ring-[#0A5C36]/15'
+                                                ? 'bg-[#F0F7FF] border-2 border-[#0B192C] shadow-xs ring-1 ring-[#0B192C]/15'
                                                 : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300 shadow-2xs cursor-pointer'
                                         }`}
                                     >
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-base font-black text-gray-900 tracking-tight">{option}</span>
                                             {isSelected && (
-                                                <div className="w-4 h-4 rounded-full bg-[#0A5C36] text-white flex items-center justify-center shadow-xs">
+                                                <div className="w-4 h-4 rounded-full bg-[#0B192C] text-white flex items-center justify-center shadow-xs">
                                                     <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                                 </div>
                                             )}
@@ -1510,7 +1510,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <input
                                     type="date"
                                     min={new Date().toISOString().split('T')[0]}
-                                    className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:bg-white focus:border-[#0A5C36] transition outline-hidden"
+                                    className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:bg-white focus:border-[#0B192C] transition outline-hidden"
                                     value={formData.date}
                                     onChange={(e) => {
                                         const newDate = e.target.value;
@@ -1535,7 +1535,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 onClick={() => setFormData({ ...formData, time: slot.value })}
                                                 className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition cursor-pointer ${
                                                     isTimeSelected
-                                                        ? 'bg-[#0A5C36] text-white shadow-xs'
+                                                        ? 'bg-[#0B192C] text-white shadow-xs'
                                                         : 'bg-white hover:bg-gray-200/70 text-gray-700 border border-gray-200/50'
                                                 }`}
                                             >
@@ -1559,7 +1559,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <input
                                         type="date"
                                         min={formData.date || new Date().toISOString().split('T')[0]}
-                                        className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:bg-white focus:border-[#0A5C36] transition outline-hidden"
+                                        className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:bg-white focus:border-[#0B192C] transition outline-hidden"
                                         value={formData.returnDate}
                                         onChange={(e) => {
                                             const newReturnDate = e.target.value;
@@ -1583,7 +1583,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     onClick={() => setFormData({ ...formData, returnTime: slot.value })}
                                                     className={`py-2 px-1 text-center rounded-lg text-xs font-bold transition cursor-pointer ${
                                                         isReturnSelected
-                                                            ? 'bg-[#0A5C36] text-white shadow-xs'
+                                                            ? 'bg-[#0B192C] text-white shadow-xs'
                                                             : 'bg-white hover:bg-gray-200/70 text-gray-700 border border-gray-200/50'
                                                     }`}
                                                 >
@@ -1604,7 +1604,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     setShowScheduleModal(false);
                                     setTimeout(() => handleEstimate(false), 100);
                                 }}
-                                className="w-full bg-[#0A5C36] hover:bg-[#0D7445] text-white font-bold py-3.5 px-4 rounded-2xl transition active:scale-[0.99] shadow-md shadow-[#0A5C36]/20 flex items-center justify-center gap-2 cursor-pointer"
+                                className="w-full bg-[#0B192C] hover:bg-[#1E3E62] text-white font-bold py-3.5 px-4 rounded-2xl transition active:scale-[0.99] shadow-md shadow-[#0B192C]/20 flex items-center justify-center gap-2 cursor-pointer"
                             >
                                 <span>Done</span>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
@@ -1720,7 +1720,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <p className="text-[10px] sm:text-xs text-gray-500 font-medium">Languages Known</p>
                                             <div className="flex flex-wrap gap-1.5 mt-1">
                                                 {selectedDriverOrLead.languagesKnown.map((lang: string) => (
-                                                    <span key={lang} className="bg-[#0A5C36] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                                                    <span key={lang} className="bg-[#0B192C] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
                                                         {lang}
                                                     </span>
                                                 ))}
@@ -1788,7 +1788,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Full Name</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                     value={registrationData.name}
                                     onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
                                     required
@@ -1800,7 +1800,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <input
                                     type="tel"
                                     maxLength={10}
-                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                     value={registrationData.alternateMobile || ''}
                                     onChange={(e) => setRegistrationData({ ...registrationData, alternateMobile: e.target.value.replace(/\D/g, '') })}
                                     placeholder="10-digit mobile number"
@@ -1811,7 +1811,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Phone Number</label>
                                 <input
                                     type="tel"
-                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                     value={registrationData.phone}
                                     onChange={(e) => {
                                         const newPhone = e.target.value;
@@ -1829,7 +1829,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <input
                                     type="checkbox"
                                     id="regPhoneSameAsWhatsapp"
-                                    className="mr-2 rounded border-gray-300 text-black focus:ring-[#0A5C36]"
+                                    className="mr-2 rounded border-gray-300 text-black focus:ring-[#0B192C]"
                                     checked={registrationData.phoneSameAsWhatsapp}
                                     onChange={(e) => {
                                         const isChecked = e.target.checked;
@@ -1848,7 +1848,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">WhatsApp Number</label>
                                     <input
                                         type="tel"
-                                        className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                         value={registrationData.whatsappNumber}
                                         onChange={(e) => setRegistrationData({ ...registrationData, whatsappNumber: e.target.value })}
                                         required={!registrationData.phoneSameAsWhatsapp}
@@ -1859,7 +1859,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 mb-1.5 sm:mb-2 uppercase">Address</label>
                                 <textarea
-                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] resize-none"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2.5 sm:p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] resize-none"
                                     rows={3}
                                     value={registrationData.address}
                                     onChange={(e) => setRegistrationData({ ...registrationData, address: e.target.value })}
@@ -1872,7 +1872,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <input
                                     type="file"
                                     accept="image/*,.pdf,.doc,.docx,.txt"
-                                    className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-[#0A5C36] file:text-white hover:file:bg-gray-800"
+                                    className="w-full bg-gray-100 border-none rounded-lg p-2 sm:p-3 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#0B192C] file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-xs sm:file:text-sm file:font-semibold file:bg-[#0B192C] file:text-white hover:file:bg-gray-800"
                                     onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
@@ -1934,10 +1934,10 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
                     </div>
                     <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
-                        <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-[#0A5C36] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0A5C36]'}`}>Book</button>
-                        <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-[#0A5C36] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0A5C36]'}`}>Trips</button>
-                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-[#0A5C36] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0A5C36]'}`}>Hiring</button>
-                        <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-[#0A5C36] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0A5C36]'}`}>Profile</button>
+                        <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Book</button>
+                        <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Trips</button>
+                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Hiring</button>
+                        <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Profile</button>
                     </div>
                 </div>
 
@@ -1954,7 +1954,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         }
                                     }}
                                     className={`w-full p-2 rounded-xl flex flex-col items-center text-center transition shadow-sm border ${![BookingType.WEEKLY, BookingType.MONTHLY].includes(driverType)
-                                        ? 'bg-[#0A5C36] text-white border-[#0A5C36] shadow-xs'
+                                        ? 'bg-[#0B192C] text-white border-[#0B192C] shadow-xs'
                                         : 'bg-white text-gray-800 border-gray-200 hover:border-gray-300'
                                         }`}
                                 >
@@ -2004,7 +2004,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 setTimeout(() => handleEstimateWithValues('4 Hrs', false), 100);
                                             }}
                                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${serviceType === BookingType.LOCAL_HOURLY
-                                                ? 'bg-[#0A5C36] text-white'
+                                                ? 'bg-[#0B192C] text-white'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
@@ -2019,7 +2019,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 setTimeout(() => handleEstimateWithValues('8 Hrs', true), 100);
                                             }}
                                             className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition ${serviceType === BookingType.OUTSTATION
-                                                ? 'bg-[#0A5C36] text-white'
+                                                ? 'bg-[#0B192C] text-white'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
@@ -2064,11 +2064,11 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             {/* Location Inputs */}
                             <div className="relative mb-4">
                                 <div className="absolute left-4 top-4 bottom-4 w-4 flex flex-col items-center">
-                                    <div className="w-2 h-2 bg-[#0A5C36] rounded-full"></div>
+                                    <div className="w-2 h-2 bg-[#0B192C] rounded-full"></div>
                                     {(formData.tripType === 'One Way' || serviceType === BookingType.OUTSTATION) && (
                                         <>
                                             <div className="w-0.5 flex-grow bg-gray-300 my-1"></div>
-                                            <div className="w-2 h-2 bg-[#0A5C36] border border-[#0A5C36]"></div>
+                                            <div className="w-2 h-2 bg-[#0B192C] border border-[#0B192C]"></div>
                                         </>
                                     )}
                                 </div>
@@ -2212,7 +2212,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             }
                                         }}
                                         placeholder="Pickup location"
-                                        className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] placeholder-gray-500"
+                                        className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] placeholder-gray-500"
                                         showMyLocation={true}
                                         readOnly={true}
                                     />
@@ -2228,7 +2228,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     setUnavailableAreaName(formData.pickup);
                                                     setShowUnavailableAreaModal(true);
                                                 }}
-                                                className="text-[11px] font-bold text-gray-800 hover:text-[#0A5C36] underline shrink-0 whitespace-nowrap"
+                                                className="text-[11px] font-bold text-gray-800 hover:text-[#0B192C] underline shrink-0 whitespace-nowrap"
                                             >
                                                 See active cities →
                                             </button>
@@ -2357,7 +2357,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     }
                                                 }}
                                                 placeholder="Drop location"
-                                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] placeholder-gray-500"
+                                                className="w-full bg-gray-100 border-none rounded-lg py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] placeholder-gray-500"
                                                 readOnly={true}
                                             />
                                             {serviceType === BookingType.LOCAL_HOURLY && formData.tripType === 'One Way' && oneWayErrors.drop && <p className="text-xs text-red-600 font-bold mt-1">{oneWayErrors.drop}</p>}
@@ -2375,7 +2375,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             value={aiQuery}
                             onChange={(e) => setAiQuery(e.target.value)}
                         />
-                        <button onClick={handleAiAssist} className="bg-[#0A5C36] text-white rounded-lg w-8 flex items-center justify-center">
+                        <button onClick={handleAiAssist} className="bg-[#0B192C] text-white rounded-lg w-8 flex items-center justify-center">
                             {isAiLoading ? '...' : '→'}
                         </button>
                     </div> */}
@@ -2743,7 +2743,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <div className="bg-gray-50 rounded-2xl p-4 mb-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-[#0A5C36] rounded-full flex items-center justify-center">
+                                                <div className="w-10 h-10 bg-[#0B192C] rounded-full flex items-center justify-center">
                                                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                                     </svg>
@@ -2838,7 +2838,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <div className="mx-4 mb-4">
                                     <div className="bg-gray-50 rounded-2xl p-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-[#0A5C36] rounded-full flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-[#0B192C] rounded-full flex items-center justify-center">
                                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                                 </svg>
@@ -2936,7 +2936,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         type="checkbox"
                                         checked={termsAccepted}
                                         onChange={(e) => setTermsAccepted(e.target.checked)}
-                                        className="mt-0.5 w-3 h-3 text-black bg-gray-100 border-gray-300 rounded focus:ring-[#0A5C36] focus:ring-2"
+                                        className="mt-0.5 w-3 h-3 text-black bg-gray-100 border-gray-300 rounded focus:ring-[#0B192C] focus:ring-2"
                                     />
                                     <span className="text-gray-600">
                                         I agree to the{' '}
@@ -2998,7 +2998,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 disabled={!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)}
                                 className={`w-full py-3 sm:py-3.5 rounded-xl font-bold text-sm sm:text-base transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] ${!isAuthenticated || authChecking || !termsAccepted || (serviceType === BookingType.OUTSTATION && calculatedDistance && calculatedDistance < 60)
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#0A5C36] text-white hover:bg-[#0D7445] shadow-md shadow-[#0A5C36]/25'
+                                    : 'bg-[#0B192C] text-white hover:bg-[#1E3E62] shadow-md shadow-[#0B192C]/25'
                                     }`}
                             >
                                 {authChecking ? 'Checking...' :
@@ -3354,7 +3354,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <div className="mt-3 pt-3 border-t border-gray-100">
                                                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Driver Details</p>
                                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                                                        <div className="w-10 h-10 bg-[#0A5C36] text-white rounded-full flex items-center justify-center font-bold">
+                                                        <div className="w-10 h-10 bg-[#0B192C] text-white rounded-full flex items-center justify-center font-bold">
                                                             {(trip.driver || trip.lead).name?.[0] || 'D'}
                                                         </div>
                                                         <div className="flex-grow">
@@ -3419,7 +3419,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     onClick={fetchMyJobs}
                                     disabled={jobsLoading}
                                     title="Refresh job statuses"
-                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-[#0A5C36] transition disabled:opacity-50"
+                                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-[#0B192C] transition disabled:opacity-50"
                                 >
                                     <svg className={`w-3.5 h-3.5 ${jobsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -3427,7 +3427,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 </button>
                                 <button
                                     onClick={() => setShowJobForm(v => !v)}
-                                    className="bg-[#0A5C36] text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#0D7445] transition flex items-center gap-1.5 whitespace-nowrap"
+                                    className="bg-[#0B192C] text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#1E3E62] transition flex items-center gap-1.5 whitespace-nowrap"
                                 >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                                     {showJobForm ? 'Cancel' : 'Post Job'}
@@ -3439,7 +3439,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         {showJobForm && (
                             <form onSubmit={handleJobSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                                 {/* Form header */}
-                                <div className="bg-[#0A5C36] text-white px-4 py-3.5">
+                                <div className="bg-[#0B192C] text-white px-4 py-3.5">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Posting</p>
                                     <h4 className="text-sm font-black mt-0.5">Post a Job</h4>
                                 </div>
@@ -3454,7 +3454,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Title <span className="text-red-500">*</span></label>
                                         <input type="text" required maxLength={150}
                                             placeholder="Eg. Sales executives needed urgently for ..."
-                                            className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                            className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                             value={jobFormData.title}
                                             onChange={e => setJobFormData(p => ({ ...p, title: e.target.value }))}
                                         />
@@ -3469,7 +3469,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 const checked = jobFormData.jobType === jt;
                                                 return (
                                                     <label key={jt}
-                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition ${checked ? 'border-[#0A5C36] bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
+                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition ${checked ? 'border-[#0B192C] bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}
                                                     >
                                                         <input
                                                             type="checkbox"
@@ -3500,13 +3500,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Monthly Salary <span className="text-red-500">*</span></label>
                                         <div className="flex items-center gap-2">
                                             <input type="number" min={0} required placeholder="Min"
-                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                 value={jobFormData.salaryMin}
                                                 onChange={e => setJobFormData(p => ({ ...p, salaryMin: e.target.value }))}
                                             />
                                             <span className="text-gray-400 font-bold flex-shrink-0">–</span>
                                             <input type="number" min={0} placeholder="Max"
-                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                 value={jobFormData.salaryMax}
                                                 onChange={e => setJobFormData(p => ({ ...p, salaryMax: e.target.value }))}
                                             />
@@ -3519,7 +3519,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <label className="block text-[10px] text-gray-400 mb-1">Min</label>
-                                                <select className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                <select className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                     value={jobFormData.experienceMin}
                                                     onChange={e => setJobFormData(p => ({ ...p, experienceMin: e.target.value }))}
                                                 >
@@ -3529,7 +3529,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             </div>
                                             <div>
                                                 <label className="block text-[10px] text-gray-400 mb-1">Max</label>
-                                                <select className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                <select className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                     value={jobFormData.experienceMax}
                                                     onChange={e => setJobFormData(p => ({ ...p, experienceMax: e.target.value }))}
                                                 >
@@ -3565,7 +3565,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 {jobFormData.localities.map(loc => (
                                                     <span key={loc} className="flex items-center gap-1 bg-gray-200 text-gray-800 text-xs font-bold px-2.5 py-1 rounded-full">
                                                         {loc}
-                                                        <button type="button" onClick={() => setJobFormData(p => ({ ...p, localities: p.localities.filter(l => l !== loc) }))} className="hover:text-[#0A5C36] text-gray-500 leading-none">×</button>
+                                                        <button type="button" onClick={() => setJobFormData(p => ({ ...p, localities: p.localities.filter(l => l !== loc) }))} className="hover:text-[#0B192C] text-gray-500 leading-none">×</button>
                                                     </span>
                                                 ))}
                                             </div>
@@ -3577,7 +3577,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Job Description <span className="text-red-500">*</span></label>
                                         <textarea required rows={4} maxLength={3000}
                                             placeholder="Type or paste the Job Description here. Only plain text is supported."
-                                            className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] resize-none"
+                                            className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] resize-none"
                                             value={jobFormData.description}
                                             onChange={e => {
                                                 const next = e.target.value;
@@ -3603,7 +3603,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <div>
                                             <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Hiring for (Company name)</label>
                                             <input type="text" maxLength={50} placeholder="Max 50 characters"
-                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                 value={jobFormData.company}
                                                 onChange={e => setJobFormData(p => ({ ...p, company: e.target.value }))}
                                             />
@@ -3615,7 +3615,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <div className="flex flex-1 basis-40 min-w-0 items-stretch gap-2">
                                                     <span className="flex items-center px-2 bg-gray-100 rounded-lg text-xs font-bold text-gray-600 flex-shrink-0">+91</span>
                                                     <input type="tel" required maxLength={10} placeholder="10-digit mobile"
-                                                        className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                        className="flex-1 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                         value={jobFormData.contactPhone}
                                                         onChange={e => {
                                                             setJobFormData(p => ({ ...p, contactPhone: e.target.value.replace(/\D/g, '') }));
@@ -3627,7 +3627,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <button type="button"
                                                     disabled={jobFormData.contactPhone.length !== 10 || isSendingJobOtp || isJobPhoneVerified}
                                                     onClick={handleSendJobOtp}
-                                                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold leading-tight transition ${isJobPhoneVerified ? 'bg-green-100 text-green-700' : 'bg-[#0A5C36] text-white hover:bg-[#0D7445] disabled:opacity-50'}`}
+                                                    className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2 rounded-lg text-[11px] font-bold leading-tight transition ${isJobPhoneVerified ? 'bg-green-100 text-green-700' : 'bg-[#0B192C] text-white hover:bg-[#1E3E62] disabled:opacity-50'}`}
                                                 >
                                                     {isJobPhoneVerified ? 'Verified' : isSendingJobOtp ? 'Sending…' : 'Send OTP'}
                                                 </button>
@@ -3636,7 +3636,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             {isJobOtpSent && !isJobPhoneVerified && (
                                                 <div className="flex flex-wrap items-stretch gap-2 mt-2">
                                                     <input type="text" inputMode="numeric" autoFocus maxLength={6} placeholder="Enter OTP"
-                                                        className="flex-1 basis-40 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm text-center font-bold tracking-[0.3em] placeholder:font-medium placeholder:tracking-normal placeholder:text-gray-400 focus:ring-2 focus:ring-[#0A5C36]"
+                                                        className="flex-1 basis-40 min-w-0 bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm text-center font-bold tracking-[0.3em] placeholder:font-medium placeholder:tracking-normal placeholder:text-gray-400 focus:ring-2 focus:ring-[#0B192C]"
                                                         value={jobOtp}
                                                         onChange={e => setJobOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                                     />
@@ -3663,7 +3663,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         phoneSameAsWhatsapp: e.target.checked,
                                                         ...(e.target.checked && { whatsappNumber: p.contactPhone })
                                                     }))}
-                                                    className="rounded border-gray-300 text-black focus:ring-[#0A5C36]"
+                                                    className="rounded border-gray-300 text-black focus:ring-[#0B192C]"
                                                 />
                                                 Phone same as WhatsApp number
                                             </label>
@@ -3672,7 +3672,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                 <div className="mt-2">
                                                     <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">WhatsApp Number</label>
                                                     <input type="tel" maxLength={10} placeholder="10-digit WhatsApp number"
-                                                        className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                        className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                         value={jobFormData.whatsappNumber}
                                                         onChange={e => setJobFormData(p => ({ ...p, whatsappNumber: e.target.value.replace(/\D/g, '') }))}
                                                     />
@@ -3682,7 +3682,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <div className="mt-2">
                                                 <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">Alternate Number <span className="text-gray-400 font-normal normal-case">(Optional)</span></label>
                                                 <input type="tel" maxLength={10} placeholder="10-digit alternate number"
-                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                                    className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                                     value={jobFormData.alternateMobile}
                                                     onChange={e => setJobFormData(p => ({ ...p, alternateMobile: e.target.value.replace(/\D/g, '') }))}
                                                 />
@@ -3691,7 +3691,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <label className="flex items-center gap-2 mt-2 text-[11px] text-gray-600 cursor-pointer">
                                                 <input type="checkbox" checked={jobFormData.showContact}
                                                     onChange={e => setJobFormData(p => ({ ...p, showContact: e.target.checked }))}
-                                                    className="rounded border-gray-300 text-black focus:ring-[#0A5C36]"
+                                                    className="rounded border-gray-300 text-black focus:ring-[#0B192C]"
                                                 />
                                                 Display my contact details to candidate
                                             </label>
@@ -3705,7 +3705,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             {REMOTE_OPTIONS.map(opt => (
                                                 <button key={opt} type="button"
                                                     onClick={() => setJobFormData(p => ({ ...p, remoteWork: opt }))}
-                                                    className={`flex-1 min-w-0 px-1 py-1.5 rounded-lg text-[11px] font-bold border transition ${jobFormData.remoteWork === opt ? 'bg-[#0A5C36] text-white border-[#0A5C36]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+                                                    className={`flex-1 min-w-0 px-1 py-1.5 rounded-lg text-[11px] font-bold border transition ${jobFormData.remoteWork === opt ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
                                                 >{opt}</button>
                                             ))}
                                         </div>
@@ -3716,7 +3716,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <input type="checkbox" id="jobTerms" required
                                             checked={jobFormData.termsAccepted}
                                             onChange={e => setJobFormData(p => ({ ...p, termsAccepted: e.target.checked }))}
-                                            className="mt-0.5 rounded border-gray-300 text-black focus:ring-[#0A5C36] flex-shrink-0"
+                                            className="mt-0.5 rounded border-gray-300 text-black focus:ring-[#0B192C] flex-shrink-0"
                                         />
                                         <label htmlFor="jobTerms" className="text-xs text-gray-600 cursor-pointer">
                                             I agree to the <span className="font-bold text-black underline">Terms &amp; Conditions</span> and confirm that the information provided is accurate.
@@ -3792,7 +3792,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                                             {/* Logo tile + title */}
                                             <div className="flex items-start gap-3 px-4 pt-3.5">
-                                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0A5C36] text-white">
+                                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0B192C] text-white">
                                                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                     </svg>
@@ -3876,7 +3876,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50/60 px-4 py-2">
                                                 <button
                                                     onClick={() => setExpandedJobId(isExpanded ? null : job.id)}
-                                                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-gray-500 transition hover:bg-white hover:text-[#0A5C36]"
+                                                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-gray-500 transition hover:bg-white hover:text-[#0B192C]"
                                                 >
                                                     {isExpanded ? '▲ Less' : '▼ More details'}
                                                 </button>
@@ -3916,7 +3916,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                             <div className="space-y-6">
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-3 sm:gap-4">
-                                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#0A5C36] text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#0B192C] text-white rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold">
                                             {customer.name?.[0] || 'C'}
                                         </div>
                                         <div>
@@ -3970,7 +3970,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     {((customer as any).languagesKnown || []).length > 0 ? (
                                         <div className="flex flex-wrap gap-2">
                                             {((customer as any).languagesKnown as string[]).map((lang: string) => (
-                                                <span key={lang} className="bg-[#0A5C36] text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
+                                                <span key={lang} className="bg-[#0B192C] text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
                                             ))}
                                         </div>
                                     ) : (
@@ -4110,7 +4110,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Full Name</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                         value={editProfileData.name}
                                         onChange={(e) => setEditProfileData({ ...editProfileData, name: e.target.value })}
                                         required
@@ -4122,7 +4122,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <input
                                         type="tel"
                                         maxLength={10}
-                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                         value={editProfileData.alternateMobile || ''}
                                         onChange={(e) => setEditProfileData({ ...editProfileData, alternateMobile: e.target.value.replace(/\D/g, '') })}
                                         placeholder="10-digit mobile number"
@@ -4133,7 +4133,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Phone Number</label>
                                     <input
                                         type="tel"
-                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                         value={editProfileData.phone}
                                         onChange={(e) => {
                                             const newPhone = e.target.value;
@@ -4151,7 +4151,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     <input
                                         type="checkbox"
                                         id="editPhoneSameAsWhatsapp"
-                                        className="mr-2 rounded border-gray-300 text-black focus:ring-[#0A5C36]"
+                                        className="mr-2 rounded border-gray-300 text-black focus:ring-[#0B192C]"
                                         checked={editProfileData.phoneSameAsWhatsapp}
                                         onChange={(e) => {
                                             const isChecked = e.target.checked;
@@ -4170,7 +4170,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">WhatsApp Number</label>
                                         <input
                                             type="tel"
-                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36]"
+                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C]"
                                             value={editProfileData.whatsappNumber}
                                             onChange={(e) => setEditProfileData({ ...editProfileData, whatsappNumber: e.target.value })}
                                             required={!editProfileData.phoneSameAsWhatsapp}
@@ -4181,7 +4181,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Address</label>
                                     <textarea
-                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] resize-none"
+                                        className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] resize-none"
                                         rows={3}
                                         value={editProfileData.address}
                                         onChange={(e) => setEditProfileData({ ...editProfileData, address: e.target.value })}
@@ -4209,7 +4209,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                                 : [...current, lang]
                                                         });
                                                     }}
-                                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${selected ? 'bg-[#0A5C36] text-white border-[#0A5C36]' : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-400'}`}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${selected ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-400'}`}
                                                 >
                                                     {lang}
                                                 </button>
@@ -4255,7 +4255,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                             <button
                                                                 type="button"
                                                                 onClick={() => window.open(fullUrl!, '_blank')}
-                                                                className="px-3 py-1.5 bg-[#0A5C36] text-white text-xs font-bold rounded-lg hover:bg-[#0D7445]"
+                                                                className="px-3 py-1.5 bg-[#0B192C] text-white text-xs font-bold rounded-lg hover:bg-[#1E3E62]"
                                                             >
                                                                 View PDF
                                                             </button>
@@ -4311,7 +4311,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         <input
                                             type="file"
                                             accept="image/*,.pdf,.doc,.docx,.txt"
-                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0A5C36] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#0A5C36] file:text-white hover:file:bg-gray-800"
+                                            className="w-full bg-gray-100 border-none rounded-lg p-3 text-sm font-medium focus:ring-2 focus:ring-[#0B192C] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#0B192C] file:text-white hover:file:bg-gray-800"
                                             onChange={async (e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
@@ -4340,7 +4340,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 bg-[#0A5C36] text-white py-3 rounded-lg text-sm font-bold hover:bg-[#0D7445]"
+                                        className="flex-1 bg-[#0B192C] text-white py-3 rounded-lg text-sm font-bold hover:bg-[#1E3E62]"
                                     >
                                         Save Changes
                                     </button>
@@ -4449,7 +4449,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <button
                                     type="button"
                                     onClick={handleSwitchToLocal}
-                                    className="flex-1 py-2.5 rounded-lg bg-[#0A5C36] text-white text-xs font-bold hover:bg-[#0D7445]"
+                                    className="flex-1 py-2.5 rounded-lg bg-[#0B192C] text-white text-xs font-bold hover:bg-[#1E3E62]"
                                 >
                                     Switch to Local Hourly
                                 </button>
@@ -4510,7 +4510,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <button
                                     type="button"
                                     onClick={handleSwitchToOutstation}
-                                    className="flex-1 py-2.5 rounded-lg bg-[#0A5C36] text-white text-xs font-bold hover:bg-[#0D7445]"
+                                    className="flex-1 py-2.5 rounded-lg bg-[#0B192C] text-white text-xs font-bold hover:bg-[#1E3E62]"
                                 >
                                     Switch to Outstation
                                 </button>

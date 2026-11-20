@@ -125,7 +125,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
   if (step === 'FORGOT_PHONE') {
     return (
       <form onSubmit={handleSendOtp} className="animate-fade-in flex-grow flex flex-col">
-        <button type="button" onClick={() => setStep('LOGIN')} className="mb-4 text-gray-400 hover:text-[#0A5C36] flex items-center gap-1 text-sm font-bold">
+        <button type="button" onClick={() => setStep('LOGIN')} className="mb-4 text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold">
           ← Back to Login
         </button>
         <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Forgot Password?</h2>
@@ -140,7 +140,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
             <input 
               type="tel" 
               autoFocus
-              className="flex-1 bg-gray-100 border-none rounded-lg p-3 font-bold text-lg focus:ring-2 focus:ring-[#0A5C36] outline-none"
+              className="flex-1 bg-gray-100 border-none rounded-lg p-3 font-bold text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
               placeholder="98765 43210"
               value={forgotPhone}
               onChange={(e) => {
@@ -154,7 +154,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
         <button 
           type="submit" 
           disabled={forgotPhone.length < 10 || isLoading}
-          className="w-full bg-[#0A5C36] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#0D7445] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mt-auto"
+          className="w-full bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mt-auto"
         >
           {isLoading ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -167,7 +167,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
   if (step === 'FORGOT_OTP') {
     return (
       <form onSubmit={handleVerifyOtp} className="animate-fade-in flex-grow flex flex-col">
-        <button type="button" onClick={() => setStep('FORGOT_PHONE')} className="mb-4 text-gray-400 hover:text-[#0A5C36] flex items-center gap-1 text-sm font-bold">
+        <button type="button" onClick={() => setStep('FORGOT_PHONE')} className="mb-4 text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold">
           ← Edit Number
         </button>
         <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Verify OTP</h2>
@@ -179,7 +179,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
             type="text" 
             autoFocus
             maxLength={6}
-            className="w-full bg-gray-100 border-none rounded-lg p-4 font-bold text-2xl tracking-[0.5em] text-center focus:ring-2 focus:ring-[#0A5C36] outline-none"
+            className="w-full bg-gray-100 border-none rounded-lg p-4 font-bold text-2xl tracking-[0.5em] text-center focus:ring-2 focus:ring-[#0B192C] outline-none"
             placeholder="••••••"
             value={otp}
             onChange={(e) => {
@@ -188,7 +188,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
             }}
           />
           <div className="mt-4 text-center">
-            <button type="button" onClick={handleSendOtp} className="text-xs font-bold text-gray-400 hover:text-[#0A5C36]">
+            <button type="button" onClick={handleSendOtp} className="text-xs font-bold text-gray-400 hover:text-[#0B192C]">
               Resend Code
             </button>
           </div>
@@ -197,7 +197,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
         <button 
           type="submit" 
           disabled={otp.length < 6 || isLoading}
-          className="w-full bg-[#0A5C36] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#0D7445] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mt-auto"
+          className="w-full bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mt-auto"
         >
           {isLoading ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -220,7 +220,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
               <input 
                 type={showNewPassword ? "text" : "password"} 
                 autoFocus
-                className="w-full bg-gray-100 border-none rounded-lg p-3 pr-10 font-medium text-lg focus:ring-2 focus:ring-[#0A5C36] outline-none"
+                className="w-full bg-gray-100 border-none rounded-lg p-3 pr-10 font-medium text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
                 placeholder="••••••••"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -228,7 +228,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
               <button 
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#0A5C36]"
+                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#0B192C]"
               >
                 {showNewPassword ? (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -248,7 +248,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
             <div className="relative">
               <input 
                 type={showConfirmPassword ? "text" : "password"} 
-                className="w-full bg-gray-100 border-none rounded-lg p-3 pr-10 font-medium text-lg focus:ring-2 focus:ring-[#0A5C36] outline-none"
+                className="w-full bg-gray-100 border-none rounded-lg p-3 pr-10 font-medium text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -256,7 +256,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
               <button 
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#0A5C36]"
+                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#0B192C]"
               >
                 {showConfirmPassword ? (
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -276,7 +276,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
         <button 
           type="submit" 
           disabled={newPassword.length < 6 || confirmPassword.length < 6 || isLoading}
-          className="w-full bg-[#0A5C36] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#0D7445] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mt-auto"
+          className="w-full bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center mt-auto"
         >
           {isLoading ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -288,7 +288,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
 
   return (
     <form onSubmit={handleLogin} className="animate-fade-in flex-grow flex flex-col">
-      <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-[#0A5C36] flex items-center gap-1 text-sm font-bold">
+      <button type="button" onClick={() => navigate('/')} className="mb-4 text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold">
         ← Back
       </button>
       <h2 className="text-xl sm:text-2xl font-bold mb-2 text-black">Driver Login</h2>
@@ -299,7 +299,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
           <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Phone Number</label>
           <input 
             type="tel"
-            className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-[#0A5C36] outline-none"
+            className="w-full bg-gray-100 border-none rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
             placeholder="9876543210"
             value={loginData.phone}
             onChange={(e) => setLoginData({...loginData, phone: e.target.value})}
@@ -316,7 +316,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
           <div className="relative">
             <input 
               type={showPassword ? "text" : "password"} 
-              className="w-full bg-gray-100 border-none rounded-lg p-3 pr-10 font-medium text-lg focus:ring-2 focus:ring-[#0A5C36] outline-none"
+              className="w-full bg-gray-100 border-none rounded-lg p-3 pr-10 font-medium text-lg focus:ring-2 focus:ring-[#0B192C] outline-none"
               placeholder="••••••••"
               value={loginData.password}
               onChange={(e) => setLoginData({...loginData, password: e.target.value})}
@@ -324,7 +324,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
             <button 
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#0A5C36]"
+              className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#0B192C]"
             >
               {showPassword ? (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -344,7 +344,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
       <button 
         type="submit" 
         disabled={!loginData.phone || !loginData.password || isLoading}
-        className="w-full mt-6 bg-[#0A5C36] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#0D7445] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
+        className="w-full mt-6 bg-[#0B192C] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#1E3E62] transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center"
       >
         {isLoading ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -372,7 +372,7 @@ const DriverLogin: React.FC<DriverLoginProps> = ({ onLogin }) => {
               <button 
                 type="button"
                 onClick={() => setErrorModal({ isOpen: false, message: '' })}
-                className="w-full bg-[#0A5C36] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#0D7445] transition shadow-lg active:scale-95"
+                className="w-full bg-[#0B192C] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1E3E62] transition shadow-lg active:scale-95"
               >
                 Okay, Understood
               </button>

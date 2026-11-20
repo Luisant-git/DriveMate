@@ -173,7 +173,7 @@ export default function QuarterlyVerification() {
           <button
             key={t}
             onClick={() => { setTab(t); setFilter('ALL'); }}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition ${tab === t ? 'bg-[#0A5C36] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition ${tab === t ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
             {t === 'DRIVER' ? 'Drivers' : 'Leads'}
           </button>
@@ -187,7 +187,7 @@ export default function QuarterlyVerification() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1 rounded-full text-xs font-bold transition border ${
-              filter === f ? 'bg-[#0A5C36] text-white border-[#0A5C36]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              filter === f ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
             {f === 'ALL' ? 'All' : f === 'OVERDUE' ? 'Overdue' : f === 'DUE_SOON' ? 'Due Soon' : 'Never Verified'}
@@ -236,7 +236,7 @@ export default function QuarterlyVerification() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => openEntity(entity)}
-                      className="px-3 py-1.5 bg-[#0A5C36] text-white text-xs font-bold rounded-lg hover:bg-[#0D7445] transition"
+                      className="px-3 py-1.5 bg-[#0B192C] text-white text-xs font-bold rounded-lg hover:bg-[#1E3E62] transition"
                     >
                       Verify
                     </button>
@@ -340,7 +340,7 @@ export default function QuarterlyVerification() {
                             disabled={!hasUrl}
                             onClick={() => hasUrl && handleDownload(doc.url!, `${selectedEntity.name}_${doc.label}`)}
                             className={`h-6 px-2 rounded-md text-[11px] font-bold inline-flex items-center gap-1 transition whitespace-nowrap ${
-                              hasUrl ? 'bg-[#0A5C36] hover:bg-neutral-800 text-white shadow-2xs active:scale-95' : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                              hasUrl ? 'bg-[#0B192C] hover:bg-neutral-800 text-white shadow-2xs active:scale-95' : 'bg-gray-100 text-gray-300 cursor-not-allowed'
                             }`}
                             title={hasUrl ? 'Download file' : 'Not uploaded'}
                           >
@@ -373,7 +373,7 @@ export default function QuarterlyVerification() {
                 <div className="border border-gray-200 rounded-xl p-4 space-y-3">
                   <p className="text-xs font-bold text-gray-700 uppercase">Mark Verification</p>
                   <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-[#0A5C36] focus:outline-none"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-[#0B192C] focus:outline-none"
                     rows={3}
                     placeholder="Notes (optional)"
                     value={verifyNotes}
@@ -405,7 +405,7 @@ export default function QuarterlyVerification() {
               ) : (
                 <button
                   onClick={() => setShowVerifyForm(true)}
-                  className="w-full bg-[#0A5C36] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#0D7445] transition"
+                  className="w-full bg-[#0B192C] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition"
                 >
                   Start Verification
                 </button>

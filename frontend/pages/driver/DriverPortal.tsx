@@ -542,7 +542,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           onClick={() => handleSubscriptionBuy(pkg)}
           className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 ${isActive
             ? 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 hover:bg-emerald-500/20 cursor-pointer'
-            : 'bg-[#0A5C36] text-white hover:bg-[#0D7445] cursor-pointer shadow-sm'
+            : 'bg-[#0B192C] text-white hover:bg-[#1E3E62] cursor-pointer shadow-sm'
             }`}
         >
           {isActive ? '✓ Subscribed (Click to Extend / Renew)' : '+ Choose Package & Pay'}
@@ -718,7 +718,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   return (
     <div className="max-w-3xl mx-auto h-[100dvh] flex flex-col">
       {/* Top Header Bar - Fixed */}
-      <div className="bg-[#0A5C36] text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
+      <div className="bg-[#0B192C] text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
         <div className="flex items-center gap-2">
           <p className="font-bold text-sm leading-none">SNP Driver</p>
         </div>
@@ -740,7 +740,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab.id ? 'border-[#0A5C36] text-black' : 'border-transparent text-gray-400'}`}
+            className={`flex-1 min-w-[70px] sm:min-w-[80px] py-3 sm:py-4 text-[10px] sm:text-xs font-bold border-b-2 transition ${activeTab === tab.id ? 'border-[#0B192C] text-black' : 'border-transparent text-gray-400'}`}
           >
             {tab.label}
           </button>
@@ -759,7 +759,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   key={subTab}
                   onClick={() => setRequestsSubTab(subTab as any)}
                   className={`flex-1 py-2 px-3 text-xs font-bold rounded transition ${requestsSubTab === subTab
-                    ? 'bg-[#0A5C36] text-white'
+                    ? 'bg-[#0B192C] text-white'
                     : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
@@ -786,7 +786,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   Ongoing Trips
                 </h3>
                 {activeTrips.map(trip => (
-                  <div key={trip.id} className="bg-[#0A5C36] text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
+                  <div key={trip.id} className="bg-[#0B192C] text-white rounded-xl p-4 sm:p-5 mb-3 shadow-lg">
                     <div className="flex justify-between items-center mb-3 sm:mb-4 border-b border-gray-800 pb-2">
                       <span className="font-bold text-base sm:text-lg flex items-center gap-2">
                         {trip.status === 'ONGOING' ? 'On Trip' : 'Upcoming'}
@@ -967,7 +967,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                 activeTrips.map(trip => (
                   <div key={trip.id} className="bg-gray-50 border-2 border-gray-300 rounded-xl p-4 sm:p-5 mb-3 shadow-md flex flex-col gap-2">
                     <div className="flex justify-between items-start">
-                      <span className="bg-[#0A5C36] text-white text-xs font-bold px-2 py-1 rounded">{trip.serviceType}</span>
+                      <span className="bg-[#0B192C] text-white text-xs font-bold px-2 py-1 rounded">{trip.serviceType}</span>
                       <span className={`text-xs font-bold px-2 py-1 rounded uppercase ${(trip as any).cancellationRequested ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'}`}>{(trip as any).cancellationRequested ? 'Cancellation Pending' : trip.status}</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-2">
@@ -1092,7 +1092,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold transition ${selectedCategory === cat
-                    ? 'bg-[#0A5C36] text-white'
+                    ? 'bg-[#0B192C] text-white'
                     : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
                     }`}
                 >
@@ -1112,7 +1112,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           <div className="animate-fade-in pb-6 sm:pb-10">
             {!isEditingProfile ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="bg-[#0A5C36] h-20 sm:h-24 relative">
+                <div className="bg-[#0B192C] h-20 sm:h-24 relative">
                   <div className="absolute -bottom-8 sm:-bottom-10 left-4 sm:left-6">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-white bg-white flex items-center justify-center overflow-hidden p-1">
                       {driver.photo && driver.photo !== '' ? (
@@ -1147,7 +1147,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   <div className="mb-5 sm:mb-6 grid grid-cols-2 gap-2 sm:gap-4">
                     <div className="bg-white border border-gray-100 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 shadow-sm">
                       <div className="flex items-center gap-2 sm:gap-3 text-left">
-                        <div className="w-8 h-8 sm:w-12 sm:h-12 bg-[#0A5C36] rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 sm:w-12 sm:h-12 bg-[#0B192C] rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                           </svg>
@@ -1232,7 +1232,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             <div key={sub.id || idx} className="bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm hover:border-gray-300 transition">
                               {/* Top row: icon + category/payment + plan name */}
                               <div className="flex items-start gap-2.5 sm:gap-3">
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#0A5C36] rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#0B192C] rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
                                   <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                   </svg>
@@ -1304,7 +1304,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                             <p className="text-lg sm:text-xl font-bold text-black">You don't have any current plan</p>
                             <button
                               onClick={() => setActiveTab('PACKAGES')}
-                              className="text-xs px-3 py-1 mt-2 bg-[#0A5C36] text-white rounded hover:bg-[#0D7445]"
+                              className="text-xs px-3 py-1 mt-2 bg-[#0B192C] text-white rounded hover:bg-[#1E3E62]"
                             >
                               Make Plan
                             </button>
@@ -1387,7 +1387,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       {((driver as any).languagesKnown || (profileData as any).languagesKnown || []).length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {((driver as any).languagesKnown || (profileData as any).languagesKnown || []).map((lang: string) => (
-                            <span key={lang} className="bg-[#0A5C36] text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
+                            <span key={lang} className="bg-[#0B192C] text-white text-xs font-bold px-3 py-1 rounded-full">{lang}</span>
                           ))}
                         </div>
                       ) : (
@@ -1451,7 +1451,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'Photo', url: getDocUrl(driver.photo)! })}
-                                className="p-2 text-gray-700 hover:text-[#0A5C36] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-2 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View Photo"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1483,7 +1483,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                 <button
                                   type="button"
                                   onClick={() => setViewingDoc({ title: 'Driving License', url: getDocUrl(driver.dlPhoto)! })}
-                                  className="p-2 text-gray-700 hover:text-[#0A5C36] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                  className="p-2 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                   title="View Driving License"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1539,7 +1539,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'PAN Card', url: getDocUrl(driver.panPhoto)! })}
-                                className="p-2 text-gray-700 hover:text-[#0A5C36] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-2 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View PAN Card"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1570,7 +1570,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               <button
                                 type="button"
                                 onClick={() => setViewingDoc({ title: 'Aadhar Card', url: getDocUrl(driver.aadharPhoto)! })}
-                                className="p-2 text-gray-700 hover:text-[#0A5C36] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                className="p-2 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                 title="View Aadhar Card"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1602,7 +1602,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                 <button
                                   type="button"
                                   onClick={() => setViewingDoc({ title: 'Police Verification', url: getDocUrl(driver.policeVerificationPhoto)! })}
-                                  className="p-2 text-gray-700 hover:text-[#0A5C36] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
+                                  className="p-2 text-gray-700 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-lg transition active:scale-95 flex items-center justify-center border border-gray-200/70 bg-white shadow-2xs"
                                   title="View Police Verification"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1837,7 +1837,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                   : [...currentLangs, lang]
                               } as any);
                             }}
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${selected ? 'bg-[#0A5C36] text-white border-[#0A5C36]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'}`}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${selected ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-500'}`}
                           >
                             {lang}
                           </button>
@@ -1912,7 +1912,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                                     if (!currentImgUrl) return;
                                     setViewingDoc({ title: item.title, url: currentImgUrl });
                                   }}
-                                  className="p-1 text-gray-600 hover:text-[#0A5C36] hover:bg-gray-200/80 rounded-md transition"
+                                  className="p-1 text-gray-600 hover:text-[#0B192C] hover:bg-gray-200/80 rounded-md transition"
                                   title={`View ${item.title}`}
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1980,7 +1980,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsEditingProfile(false)} className="flex-1 py-3 font-bold text-sm">Cancel</button>
-                  <button type="submit" className="flex-1 bg-[#0A5C36] text-white py-3 rounded-lg font-bold text-sm">Save Changes</button>
+                  <button type="submit" className="flex-1 bg-[#0B192C] text-white py-3 rounded-lg font-bold text-sm">Save Changes</button>
                 </div>
               </form>
             )}
@@ -1994,7 +1994,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
               {/* Header */}
-              <div className="bg-[#0A5C36] text-white px-5 py-4">
+              <div className="bg-[#0B192C] text-white px-5 py-4">
                 <h2 className="text-sm font-bold text-gray-300">Subscribe Package</h2>
                 <p className="text-xl font-black mt-0.5">{selectedPackage.name}</p>
                 <p className="text-2xl font-black mt-1">₹{selectedPackage.price}</p>
@@ -2009,7 +2009,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                   <p className="text-xs font-bold text-gray-500 uppercase mb-2">Payment Option</p>
                   <div className={`grid gap-2 ${payLaterAllowed ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <button onClick={() => setPaymentMode('FULL')}
-                      className={`py-2.5 rounded-xl text-sm font-bold border-2 transition ${paymentMode === 'FULL' ? 'border-[#0A5C36] bg-[#0A5C36] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
+                      className={`py-2.5 rounded-xl text-sm font-bold border-2 transition ${paymentMode === 'FULL' ? 'border-[#0B192C] bg-[#0B192C] text-white' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}>
                       Pay Full
                     </button>
                     {payLaterAllowed && (
@@ -2330,7 +2330,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                     <div className="px-4 sm:px-5 py-4 space-y-4 overflow-y-auto">
                       {/* Rider */}
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-[#0A5C36] text-white flex items-center justify-center text-base font-black flex-shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-[#0B192C] text-white flex items-center justify-center text-base font-black flex-shrink-0">
                           {(rider.name || 'R').trim().charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2348,7 +2348,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       {/* Route */}
                       <div className="rounded-2xl border border-gray-200 p-3.5 flex gap-3">
                         <div className="flex flex-col items-center pt-1.5 flex-shrink-0">
-                          <div className="w-2 h-2 rounded-full bg-[#0A5C36]" />
+                          <div className="w-2 h-2 rounded-full bg-[#0B192C]" />
                           <div className="w-px flex-1 bg-gray-300 my-1" />
                           <div className="w-2 h-2 rounded-sm bg-gray-900" />
                         </div>
@@ -2389,7 +2389,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               placeholder="------"
                               value={endOtp}
                               onChange={(e) => setEndOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 text-center text-2xl font-black tracking-[0.5em] pl-[0.5em] text-gray-900 placeholder-gray-300 focus:border-[#0A5C36] focus:bg-white outline-none transition"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 text-center text-2xl font-black tracking-[0.5em] pl-[0.5em] text-gray-900 placeholder-gray-300 focus:border-[#0B192C] focus:bg-white outline-none transition"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2.5">
@@ -2398,7 +2398,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               Cancel
                             </button>
                             <button disabled={endOtp.length < 6 || isCompletingTrip} onClick={handleCompleteTrip}
-                              className="py-3.5 rounded-xl bg-[#0A5C36] text-white font-bold text-sm hover:bg-[#0D7445] disabled:opacity-40 transition">
+                              className="py-3.5 rounded-xl bg-[#0B192C] text-white font-bold text-sm hover:bg-[#1E3E62] disabled:opacity-40 transition">
                               {isCompletingTrip ? 'Completing...' : 'Verify & Complete'}
                             </button>
                           </div>
@@ -2406,7 +2406,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       ) : (
                         <div className="space-y-2.5">
                           <button disabled={isSendingEndOtp} onClick={handleSendEndOtp}
-                            className="w-full py-3.5 rounded-xl bg-[#0A5C36] text-white font-bold text-sm hover:bg-[#0D7445] disabled:opacity-50 transition">
+                            className="w-full py-3.5 rounded-xl bg-[#0B192C] text-white font-bold text-sm hover:bg-[#1E3E62] disabled:opacity-50 transition">
                             {isSendingEndOtp ? 'Sending OTP...' : 'Send OTP to rider'}
                           </button>
                           <button onClick={closeCompleteTrip}
@@ -2467,7 +2467,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
       
                       {/* Rider */}
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-[#0A5C36] text-white flex items-center justify-center text-base font-black flex-shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-[#0B192C] text-white flex items-center justify-center text-base font-black flex-shrink-0">
                           {(rider.name || 'R').trim().charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2485,7 +2485,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       {/* Route */}
                       <div className="rounded-2xl border border-gray-200 p-3.5 flex gap-3">
                         <div className="flex flex-col items-center pt-1.5 flex-shrink-0">
-                          <div className="w-2 h-2 rounded-full bg-[#0A5C36]" />
+                          <div className="w-2 h-2 rounded-full bg-[#0B192C]" />
                           <div className="w-px flex-1 bg-gray-300 my-1" />
                           <div className="w-2 h-2 rounded-sm bg-gray-900" />
                         </div>
@@ -2553,7 +2553,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               placeholder="------"
                               value={startOtp}
                               onChange={(e) => setStartOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 text-center text-2xl font-black tracking-[0.5em] pl-[0.5em] text-gray-900 placeholder-gray-300 focus:border-[#0A5C36] focus:bg-white outline-none transition"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 text-center text-2xl font-black tracking-[0.5em] pl-[0.5em] text-gray-900 placeholder-gray-300 focus:border-[#0B192C] focus:bg-white outline-none transition"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2.5">
@@ -2562,7 +2562,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                               Cancel
                             </button>
                             <button disabled={startOtp.length < 6 || isStartingTrip} onClick={handleStartTrip}
-                              className="py-3.5 rounded-xl bg-[#0A5C36] text-white font-bold text-sm hover:bg-[#0D7445] disabled:opacity-40 transition">
+                              className="py-3.5 rounded-xl bg-[#0B192C] text-white font-bold text-sm hover:bg-[#1E3E62] disabled:opacity-40 transition">
                               {isStartingTrip ? 'Starting...' : isReverify ? 'Verify & Continue' : 'Verify & Start'}
                             </button>
                           </div>
@@ -2570,7 +2570,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
                       ) : (
                         <div className="space-y-2.5">
                           <button disabled={!photosReady || isSendingStartOtp} onClick={handleSendStartOtp}
-                            className="w-full py-3.5 rounded-xl bg-[#0A5C36] text-white font-bold text-sm hover:bg-[#0D7445] disabled:opacity-40 transition">
+                            className="w-full py-3.5 rounded-xl bg-[#0B192C] text-white font-bold text-sm hover:bg-[#1E3E62] disabled:opacity-40 transition">
                             {isSendingStartOtp ? 'Sending OTP...' : 'Send OTP to rider'}
                           </button>
                           {!photosReady && (

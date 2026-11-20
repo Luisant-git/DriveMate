@@ -311,14 +311,14 @@ export default function AdminJobRequirements() {
           placeholder="Search job title…"
           value={filterSearch}
           onChange={e => setFilterSearch(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] w-48"
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] w-48"
         />
         <input
           type="text"
           placeholder="Filter by city…"
           value={filterCity}
           onChange={e => setFilterCity(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] w-36"
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] w-36"
         />
         <CategorySelect
           value={filterCategory}
@@ -328,7 +328,7 @@ export default function AdminJobRequirements() {
         <select
           value={filterJobType}
           onChange={e => setFilterJobType(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
         >
           <option value="">All Job Types</option>
           {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -336,7 +336,7 @@ export default function AdminJobRequirements() {
         {(filterSearch || filterCity || filterCategory || filterJobType || activeStatusTab) && (
           <button
             onClick={clearFilters}
-            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-[#0A5C36] border border-gray-200 rounded-lg"
+            className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-[#0B192C] border border-gray-200 rounded-lg"
           >
             Clear
           </button>
@@ -392,7 +392,7 @@ export default function AdminJobRequirements() {
                 </div>
                 <button
                   onClick={() => setSelectedJobId(job.id)}
-                  className="shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-700 transition hover:bg-[#0A5C36] hover:text-white hover:border-[#0A5C36]"
+                  className="shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-700 transition hover:bg-[#0B192C] hover:text-white hover:border-[#0B192C]"
                 >
                   View Full Job ↗
                 </button>
@@ -405,7 +405,7 @@ export default function AdminJobRequirements() {
                   onClick={() => setSelectedJobId(job.id)}
                   className="flex items-start gap-3 cursor-pointer group"
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0A5C36] text-white">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0B192C] text-white">
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
@@ -480,7 +480,7 @@ export default function AdminJobRequirements() {
                 <button
                   type="button"
                   onClick={() => setSelectedJobId(null)}
-                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-[#0A5C36]"
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-[#0B192C]"
                   aria-label="Close job details"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,7 +494,7 @@ export default function AdminJobRequirements() {
                 {/* Hero Header Card */}
                 <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
                   <div className="flex items-start gap-4">
-                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0A5C36] text-white shadow-sm">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0B192C] text-white shadow-sm">
                       <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>

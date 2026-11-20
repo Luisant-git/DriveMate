@@ -13,30 +13,30 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
     const [activeTab, setActiveTab] = useState<'local' | 'outstation'>('local');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     return (
-        <div className="flex flex-col min-h-screen bg-white text-black font-sans selection:bg-[#0A5C36] selection:text-white">
+        <div className="flex flex-col min-h-screen bg-white text-black font-sans selection:bg-[#0B192C] selection:text-white">
             {/* Fixed Social Media Sidebar */}
             <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-4">
-                <a href="https://www.facebook.com/share/18P8cPUbxU/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0A5C36] text-white flex items-center justify-center rounded-full hover:bg-[#0D7445] transition-all shadow-lg hover:scale-110">
+                <a href="https://www.facebook.com/share/18P8cPUbxU/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                 </a>
-                <a href="https://www.instagram.com/deer.42990838?igsh=MWtqenh5NjY2cG91NQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0A5C36] text-white flex items-center justify-center rounded-full hover:bg-[#0D7445] transition-all shadow-lg hover:scale-110">
+                <a href="https://www.instagram.com/deer.42990838?igsh=MWtqenh5NjY2cG91NQ%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                 </a>
-                <a href="https://wa.me/918884555776" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0A5C36] text-white flex items-center justify-center rounded-full hover:bg-[#0D7445] transition-all shadow-lg hover:scale-110">
+                <a href="https://wa.me/918884555776" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                 </a>
-                <a href="https://www.youtube.com/@SNPNBCJOBSANDTRAVELSSERVICES" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0A5C36] text-white flex items-center justify-center rounded-full hover:bg-[#0D7445] transition-all shadow-lg hover:scale-110">
+                <a href="https://www.youtube.com/@SNPNBCJOBSANDTRAVELSSERVICES" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                 </a>
-                <a href="https://x.com/snpnbc?s=21" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0A5C36] text-white flex items-center justify-center rounded-full hover:bg-[#0D7445] transition-all shadow-lg hover:scale-110">
+                <a href="https://x.com/snpnbc?s=21" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
                 </a>
-                <a href="https://www.linkedin.com/in/snpnbc-consultant-and-manpower-services-god-8591883b4?utm_source=share_via&utm_content=profile&utm_medium=member_ios" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0A5C36] text-white flex items-center justify-center rounded-full hover:bg-[#0D7445] transition-all shadow-lg hover:scale-110">
+                <a href="https://www.linkedin.com/in/snpnbc-consultant-and-manpower-services-god-8591883b4?utm_source=share_via&utm_content=profile&utm_medium=member_ios" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#0B192C] text-white flex items-center justify-center rounded-full hover:bg-[#1E3E62] transition-all shadow-lg hover:scale-110">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
                 </a>
             </div>
             {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#0A5C36] text-white w-full border-b border-[#0D7445] relative">
+            <header className="sticky top-0 z-50 bg-[#0B192C] text-white w-full border-b border-[#1E3E62] relative">
                 <div className="flex justify-between items-center px-3 md:px-12 py-3">
                     <div className="flex items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                         <img
@@ -76,16 +76,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                 {mobileMenuOpen && (
                     <div className="md:hidden absolute top-full left-0 right-0 bg-white px-6 py-6 shadow-lg transition-all duration-300 ease-in-out z-40">
                         <nav className="flex flex-col gap-4">
-                            <button className="text-left py-3 text-gray-800 hover:text-[#0A5C36] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
                                 Hire a Driver
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-[#0A5C36] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={onGetStarted}>
                                 Outstation Cabs
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-[#0A5C36] font-semibold transition-colors border-b border-gray-100" onClick={goToDriverLogin}>
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors border-b border-gray-100" onClick={goToDriverLogin}>
                                 Partner Program
                             </button>
-                            <button className="text-left py-3 text-gray-800 hover:text-[#0A5C36] font-semibold transition-colors">
+                            <button className="text-left py-3 text-gray-800 hover:text-[#0B192C] font-semibold transition-colors">
                                 Support
                             </button>
                         </nav>
@@ -106,7 +106,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                                 Book verified acting drivers for your personal vehicle or premium outstation returns. Transparent upfront pricing, zero hidden fees.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                <button className="bg-[#0A5C36] text-white px-6 py-3 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#0D7445] transition-all shadow-lg" onClick={onGetStarted}>
+                                <button className="bg-[#0B192C] text-white px-6 py-3 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all shadow-lg" onClick={onGetStarted}>
                                     Book Driver
                                 </button>
                                 <button className="bg-gray-100 text-black px-6 py-3 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-gray-200 transition-all" onClick={onGetStarted}>
@@ -133,7 +133,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                         <h2 className="text-3xl md:text-4xl font-semibold mb-12 tracking-tighter text-center md:text-left">Why SNP?</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
                             <div className="group bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col">
-                                <div className="w-12 h-12 bg-[#0A5C36] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                                <div className="w-12 h-12 bg-[#0B192C] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                     </svg>
@@ -142,7 +142,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">Every driver is background-checked and professionally trained for your safety.</p>
                             </div>
                             <div className="group bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col">
-                                <div className="w-12 h-12 bg-[#0A5C36] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                                <div className="w-12 h-12 bg-[#0B192C] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                                         <polyline points="17 2 12 7 7 2" />
@@ -152,7 +152,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">No surges, no surprises. Pay exactly what you see at the time of booking.</p>
                             </div>
                             <div className="group bg-white p-6 sm:p-8 rounded-2xl border border-gray-200/90 shadow-2xs hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col">
-                                <div className="w-12 h-12 bg-[#0A5C36] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
+                                <div className="w-12 h-12 bg-[#0B192C] text-white flex items-center justify-center rounded-xl mb-5 group-hover:scale-105 transition-transform shadow-xs">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
@@ -173,8 +173,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-10">
                             <div className="max-w-xl">
                                 <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter mb-6">Where are you going?</h2>
-                                <div className="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 items-center gap-2 group hover:border-[#0A5C36] transition-all">
-                                    <div className="flex-1 flex items-center px-4 gap-3 text-gray-400 group-hover:text-[#0A5C36]">
+                                <div className="flex bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 items-center gap-2 group hover:border-[#0B192C] transition-all">
+                                    <div className="flex-1 flex items-center px-4 gap-3 text-gray-400 group-hover:text-[#0B192C]">
                                         <div className="w-2 h-2 rounded-full bg-current"></div>
                                         <input
                                             type="text"
@@ -182,7 +182,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                                             className="bg-transparent border-none outline-none text-sm w-full font-medium h-10 text-black placeholder:text-gray-400"
                                         />
                                     </div>
-                                    <button className="bg-[#0A5C36] text-white px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#0D7445] transition-all" onClick={onGetStarted}>
+                                    <button className="bg-[#0B192C] text-white px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all" onClick={onGetStarted}>
                                         Search
                                     </button>
                                 </div>
@@ -192,13 +192,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                             <div className="flex bg-gray-200/50 p-1 rounded-2xl">
                                 <button
                                     onClick={() => setActiveTab('local')}
-                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'local' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-[#0A5C36]'}`}
+                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'local' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-[#0B192C]'}`}
                                 >
                                     Local
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('outstation')}
-                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outstation' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-[#0A5C36]'}`}
+                                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outstation' ? 'bg-white text-black shadow-md' : 'text-gray-500 hover:text-[#0B192C]'}`}
                                 >
                                     Outstation
                                 </button>
@@ -214,7 +214,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                                             <h3 className="text-2xl font-semibold tracking-tight">Local Acting Drivers</h3>
                                             <p className="text-sm text-gray-500 mt-2">Professional drivers for your city needs</p>
                                         </div>
-                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-[#0A5C36] pb-1">View All Local</button>
+                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-[#0B192C] pb-1">View All Local</button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                         <div className="group cursor-pointer" onClick={onGetStarted}>
@@ -253,13 +253,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                                             <h3 className="text-2xl font-semibold tracking-tight">Outstation Trips</h3>
                                             <p className="text-sm text-gray-500 mt-2">Explore beyond the city limits</p>
                                         </div>
-                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-[#0A5C36] pb-1">Explore More</button>
+                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] border-b-2 border-[#0B192C] pb-1">Explore More</button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                         <div className="group cursor-pointer" onClick={onGetStarted}>
                                             <div className="relative aspect-[16/10] overflow-hidden rounded-2xl mb-6 shadow-sm group-hover:shadow-2xl transition-all duration-700">
                                                 <img src="https://sikkolucabs.com/img/cab_search.jpg" alt="Round Trip" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
-                                                <div className="absolute top-4 right-4 bg-[#0A5C36] text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest">BEST VALUE</div>
+                                                <div className="absolute top-4 right-4 bg-[#0B192C] text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest">BEST VALUE</div>
                                             </div>
                                             <h4 className="text-xl font-bold mb-2">Round-Trips</h4>
                                             <p className="text-sm text-gray-500 leading-relaxed mb-6">Book expert drivers for long-distance family vacations or road trips with ease.</p>
@@ -298,7 +298,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
                             <p className="text-base md:text-lg text-gray-600 mb-10 max-w-md mx-auto md:mx-0">
                                 Join the network of 5,000+ drivers and earn on your own terms. Flexible hours and weekly payouts.
                             </p>
-                            <button className="bg-[#0A5C36] text-white px-8 py-3.5 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#0D7445] transition-all shadow-xl cursor-pointer" onClick={goToDriverLogin}>
+                            <button className="bg-[#0B192C] text-white px-8 py-3.5 rounded-sm text-[12px] font-bold uppercase tracking-widest hover:bg-[#1E3E62] transition-all shadow-xl cursor-pointer" onClick={goToDriverLogin}>
                                 Join As Partner
                             </button>
                         </div>
@@ -342,7 +342,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onDriverPartner
             </main>
 
             {/* Footer */}
-            <footer className="bg-[#0A5C36] text-white px-6 md:px-12 pt-20 pb-10 border-t border-gray-900">
+            <footer className="bg-[#0B192C] text-white px-6 md:px-12 pt-20 pb-10 border-t border-gray-900">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 md:gap-16 mb-20">
                         <div className="col-span-1">

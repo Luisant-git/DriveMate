@@ -69,7 +69,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ isOpen, onClose
         <div className="p-4 border-t">
           <button
             onClick={onClose}
-            className="w-full bg-[#0A5C36] text-white py-2 rounded-lg hover:bg-[#0D7445]"
+            className="w-full bg-[#0B192C] text-white py-2 rounded-lg hover:bg-[#1E3E62]"
           >
             Close
           </button>

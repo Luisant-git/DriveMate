@@ -224,7 +224,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         {/* Header */}
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#0A5C36] text-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#0B192C] text-white flex items-center justify-center">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -248,7 +248,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
           <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200">
             {(['1:1', '4:3', '3:2', 'free'] as const).map((r) => (
               <button key={r} type="button" onClick={() => setAspectRatio(r)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${aspectRatio === r ? 'bg-[#0A5C36] text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition ${aspectRatio === r ? 'bg-[#0B192C] text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
                 {r === '1:1' ? '1:1 (Photo)' : r === '4:3' ? '4:3 (Card/DL)' : r === '3:2' ? '3:2 (ID)' : 'Free'}
               </button>
             ))}
@@ -339,7 +339,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
                 </button>
               )}
               <button type="button" onClick={handleCrop} disabled={isProcessing || !baseSize}
-                className="px-5 py-2 bg-[#0A5C36] hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition shadow-md active:scale-95 flex items-center gap-2 disabled:opacity-50">
+                className="px-5 py-2 bg-[#0B192C] hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition shadow-md active:scale-95 flex items-center gap-2 disabled:opacity-50">
                 {isProcessing ? (
                   <>
                     <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24">

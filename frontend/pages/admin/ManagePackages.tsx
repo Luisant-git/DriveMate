@@ -142,7 +142,7 @@ const ManagePackages: React.FC = () => {
             onClick={() => setSelectedCategory(cat)}
             className={`px-4 py-1.5 rounded-full text-sm font-bold transition ${
               selectedCategory === cat
-                ? 'bg-[#0A5C36] text-white'
+                ? 'bg-[#0B192C] text-white'
                 : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
             }`}
           >

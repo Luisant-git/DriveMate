@@ -45,7 +45,7 @@ const LocalitySelect: React.FC<LocalitySelectProps> = ({
         type="text"
         disabled={isFull}
         placeholder={isFull ? `${max} localities selected` : 'Type a locality and press Enter'}
-        className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-sm placeholder:font-medium placeholder:text-gray-500 focus:ring-2 focus:ring-[#0A5C36] disabled:opacity-60"
+        className="w-full bg-gray-100 border-none rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-sm placeholder:font-medium placeholder:text-gray-500 focus:ring-2 focus:ring-[#0B192C] disabled:opacity-60"
         value={typed}
         onChange={e => setTyped(e.target.value)}
         onKeyDown={e => {
@@ -71,7 +71,7 @@ const LocalitySelect: React.FC<LocalitySelectProps> = ({
         onChange={e => {
           if (e.target.value) onAdd(e.target.value);
         }}
-        className="w-full appearance-none bg-gray-100 border-none rounded-lg pl-3 pr-9 py-2.5 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-[#0A5C36] disabled:opacity-60 cursor-pointer"
+        className="w-full appearance-none bg-gray-100 border-none rounded-lg pl-3 pr-9 py-2.5 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-[#0B192C] disabled:opacity-60 cursor-pointer"
       >
         <option value="">
           {isFull

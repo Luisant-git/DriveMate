@@ -103,7 +103,7 @@ const LeadPackage: React.FC = () => {
         <h3 className="font-bold text-lg">Lead Subscription Packages</h3>
         <button
           onClick={() => openModal()}
-          className="w-full md:w-auto bg-[#0A5C36] text-white px-4 py-2 rounded-lg text-sm font-bold"
+          className="w-full md:w-auto bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold"
         >
           Add Package
         </button>
@@ -327,7 +327,7 @@ const LeadPackage: React.FC = () => {
                 <button type="button" onClick={closeModal} className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg">
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 text-xs font-bold text-white bg-[#0A5C36] rounded-lg">
+                <button type="submit" className="px-4 py-2 text-xs font-bold text-white bg-[#0B192C] rounded-lg">
                   Save
                 </button>
               </div>

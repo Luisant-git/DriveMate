@@ -12,7 +12,7 @@ const PrivacyPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-white">
             {/* Header */}
-            <header className="bg-[#0A5C36] text-white px-6 md:px-12 py-4 border-b border-[#0D7445] shadow-md">
+            <header className="bg-[#0B192C] text-white px-6 md:px-12 py-4 border-b border-[#1E3E62] shadow-md">
                 <div className="max-w-6xl mx-auto flex justify-between items-center">
                     <button
                         onClick={goBack}
