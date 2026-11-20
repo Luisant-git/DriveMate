@@ -76,66 +76,115 @@ export const deletePricingPackage = async (req, res) => {
 export const getEstimateByPackage = async (req, res) => {
   try {
     const { packageType, hours, distance, isImmediate } = req.query;
-    
-    // For OUTSTATION with distance, auto-determine hours based on KM
-    let queryHours = parseInt(hours);
-    
-    if (packageType === 'OUTSTATION' && distance) {
-      const distanceKm = parseInt(distance);
-      
-      // Determine hours based on distance ranges
-      if (distanceKm >= 60 && distanceKm <= 150) {
-        queryHours = 8;
-      } else if (distanceKm >= 151 && distanceKm <= 300) {
-        queryHours = 10;
-      } else if (distanceKm > 300) {
-        queryHours = 12;
-      } else {
-        queryHours = 8; // Default minimum
-      }
+
+    const allPackages = await prisma.pricingPackage.findMany({
+      where: { packageType, isActive: true },
+      orderBy: { hours: 'asc' }
+    });
+
+    if (!allPackages || allPackages.length === 0) {
+      return res.status(404).json({ success: false, error: 'Pricing not found' });
     }
-    
-    // For LOCAL_HOURLY with distance, auto-determine hours based on Min KM
-    if (packageType === 'LOCAL_HOURLY' && distance && parseInt(distance) > 0) {
-      const distanceKm = parseInt(distance);
-      const localPackages = await prisma.pricingPackage.findMany({
-        where: { packageType: 'LOCAL_HOURLY', isActive: true },
-        orderBy: { hours: 'asc' }
-      });
-      // Packages with a Min KM define the distance bands; fall back to the largest package
-      const bands = localPackages
+
+    const requestedHours = parseInt(hours) || 0;
+    const distanceKm = distance ? parseFloat(distance) : 0;
+    let minRequiredHours = 0;
+
+    // Minimum required package hours based on distance
+    if (packageType === 'OUTSTATION' && distanceKm > 0) {
+      if (distanceKm >= 60 && distanceKm <= 150) {
+        minRequiredHours = 8;
+      } else if (distanceKm >= 151 && distanceKm <= 300) {
+        minRequiredHours = 10;
+      } else if (distanceKm > 300) {
+        minRequiredHours = 12;
+      } else {
+        minRequiredHours = 8;
+      }
+    } else if (packageType === 'LOCAL_HOURLY' && distanceKm > 0) {
+      const bands = allPackages
         .filter(p => p.minimumKm)
         .sort((a, b) => a.minimumKm - b.minimumKm);
       const matching = bands.find(p => distanceKm <= p.minimumKm)
         || bands[bands.length - 1]
-        || localPackages[localPackages.length - 1];
+        || allPackages[allPackages.length - 1];
       if (matching) {
-        queryHours = matching.hours;
+        minRequiredHours = matching.hours;
       }
     }
-    
-    const pricing = await prisma.pricingPackage.findUnique({
-      where: { 
-        packageType_hours: { 
-          packageType, 
-          hours: queryHours
-        },
-        isActive: true
+
+    // Effective hours respects the customer's selection, enforcing at least the distance minimum
+    const defaultHours = packageType === 'OUTSTATION' ? 8 : 4;
+    const effectiveHours = Math.max(requestedHours, minRequiredHours) || defaultHours;
+
+    // Check if an exact pricing package exists for this effectiveHours
+    const exactPkg = allPackages.find(p => p.hours === effectiveHours);
+
+    let basePkg = null;
+    let extraHours = 0;
+
+    if (exactPkg) {
+      basePkg = exactPkg;
+      extraHours = 0;
+    } else {
+      // Find the best base package:
+      // If a distance minimum package is required and available, use it as the base package;
+      // otherwise use the largest available package that is <= effectiveHours (or the highest tier package)
+      if (minRequiredHours > 0) {
+        basePkg = allPackages.find(p => p.hours === minRequiredHours)
+          || allPackages.filter(p => p.hours <= effectiveHours).pop()
+          || allPackages[allPackages.length - 1];
+      } else {
+        basePkg = allPackages.filter(p => p.hours <= effectiveHours).pop()
+          || allPackages[allPackages.length - 1];
       }
-    });
-    
-    if (!pricing) {
-      return res.status(404).json({ success: false, error: 'Pricing not found' });
+      extraHours = Math.max(0, effectiveHours - basePkg.hours);
     }
-    
-    const finalEstimate = (isImmediate === 'true' && pricing.immediateCharge) 
-      ? pricing.immediateCharge 
-      : pricing.minimumCharge;
-    
-    res.json({ 
-      success: true, 
+
+    const extraHourRateSch = basePkg.extraPerHour || 100;
+    const extraHourRateImm = basePkg.extraPerHourImm || basePkg.extraPerHour || 100;
+    const effectiveExtraRate = (isImmediate === 'true' && basePkg.extraPerHourImm)
+      ? basePkg.extraPerHourImm
+      : extraHourRateSch;
+
+    const extraHourCharge = extraHours * effectiveExtraRate;
+    const extraHourChargeSch = extraHours * extraHourRateSch;
+    const extraHourChargeImm = extraHours * extraHourRateImm;
+
+    const baseScheduled = basePkg.minimumCharge;
+    const baseImmediate = basePkg.immediateCharge || basePkg.minimumCharge;
+
+    const scheduledEstimate = baseScheduled + extraHourChargeSch;
+    const immediateEstimate = baseImmediate + extraHourChargeImm;
+    const finalEstimate = isImmediate === 'true' ? immediateEstimate : scheduledEstimate;
+
+    const extraText = extraHours > 0 ? ` + ${extraHours} Extra Hr${extraHours > 1 ? 's' : ''}` : '';
+    const description = `${basePkg.description || `${basePkg.hours} Hour Package`}${extraText}`;
+
+    res.json({
+      success: true,
       estimate: finalEstimate,
-      pricing
+      baseFare: isImmediate === 'true' ? baseImmediate : baseScheduled,
+      baseScheduled,
+      baseImmediate,
+      extraHours,
+      extraHourRate: effectiveExtraRate,
+      extraHourCharge,
+      scheduledEstimate,
+      immediateEstimate,
+      effectiveHours,
+      description,
+      pricing: {
+        ...basePkg,
+        hours: basePkg.hours,
+        requestedHours: effectiveHours,
+        extraHours,
+        extraHourCharge,
+        extraPerHour: extraHourRateSch,
+        extraPerHourImm: extraHourRateImm,
+        scheduledCharge: scheduledEstimate,
+        immediateCharge: immediateEstimate,
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

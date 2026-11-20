@@ -33,19 +33,25 @@ export async function calculateFare(
     
     if (response.data.success && response.data.pricing) {
       const pricing = response.data.pricing;
-      const finalEstimate = response.data.estimate || pricing.minimumCharge;
+      const finalEstimate = response.data.estimate ?? pricing.minimumCharge;
+      const extraHours = response.data.extraHours || 0;
+      const extraHourCharge = response.data.extraHourCharge || 0;
+      const baseFare = response.data.baseFare || pricing.minimumCharge;
+      const description = response.data.description || `${pricing.hours} Hour Package`;
       
       return {
-        baseFare: finalEstimate,
-        extraHours: 0,
-        extraHourCharge: 0,
+        baseFare,
+        extraHours,
+        extraHourCharge,
         totalFare: finalEstimate,
         packageType: isOutstation ? 'OUTSTATION' : 'LOCAL',
-        description: pricing.description || `${pricing.hours} Hour Package`,
-        scheduledCharge: pricing.minimumCharge,
-        immediateCharge: pricing.immediateCharge,
+        description,
+        scheduledCharge: response.data.scheduledEstimate || (pricing.minimumCharge + extraHourCharge),
+        immediateCharge: response.data.immediateEstimate || ((pricing.immediateCharge || pricing.minimumCharge) + extraHourCharge),
         extraPerHourSch: pricing.extraPerHour,
-        extraPerHourImm: pricing.extraPerHourImm
+        extraPerHourImm: pricing.extraPerHourImm || pricing.extraPerHour,
+        hours: pricing.hours,
+        minimumKm: pricing.minimumKm
       };
     }
     
@@ -58,15 +64,18 @@ export async function calculateFare(
 
 export async function calculateOutstationFareByDistance(
   distanceKm: number,
-  isImmediate: boolean = false
+  isImmediate: boolean = false,
+  selectedHours?: number
 ): Promise<FareBreakdown | null> {
   try {
-    // Determine hours based on distance
-    let hours = 8;
-    if (distanceKm >= 151 && distanceKm <= 300) {
-      hours = 10;
-    } else if (distanceKm > 300) {
-      hours = 12;
+    // If selectedHours is provided and > 0, use it. Otherwise determine minimum hours based on distance
+    let hours = selectedHours && selectedHours > 0 ? selectedHours : 8;
+    if (!selectedHours || selectedHours <= 0) {
+      if (distanceKm >= 151 && distanceKm <= 300) {
+        hours = 10;
+      } else if (distanceKm > 300) {
+        hours = 12;
+      }
     }
     
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
@@ -75,19 +84,25 @@ export async function calculateOutstationFareByDistance(
     
     if (response.data.success && response.data.pricing) {
       const pricing = response.data.pricing;
-      const finalEstimate = response.data.estimate || pricing.minimumCharge;
+      const finalEstimate = response.data.estimate ?? pricing.minimumCharge;
+      const extraHours = response.data.extraHours || 0;
+      const extraHourCharge = response.data.extraHourCharge || 0;
+      const baseFare = response.data.baseFare || pricing.minimumCharge;
+      const description = response.data.description || `${pricing.hours} Hours Package (${distanceKm} KM)`;
 
       return {
-        baseFare: finalEstimate,
-        extraHours: 0,
-        extraHourCharge: 0,
+        baseFare,
+        extraHours,
+        extraHourCharge,
         totalFare: finalEstimate,
         packageType: 'OUTSTATION',
-        description: `${pricing.hours} Hours Package (${distanceKm} KM)`,
-        scheduledCharge: pricing.minimumCharge,
-        immediateCharge: pricing.immediateCharge,
+        description,
+        scheduledCharge: response.data.scheduledEstimate || (pricing.minimumCharge + extraHourCharge),
+        immediateCharge: response.data.immediateEstimate || ((pricing.immediateCharge || pricing.minimumCharge) + extraHourCharge),
         extraPerHourSch: pricing.extraPerHour,
-        extraPerHourImm: pricing.extraPerHourImm
+        extraPerHourImm: pricing.extraPerHourImm || pricing.extraPerHour,
+        hours: pricing.hours,
+        minimumKm: pricing.minimumKm
       };
     }
     
@@ -100,30 +115,36 @@ export async function calculateOutstationFareByDistance(
 
 export async function calculateLocalFareByDistance(
   distanceKm: number,
-  isImmediate: boolean = false
+  isImmediate: boolean = false,
+  selectedHours?: number
 ): Promise<FareBreakdown | null> {
   try {
     // Base hours must exist in LOCAL_HOURLY pricing — the backend overrides it
-    // with the package required by the distance (Min KM bands)
+    // with the package required by the distance (Min KM bands) or requested hours
+    const hours = selectedHours && selectedHours > 0 ? selectedHours : 4;
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType: 'LOCAL_HOURLY', hours: 4, distance: distanceKm, isImmediate }
+      params: { packageType: 'LOCAL_HOURLY', hours, distance: distanceKm, isImmediate }
     });
     
     if (response.data.success && response.data.pricing) {
       const pricing = response.data.pricing;
-      const finalEstimate = response.data.estimate || pricing.minimumCharge;
+      const finalEstimate = response.data.estimate ?? pricing.minimumCharge;
+      const extraHours = response.data.extraHours || 0;
+      const extraHourCharge = response.data.extraHourCharge || 0;
+      const baseFare = response.data.baseFare || pricing.minimumCharge;
+      const description = response.data.description || `${pricing.hours} Hour Package`;
 
       return {
-        baseFare: finalEstimate,
-        extraHours: 0,
-        extraHourCharge: 0,
+        baseFare,
+        extraHours,
+        extraHourCharge,
         totalFare: finalEstimate,
         packageType: 'LOCAL',
-        description: pricing.description || `${pricing.hours} Hour${pricing.hours > 1 ? 's' : ''} Package (Min KM ${pricing.minimumKm})`,
-        scheduledCharge: pricing.minimumCharge,
-        immediateCharge: pricing.immediateCharge,
+        description,
+        scheduledCharge: response.data.scheduledEstimate || (pricing.minimumCharge + extraHourCharge),
+        immediateCharge: response.data.immediateEstimate || ((pricing.immediateCharge || pricing.minimumCharge) + extraHourCharge),
         extraPerHourSch: pricing.extraPerHour,
-        extraPerHourImm: pricing.extraPerHourImm,
+        extraPerHourImm: pricing.extraPerHourImm || pricing.extraPerHour,
         hours: pricing.hours,
         minimumKm: pricing.minimumKm
       };

@@ -225,6 +225,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     const [localUsageOptions, setLocalUsageOptions] = useState<string[]>(LOCAL_USAGE_OPTIONS);
     // OUTSTATION Min KM bands, e.g. 8h from 60km, 10h from 150km …
     const [outstationPricing, setOutstationPricing] = useState<{ hours: number; minimumKm: number }[]>([]);
+    const [monthlyPricingList, setMonthlyPricingList] = useState<any[]>([]);
     const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
     const [outstationDailyFare, setOutstationDailyFare] = useState<number | null>(null);
     const [pickupError, setPickupError] = useState<string>('');
@@ -430,43 +431,53 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         let cancelled = false;
         (async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/pricing-packages`);
+                const [res, monthlyRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/pricing-packages`),
+                    fetch(`${API_BASE_URL}/api/monthly-pricing`)
+                ]);
+
                 const data = await res.json();
-                if (cancelled || !data?.success) return;
-                const packages = (data.pricing || [])
-                    .filter((p: any) => p.packageType === 'LOCAL_HOURLY' && p.isActive);
+                if (!cancelled && data?.success) {
+                    const packages = (data.pricing || [])
+                        .filter((p: any) => p.packageType === 'LOCAL_HOURLY' && p.isActive);
 
-                const bands = packages
-                    .filter((p: any) => p.minimumKm)
-                    .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
-                    .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
-                setLocalPricing(bands);
+                    const bands = packages
+                        .filter((p: any) => p.minimumKm)
+                        .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
+                        .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
+                    setLocalPricing(bands);
 
-                // The Estimated Usage dropdown mirrors the hours the admin has priced,
-                // so adding, deactivating or deleting an hour there changes this list
-                const hours = Array.from(new Set<number>(
-                    packages.map((p: any) => Number(p.hours)).filter((h: number) => h > 0)
-                )).sort((a: number, b: number) => a - b);
+                    // The Estimated Usage dropdown mirrors the hours the admin has priced,
+                    // so adding, deactivating or deleting an hour there changes this list
+                    const hours = Array.from(new Set<number>(
+                        packages.map((p: any) => Number(p.hours)).filter((h: number) => h > 0)
+                    )).sort((a: number, b: number) => a - b);
 
-                if (hours.length > 0) {
-                    const options = hours.map((h: number) => `${h} Hrs`);
-                    setLocalUsageOptions(options);
+                    if (hours.length > 0) {
+                        const options = hours.map((h: number) => `${h} Hrs`);
+                        setLocalUsageOptions(options);
 
-                    // Never leave a selection standing that the admin no longer offers
-                    if (!options.includes(formData.estimatedUsage)) {
-                        setFormData(prev => ({ ...prev, estimatedUsage: options[0] }));
-                        setTimeout(() => handleEstimateWithValues(options[0], false), 100);
+                        // Never leave a selection standing that the admin no longer offers
+                        if (!options.includes(formData.estimatedUsage)) {
+                            setFormData(prev => ({ ...prev, estimatedUsage: options[0] }));
+                            setTimeout(() => handleEstimateWithValues(options[0], false), 100);
+                        }
                     }
+
+                    // Same for Outstation, but a band only applies from its Min KM upward
+                    const outstationBands = (data.pricing || [])
+                        .filter((p: any) => p.packageType === 'OUTSTATION' && p.isActive && p.minimumKm)
+                        .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
+                        .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
+                    setOutstationPricing(outstationBands);
                 }
 
-                // Same for Outstation, but a band only applies from its Min KM upward
-                const outstationBands = (data.pricing || [])
-                    .filter((p: any) => p.packageType === 'OUTSTATION' && p.isActive && p.minimumKm)
-                    .map((p: any) => ({ hours: p.hours, minimumKm: p.minimumKm }))
-                    .sort((a: any, b: any) => a.minimumKm - b.minimumKm);
-                setOutstationPricing(outstationBands);
+                const monthlyData = await monthlyRes.json();
+                if (!cancelled && monthlyData?.success && Array.isArray(monthlyData.pricing)) {
+                    setMonthlyPricingList(monthlyData.pricing);
+                }
             } catch (error) {
-                console.error('Failed to load local pricing bands:', error);
+                console.error('Failed to load pricing packages or monthly pricing:', error);
             }
         })();
         return () => { cancelled = true; };
@@ -608,7 +619,79 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         setIsAiLoading(false);
     };
 
+    const getMonthlyPricingDetails = () => {
+        const vType = (formData.vehicleType || 'Hatchback').toLowerCase();
+        const hPerDay = String(formData.hoursPerDay || '8').toLowerCase();
+        const dPerWeek = String(formData.daysPerWeek || '5');
+
+        const match = monthlyPricingList.find(p =>
+            p.isActive &&
+            (p.vehicleType?.toLowerCase() === vType ||
+             (vType === 'hatchback' && p.vehicleType?.toLowerCase() === 'sedan') ||
+             (vType === 'suv' && p.vehicleType?.toLowerCase().includes('suv'))) &&
+            String(p.hoursPerDay).toLowerCase() === hPerDay &&
+            (String(p.daysPerWeek) === dPerWeek || String(p.daysPerWeek).includes(dPerWeek))
+        ) || monthlyPricingList.find(p =>
+            p.isActive &&
+            (p.vehicleType?.toLowerCase() === vType ||
+             (vType === 'hatchback' && p.vehicleType?.toLowerCase() === 'sedan') ||
+             (vType === 'suv' && p.vehicleType?.toLowerCase().includes('suv'))) &&
+            String(p.hoursPerDay).toLowerCase() === hPerDay
+        ) || monthlyPricingList.find(p =>
+            p.isActive &&
+            String(p.hoursPerDay).toLowerCase() === hPerDay
+        );
+
+        let price = 0;
+        let extraHr = 90;
+
+        if (match) {
+            extraHr = match.extraPerHour || 90;
+            if (dPerWeek === '6' && match.charge6Days) {
+                price = match.charge6Days;
+            } else if (dPerWeek === '5' && match.charge5Days) {
+                price = match.charge5Days;
+            } else {
+                price = match.charge5Days || match.charge6Days || 0;
+            }
+        }
+
+        if (!price || price === 0) {
+            const hoursNum = hPerDay === '1 day' ? 12 : (parseInt(hPerDay) || 8);
+            const daysNum = dPerWeek === '12' ? 1 : (parseInt(dPerWeek) || 5);
+            price = hoursNum * daysNum * 4 * 100;
+        }
+
+        return { price, extraHr, hasAdminPricing: Boolean(match) };
+    };
+
+    // Auto-update estimate when in Monthly driver mode
+    useEffect(() => {
+        if (driverType === BookingType.MONTHLY) {
+            const monthlyInfo = getMonthlyPricingDetails();
+            setEstimate(monthlyInfo.price);
+            setFareBreakdown({
+                baseFare: monthlyInfo.price,
+                extraHours: 0,
+                extraHourCharge: 0,
+                totalFare: monthlyInfo.price,
+                packageType: 'LOCAL',
+                description: `Monthly Plan • ${formData.vehicleType || 'Hatchback'} • ${formData.hoursPerDay} hrs/day • ${formData.daysPerWeek === '12' ? '12 Hours' : `${formData.daysPerWeek} days/week`}`,
+                scheduledCharge: monthlyInfo.price,
+                immediateCharge: monthlyInfo.price,
+                extraPerHourSch: monthlyInfo.extraHr,
+                extraPerHourImm: monthlyInfo.extraHr
+            });
+        }
+    }, [driverType, formData.vehicleType, formData.hoursPerDay, formData.daysPerWeek, monthlyPricingList]);
+
     const handleEstimate = async (immediateOverride?: boolean) => {
+        if (driverType === BookingType.MONTHLY) {
+            const monthlyInfo = getMonthlyPricingDetails();
+            setEstimate(monthlyInfo.price);
+            return;
+        }
+
         if (!formData.estimatedUsage) return;
 
         setEstimateLoading(true);
@@ -616,11 +699,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             const hours = parseDurationToHours(formData.estimatedUsage);
             const isOutstation = serviceType === BookingType.OUTSTATION;
             const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
-            const breakdown = await calculateFare(hours, 0, isOutstation, isImmediate);
+            const distance = calculatedDistance || 0;
+            const breakdown = await calculateFare(hours, distance, isOutstation, isImmediate);
 
             if (breakdown) {
                 setFareBreakdown(breakdown);
-                setEstimate(breakdown.totalFare);
+                if (isOutstation && formData.tripType === 'Round Trip') {
+                    applyOutstationDaysEstimate(breakdown.totalFare);
+                } else {
+                    setEstimate(breakdown.totalFare);
+                }
             } else {
                 setEstimate(null);
                 setFareBreakdown(null);
@@ -635,6 +723,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     };
 
     const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean, immediateOverride?: boolean) => {
+        if (driverType === BookingType.MONTHLY) {
+            const monthlyInfo = getMonthlyPricingDetails();
+            setEstimate(monthlyInfo.price);
+            return;
+        }
+
         if (!estimatedUsage) return;
 
         setEstimateLoading(true);
@@ -642,11 +736,16 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
             const hours = parseDurationToHours(estimatedUsage);
             const useOutstation = isOutstation !== undefined ? isOutstation : serviceType === BookingType.OUTSTATION;
             const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
-            const breakdown = await calculateFare(hours, 0, useOutstation, isImmediate);
+            const distance = calculatedDistance || 0;
+            const breakdown = await calculateFare(hours, distance, useOutstation, isImmediate);
 
             if (breakdown) {
                 setFareBreakdown(breakdown);
-                setEstimate(breakdown.totalFare);
+                if (useOutstation && formData.tripType === 'Round Trip') {
+                    applyOutstationDaysEstimate(breakdown.totalFare);
+                } else {
+                    setEstimate(breakdown.totalFare);
+                }
             } else {
                 setEstimate(null);
                 setFareBreakdown(null);
@@ -741,7 +840,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         if (distance) {
             const breakdown = await calculateOutstationFareByDistance(
                 distance,
-                formData.whenNeeded === 'Immediately'
+                formData.whenNeeded === 'Immediately',
+                packageInfo?.hours
             );
             if (breakdown) {
                 setFareBreakdown(breakdown);
@@ -1321,9 +1421,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         disabled={locked}
                                         onClick={() => {
                                             if (locked) return;
-                                            setFormData({ ...formData, estimatedUsage: option });
+                                            setFormData(prev => ({ ...prev, estimatedUsage: option }));
                                             setShowUsageModal(false);
-                                            setTimeout(() => handleEstimateWithValues(option), 100);
+                                            setTimeout(() => handleEstimateWithValues(option), 50);
                                         }}
                                         className={`p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-95 border ${
                                             locked
@@ -2046,7 +2146,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         setFormData(prev => ({ ...prev, pickup: value, estimatedUsage: `${packageInfo.hours} Hrs` }));
 
                                                         // Calculate fare based on distance
-                                                        const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
+                                                        const breakdown = await calculateOutstationFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately', packageInfo.hours);
                                                         if (breakdown) {
                                                             setFareBreakdown(breakdown);
                                                             setOutstationDailyFare(breakdown.totalFare);
@@ -2210,7 +2310,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                             setFormData({ ...formData, drop: value, estimatedUsage: `${packageInfo.hours} Hrs` });
 
                                                             // Calculate fare based on distance
-                                                            const breakdown = await calculateOutstationFareByDistance(distanceData.distance);
+                                                            const breakdown = await calculateOutstationFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately', packageInfo.hours);
                                                             if (breakdown) {
                                                                 setFareBreakdown(breakdown);
                                                                 setOutstationDailyFare(breakdown.totalFare);
@@ -2430,12 +2530,14 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                                     <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 shadow-sm mb-3">
                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Monthly Charges</p>
-                                        <p className="text-3xl font-bold text-black mb-1">₹{parseInt(formData.hoursPerDay) * parseInt(formData.daysPerWeek) * 4 * 100}</p>
+                                        <p className="text-3xl font-bold text-black mb-1">₹{estimate || getMonthlyPricingDetails().price}</p>
                                         <p className="text-xs text-gray-600 mt-2">
-                                            {formData.hoursPerDay} hrs/day × {formData.daysPerWeek} days/week × 4 weeks × ₹100/hr
+                                            {formData.vehicleType || 'Hatchback'} • {formData.hoursPerDay === '1 day' ? '1 Day (12 Hrs)' : `${formData.hoursPerDay} hrs/day`} • {formData.daysPerWeek === '12' ? '12 Hours' : `${formData.daysPerWeek} days/week`}
                                         </p>
                                         <div className="mt-3 pt-3 border-t border-green-300">
-                                            <p className="text-xs font-bold text-red-600 uppercase">Extra Per Hour: Rs. 100/-</p>
+                                            <p className="text-xs font-bold text-gray-700 uppercase">
+                                                Extra Per Hour: <span className="text-red-600 font-bold">Rs. {getMonthlyPricingDetails().extraHr}/-</span>
+                                            </p>
                                         </div>
                                     </div>
                                 </>
@@ -2663,8 +2765,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                         </div>
                                                         {fareBreakdown && (
                                                             <div>
-                                                                <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
-
+                                                                <p className="text-xs text-gray-600 mb-1">{fareBreakdown.description}{formData.tripType === 'Round Trip' ? ' (Round trip)' : ''}</p>
+                                                                {fareBreakdown.extraHours > 0 && (
+                                                                    <p className="text-[11px] text-gray-500 font-medium mb-1">
+                                                                        Base ({fareBreakdown.hours}h): ₹{fareBreakdown.baseFare} + Extra ({fareBreakdown.extraHours}h @ ₹{formData.whenNeeded === 'Immediately' ? fareBreakdown.extraPerHourImm : fareBreakdown.extraPerHourSch}/hr): ₹{fareBreakdown.extraHourCharge}
+                                                                    </p>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -2756,8 +2862,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                     </div>
                                                     {fareBreakdown && (
                                                         <div>
-                                                            <p className="text-xs text-gray-600 mb-2">{fareBreakdown.description}</p>
-
+                                                            <p className="text-xs text-gray-600 mb-1">{fareBreakdown.description}</p>
+                                                            {fareBreakdown.extraHours > 0 && (
+                                                                <p className="text-[11px] text-gray-500 font-medium mb-1">
+                                                                    Base ({fareBreakdown.hours}h): ₹{fareBreakdown.baseFare} + Extra ({fareBreakdown.extraHours}h @ ₹{formData.whenNeeded === 'Immediately' ? fareBreakdown.extraPerHourImm : fareBreakdown.extraPerHourSch}/hr): ₹{fareBreakdown.extraHourCharge}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -2843,11 +2953,13 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                 <div className="flex items-center justify-between mb-2 px-1">
                                     <div className="flex items-center gap-1.5 min-w-0">
                                         <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wide truncate">
-                                            {formData.vehicleType || 'Sedan'}
+                                            {formData.vehicleType || 'Hatchback'}
                                         </span>
                                         <span className="text-gray-300">•</span>
                                         <span className="text-[11px] font-semibold text-gray-500 truncate">
-                                            {formData.estimatedUsage}
+                                            {driverType === BookingType.MONTHLY
+                                                ? `${formData.hoursPerDay === '1 day' ? '12h' : `${formData.hoursPerDay}h`}/day, ${formData.daysPerWeek}d/w`
+                                                : formData.estimatedUsage}
                                         </span>
                                     </div>
                                     <div className="text-right shrink-0">

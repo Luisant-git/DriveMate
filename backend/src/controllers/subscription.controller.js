@@ -1,4 +1,4 @@
-﻿import prisma from '../config/database.js';
+import prisma from '../config/database.js';
 import { derivePlanPricing } from '../utils/planPricing.js';
 
 // Helper function to update expired subscriptions
