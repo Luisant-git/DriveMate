@@ -2,6 +2,7 @@
 import {
   createSubscriptionPlan,
   getSubscriptionPlans,
+  getSubscriptionCategories,
   purchaseSubscription,
   getDriverSubscription,
   updateSubscriptionPlan,
@@ -56,6 +57,8 @@ const router = express.Router();
  *       201:
  *         description: Plan created successfully
  */
+router.get('/categories', getSubscriptionCategories);
+
 router.post('/plans', authenticateToken, requireRole(['ADMIN']), createSubscriptionPlan);
 
 /**

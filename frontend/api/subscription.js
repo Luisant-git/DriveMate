@@ -39,6 +39,20 @@ export const getSubscriptionPlans = async () => {
   }
 };
 
+// GET all subscription categories
+export const getSubscriptionCategories = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/subscriptions/categories`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    return await handleResponse(res);
+  } catch {
+    return { success: false, data: [], message: 'Network error' };
+  }
+};
+
 // CREATE subscription plan (Admin)
 export const createSubscriptionPlan = async (planData) => {
   // planData: { name, duration, price, description, (optional) type }

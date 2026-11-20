@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Driver, Trip } from '../../types';
 
 interface SubscriptionPackage {
@@ -85,6 +85,11 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
   const [trips, setTrips] = useState<Trip[]>([]);
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const availableCategories = useMemo(() => {
+    const defaults = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
+    const pkgCats = packages.map((p) => p.category).filter(Boolean);
+    return ['All', ...Array.from(new Set([...defaults, ...pkgCats]))];
+  }, [packages]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [activeSubscriptions, setActiveSubscriptions] = useState<any[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
@@ -1082,7 +1087,7 @@ const DriverPortal: React.FC<DriverPortalProps> = ({ driver: initialDriver }) =>
 
             {/* Filter tabs */}
             <div className="flex flex-wrap justify-center gap-2 mb-4 sm:mb-6">
-              {['All', 'Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+              {availableCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}

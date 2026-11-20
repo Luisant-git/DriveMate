@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '../../api/config.js';
 import BookingWorkflow from './BookingWorkflow';
 import PendingDriverApproval from './PendingDriverApproval';
@@ -15,7 +15,7 @@ import OverdueReport from './OverdueReport';
 import BookingRoutingConfig from './BookingRoutingConfig';
 import AdminDeletedAccounts from './AdminDeletedAccounts';
 import AdminJobRequirements from './AdminJobRequirements';
-import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan } from '@/api/subscription.js';
+import { createSubscriptionPlan, deleteSubscriptionPlan, getSubscriptionPlans, updateSubscriptionPlan, getSubscriptionCategories } from '@/api/subscription.js';
 import { FaClipboardList, FaCheckCircle, FaCar, FaUsers, FaBullseye, FaBox, FaFileAlt, FaMoneyBillWave, FaMapMarkerAlt, FaCreditCard, FaChartBar, FaChartArea, FaTrashAlt } from 'react-icons/fa';
 import { BiAnalyse, BiError } from 'react-icons/bi';
 import ConfirmModal from '../../components/common/ConfirmModal';
@@ -90,6 +90,71 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const [packagesLoading, setPackagesLoading] = useState(false);
   const [packageCategoryFilter, setPackageCategoryFilter] = useState<string>('All');
 
+  // Category Master state
+  const DEFAULT_PACKAGE_CATEGORIES = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin_subscription_categories');
+      return saved ? JSON.parse(saved) : DEFAULT_PACKAGE_CATEGORIES;
+    } catch {
+      return DEFAULT_PACKAGE_CATEGORIES;
+    }
+  });
+  const [showCategoryMaster, setShowCategoryMaster] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [categoryMasterError, setCategoryMasterError] = useState('');
+
+  // Combined unique list of categories from defaults + custom + existing packages
+  const allCategories = useMemo(() => {
+    const pkgCats = packages.map((p) => p.category).filter(Boolean) as string[];
+    return Array.from(new Set([...DEFAULT_PACKAGE_CATEGORIES, ...customCategories, ...pkgCats]));
+  }, [packages, customCategories]);
+
+  const handleAddCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setCategoryMasterError('Category name cannot be empty');
+      return;
+    }
+    if (allCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setCategoryMasterError(`Category "${trimmed}" already exists`);
+      return;
+    }
+    const updated = Array.from(new Set([...customCategories, trimmed]));
+    setCustomCategories(updated);
+    try {
+      localStorage.setItem('admin_subscription_categories', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save categories to localStorage:', err);
+    }
+    setPackageForm((prev) => ({
+      ...prev,
+      category: trimmed,
+      type: trimmed === 'Silver' || trimmed === 'Silver Plus' ? 'LOCAL' : prev.type,
+    }));
+    setNewCategoryInput('');
+    setCategoryMasterError('');
+  };
+
+  const handleDeleteCategory = (catToDelete: string) => {
+    const inUseCount = packages.filter((p) => (p.category || 'Silver') === catToDelete).length;
+    if (inUseCount > 0) {
+      if (!window.confirm(`Category "${catToDelete}" is currently assigned to ${inUseCount} package(s). Removing it from the master list will keep existing packages but remove it from the dropdown. Continue?`)) {
+        return;
+      }
+    }
+    const updated = customCategories.filter((c) => c !== catToDelete);
+    setCustomCategories(updated);
+    try {
+      localStorage.setItem('admin_subscription_categories', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to save categories to localStorage:', err);
+    }
+    if (packageForm.category === catToDelete) {
+      setPackageForm((prev) => ({ ...prev, category: 'Silver' }));
+    }
+  };
+
   // Modal and form state for Add/Edit package
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<SubscriptionPlan | null>(null);
@@ -137,22 +202,32 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
   const fetchPackages = async () => {
     try {
       setPackagesLoading(true);
-      const res = await getSubscriptionPlans();
+      const [res, catsRes] = await Promise.all([
+        getSubscriptionPlans(),
+        getSubscriptionCategories(),
+      ]);
 
       console.log('getSubscriptionPlans response:', res);
 
       if (!res.success) {
         console.error('Failed to fetch packages:', res.message || res.error);
         setPackages([]);
-        return;
-      }
-
-      if (Array.isArray(res.data)) {
+      } else if (Array.isArray(res.data)) {
         setPackages(res.data as SubscriptionPlan[]);
       } else if (res.data && typeof res.data === 'object') {
         setPackages([res.data as SubscriptionPlan]);
       } else {
         setPackages([]);
+      }
+
+      if (catsRes && catsRes.success && Array.isArray(catsRes.data)) {
+        setCustomCategories((prev) => {
+          const merged = Array.from(new Set([...prev, ...(catsRes.data as string[])]));
+          try {
+            localStorage.setItem('admin_subscription_categories', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
     } catch (error) {
       console.error('Error fetching packages:', error);
@@ -476,13 +551,25 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               {activeTab === 'PACKAGES' && (
                 <div className="p-4 md:p-6">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <h3 className="font-bold text-lg">Manage Subscription Packages</h3>
-                    <button
-                      className="w-full md:w-auto bg-[#0B192C] text-white px-4 py-3 md:py-2 rounded-lg text-sm font-bold"
-                      onClick={openAddPackageModal}
-                    >
-                      Add Package
-                    </button>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">Manage Subscription Packages</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Configure driver subscription plans and custom category groupings</p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      <button
+                        type="button"
+                        className="flex-1 md:flex-initial bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                        onClick={() => setShowCategoryMaster(true)}
+                      >
+                        <span>⚙</span> Category Master
+                      </button>
+                      <button
+                        className="flex-1 md:flex-initial bg-[#0B192C] hover:bg-[#142942] text-white px-4 py-2.5 rounded-lg text-xs md:text-sm font-bold transition shadow-sm"
+                        onClick={openAddPackageModal}
+                      >
+                        + Add Package
+                      </button>
+                    </div>
                   </div>
 
                   {packagesLoading && (
@@ -490,7 +577,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   )}
 
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {['All', 'Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((cat) => (
+                    {['All', ...allCategories].map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setPackageCategoryFilter(cat)}
@@ -504,7 +591,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                     ))}
                   </div>
 
-                  {['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'].map((category) => {
+                  {allCategories.map((category) => {
                     if (packageCategoryFilter !== 'All' && category !== packageCategoryFilter) return null;
                     const categoryPackages = packages
                       .filter((pkg) => (pkg.category || 'Silver') === category)
@@ -684,13 +771,28 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 <p className="text-xs text-red-500">{packageModalError}</p>
               )}
 
-              <label className="block text-xs font-bold text-gray-500 uppercase">
-                Category
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">
+                    Category
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryMaster(true)}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition"
+                  >
+                    <span>⚙</span> Category Master
+                  </button>
+                </div>
                 <select
-                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 bg-white"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 bg-white"
                   value={packageForm.category}
                   onChange={(e) => {
                     const newCat = e.target.value;
+                    if (newCat === '__MANAGE__') {
+                      setShowCategoryMaster(true);
+                      return;
+                    }
                     setPackageForm((prev) => ({
                       ...prev,
                       category: newCat,
@@ -700,13 +802,16 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                   }}
                   required
                 >
-                  <option value="Silver">Silver</option>
-                  <option value="Silver Plus">Silver Plus</option>
-                  <option value="Gold">Gold</option>
-                  <option value="Platinum">Platinum</option>
-                  <option value="Diamond">Diamond</option>
+                  {allCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                  <option value="__MANAGE__" className="font-semibold text-blue-600">
+                    + Add / Manage Categories...
+                  </option>
                 </select>
-              </label>
+              </div>
 
               <label className="block text-xs font-bold text-gray-500 uppercase">
                 Name
@@ -895,6 +1000,170 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CATEGORY MASTER MODAL */}
+      {showCategoryMaster && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-up">
+            <div className="flex items-center justify-between px-6 py-4 bg-[#0B192C] text-white">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🏷️</span>
+                <div>
+                  <h3 className="text-base font-bold text-white">Subscription Category Master</h3>
+                  <p className="text-xs text-gray-300">Manage package categories for driver subscription plans</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryMaster(false);
+                  setCategoryMasterError('');
+                  setNewCategoryInput('');
+                }}
+                className="text-gray-300 hover:text-white text-lg font-bold p-1 rounded hover:bg-white/10 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Add New Category form */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">
+                  Add New Category
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCategoryInput}
+                    onChange={(e) => {
+                      setNewCategoryInput(e.target.value);
+                      if (categoryMasterError) setCategoryMasterError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCategory(newCategoryInput);
+                      }
+                    }}
+                    placeholder="e.g. Bronze, Executive, VIP, Night Owl..."
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddCategory(newCategoryInput)}
+                    className="bg-[#0B192C] hover:bg-[#142942] text-white px-4 py-2 rounded-lg text-xs font-bold transition whitespace-nowrap"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {categoryMasterError && (
+                  <p className="text-xs text-red-500 font-medium mt-2">{categoryMasterError}</p>
+                )}
+              </div>
+
+              {/* Existing Categories list */}
+              <div>
+                <div className="flex justify-between items-center mb-2.5">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    All Categories ({allCategories.length})
+                  </h4>
+                  <span className="text-[11px] text-gray-400">Click Select to apply to package</span>
+                </div>
+
+                <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  {allCategories.map((cat) => {
+                    const isDefault = DEFAULT_PACKAGE_CATEGORIES.includes(cat);
+                    const isSelected = packageForm.category === cat;
+                    const pkgCount = packages.filter((p) => (p.category || 'Silver') === cat).length;
+
+                    return (
+                      <div
+                        key={cat}
+                        className={`p-3.5 flex items-center justify-between gap-3 transition ${
+                          isSelected ? 'bg-blue-50/60' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                              isSelected ? 'bg-[#0B192C]' : 'bg-gray-300'
+                            }`}
+                          />
+                          <div className="truncate">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-gray-900 truncate">{cat}</span>
+                              {isDefault ? (
+                                <span className="bg-gray-100 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                                  Default
+                                </span>
+                              ) : (
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                                  Custom
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {pkgCount} {pkgCount === 1 ? 'package' : 'packages'} assigned
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isPackageModalOpen && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPackageForm((prev) => ({
+                                  ...prev,
+                                  category: cat,
+                                  type: cat === 'Silver' || cat === 'Silver Plus' ? 'LOCAL' : prev.type,
+                                }));
+                                setShowCategoryMaster(false);
+                              }}
+                              className={`px-3 py-1 text-xs font-bold rounded-md transition ${
+                                isSelected
+                                  ? 'bg-[#0B192C] text-white'
+                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                              }`}
+                            >
+                              {isSelected ? '✓ Selected' : 'Select'}
+                            </button>
+                          )}
+                          {!isDefault && (
+                            <button
+                              type="button"
+                              title="Delete category"
+                              onClick={() => handleDeleteCategory(cat)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition"
+                            >
+                              <FaTrashAlt className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryMaster(false);
+                  setCategoryMasterError('');
+                  setNewCategoryInput('');
+                }}
+                className="px-5 py-2 text-xs font-bold text-white bg-[#0B192C] hover:bg-[#142942] rounded-lg transition"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

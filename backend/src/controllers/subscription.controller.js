@@ -65,6 +65,21 @@ const pickNumber = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+export const getSubscriptionCategories = async (req, res) => {
+  try {
+    const defaultCategories = ['Silver', 'Silver Plus', 'Gold', 'Platinum', 'Diamond'];
+    const plans = await prisma.subscriptionPlan.findMany({
+      select: { category: true },
+      distinct: ['category'],
+    });
+    const dbCategories = plans.map((p) => p.category).filter(Boolean);
+    const allCategories = Array.from(new Set([...defaultCategories, ...dbCategories]));
+    res.json(allCategories);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const createSubscriptionPlan = async (req, res) => {
   try {
     const {
@@ -72,7 +87,7 @@ export const createSubscriptionPlan = async (req, res) => {
       minHours, baseFare, extraPerHourRate,
     } = req.body;
 
-    const planCategory = VALID_CATEGORIES.includes(category) ? category : 'Silver';
+    const planCategory = (category && typeof category === 'string' && category.trim()) ? category.trim() : 'Silver';
 
     const pricing = derivePlanPricing({ description, type });
 
@@ -145,7 +160,9 @@ export const updateSubscriptionPlan = async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Plan not found' });
 
     const updateData = {};
-    if (category !== undefined) updateData.category = VALID_CATEGORIES.includes(category) ? category : 'Silver';
+    if (category !== undefined) {
+      updateData.category = (typeof category === 'string' && category.trim()) ? category.trim() : 'Silver';
+    }
     if (name !== undefined) updateData.name = name;
     if (duration !== undefined) updateData.duration = duration;
     if (price !== undefined) updateData.price = price;
