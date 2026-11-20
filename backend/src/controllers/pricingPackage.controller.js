@@ -92,14 +92,15 @@ export const getEstimateByPackage = async (req, res) => {
 
     // Minimum required package hours based on distance
     if (packageType === 'OUTSTATION' && distanceKm > 0) {
-      if (distanceKm >= 60 && distanceKm <= 150) {
-        minRequiredHours = 8;
-      } else if (distanceKm >= 151 && distanceKm <= 300) {
-        minRequiredHours = 10;
-      } else if (distanceKm > 300) {
-        minRequiredHours = 12;
-      } else {
-        minRequiredHours = 8;
+      const bands = allPackages
+        .filter(p => p.minimumKm)
+        .sort((a, b) => a.minimumKm - b.minimumKm);
+      // For outstation, pick the package whose minimumKm is closest to or covered by distanceKm
+      const matching = [...bands].reverse().find(p => distanceKm >= p.minimumKm)
+        || bands[0]
+        || allPackages[0];
+      if (matching) {
+        minRequiredHours = matching.hours;
       }
     } else if (packageType === 'LOCAL_HOURLY' && distanceKm > 0) {
       const bands = allPackages
@@ -137,11 +138,10 @@ export const getEstimateByPackage = async (req, res) => {
       extraHours = Math.max(0, effectiveHours - basePkg.hours);
     }
 
+    const isImm = isImmediate === 'true' || isImmediate === true;
     const extraHourRateSch = basePkg.extraPerHour || 100;
     const extraHourRateImm = basePkg.extraPerHourImm || basePkg.extraPerHour || 100;
-    const effectiveExtraRate = (isImmediate === 'true' && basePkg.extraPerHourImm)
-      ? basePkg.extraPerHourImm
-      : extraHourRateSch;
+    const effectiveExtraRate = isImm ? extraHourRateImm : extraHourRateSch;
 
     const extraHourCharge = extraHours * effectiveExtraRate;
     const extraHourChargeSch = extraHours * extraHourRateSch;
@@ -152,7 +152,7 @@ export const getEstimateByPackage = async (req, res) => {
 
     const scheduledEstimate = baseScheduled + extraHourChargeSch;
     const immediateEstimate = baseImmediate + extraHourChargeImm;
-    const finalEstimate = isImmediate === 'true' ? immediateEstimate : scheduledEstimate;
+    const finalEstimate = isImm ? immediateEstimate : scheduledEstimate;
 
     const extraText = extraHours > 0 ? ` + ${extraHours} Extra Hr${extraHours > 1 ? 's' : ''}` : '';
     const description = `${basePkg.description || `${basePkg.hours} Hour Package`}${extraText}`;
@@ -160,7 +160,7 @@ export const getEstimateByPackage = async (req, res) => {
     res.json({
       success: true,
       estimate: finalEstimate,
-      baseFare: isImmediate === 'true' ? baseImmediate : baseScheduled,
+      baseFare: isImm ? baseImmediate : baseScheduled,
       baseScheduled,
       baseImmediate,
       extraHours,

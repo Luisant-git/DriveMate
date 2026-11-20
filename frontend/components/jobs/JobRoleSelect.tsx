@@ -20,7 +20,7 @@ const JobRoleSelect: React.FC<JobRoleSelectProps> = ({
   onChange,
   required = false,
   placeholder = 'Type or select a role',
-  inputClassName = 'w-full bg-gray-100 border-none rounded-lg pl-3 pr-9 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-sm placeholder:font-medium placeholder:text-gray-500 focus:ring-2 focus:ring-[#0B192C]',
+  inputClassName = 'w-full bg-gray-100 border-none rounded-lg pl-3 pr-9 py-2.5 text-sm font-semibold text-gray-900 placeholder:text-sm placeholder:font-medium placeholder:text-gray-500 focus:ring-2 focus:ring-[#0A5C36]',
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(role);

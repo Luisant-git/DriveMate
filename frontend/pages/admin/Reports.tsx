@@ -124,7 +124,7 @@ const Reports: React.FC = () => {
             <button
               key={tab}
               onClick={() => setActiveReport(tab as any)}
-              className={`px-3 md:px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap ${activeReport === tab ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-600'
+              className={`px-3 md:px-4 py-2 text-xs md:text-sm font-bold rounded-lg whitespace-nowrap ${activeReport === tab ? 'bg-[#0A5C36] text-white' : 'bg-gray-100 text-gray-600'
                 }`}
             >
               {tab}
@@ -491,7 +491,7 @@ const Reports: React.FC = () => {
                     placeholder="Location, name, phone..."
                     value={modalFilters.search}
                     onChange={(e) => setModalFilters({ ...modalFilters, search: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
                   />
                 </div>
                 <div className="w-full sm:w-48">
@@ -499,7 +499,7 @@ const Reports: React.FC = () => {
                   <select
                     value={modalFilters.status}
                     onChange={(e) => setModalFilters({ ...modalFilters, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] bg-white"
                   >
                     <option value="">All Status</option>
                     <option value="PENDING">Pending</option>

@@ -90,7 +90,7 @@ const AdminDeletedAccounts: React.FC = () => {
                 <div 
                   key={account.id}
                   onClick={() => setSelectedAccount(account)}
-                  className={`p-4 rounded-xl cursor-pointer border transition-all ${selectedAccount?.id === account.id ? 'bg-[#0B192C] text-white border-[#0B192C] shadow-md' : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-sm'}`}
+                  className={`p-4 rounded-xl cursor-pointer border transition-all ${selectedAccount?.id === account.id ? 'bg-[#0A5C36] text-white border-[#0A5C36] shadow-md' : 'bg-white border-gray-100 hover:border-gray-300 hover:shadow-sm'}`}
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className={`font-bold ${selectedAccount?.id === account.id ? 'text-white' : 'text-gray-900'}`}>

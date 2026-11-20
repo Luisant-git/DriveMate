@@ -28,3 +28,4 @@ backfillCategories().catch((err) => {
   console.error('Error during backfill:', err);
   process.exit(1);
 });
+

@@ -531,7 +531,7 @@ export default function Driver() {
         <h2 className="text-xl font-bold text-gray-900">All Drivers</h2>
         <button 
           onClick={() => setShowAddDriverModal(true)} 
-          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-[#1E3E62] transition flex items-center gap-2"
+          className="bg-[#0A5C36] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-[#0D7445] transition flex items-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           Add Driver
@@ -551,7 +551,7 @@ export default function Driver() {
             key={f.key}
             onClick={() => setVerifyFilter(f.key)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition border ${
-              verifyFilter === f.key ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              verifyFilter === f.key ? 'bg-[#0A5C36] text-white border-[#0A5C36]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
             {f.label}
@@ -568,7 +568,7 @@ export default function Driver() {
               placeholder="Search by name, phone or ID..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] transition shadow-sm"
+              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] transition shadow-sm"
             />
           </div>
         </div>
@@ -641,7 +641,7 @@ export default function Driver() {
                     <td className="px-3 py-3">
                       <button
                         onClick={() => setSelectedDriver(driver)}
-                        className="w-7 h-7 bg-[#0B192C] text-white rounded-lg hover:bg-[#1E3E62] transition flex items-center justify-center"
+                        className="w-7 h-7 bg-[#0A5C36] text-white rounded-lg hover:bg-[#0D7445] transition flex items-center justify-center"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -677,21 +677,21 @@ export default function Driver() {
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name *</label>
-                      <input required type="text" value={addDriverForm.name} onChange={e => setAddDriverForm({...addDriverForm, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Enter full name" />
+                      <input required type="text" value={addDriverForm.name} onChange={e => setAddDriverForm({...addDriverForm, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Enter full name" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
-                      <input type="email" value={addDriverForm.email} onChange={e => setAddDriverForm({...addDriverForm, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Optional email" />
+                      <input type="email" value={addDriverForm.email} onChange={e => setAddDriverForm({...addDriverForm, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Optional email" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Primary Phone *</label>
-                      <input required type="tel" maxLength={10} value={addDriverForm.phone} onChange={e => setAddDriverForm({...addDriverForm, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="10-digit number" />
+                      <input required type="tel" maxLength={10} value={addDriverForm.phone} onChange={e => setAddDriverForm({...addDriverForm, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="10-digit number" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Initial Password *</label>
-                      <input required type="text" value={addDriverForm.password} onChange={e => setAddDriverForm({...addDriverForm, password: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Set a password" />
+                      <input required type="text" value={addDriverForm.password} onChange={e => setAddDriverForm({...addDriverForm, password: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Set a password" />
                     </div>
                   </div>
                   <div className="mb-3">
@@ -707,7 +707,7 @@ export default function Driver() {
                           setAddDriverForm({...addDriverForm, permanentAddress: newAddress});
                         }
                       }} 
-                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none resize-none" 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none resize-none" 
                       rows={2} 
                       placeholder="Driver's permanent address"
                     ></textarea>
@@ -726,7 +726,7 @@ export default function Driver() {
                           setAddDriverForm({...addDriverForm, currentAddress: ''});
                         }
                       }}
-                      className="w-4 h-4 text-black bg-gray-50 border-gray-300 rounded focus:ring-[#0B192C] focus:ring-2 cursor-pointer"
+                      className="w-4 h-4 text-black bg-gray-50 border-gray-300 rounded focus:ring-[#0A5C36] focus:ring-2 cursor-pointer"
                     />
                     <label htmlFor="adminSameAddress" className="text-xs font-bold text-gray-600 cursor-pointer">
                       Current Address is same as Permanent Address
@@ -740,7 +740,7 @@ export default function Driver() {
                         required 
                         value={addDriverForm.currentAddress} 
                         onChange={e => setAddDriverForm({...addDriverForm, currentAddress: e.target.value})} 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none resize-none" 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none resize-none" 
                         rows={2} 
                         placeholder="Driver's current address"
                       ></textarea>
@@ -753,21 +753,21 @@ export default function Driver() {
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">License Number *</label>
-                      <input required type="text" value={addDriverForm.licenseNo} onChange={e => setAddDriverForm({...addDriverForm, licenseNo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="DL Number" />
+                      <input required type="text" value={addDriverForm.licenseNo} onChange={e => setAddDriverForm({...addDriverForm, licenseNo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="DL Number" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">License Expiry *</label>
-                      <input required type="date" value={addDriverForm.licenseExpiryDate} onChange={e => setAddDriverForm({...addDriverForm, licenseExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" />
+                      <input required type="date" value={addDriverForm.licenseExpiryDate} onChange={e => setAddDriverForm({...addDriverForm, licenseExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Aadhar Number *</label>
-                      <input required type="text" maxLength={12} value={addDriverForm.aadharNo} onChange={e => setAddDriverForm({...addDriverForm, aadharNo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="12-digit Aadhar" />
+                      <input required type="text" maxLength={12} value={addDriverForm.aadharNo} onChange={e => setAddDriverForm({...addDriverForm, aadharNo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="12-digit Aadhar" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">UPI ID (Optional)</label>
-                      <input type="text" value={addDriverForm.upiId} onChange={e => setAddDriverForm({...addDriverForm, upiId: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="GPay / PhonePe" />
+                      <input type="text" value={addDriverForm.upiId} onChange={e => setAddDriverForm({...addDriverForm, upiId: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="GPay / PhonePe" />
                     </div>
                   </div>
                   
@@ -775,16 +775,16 @@ export default function Driver() {
                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Alternate Contacts (Optional)</label>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile1} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile1: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Alternate Phone 1" />
+                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile1} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile1: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Alternate Phone 1" />
                       </div>
                       <div>
-                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile2} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile2: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Alternate Phone 2" />
+                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile2} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile2: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Alternate Phone 2" />
                       </div>
                       <div>
-                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile3} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile3: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Alternate Phone 3" />
+                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile3} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile3: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Alternate Phone 3" />
                       </div>
                       <div>
-                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile4} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile4: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" placeholder="Alternate Phone 4" />
+                        <input type="tel" maxLength={10} value={addDriverForm.alternateMobile4} onChange={e => setAddDriverForm({...addDriverForm, alternateMobile4: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none" placeholder="Alternate Phone 4" />
                       </div>
                     </div>
                   </div>
@@ -829,7 +829,7 @@ export default function Driver() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verification Expiry</label>
-                      <input type="date" value={addDriverForm.policeVerificationExpiryDate} onChange={e => setAddDriverForm({...addDriverForm, policeVerificationExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none h-[calc(100%-1.5rem)]" />
+                      <input type="date" value={addDriverForm.policeVerificationExpiryDate} onChange={e => setAddDriverForm({...addDriverForm, policeVerificationExpiryDate: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none h-[calc(100%-1.5rem)]" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Police Verif. Certificate No</label>
@@ -837,7 +837,7 @@ export default function Driver() {
                         type="text" 
                         value={addDriverForm.policeVerificationNo || ''} 
                         onChange={e => setAddDriverForm({...addDriverForm, policeVerificationNo: e.target.value})} 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none font-mono" 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0A5C36] outline-none font-mono" 
                         placeholder="e.g. POL-VER-2026-XXXX" 
                       />
                     </div>
@@ -846,7 +846,7 @@ export default function Driver() {
               </form>
             </div>
             <div className="p-5 border-t border-gray-100">
-              <button form="addDriverForm" type="submit" disabled={isSubmitting} className="w-full bg-[#0B192C] text-white font-bold py-2.5 rounded-lg hover:bg-[#1E3E62] transition disabled:opacity-50">
+              <button form="addDriverForm" type="submit" disabled={isSubmitting} className="w-full bg-[#0A5C36] text-white font-bold py-2.5 rounded-lg hover:bg-[#0D7445] transition disabled:opacity-50">
                 {isSubmitting ? 'Creating...' : 'Create Driver'}
               </button>
             </div>
@@ -927,7 +927,7 @@ export default function Driver() {
                       min={new Date().toISOString().split('T')[0]}
                       value={verifyLicenseExpiry}
                       onChange={e => setVerifyLicenseExpiry(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0B192C]"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0A5C36]"
                     />
                   </div>
                   
@@ -941,7 +941,7 @@ export default function Driver() {
                     </button>
                     <div className="flex-1">
                       <input type="file" accept="image/*" id="updateLicense" className="hidden" onChange={handleUploadLicense} disabled={isUploadingDoc} />
-                      <label htmlFor="updateLicense" className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#0B192C] py-2 text-xs font-bold text-white transition hover:bg-[#1E3E62] ${isUploadingDoc ? 'cursor-not-allowed opacity-50' : ''}`}>
+                      <label htmlFor="updateLicense" className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#0A5C36] py-2 text-xs font-bold text-white transition hover:bg-[#0D7445] ${isUploadingDoc ? 'cursor-not-allowed opacity-50' : ''}`}>
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         {isUploadingDoc ? 'Uploading...' : 'Upload New'}
                       </label>
@@ -973,7 +973,7 @@ export default function Driver() {
                         min={new Date().toISOString().split('T')[0]}
                         value={verifyPoliceExpiry}
                         onChange={e => setVerifyPoliceExpiry(e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0B192C]"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#0A5C36]"
                       />
                     </div>
                     <div>
@@ -984,13 +984,13 @@ export default function Driver() {
                           value={verifyPoliceNo}
                           onChange={e => setVerifyPoliceNo(e.target.value)}
                           placeholder="POL-VER-2026-XXXX"
-                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-[#0B192C]"
+                          className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-[#0A5C36]"
                         />
                         <button
                           type="button"
                           onClick={handleSavePoliceCertificateNo}
                           title="Save Certificate Number"
-                          className="shrink-0 rounded-lg bg-gray-900 px-2.5 text-[11px] font-bold text-white transition hover:bg-[#0B192C]"
+                          className="shrink-0 rounded-lg bg-gray-900 px-2.5 text-[11px] font-bold text-white transition hover:bg-[#0A5C36]"
                         >
                           Save
                         </button>
@@ -1008,7 +1008,7 @@ export default function Driver() {
                     </button>
                     <div className="flex-1">
                       <input type="file" accept="image/*" id="updatePoliceVerif" className="hidden" onChange={handleUploadPoliceVerification} disabled={isUploadingDoc} />
-                      <label htmlFor="updatePoliceVerif" className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#0B192C] py-2 text-xs font-bold text-white transition hover:bg-[#1E3E62] ${isUploadingDoc ? 'cursor-not-allowed opacity-50' : ''}`}>
+                      <label htmlFor="updatePoliceVerif" className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-[#0A5C36] py-2 text-xs font-bold text-white transition hover:bg-[#0D7445] ${isUploadingDoc ? 'cursor-not-allowed opacity-50' : ''}`}>
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         {isUploadingDoc ? 'Uploading...' : 'Upload New'}
                       </label>
@@ -1027,7 +1027,7 @@ export default function Driver() {
                 <div className="space-y-2.5 rounded-xl border border-gray-200 p-3">
                   <p className="text-[10px] font-bold uppercase text-gray-500">Mark Verification Result</p>
                   <textarea
-                    className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0B192C]"
+                    className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm outline-none focus:ring-2 focus:ring-[#0A5C36]"
                     rows={3}
                     placeholder="Notes (optional)"
                     value={verifyNotes}
@@ -1044,7 +1044,7 @@ export default function Driver() {
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setShowVerifyForm(true)} className="w-full rounded-xl bg-[#0B192C] py-2.5 text-sm font-bold text-white transition hover:bg-[#1E3E62]">
+                <button onClick={() => setShowVerifyForm(true)} className="w-full rounded-xl bg-[#0A5C36] py-2.5 text-sm font-bold text-white transition hover:bg-[#0D7445]">
                   Start Verification
                 </button>
               )}
@@ -1097,7 +1097,7 @@ export default function Driver() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0B192C] outline-none transition"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0A5C36] outline-none transition"
                   placeholder="Enter new password"
                   minLength={6}
                 />
@@ -1109,7 +1109,7 @@ export default function Driver() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0B192C] outline-none transition"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0A5C36] outline-none transition"
                   placeholder="Re-enter new password"
                   minLength={6}
                 />
@@ -1118,7 +1118,7 @@ export default function Driver() {
                 <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
                   Cancel
                 </button>
-                <button type="submit" disabled={isChangingPassword} className="px-4 py-2 text-sm font-bold text-white bg-[#0B192C] hover:bg-[#1E3E62] rounded-lg transition disabled:opacity-50">
+                <button type="submit" disabled={isChangingPassword} className="px-4 py-2 text-sm font-bold text-white bg-[#0A5C36] hover:bg-[#0D7445] rounded-lg transition disabled:opacity-50">
                   {isChangingPassword ? 'Saving...' : 'Save Password'}
                 </button>
               </div>

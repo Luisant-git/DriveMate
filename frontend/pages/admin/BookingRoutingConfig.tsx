@@ -135,7 +135,7 @@ export default function BookingRoutingConfig() {
           const checked = selectedIds.includes(plan.id);
           const compatible = isCompatible(plan);
           return (
-            <label key={plan.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition ${checked ? 'border-[#0B192C] bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+            <label key={plan.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition ${checked ? 'border-[#0A5C36] bg-gray-50' : 'border-gray-200 hover:bg-gray-50'}`}>
               <input type="checkbox" checked={checked} onChange={() => onToggle(plan.id)} className="w-4 h-4 accent-black flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900">{plan.name}</p>
@@ -148,7 +148,7 @@ export default function BookingRoutingConfig() {
                   </p>
                 )}
               </div>
-              {checked && <span className="text-[10px] bg-[#0B192C] text-white px-1.5 py-0.5 rounded font-bold">ON</span>}
+              {checked && <span className="text-[10px] bg-[#0A5C36] text-white px-1.5 py-0.5 rounded font-bold">ON</span>}
             </label>
           );
         })}
@@ -164,7 +164,7 @@ export default function BookingRoutingConfig() {
         <h2 className="text-xl font-bold text-gray-900">Booking Routing Config</h2>
         <button
           onClick={() => { setShowAddModal(true); setAddError(''); }}
-          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition"
+          className="bg-[#0A5C36] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#0D7445] transition"
         >
           + Add Configuration
         </button>
@@ -176,7 +176,7 @@ export default function BookingRoutingConfig() {
       {configs.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <p className="text-gray-500 text-sm mb-3">No routing configurations yet</p>
-          <button onClick={() => setShowAddModal(true)} className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition">
+          <button onClick={() => setShowAddModal(true)} className="bg-[#0A5C36] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#0D7445] transition">
             Add First Configuration
           </button>
         </div>
@@ -238,7 +238,7 @@ export default function BookingRoutingConfig() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openEditModal(config)}
-                          className="px-3 py-1.5 bg-[#0B192C] text-white text-xs font-bold rounded-lg hover:bg-[#1E3E62] transition"
+                          className="px-3 py-1.5 bg-[#0A5C36] text-white text-xs font-bold rounded-lg hover:bg-[#0D7445] transition"
                         >
                           Edit
                         </button>
@@ -295,7 +295,7 @@ export default function BookingRoutingConfig() {
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setEditingConfig(null)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
-                <button onClick={handleEditSave} disabled={editSaving} className="flex-1 py-2.5 text-sm font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62] disabled:opacity-50 transition">
+                <button onClick={handleEditSave} disabled={editSaving} className="flex-1 py-2.5 text-sm font-bold text-white bg-[#0A5C36] rounded-lg hover:bg-[#0D7445] disabled:opacity-50 transition">
                   {editSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -324,7 +324,7 @@ export default function BookingRoutingConfig() {
                   <select
                     value={addForm.serviceType}
                     onChange={e => setAddForm(p => ({ ...p, serviceType: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] bg-white"
                   >
                     {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
@@ -334,7 +334,7 @@ export default function BookingRoutingConfig() {
                   <select
                     value={addForm.tripType}
                     onChange={e => setAddForm(p => ({ ...p, tripType: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36] bg-white"
                   >
                     {TRIP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -363,7 +363,7 @@ export default function BookingRoutingConfig() {
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
-                <button type="submit" disabled={addSaving} className="flex-1 py-2.5 text-sm font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62] disabled:opacity-50 transition">
+                <button type="submit" disabled={addSaving} className="flex-1 py-2.5 text-sm font-bold text-white bg-[#0A5C36] rounded-lg hover:bg-[#0D7445] disabled:opacity-50 transition">
                   {addSaving ? 'Creating...' : 'Create'}
                 </button>
               </div>

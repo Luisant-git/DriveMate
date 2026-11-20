@@ -39,3 +39,4 @@ WHERE ("category" IS NULL OR "category" = '' OR "category" ILIKE 'general' OR "c
   AND (
     "name" ILIKE '%Monthly%' OR "type" = 'MONTHLY'
   );
+

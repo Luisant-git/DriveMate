@@ -367,13 +367,13 @@ const SubscriptionList: React.FC = () => {
           <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
             <button
               onClick={() => setViewTab('PACKAGES')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${viewTab === 'PACKAGES' ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-[#0B192C]'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${viewTab === 'PACKAGES' ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-[#0A5C36]'}`}
             >
               Package Subscriptions
             </button>
             <button
               onClick={() => setViewTab('EXCESS')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${viewTab === 'EXCESS' ? 'bg-[#0B192C] text-white shadow-xs' : 'text-gray-500 hover:text-[#0B192C]'}`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 ${viewTab === 'EXCESS' ? 'bg-[#0A5C36] text-white shadow-xs' : 'text-gray-500 hover:text-[#0A5C36]'}`}
             >
               <span>Excess Amount</span>
               {pendingDriverCount > 0 && (
@@ -386,7 +386,7 @@ const SubscriptionList: React.FC = () => {
           {viewTab === 'PACKAGES' && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-[#0B192C] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#1E3E62] transition"
+              className="bg-[#0A5C36] text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-[#0D7445] transition"
             >
               + Create Subscription
             </button>
@@ -403,13 +403,13 @@ const SubscriptionList: React.FC = () => {
               value={packageSearch}
               onChange={(e) => setPackageSearch(e.target.value)}
               placeholder="Search driver, phone or plan..."
-              className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+              className="flex-1 min-w-[200px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
             />
 
             <select
               value={filterPlan}
               onChange={(e) => setFilterPlan(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
             >
               <option value="">All Plans</option>
               {packages.map(pkg => (
@@ -420,7 +420,7 @@ const SubscriptionList: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
             >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -432,7 +432,7 @@ const SubscriptionList: React.FC = () => {
             <select
               value={filterPayment}
               onChange={(e) => setFilterPayment(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
             >
               <option value="">All Payments</option>
               <option value="PENDING">Pending Payment</option>
@@ -658,7 +658,7 @@ const SubscriptionList: React.FC = () => {
               value={excessSearch}
               onChange={(e) => setExcessSearch(e.target.value)}
               placeholder="Search driver, phone or package..."
-              className="w-full pl-9 pr-9 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+              className="w-full pl-9 pr-9 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
             />
             {excessSearch && (
               <button
@@ -728,7 +728,7 @@ const SubscriptionList: React.FC = () => {
                             setSettleAmount(String(Math.round(due)));
                             setShowSettleModal(true);
                           }}
-                          className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-black text-white bg-[#0B192C] hover:bg-[#1E3E62] transition"
+                          className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-black text-white bg-[#0A5C36] hover:bg-[#0D7445] transition"
                         >
                           + Collect
                         </button>
@@ -806,7 +806,7 @@ const SubscriptionList: React.FC = () => {
                                 setSettleAmount(String(Math.round(due)));
                                 setShowSettleModal(true);
                               }}
-                              className="whitespace-nowrap rounded-md bg-[#0B192C] px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-[#1E3E62]"
+                              className="whitespace-nowrap rounded-md bg-[#0A5C36] px-2.5 py-1.5 text-[11px] font-bold text-white transition hover:bg-[#0D7445]"
                             >
                               + Collect
                             </button>
@@ -844,7 +844,7 @@ const SubscriptionList: React.FC = () => {
                   setShowDriverDropdown(true);
                 }}
                 onFocus={() => setShowDriverDropdown(true)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
               />
               {showDriverDropdown && !selectedDriver && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
@@ -879,7 +879,7 @@ const SubscriptionList: React.FC = () => {
                   setSelectedPackage(pkg || null);
                   if (pkg) setPaidAmount(pkg.price.toString());
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
               >
                 <option value="">Choose a package</option>
                 {packages.map(pkg => (
@@ -900,7 +900,7 @@ const SubscriptionList: React.FC = () => {
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
                 placeholder="Enter paid amount"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
               />
               {selectedPackage && paidAmount && (
                 <p className="text-xs text-gray-600 mt-1">
@@ -915,14 +915,14 @@ const SubscriptionList: React.FC = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setPaymentMethod('CASH')}
-                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${paymentMethod === 'CASH' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${paymentMethod === 'CASH' ? 'bg-[#0A5C36] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   Cash
                 </button>
                 <button
                   onClick={() => setPaymentMethod('UPI')}
-                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${paymentMethod === 'UPI' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  className={`flex-1 py-2 rounded-lg font-semibold text-sm transition ${paymentMethod === 'UPI' ? 'bg-[#0A5C36] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                 >
                   UPI
@@ -946,7 +946,7 @@ const SubscriptionList: React.FC = () => {
               </button>
               <button
                 onClick={createSubscription}
-                className="flex-1 bg-[#0B192C] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#1E3E62] transition"
+                className="flex-1 bg-[#0A5C36] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#0D7445] transition"
               >
                 Create
               </button>
@@ -976,7 +976,7 @@ const SubscriptionList: React.FC = () => {
                 value={additionalPayment}
                 onChange={(e) => setAdditionalPayment(e.target.value)}
                 placeholder="Enter payment amount"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
               />
             </div>
             <div className="flex gap-3">
@@ -992,7 +992,7 @@ const SubscriptionList: React.FC = () => {
               </button>
               <button
                 onClick={updatePayment}
-                className="flex-1 bg-[#0B192C] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#1E3E62] transition"
+                className="flex-1 bg-[#0A5C36] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#0D7445] transition"
               >
                 Update
               </button>
@@ -1004,7 +1004,7 @@ const SubscriptionList: React.FC = () => {
       {showSettleModal && settleTargetSub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
-            <div className="bg-[#0B192C] text-white px-5 py-4 flex items-center justify-between">
+            <div className="bg-[#0A5C36] text-white px-5 py-4 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Excess Amount</p>
                 <h3 className="text-base font-black text-white mt-0.5">{settleTargetSub.driver?.name}</h3>
@@ -1057,7 +1057,7 @@ const SubscriptionList: React.FC = () => {
                   required
                   value={settleAmount}
                   onChange={(e) => setSettleAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
                   placeholder="Enter collected amount"
                 />
               </div>
@@ -1073,7 +1073,7 @@ const SubscriptionList: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSettling}
-                  className="flex-1 px-4 py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#0A5C36] hover:bg-[#0D7445] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
                 >
                   {isSettling ? 'Recording...' : 'Confirm Collected'}
                 </button>

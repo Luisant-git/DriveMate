@@ -158,7 +158,7 @@ const LeadRegister: React.FC = () => {
           <button
             type="button"
             onClick={() => step === 1 ? navigate('/lead/login') : prevStep()}
-            className="text-gray-400 hover:text-[#0B192C] flex items-center gap-1 text-sm font-bold transition"
+            className="text-gray-400 hover:text-[#0A5C36] flex items-center gap-1 text-sm font-bold transition"
           >
             &larr; {step === 1 ? 'Back to Login' : 'Back'}
           </button>
@@ -194,7 +194,7 @@ const LeadRegister: React.FC = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="Enter full name"
                   required
                 />
@@ -206,7 +206,7 @@ const LeadRegister: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="name@example.com"
                   required
                 />
@@ -222,7 +222,7 @@ const LeadRegister: React.FC = () => {
                   maxLength={10}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="10-digit primary phone"
                   required
                 />
@@ -237,7 +237,7 @@ const LeadRegister: React.FC = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="••••••••"
                   required
                 />
@@ -253,7 +253,7 @@ const LeadRegister: React.FC = () => {
                   maxLength={12}
                   value={formData.aadharNo}
                   onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value.replace(/\D/g, '') })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="12-digit Aadhar number"
                   required
                 />
@@ -268,7 +268,7 @@ const LeadRegister: React.FC = () => {
                   type="text"
                   value={formData.licenseNo}
                   onChange={(e) => setFormData({ ...formData, licenseNo: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="DL Number"
                   required
                 />
@@ -295,7 +295,7 @@ const LeadRegister: React.FC = () => {
                   maxLength={10}
                   value={formData.alternateMobile1}
                   onChange={(e) => setFormData({ ...formData, alternateMobile1: e.target.value.replace(/\D/g, '') })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile1 && !isValidPhone(formData.alternateMobile1) && (
@@ -310,7 +310,7 @@ const LeadRegister: React.FC = () => {
                   maxLength={10}
                   value={formData.alternateMobile2}
                   onChange={(e) => setFormData({ ...formData, alternateMobile2: e.target.value.replace(/\D/g, '') })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile2 && !isValidPhone(formData.alternateMobile2) && (
@@ -325,7 +325,7 @@ const LeadRegister: React.FC = () => {
                   maxLength={10}
                   value={formData.alternateMobile3}
                   onChange={(e) => setFormData({ ...formData, alternateMobile3: e.target.value.replace(/\D/g, '') })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile3 && !isValidPhone(formData.alternateMobile3) && (
@@ -340,7 +340,7 @@ const LeadRegister: React.FC = () => {
                   maxLength={10}
                   value={formData.alternateMobile4}
                   onChange={(e) => setFormData({ ...formData, alternateMobile4: e.target.value.replace(/\D/g, '') })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="10-digit alternate mobile"
                 />
                 {formData.alternateMobile4 && !isValidPhone(formData.alternateMobile4) && (
@@ -354,7 +354,7 @@ const LeadRegister: React.FC = () => {
                   type="text"
                   value={formData.gpayNo}
                   onChange={(e) => setFormData({ ...formData, gpayNo: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm"
                   placeholder="e.g. 9876543210 or yourname@upi"
                 />
                 {formData.gpayNo && !isValidUpi(formData.gpayNo) && (
@@ -368,7 +368,7 @@ const LeadRegister: React.FC = () => {
           {step === 3 && (
             <div className="animate-fade-in space-y-4 py-1">
               {/* Mandatory Documents Banner */}
-              <div className="flex items-center justify-between bg-[#0B192C] text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm">
+              <div className="flex items-center justify-between bg-[#0A5C36] text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm">
                 <span>Required Documents ({requiredUploadedCount}/{REQUIRED_DOCS.length})</span>
                 {requiredUploadedCount === REQUIRED_DOCS.length ? (
                   <span className="flex items-center gap-1 text-green-400 text-xs">
@@ -411,7 +411,7 @@ const LeadRegister: React.FC = () => {
                           ? 'border-green-500 bg-green-50/50'
                           : isUploading
                             ? 'border-blue-400 bg-blue-50'
-                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-[#0B192C]'
+                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-[#0A5C36]'
                           }`}
                       >
                         {isUploading ? (
@@ -470,7 +470,7 @@ const LeadRegister: React.FC = () => {
                         value={formData.policeVerificationNo || ''}
                         onChange={(e) => setFormData({ ...formData, policeVerificationNo: e.target.value })}
                         placeholder="e.g. POL-VER-2026-XXXX"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C] text-sm font-mono bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0A5C36] text-sm font-mono bg-white"
                       />
                     </div>
                     {OPTIONAL_DOCS.map((doc) => {
@@ -536,7 +536,7 @@ const LeadRegister: React.FC = () => {
               type="button"
               onClick={nextStep}
               disabled={step === 1 ? !isStep1Valid : !isStep2Valid}
-              className="w-full bg-[#0B192C] text-white py-3 rounded-xl font-bold hover:bg-[#1E3E62] transition disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
+              className="w-full bg-[#0A5C36] text-white py-3 rounded-xl font-bold hover:bg-[#0D7445] transition disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
             >
               Continue to Step {step + 1}
             </button>
@@ -544,7 +544,7 @@ const LeadRegister: React.FC = () => {
             <button
               type="submit"
               disabled={loading || !isStep3Valid}
-              className="w-full bg-[#0B192C] text-white py-3 rounded-xl font-bold hover:bg-[#1E3E62] transition disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2"
+              className="w-full bg-[#0A5C36] text-white py-3 rounded-xl font-bold hover:bg-[#0D7445] transition disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

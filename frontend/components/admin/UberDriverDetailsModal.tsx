@@ -246,7 +246,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                     }}
                   />
                 ) : (
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#0B192C] text-white font-black text-xl sm:text-2xl flex items-center justify-center shadow-md">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#0A5C36] text-white font-black text-xl sm:text-2xl flex items-center justify-center shadow-md">
                     {driver.name ? driver.name.charAt(0).toUpperCase() : 'D'}
                   </div>
                 )}
@@ -269,7 +269,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-gray-500 font-medium mt-1">
-                  <a href={`tel:${driver.phone}`} className="flex items-center gap-1 text-gray-700 hover:text-[#0B192C] font-semibold">
+                  <a href={`tel:${driver.phone}`} className="flex items-center gap-1 text-gray-700 hover:text-[#0A5C36] font-semibold">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
@@ -290,7 +290,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
               {onOpenChangePassword && (
                 <button 
                   onClick={onOpenChangePassword} 
-                  className="px-3.5 py-2 bg-neutral-900 hover:bg-[#0B192C] text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5"
+                  className="px-3.5 py-2 bg-neutral-900 hover:bg-[#0A5C36] text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -300,7 +300,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
               )}
               <button 
                 onClick={onClose} 
-                className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition active:scale-95 text-gray-500 hover:text-[#0B192C]"
+                className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition active:scale-95 text-gray-500 hover:text-[#0A5C36]"
                 title="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,7 +319,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
               <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm hover:shadow-md transition-shadow space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#0B192C] text-white flex items-center justify-center shadow-xs">
+                    <div className="w-7 h-7 rounded-lg bg-[#0A5C36] text-white flex items-center justify-center shadow-xs">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
@@ -348,7 +348,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                       {driver.phone && (
                         <button
                           onClick={() => handleCopy(driver.phone, 'phone')}
-                          className="text-gray-400 hover:text-[#0B192C] transition"
+                          className="text-gray-400 hover:text-[#0A5C36] transition"
                           title="Copy phone"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,7 +367,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                       {driver.aadharNo && (
                         <button
                           onClick={() => handleCopy(driver.aadharNo!, 'aadhar')}
-                          className="text-gray-400 hover:text-[#0B192C] transition"
+                          className="text-gray-400 hover:text-[#0A5C36] transition"
                           title="Copy Aadhar"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +386,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                       {driver.licenseNo && (
                         <button
                           onClick={() => handleCopy(driver.licenseNo!, 'license')}
-                          className="text-gray-400 hover:text-[#0B192C] transition"
+                          className="text-gray-400 hover:text-[#0A5C36] transition"
                           title="Copy DL"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -433,7 +433,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                       {driver.policeVerificationNo && (
                         <button
                           onClick={() => handleCopy(driver.policeVerificationNo!, 'policeNo')}
-                          className="text-gray-400 hover:text-[#0B192C] transition"
+                          className="text-gray-400 hover:text-[#0A5C36] transition"
                           title="Copy Police Verification No"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -470,7 +470,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                 <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm hover:shadow-md transition-shadow space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#0B192C] text-white flex items-center justify-center shadow-xs">
+                      <div className="w-7 h-7 rounded-lg bg-[#0A5C36] text-white flex items-center justify-center shadow-xs">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                         </svg>
@@ -514,7 +514,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                         {(driver.gpayNo || driver.phonepeNo) && (
                           <button
                             onClick={() => handleCopy(driver.gpayNo || driver.phonepeNo!, 'upi')}
-                            className="text-gray-400 hover:text-[#0B192C] transition"
+                            className="text-gray-400 hover:text-[#0A5C36] transition"
                             title="Copy UPI number"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -581,7 +581,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
 
                       <button 
                         onClick={onOpenUpdatePackage}
-                        className="px-4 py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0"
+                        className="px-4 py-2 bg-[#0A5C36] hover:bg-[#0D7445] text-white text-xs font-bold rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -649,7 +649,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
             <div className="bg-white rounded-xl border border-gray-200/80 p-3.5 sm:p-4 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-[#0B192C] text-white flex items-center justify-center shadow-xs">
+                  <div className="w-6 h-6 rounded-md bg-[#0A5C36] text-white flex items-center justify-center shadow-xs">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -762,7 +762,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                           onClick={() => handleDownloadDoc(doc.path, doc.label)}
                           className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
                             hasPath 
-                              ? 'bg-[#0B192C] hover:bg-neutral-800 text-white shadow-2xs active:scale-95' 
+                              ? 'bg-[#0A5C36] hover:bg-neutral-800 text-white shadow-2xs active:scale-95' 
                               : 'bg-gray-100 text-gray-300 cursor-not-allowed'
                           }`}
                           title={hasPath ? `Download ${doc.label}` : 'Document not uploaded'}
@@ -802,7 +802,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
       {showSettleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
-            <div className="bg-[#0B192C] text-white px-5 py-4 flex items-center justify-between">
+            <div className="bg-[#0A5C36] text-white px-5 py-4 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Collect Excess Amount</p>
                 <h3 className="text-base font-black text-white mt-0.5">{driver.name}</h3>
@@ -858,7 +858,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                   required
                   value={settleAmount}
                   onChange={(e) => setSettleAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#0B192C]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
                   placeholder="Enter collected amount"
                 />
               </div>
@@ -874,7 +874,7 @@ export const UberDriverDetailsModal: React.FC<UberDriverDetailsModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSettling}
-                  className="flex-1 px-4 py-2 bg-[#0B192C] hover:bg-[#1E3E62] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#0A5C36] hover:bg-[#0D7445] text-white text-xs font-bold rounded-lg transition disabled:opacity-50"
                 >
                   {isSettling ? 'Recording...' : 'Confirm Collected'}
                 </button>

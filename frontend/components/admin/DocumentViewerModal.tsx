@@ -46,7 +46,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#0B192C] text-white flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-[#0A5C36] text-white flex items-center justify-center shadow-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -65,7 +65,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
               href={url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="p-2 text-gray-600 hover:text-[#0B192C] hover:bg-gray-200/60 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold"
+              className="p-2 text-gray-600 hover:text-[#0A5C36] hover:bg-gray-200/60 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold"
               title="Open full image in new tab"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,7 +78,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             {onDownload && (
               <button
                 onClick={onDownload}
-                className="px-3 py-1.5 bg-[#0B192C] hover:bg-[#1E3E62] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                className="px-3 py-1.5 bg-[#0A5C36] hover:bg-[#0D7445] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
                 title="Download this file"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +157,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             <div className="relative max-w-full max-h-full flex items-center justify-center">
               {loading && !error && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-8 h-8 border-3 border-[#0B192C] border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-8 h-8 border-3 border-[#0A5C36] border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
               {error ? (
@@ -173,7 +173,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                     href={url} 
                     target="_blank" 
                     rel="noreferrer" 
-                    className="inline-block mt-3 px-4 py-2 bg-[#0B192C] text-white text-xs font-bold rounded-lg hover:bg-[#1E3E62] transition"
+                    className="inline-block mt-3 px-4 py-2 bg-[#0A5C36] text-white text-xs font-bold rounded-lg hover:bg-[#0D7445] transition"
                   >
                     Open in New Tab
                   </a>
