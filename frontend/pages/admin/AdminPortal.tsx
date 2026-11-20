@@ -829,27 +829,14 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
               )}
 
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase">
-                    Category
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCategoryMaster(true)}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition"
-                  >
-                    <span>⚙</span> Category Master
-                  </button>
-                </div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Category
+                </label>
                 <select
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5 bg-white"
                   value={packageForm.category}
                   onChange={(e) => {
                     const newCat = e.target.value;
-                    if (newCat === '__MANAGE__') {
-                      setShowCategoryMaster(true);
-                      return;
-                    }
                     setPackageForm((prev) => ({
                       ...prev,
                       category: newCat,
@@ -864,9 +851,6 @@ const AdminPortal: React.FC<AdminPortalProps> = ({ onLogout }) => {
                       {cat}
                     </option>
                   ))}
-                  <option value="__MANAGE__" className="font-semibold text-blue-600">
-                    + Add / Manage Categories...
-                  </option>
                 </select>
               </div>
 
