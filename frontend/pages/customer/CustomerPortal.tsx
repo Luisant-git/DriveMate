@@ -693,33 +693,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         }
 
         if (!formData.estimatedUsage) return;
-
-        setEstimateLoading(true);
-        try {
-            const hours = parseDurationToHours(formData.estimatedUsage);
-            const isOutstation = serviceType === BookingType.OUTSTATION;
-            const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
-            const distance = calculatedDistance || 0;
-            const breakdown = await calculateFare(hours, distance, isOutstation, isImmediate);
-
-            if (breakdown) {
-                setFareBreakdown(breakdown);
-                if (isOutstation && formData.tripType === 'Round Trip') {
-                    applyOutstationDaysEstimate(breakdown.totalFare);
-                } else {
-                    setEstimate(breakdown.totalFare);
-                }
-            } else {
-                setEstimate(null);
-                setFareBreakdown(null);
-            }
-        } catch (error) {
-            console.error('Error calculating fare:', error);
-            setEstimate(null);
-            setFareBreakdown(null);
-        } finally {
-            setEstimateLoading(false);
-        }
+        await handleEstimateWithValues(formData.estimatedUsage, serviceType === BookingType.OUTSTATION, immediateOverride);
     };
 
     const handleEstimateWithValues = async (estimatedUsage: string, isOutstation?: boolean, immediateOverride?: boolean) => {
@@ -733,14 +707,46 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
         setEstimateLoading(true);
         try {
-            const hours = parseDurationToHours(estimatedUsage);
             const useOutstation = isOutstation !== undefined ? isOutstation : serviceType === BookingType.OUTSTATION;
             const isImmediate = immediateOverride !== undefined ? immediateOverride : formData.whenNeeded === 'Immediately';
             const distance = calculatedDistance || 0;
+            const isDayOption = estimatedUsage.toLowerCase().includes('day');
+
+            // Handle multi-day outstation bookings
+            if (useOutstation && isDayOption) {
+                const days = parseInt(estimatedUsage, 10) || 1;
+                const basePackageHours = distance > 0 ? getOutstationPackageByDistance(distance).hours : 8;
+                const breakdown = await calculateFare(basePackageHours, distance, true, isImmediate);
+                if (breakdown) {
+                    const dailyRate = breakdown.totalFare;
+                    const total = dailyRate * days;
+                    const dayBreakdown: FareBreakdown = {
+                        ...breakdown,
+                        totalFare: total,
+                        description: `${breakdown.description.replace(/ \+ \d+ Extra Hrs?/, '')} • ${days} Day${days > 1 ? 's' : ''}`,
+                        scheduledCharge: (breakdown.scheduledCharge || dailyRate) * days,
+                        immediateCharge: (breakdown.immediateCharge || dailyRate) * days,
+                        extraHours: 0,
+                        extraHourCharge: 0
+                    };
+                    setFareBreakdown(dayBreakdown);
+                    setOutstationDailyFare(dailyRate);
+                    setEstimate(total);
+                } else {
+                    setEstimate(null);
+                    setFareBreakdown(null);
+                }
+                return;
+            }
+
+            const hours = parseDurationToHours(estimatedUsage);
             const breakdown = await calculateFare(hours, distance, useOutstation, isImmediate);
 
             if (breakdown) {
                 setFareBreakdown(breakdown);
+                if (useOutstation) {
+                    setOutstationDailyFare(breakdown.totalFare);
+                }
                 if (useOutstation && formData.tripType === 'Round Trip') {
                     applyOutstationDaysEstimate(breakdown.totalFare);
                 } else {
@@ -768,20 +774,22 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
         return { hours: band.hours, description: `${band.hours} Hrs Outstation Package` };
     };
 
-    // Estimated Usage list for Outstation — only the hours the admin has priced
+    const OUTSTATION_STANDARD_HOURS = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24];
+
+    // Estimated Usage list for Outstation — combines standard hours, admin pricing, and multi-day options
     const outstationUsageOptions = (() => {
-        if (outstationPricing.length === 0) return getFilteredDurationOptions(calculatedDistance);
+        const requiredHours = calculatedDistance ? getOutstationPackageByDistance(calculatedDistance).hours : 8;
+        const adminHours = outstationPricing.map(p => p.hours);
+        const combinedHours = Array.from(new Set([
+            ...OUTSTATION_STANDARD_HOURS,
+            ...adminHours
+        ])).sort((a, b) => a - b);
 
-        const requiredHours = getOutstationPackageByDistance(calculatedDistance ?? 0).hours;
-        const hours = Array.from(new Set(
-            outstationPricing.filter(p => p.hours >= requiredHours).map(p => p.hours)
-        )).sort((a, b) => a - b);
+        const validHours = combinedHours.filter(h => h >= requiredHours).map(h => `${h} Hrs`);
 
-        // Multi-day trips need day options too, which are not priced rows
-        const withDays = calculatedDistance === null || calculatedDistance > 150;
         return [
-            ...hours.map(h => `${h} Hrs`),
-            ...(withDays ? OUTSTATION_DAY_OPTIONS : []),
+            ...validHours,
+            ...OUTSTATION_DAY_OPTIONS,
         ];
     })();
 
@@ -909,6 +917,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
     };
 
     const applyOutstationDaysEstimate = (dailyFare: number | null = null, date?: string, returnDate?: string) => {
+        if (dailyFare !== null) {
+            setOutstationDailyFare(dailyFare);
+        }
         const base = dailyFare ?? outstationDailyFare;
         if (!base) return;
         const days = getOutstationDays(date ?? formData.date, returnDate ?? formData.returnDate);
@@ -1410,8 +1421,9 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                         {/* Usage options grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
                             {(serviceType === BookingType.OUTSTATION ? outstationUsageOptions : localUsageOptions).map((option) => {
-                                const optionHours = parseInt(option, 10);
-                                const locked = minUsageHours !== null && optionHours < minUsageHours;
+                                const isDayOption = option.toLowerCase().includes('day');
+                                const optionHours = parseDurationToHours(option);
+                                const locked = !isDayOption && minUsageHours !== null && optionHours < minUsageHours;
                                 const isSelected = formData.estimatedUsage === option;
 
                                 return (
@@ -1423,7 +1435,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             if (locked) return;
                                             setFormData(prev => ({ ...prev, estimatedUsage: option }));
                                             setShowUsageModal(false);
-                                            setTimeout(() => handleEstimateWithValues(option), 50);
+                                            setTimeout(() => handleEstimateWithValues(option, serviceType === BookingType.OUTSTATION), 50);
                                         }}
                                         className={`p-3 sm:p-3.5 rounded-2xl flex flex-col items-center justify-center text-center transition-all duration-150 active:scale-95 border ${
                                             locked
@@ -1442,7 +1454,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                             )}
                                         </div>
                                         <span className="text-[10px] text-gray-500 font-medium mt-0.5">
-                                            {locked ? `Min ${minUsageHours}h required` : `${optionHours} Hours`}
+                                            {locked ? `Min ${minUsageHours}h required` : isDayOption ? option : `${optionHours} Hours`}
                                         </span>
                                     </button>
                                 );
@@ -2143,6 +2155,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                                                         // Auto-select package based on distance
                                                         const packageInfo = getOutstationPackageByDistance(distanceData.distance);
+                                                        setMinUsageHours(packageInfo.hours);
                                                         setFormData(prev => ({ ...prev, pickup: value, estimatedUsage: `${packageInfo.hours} Hrs` }));
 
                                                         // Calculate fare based on distance
@@ -2307,7 +2320,8 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
 
                                                             // Auto-select package based on distance
                                                             const packageInfo = getOutstationPackageByDistance(distanceData.distance);
-                                                            setFormData({ ...formData, drop: value, estimatedUsage: `${packageInfo.hours} Hrs` });
+                                                            setMinUsageHours(packageInfo.hours);
+                                                            setFormData(prev => ({ ...prev, drop: value, estimatedUsage: `${packageInfo.hours} Hrs` }));
 
                                                             // Calculate fare based on distance
                                                             const breakdown = await calculateOutstationFareByDistance(distanceData.distance, formData.whenNeeded === 'Immediately', packageInfo.hours);
@@ -2635,7 +2649,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                                                             const retDate = formData.returnDate || formData.date;
                                                                             setTimeout(() => applyOutstationDaysEstimate(null, formData.date, retDate), 100);
                                                                         } else {
-                                                                            setTimeout(() => handleEstimateWithValues(formData.estimatedUsage), 100);
+                                                                            setTimeout(() => handleEstimateWithValues(formData.estimatedUsage, true), 100);
                                                                         }
                                                                     }}
                                                                     className={`p-2.5 text-xs font-bold cursor-pointer hover:bg-gray-50 ${formData.tripType === option ? 'bg-gray-100' : ''}`}

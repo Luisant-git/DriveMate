@@ -52,25 +52,10 @@ export const OUTSTATION_DAY_OPTIONS = ['1 Day', '2 Days', '3 Days', '4 Days', '5
 
 // Filter duration options based on distance for outstation bookings
 export function getFilteredDurationOptions(distanceKm: number | null): string[] {
-  const allOptions = [...OUTSTATION_HOUR_OPTIONS, ...OUTSTATION_DAY_OPTIONS];
-  
-  // If no distance calculated yet, return all options
-  if (!distanceKm) {
-    return allOptions;
-  }
-  
-  // For 150km or below: show 8hrs, 10hrs
-  if (distanceKm <= 150) {
-    return ['8 Hrs', '10 Hrs'];
-  }
-  
-  // For above 150km: show minimum 12hrs and above (hide below 12hr)
-  return allOptions.filter(option => {
-    if (option.includes('Hrs')) {
-      const hours = parseInt(option.split(' ')[0]);
-      return hours >= 12;
-    }
-    // Include all day options
-    return true;
+  const minHours = !distanceKm ? 8 : (distanceKm > 300 ? 12 : (distanceKm >= 151 ? 10 : 8));
+  const validHours = OUTSTATION_HOUR_OPTIONS.filter(option => {
+    const hours = parseInt(option, 10);
+    return hours >= minHours;
   });
+  return [...validHours, ...OUTSTATION_DAY_OPTIONS];
 }

@@ -128,16 +128,12 @@ export const getEstimateByPackage = async (req, res) => {
       extraHours = 0;
     } else {
       // Find the best base package:
-      // If a distance minimum package is required and available, use it as the base package;
-      // otherwise use the largest available package that is <= effectiveHours (or the highest tier package)
-      if (minRequiredHours > 0) {
-        basePkg = allPackages.find(p => p.hours === minRequiredHours)
-          || allPackages.filter(p => p.hours <= effectiveHours).pop()
-          || allPackages[allPackages.length - 1];
-      } else {
-        basePkg = allPackages.filter(p => p.hours <= effectiveHours).pop()
-          || allPackages[allPackages.length - 1];
-      }
+      // Pick the largest available package that is <= effectiveHours;
+      // if none fits (effectiveHours is below smallest package), pick the smallest package
+      const fittingPkgs = allPackages.filter(p => p.hours <= effectiveHours);
+      basePkg = fittingPkgs.length > 0
+        ? fittingPkgs[fittingPkgs.length - 1]
+        : (allPackages.find(p => p.hours === minRequiredHours) || allPackages[0]);
       extraHours = Math.max(0, effectiveHours - basePkg.hours);
     }
 
