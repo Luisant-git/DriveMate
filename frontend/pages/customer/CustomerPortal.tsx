@@ -3429,8 +3429,17 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     onClick={() => setShowJobForm(v => !v)}
                                     className="bg-[#0B192C] text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-[#1E3E62] transition flex items-center gap-1.5 whitespace-nowrap"
                                 >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-                                    {showJobForm ? 'Cancel' : 'Post Job'}
+                                    {showJobForm ? (
+                                        <>
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                            Cancel
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                                            Post Job
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -3723,32 +3732,42 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                         </label>
                                     </div>
 
-                                    {/* Submit */}
-                                    <button type="submit" disabled={jobSubmitting || !jobFormData.termsAccepted || !isJobPhoneVerified}
-                                        className="w-full bg-[#1D4ED8] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1E40AF] transition disabled:opacity-60 flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
-                                    >
-                                        {jobSubmitting
-                                            ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Posting…</>
-                                            : 'Post Job'}
-                                    </button>
+                                    {/* Submit and Cancel actions */}
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowJobForm(false)}
+                                            className="px-4 py-3 rounded-xl font-bold text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button type="submit" disabled={jobSubmitting || !jobFormData.termsAccepted || !isJobPhoneVerified}
+                                            className="flex-1 bg-[#1D4ED8] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1E40AF] transition disabled:opacity-60 flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
+                                        >
+                                            {jobSubmitting
+                                                ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" /></svg>Posting…</>
+                                                : 'Post Job'}
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         )}
 
-                        {/* ── MY JOB LISTINGS ── */}
-                        {jobsLoading ? (
-                            <div className="text-center py-8 text-sm text-gray-400">Loading…</div>
-                        ) : myJobs.length === 0 && !showJobForm ? (
-                            <div className="text-center py-12">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        {/* ── MY JOB LISTINGS (hidden while post job form is open) ── */}
+                        {!showJobForm && (
+                            jobsLoading ? (
+                                <div className="text-center py-8 text-sm text-gray-400">Loading…</div>
+                            ) : myJobs.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                    </div>
+                                    <p className="font-bold text-gray-700">No job postings yet</p>
+                                    <p className="text-xs text-gray-400 mt-1">Tap "Post Job" to post your first requirement</p>
                                 </div>
-                                <p className="font-bold text-gray-700">No job postings yet</p>
-                                <p className="text-xs text-gray-400 mt-1">Tap "Post Job" to post your first requirement</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {myJobs.map(job => {
+                            ) : (
+                                <div className="space-y-3">
+                                    {myJobs.map(job => {
                                     const isActive = job.status === 'ACTIVE';
                                     const statusMeta = JOB_STATUS_META[job.status] || {
                                         label: job.status || 'UNKNOWN',
@@ -3905,6 +3924,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                                     );
                                 })}
                             </div>
+                            )
                         )}
                     </div>
                 )}
