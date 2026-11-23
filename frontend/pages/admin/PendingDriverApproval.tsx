@@ -72,6 +72,13 @@ export default function PendingDriverApproval() {
     if (!query || !query.trim()) return true;
     const q = query.toLowerCase().trim();
 
+    // Check Customer details (Name, Phone)
+    const cName = (booking.customer?.name || booking.customerName || '').toLowerCase();
+    const cPhone = (booking.customer?.phone || booking.customerPhone || '').toLowerCase();
+    if (cName.includes(q) || cPhone.includes(q)) {
+      return true;
+    }
+
     // Check direct driver/lead fields
     const dName = (booking.driver?.name || '').toLowerCase();
     const dPhone = (booking.driver?.phone || '').toLowerCase();
@@ -81,12 +88,9 @@ export default function PendingDriverApproval() {
       return true;
     }
 
-    // Check customer fields (name, phone, pickup/drop)
-    const cName = (booking.customer?.name || '').toLowerCase();
-    const cPhone = (booking.customer?.phone || '').toLowerCase();
-    const pickup = (booking.pickupLocation || '').toLowerCase();
-    const drop = (booking.dropLocation || '').toLowerCase();
-    if (cName.includes(q) || cPhone.includes(q) || pickup.includes(q) || drop.includes(q)) {
+    // Check booking number / ID
+    const bNum = (booking.bookingNumber || String(booking.id || '')).toLowerCase();
+    if (bNum.includes(q)) {
       return true;
     }
 
@@ -585,32 +589,80 @@ export default function PendingDriverApproval() {
 
   return (
     <div className="px-3 sm:px-6 py-4 sm:py-6">
-      {/* Responsive Top Bar: Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 mb-4">
-        {/* Title & Live Status */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Driver Approvals</h2>
-          <div className="flex items-center gap-1.5 bg-green-50 px-2.5 py-1 rounded-full border border-green-200" title="Data updates automatically every 15 seconds">
+      {/* Top Header Row: Title & Tabs */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Driver Approvals</h2>
+          <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-200" title="Data updates automatically every 15 seconds">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <span className="text-[11px] font-bold text-green-700 uppercase tracking-wider">
-              Live Refresh
-            </span>
+            <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider hidden sm:inline-block">Live Refresh</span>
           </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full md:w-80">
+        {/* Tabs Container */}
+        <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto w-full lg:w-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab('PENDING')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap cursor-pointer ${activeTab === 'PENDING' ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Pending Trips
+            {bookingsWithAcceptedDrivers.length > 0 && (
+              <span className="ml-1.5 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                {bookingsWithAcceptedDrivers.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('FREE_LISTING')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap cursor-pointer ${activeTab === 'FREE_LISTING' ? 'bg-[#0B192C] text-white shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            📢 Free Listing
+            {freeListingBookings.length > 0 && (
+              <span className="ml-1.5 bg-amber-400 text-black font-black px-2 py-0.5 rounded-full text-xs">
+                {freeListingBookings.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('ALLOCATED')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap cursor-pointer ${activeTab === 'ALLOCATED' ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Accepted Trips
+          </button>
+          <button
+            onClick={() => setActiveTab('CANCELLATIONS')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap cursor-pointer ${activeTab === 'CANCELLATIONS' ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Cancellation Requests
+            {cancellationRequests.length > 0 && (
+              <span className="ml-1.5 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                {cancellationRequests.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('HISTORY')}
+            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap cursor-pointer ${activeTab === 'HISTORY' ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Cancel History
+          </button>
+        </div>
+      </div>
+
+      {/* Row 2: Search Bar */}
+      <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative w-full sm:max-w-md">
           <input 
             type="text" 
-            placeholder="Search driver, customer, or phone..." 
+            placeholder="Search customer, driver, or phone..." 
             value={driverSearchQuery}
             onChange={(e) => setDriverSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition shadow-xs"
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition shadow-xs"
           />
-          <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           {driverSearchQuery && (
@@ -624,121 +676,11 @@ export default function PendingDriverApproval() {
             </button>
           )}
         </div>
-      </div>
-
-      {/* Responsive Navigation Tabs */}
-      <div className="mb-5 sm:mb-6">
-        {/* Mobile Quick Dropdown */}
-        <div className="sm:hidden mb-2.5">
-          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Select View</label>
-          <select
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value as any)}
-            className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-[#0B192C] outline-none shadow-xs"
-          >
-            <option value="PENDING">Pending Trips ({bookingsWithAcceptedDrivers.length})</option>
-            <option value="FREE_LISTING">📢 Free Listing ({freeListingBookings.length})</option>
-            <option value="ALLOCATED">Accepted Trips ({allocatedBookings.length})</option>
-            <option value="CANCELLATIONS">Cancellation Requests ({cancellationRequests.length})</option>
-            <option value="HISTORY">Cancel History ({cancellationHistory.length})</option>
-          </select>
-        </div>
-
-        {/* Tab Buttons Bar (Smooth Horizontal Scroll on Mobile, Full Width Row on Tablet/Desktop) */}
-        <div className="bg-gray-100/90 p-1.5 rounded-2xl flex items-center gap-1.5 overflow-x-auto no-scrollbar border border-gray-200/70 shadow-xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('PENDING')}
-            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center cursor-pointer ${
-              activeTab === 'PENDING'
-                ? 'bg-[#0B192C] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
-            }`}
-          >
-            Pending Trips
-            {bookingsWithAcceptedDrivers.length > 0 && (
-              <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeTab === 'PENDING' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'
-              }`}>
-                {bookingsWithAcceptedDrivers.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('FREE_LISTING')}
-            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center cursor-pointer ${
-              activeTab === 'FREE_LISTING'
-                ? 'bg-amber-500 text-black shadow-sm ring-1 ring-amber-600 font-black'
-                : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200/80 font-bold'
-            }`}
-          >
-            <span>📢 Free Listing</span>
-            {freeListingBookings.length > 0 && (
-              <span className="ml-1.5 bg-black text-amber-400 font-black px-2 py-0.5 rounded-full text-[11px]">
-                {freeListingBookings.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('ALLOCATED')}
-            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center cursor-pointer ${
-              activeTab === 'ALLOCATED'
-                ? 'bg-[#0B192C] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
-            }`}
-          >
-            Accepted Trips
-            {allocatedBookings.length > 0 && (
-              <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeTab === 'ALLOCATED' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {allocatedBookings.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('CANCELLATIONS')}
-            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center cursor-pointer ${
-              activeTab === 'CANCELLATIONS'
-                ? 'bg-[#0B192C] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
-            }`}
-          >
-            Cancellation Requests
-            {cancellationRequests.length > 0 && (
-              <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeTab === 'CANCELLATIONS' ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-700 animate-pulse'
-              }`}>
-                {cancellationRequests.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('HISTORY')}
-            className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center cursor-pointer ${
-              activeTab === 'HISTORY'
-                ? 'bg-[#0B192C] text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'
-            }`}
-          >
-            Cancel History
-            {cancellationHistory.length > 0 && (
-              <span className={`ml-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                activeTab === 'HISTORY' ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-700'
-              }`}>
-                {cancellationHistory.length}
-              </span>
-            )}
-          </button>
-        </div>
+        {driverSearchQuery && (
+          <span className="text-xs text-gray-500 font-medium">
+            Filtering by: <span className="font-bold text-gray-800">"{driverSearchQuery}"</span>
+          </span>
+        )}
       </div>
       
       {activeTab === 'PENDING' ? (
@@ -758,7 +700,7 @@ export default function PendingDriverApproval() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <p className="text-gray-700 font-bold text-sm">No pending trips match driver "{driverSearchQuery}"</p>
+            <p className="text-gray-700 font-bold text-sm">No pending trips match "{driverSearchQuery}"</p>
             <button
               type="button"
               onClick={() => setDriverSearchQuery('')}
@@ -872,13 +814,29 @@ export default function PendingDriverApproval() {
           </div>
         )
       ) : activeTab === 'FREE_LISTING' ? (
-        filteredFreeListingBookings.length === 0 ? (
+        freeListingBookings.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl">📢</span>
             </div>
             <p className="text-gray-700 font-bold text-sm">No rides currently in Free Listing</p>
             <p className="text-gray-500 text-xs mt-1">When drivers don't accept rides under active packages, publish them to Free Listing from Pending Trips.</p>
+          </div>
+        ) : filteredFreeListingBookings.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-700 font-bold text-sm">No free listing trips match "{driverSearchQuery}"</p>
+            <button
+              type="button"
+              onClick={() => setDriverSearchQuery('')}
+              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+            >
+              Clear Search
+            </button>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -965,7 +923,7 @@ export default function PendingDriverApproval() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <p className="text-gray-700 font-bold text-sm">No cancellation requests match driver "{driverSearchQuery}"</p>
+            <p className="text-gray-700 font-bold text-sm">No cancellation requests match "{driverSearchQuery}"</p>
             <button
               type="button"
               onClick={() => setDriverSearchQuery('')}
@@ -1097,7 +1055,7 @@ export default function PendingDriverApproval() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <p className="text-gray-700 font-bold text-sm">No allocated trips match driver "{driverSearchQuery}"</p>
+            <p className="text-gray-700 font-bold text-sm">No allocated trips match "{driverSearchQuery}"</p>
             <button
               type="button"
               onClick={() => setDriverSearchQuery('')}
@@ -1199,7 +1157,7 @@ export default function PendingDriverApproval() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <p className="text-gray-700 font-bold text-sm">No cancellation history matches driver "{driverSearchQuery}"</p>
+            <p className="text-gray-700 font-bold text-sm">No cancellation history matches "{driverSearchQuery}"</p>
             <button
               type="button"
               onClick={() => setDriverSearchQuery('')}
