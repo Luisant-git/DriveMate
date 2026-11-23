@@ -17,6 +17,7 @@ export default function BookingWorkflow() {
   const [filters, setFilters] = useState({ tripType: '', serviceType: '', paymentStatus: '', paymentMethod: '' });
   const [packages, setPackages] = useState([]);
   const [leadPackages, setLeadPackages] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [processingBookings, setProcessingBookings] = useState(new Set()); // Track which bookings are being processed
   const [customersList, setCustomersList] = useState([]);
   
@@ -168,12 +169,26 @@ export default function BookingWorkflow() {
       if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
       
       const res = await apiClient.get(`/booking-workflow/admin/pending?${params}`);
-      setPendingBookings(res.data.bookings);
-      setFilteredBookings(res.data.bookings);
+      setPendingBookings(res.data.bookings || []);
     } catch (error) {
       console.error('Error:', error);
     }
   };
+
+  useEffect(() => {
+    if (!customerSearch.trim()) {
+      setFilteredBookings(pendingBookings);
+    } else {
+      const q = customerSearch.toLowerCase().trim();
+      setFilteredBookings(
+        pendingBookings.filter(b => {
+          const name = (b.customer?.name || '').toLowerCase();
+          const phone = (b.customer?.phone || '').toLowerCase();
+          return name.includes(q) || phone.includes(q);
+        })
+      );
+    }
+  }, [customerSearch, pendingBookings]);
 
   const handleFilterChange = (filterType, value) => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
@@ -403,7 +418,31 @@ export default function BookingWorkflow() {
             </div>
             
             {/* Filters */}
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* Customer Search Bar */}
+              <div className="relative flex-1 sm:w-64 min-w-[200px]">
+                <input 
+                  type="text" 
+                  placeholder="Search customer or phone..." 
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition shadow-xs"
+                />
+                <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {customerSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomerSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
+
               <select 
                 value={filters.paymentStatus} 
                 onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
@@ -508,7 +547,18 @@ export default function BookingWorkflow() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm">No pending bookings</p>
+              <p className="text-gray-700 font-bold text-sm">
+                {customerSearch ? `No bookings found matching "${customerSearch}"` : 'No pending bookings'}
+              </p>
+              {customerSearch && (
+                <button
+                  type="button"
+                  onClick={() => setCustomerSearch('')}
+                  className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">

@@ -21,6 +21,7 @@ export default function ServiceAreaManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingArea, setEditingArea] = useState<any>(null);
   const [searchLocation, setSearchLocation] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     city: '',
@@ -167,6 +168,15 @@ export default function ServiceAreaManagement() {
     }
   };
 
+  const filteredAreas = areas.filter(area => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const city = (area.city || '').toLowerCase();
+    const state = (area.state || '').toLowerCase();
+    const name = (area.name || '').toLowerCase();
+    return city.includes(q) || state.includes(q) || name.includes(q);
+  });
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* ── Page Header ── */}
@@ -177,16 +187,42 @@ export default function ServiceAreaManagement() {
             Manage active service locations and operating radius limits (Default 40 km)
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleOpenAddModal}
-          className="bg-[#0B192C] hover:bg-[#1E3E62] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Add Service Area</span>
-        </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+          {/* State & City Search Bar */}
+          <div className="relative w-full sm:w-64">
+            <input 
+              type="text" 
+              placeholder="Search state or city..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition shadow-xs"
+            />
+            <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                title="Clear search"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenAddModal}
+            className="bg-[#0B192C] hover:bg-[#1E3E62] text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition whitespace-nowrap"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add Service Area</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Active Coverage Callout ── */}
@@ -234,8 +270,26 @@ export default function ServiceAreaManagement() {
                     No service areas defined yet. Click "+ Add Service Area" to add your active location.
                   </td>
                 </tr>
+              ) : filteredAreas.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 text-gray-400">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-gray-700">No service areas found matching "{searchQuery}"</p>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+                    >
+                      Clear Search
+                    </button>
+                  </td>
+                </tr>
               ) : (
-                areas.map((area) => (
+                filteredAreas.map((area) => (
                   <tr key={area.id} className="hover:bg-gray-50/80 transition">
                     <td className="px-5 py-3.5 text-sm font-bold text-gray-900">{area.name}</td>
                     <td className="px-5 py-3.5 text-sm text-gray-700 font-medium">{area.city}</td>

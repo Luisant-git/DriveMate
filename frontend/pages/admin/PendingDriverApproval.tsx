@@ -16,6 +16,55 @@ export default function PendingDriverApproval() {
   const [cancellationRequests, setCancellationRequests] = useState([]);
   const [cancellationHistory, setCancellationHistory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [driverSearchQuery, setDriverSearchQuery] = useState('');
+
+  const matchesDriverSearch = (booking, query) => {
+    if (!query || !query.trim()) return true;
+    const q = query.toLowerCase().trim();
+
+    // Check direct driver/lead fields
+    const dName = (booking.driver?.name || '').toLowerCase();
+    const dPhone = (booking.driver?.phone || '').toLowerCase();
+    const lName = (booking.lead?.name || '').toLowerCase();
+    const lPhone = (booking.lead?.phone || '').toLowerCase();
+    if (dName.includes(q) || dPhone.includes(q) || lName.includes(q) || lPhone.includes(q)) {
+      return true;
+    }
+
+    // Check driver responses
+    if (Array.isArray(booking.driverResponses)) {
+      for (const r of booking.driverResponses) {
+        const name = (r.driver?.name || '').toLowerCase();
+        const phone = (r.driver?.phone || '').toLowerCase();
+        if (name.includes(q) || phone.includes(q)) return true;
+      }
+    }
+
+    // Check lead responses
+    if (Array.isArray(booking.leadResponses)) {
+      for (const r of booking.leadResponses) {
+        const name = (r.lead?.name || '').toLowerCase();
+        const phone = (r.lead?.phone || '').toLowerCase();
+        if (name.includes(q) || phone.includes(q)) return true;
+      }
+    }
+
+    // Check acceptedDrivers if present in booking
+    if (Array.isArray(booking.acceptedDrivers)) {
+      for (const d of booking.acceptedDrivers) {
+        const name = (typeof d === 'string' ? d : d.name || '').toLowerCase();
+        const phone = (d.phone || '').toLowerCase();
+        if (name.includes(q) || phone.includes(q)) return true;
+      }
+    }
+
+    return false;
+  };
+
+  const filteredPendingBookings = bookingsWithAcceptedDrivers.filter(b => matchesDriverSearch(b, driverSearchQuery));
+  const filteredAllocatedBookings = allocatedBookings.filter(b => matchesDriverSearch(b, driverSearchQuery));
+  const filteredCancellationRequests = cancellationRequests.filter(b => matchesDriverSearch(b, driverSearchQuery));
+  const filteredCancellationHistory = cancellationHistory.filter(b => matchesDriverSearch(b, driverSearchQuery));
 
   useEffect(() => {
     const refreshData = () => {
@@ -454,41 +503,68 @@ export default function PendingDriverApproval() {
             <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider hidden sm:inline-block">Live Refresh</span>
           </div>
         </div>
-        <div className="flex bg-gray-100 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('PENDING')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'PENDING' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Pending Trips
-            {bookingsWithAcceptedDrivers.length > 0 && (
-              <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
-                {bookingsWithAcceptedDrivers.length}
-              </span>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+          {/* Driver Search Query */}
+          <div className="relative w-full sm:w-64">
+            <input 
+              type="text" 
+              placeholder="Search driver or phone..." 
+              value={driverSearchQuery}
+              onChange={(e) => setDriverSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] focus:border-[#0B192C] transition shadow-xs"
+            />
+            <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            {driverSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setDriverSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                title="Clear search"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             )}
-          </button>
-          <button
-            onClick={() => setActiveTab('ALLOCATED')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'ALLOCATED' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Accepted Trips
-          </button>
-          <button
-            onClick={() => setActiveTab('CANCELLATIONS')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'CANCELLATIONS' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Cancellation Requests
-            {cancellationRequests.length > 0 && (
-              <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
-                {cancellationRequests.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('HISTORY')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'HISTORY' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Cancel History
-          </button>
+          </div>
+
+          <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto">
+            <button
+              onClick={() => setActiveTab('PENDING')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${activeTab === 'PENDING' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Pending Trips
+              {bookingsWithAcceptedDrivers.length > 0 && (
+                <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
+                  {bookingsWithAcceptedDrivers.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('ALLOCATED')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${activeTab === 'ALLOCATED' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Accepted Trips
+            </button>
+            <button
+              onClick={() => setActiveTab('CANCELLATIONS')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${activeTab === 'CANCELLATIONS' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Cancellation Requests
+              {cancellationRequests.length > 0 && (
+                <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
+                  {cancellationRequests.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('HISTORY')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${activeTab === 'HISTORY' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Cancel History
+            </button>
+          </div>
         </div>
       </div>
       
@@ -501,6 +577,22 @@ export default function PendingDriverApproval() {
               </svg>
             </div>
             <p className="text-gray-500 text-sm">No pending trips waiting for drivers</p>
+          </div>
+        ) : filteredPendingBookings.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-700 font-bold text-sm">No pending trips match driver "{driverSearchQuery}"</p>
+            <button
+              type="button"
+              onClick={() => setDriverSearchQuery('')}
+              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+            >
+              Clear Search
+            </button>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -517,7 +609,7 @@ export default function PendingDriverApproval() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {bookingsWithAcceptedDrivers.map((booking, index) => {
+                {filteredPendingBookings.map((booking, index) => {
                   const acceptedCount = (booking.driverResponses?.filter(r => r.status === 'ACCEPTED').length || 0) + 
                                        (booking.leadResponses?.filter(r => r.status === 'ACCEPTED').length || 0);
                   
@@ -586,6 +678,22 @@ export default function PendingDriverApproval() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <p className="text-gray-500 text-sm">No cancellation requests pending</p>
           </div>
+        ) : filteredCancellationRequests.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-700 font-bold text-sm">No cancellation requests match driver "{driverSearchQuery}"</p>
+            <button
+              type="button"
+              onClick={() => setDriverSearchQuery('')}
+              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+            >
+              Clear Search
+            </button>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="overflow-x-auto">
@@ -602,7 +710,7 @@ export default function PendingDriverApproval() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {cancellationRequests.map((booking, index) => {
+                {filteredCancellationRequests.map((booking, index) => {
                   const driverName = booking.driver?.name || booking.lead?.name || 'N/A';
                   const driverPhone = booking.driver?.phone || booking.lead?.phone || 'N/A';
                   return (
@@ -702,6 +810,22 @@ export default function PendingDriverApproval() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <p className="text-gray-500 text-sm">No allocated drivers yet</p>
           </div>
+        ) : filteredAllocatedBookings.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-700 font-bold text-sm">No allocated trips match driver "{driverSearchQuery}"</p>
+            <button
+              type="button"
+              onClick={() => setDriverSearchQuery('')}
+              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+            >
+              Clear Search
+            </button>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="overflow-x-auto">
@@ -719,7 +843,7 @@ export default function PendingDriverApproval() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {allocatedBookings.map((booking, index) => {
+                {filteredAllocatedBookings.map((booking, index) => {
                   const driverName = booking.driver?.name || booking.lead?.name || 'N/A';
                   const driverPhone = booking.driver?.phone || booking.lead?.phone || 'N/A';
                   return (
@@ -788,6 +912,22 @@ export default function PendingDriverApproval() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <p className="text-gray-500 text-sm">No cancellation history available</p>
           </div>
+        ) : filteredCancellationHistory.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-700 font-bold text-sm">No cancellation history matches driver "{driverSearchQuery}"</p>
+            <button
+              type="button"
+              onClick={() => setDriverSearchQuery('')}
+              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-semibold underline cursor-pointer"
+            >
+              Clear Search
+            </button>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="overflow-x-auto">
@@ -803,7 +943,7 @@ export default function PendingDriverApproval() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {cancellationHistory.map((booking, index) => {
+                {filteredCancellationHistory.map((booking, index) => {
                   const driverName = booking.driver?.name || booking.lead?.name || 'N/A';
                   return (
                     <tr key={booking.id} className="hover:bg-gray-50 transition">
