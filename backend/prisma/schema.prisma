@@ -333,6 +333,11 @@ model Booking {
   driverPayout          Float?
   minHours              Int?
   extraPerHourRate      Float?
+  isFreeListing         Boolean               @default(false)
+  freeListingFee        Float?
+  freeListingPaidAt     DateTime?
+  freeListingPaidBy     String?
+  freeListingPaymentRef String?
   driverResponses       BookingResponse[]
   customer              Customer              @relation(fields: [customerId], references: [id])
   driver                Driver?               @relation(fields: [driverId], references: [id])

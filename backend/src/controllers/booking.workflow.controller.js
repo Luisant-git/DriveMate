@@ -1579,3 +1579,265 @@ export const rejectCancellation = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+// ADMIN: Publish booking to Free Listing with an unlock fee
+export const publishFreeListing = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { fee } = req.body;
+
+    const parsedFee = parseFloat(fee);
+    if (isNaN(parsedFee) || parsedFee < 0) {
+      return res.status(400).json({ success: false, error: 'Valid unlock fee amount is required' });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    if (booking.driverId) {
+      return res.status(400).json({ success: false, error: 'Booking is already allocated to a driver' });
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        isFreeListing: true,
+        freeListingFee: parsedFee,
+        freeListingPaidAt: null,
+        freeListingPaidBy: null,
+        freeListingPaymentRef: null
+      },
+      include: {
+        customer: true,
+        driverResponses: {
+          include: { driver: true }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Booking published to Free Listing with fee ₹${parsedFee}`,
+      booking: updatedBooking
+    });
+  } catch (error) {
+    console.error('Error publishing to free listing:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// ADMIN: Remove booking from Free Listing
+export const unpublishFreeListing = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        isFreeListing: false
+      },
+      include: {
+        customer: true,
+        driverResponses: {
+          include: { driver: true }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Booking removed from Free Listing',
+      booking: updatedBooking
+    });
+  } catch (error) {
+    console.error('Error unpublishing from free listing:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// DRIVER: Get all Free Listing open rides (accessible to all registered drivers)
+export const getDriverFreeListingRides = async (req, res) => {
+  try {
+    const driverId = req.user.userId || req.user.id;
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        isFreeListing: true,
+        OR: [
+          { driverId: null, status: { in: ['PENDING', 'CONFIRMED'] } },
+          { freeListingPaidBy: driverId }
+        ]
+      },
+      include: {
+        customer: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const sanitizedRides = bookings.map(b => {
+      const isClaimedByMe = b.freeListingPaidBy === driverId;
+      
+      if (isClaimedByMe) {
+        return {
+          ...b,
+          isUnlocked: true
+        };
+      }
+
+      // Hide exact phone and mask customer name for privacy until unlocked
+      const rawPhone = b.customer?.phone || '';
+      const maskedPhone = rawPhone.length > 4 
+        ? `${rawPhone.slice(0, 2)}••••••${rawPhone.slice(-2)}` 
+        : '••••••••••';
+      const rawName = b.customer?.name || 'Customer';
+      const maskedName = rawName.length > 2 
+        ? `${rawName.charAt(0)}•••• ${rawName.split(' ')[1] ? rawName.split(' ')[1].charAt(0) + '••••' : ''}`.trim()
+        : 'Customer';
+
+      return {
+        ...b,
+        isUnlocked: false,
+        customer: {
+          id: b.customer?.id,
+          name: maskedName,
+          phone: maskedPhone
+        }
+      };
+    });
+
+    res.json({ success: true, rides: sanitizedRides });
+  } catch (error) {
+    console.error('Error fetching free listing rides:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// DRIVER: Pay unlock fee and claim Free Listing ride
+export const claimFreeListingRide = async (req, res) => {
+  try {
+    const driverId = req.user.userId || req.user.id;
+    const { bookingId } = req.params;
+    const { paymentMethod = 'UPI', paymentReference } = req.body;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { customer: true }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+
+    if (!booking.isFreeListing) {
+      return res.status(400).json({ success: false, error: 'This booking is not listed under Free Listing' });
+    }
+
+    if (booking.driverId && booking.driverId !== driverId) {
+      return res.status(400).json({ success: false, error: 'This ride has already been claimed by another driver' });
+    }
+
+    const driver = await prisma.driver.findUnique({
+      where: { id: driverId }
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Driver profile not found' });
+    }
+
+    const payRef = paymentReference || `FL_PAY_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+    // Allocate booking to this driver and record fee payment
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        driverId: driverId,
+        allocatedAt: new Date(),
+        status: 'CONFIRMED',
+        freeListingPaidAt: new Date(),
+        freeListingPaidBy: driverId,
+        freeListingPaymentRef: payRef
+      },
+      include: {
+        customer: true,
+        driver: true
+      }
+    });
+
+    // Record or update BookingResponse
+    await prisma.bookingResponse.upsert({
+      where: {
+        bookingId_driverId: {
+          bookingId,
+          driverId
+        }
+      },
+      create: {
+        bookingId,
+        driverId,
+        status: 'ACCEPTED',
+        respondedAt: new Date()
+      },
+      update: {
+        status: 'ACCEPTED',
+        respondedAt: new Date()
+      }
+    });
+
+    // Record Payment
+    try {
+      await prisma.payment.create({
+        data: {
+          bookingId,
+          amount: booking.freeListingFee || 0,
+          paymentType: 'ADVANCE',
+          status: 'COMPLETED',
+          gatewayRef: payRef
+        }
+      });
+    } catch (e) {
+      console.warn('Payment record notice:', e.message);
+    }
+
+    // Try sending WhatsApp confirmations if configured
+    try {
+      if (driver.phone) {
+        await driverBookingConfirmation({
+          body: {
+            phone: driver.phone,
+            bookingId: updatedBooking.id,
+            customerName: booking.customer?.name,
+            customerPhone: booking.customer?.phone,
+            pickup: booking.pickupLocation,
+            destination: booking.dropLocation
+          }
+        }, { json: () => {}, status: () => ({ json: () => {} }) });
+      }
+      if (booking.customer?.phone) {
+        await customerDriverAssigned({
+          body: {
+            phone: booking.customer.phone,
+            driverName: driver.name,
+            driverPhone: driver.phone,
+            vehicleNo: driver.vehicleNo || 'Acting Driver'
+          }
+        }, { json: () => {}, status: () => ({ json: () => {} }) });
+      }
+    } catch (whatsappErr) {
+      console.warn('WhatsApp notification notice:', whatsappErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Ride successfully unlocked and assigned! Customer details revealed.',
+      booking: updatedBooking
+    });
+  } catch (error) {
+    console.error('Error claiming free listing ride:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

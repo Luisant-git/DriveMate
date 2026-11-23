@@ -23,7 +23,11 @@ import {
   getCancellationHistory,
   approveCancellation,
   reallocateCancellation,
-  rejectCancellation
+  rejectCancellation,
+  publishFreeListing,
+  unpublishFreeListing,
+  getDriverFreeListingRides,
+  claimFreeListingRide
 } from '../controllers/booking.workflow.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { authenticateLead } from '../middleware/auth.js';
@@ -348,6 +352,12 @@ router.get('/admin/:bookingId/lead-responses', authenticateToken, getLeadBooking
 router.post('/admin/:bookingId/allocate-lead', authenticateToken, allocateLeadToBooking);
 router.get('/lead/pending-requests', authenticateLead, getLeadPendingRequests);
 router.put('/lead/respond/:responseId', authenticateLead, respondToLeadBookingRequest);
+
+// Free Listing routes
+router.post('/admin/:bookingId/publish-free-listing', authenticateToken, publishFreeListing);
+router.post('/admin/:bookingId/unpublish-free-listing', authenticateToken, unpublishFreeListing);
+router.get('/driver/free-listing', authenticateToken, getDriverFreeListingRides);
+router.post('/driver/claim-free-listing/:bookingId', authenticateToken, claimFreeListingRide);
 
 // Cleanup route
 router.post('/admin/cleanup-duplicates', authenticateToken, cleanupDuplicateResponses);

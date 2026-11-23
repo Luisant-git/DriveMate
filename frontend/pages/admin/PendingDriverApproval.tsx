@@ -17,6 +17,56 @@ export default function PendingDriverApproval() {
   const [cancellationHistory, setCancellationHistory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [driverSearchQuery, setDriverSearchQuery] = useState('');
+  const [showFreeListingModal, setShowFreeListingModal] = useState(false);
+  const [freeListingTarget, setFreeListingTarget] = useState(null);
+  const [freeListingFee, setFreeListingFee] = useState('50');
+  const [publishingFreeListing, setPublishingFreeListing] = useState(false);
+
+  const openFreeListingModal = (booking) => {
+    setFreeListingTarget(booking);
+    setFreeListingFee(booking.freeListingFee ? String(booking.freeListingFee) : '50');
+    setShowFreeListingModal(true);
+  };
+
+  const handlePublishFreeListing = async () => {
+    if (!freeListingTarget) return;
+    const feeNum = parseFloat(freeListingFee);
+    if (isNaN(feeNum) || feeNum < 0) {
+      alert('Please enter a valid unlock fee');
+      return;
+    }
+    try {
+      setPublishingFreeListing(true);
+      await apiClient.post(`/booking-workflow/admin/${freeListingTarget.id}/publish-free-listing`, {
+        fee: feeNum
+      });
+      alert('✓ Ride published to Free Listing! All drivers can now view and claim this ride.');
+      setShowFreeListingModal(false);
+      setFreeListingTarget(null);
+      fetchBookingsWithAcceptedDrivers();
+      if (selectedBooking && selectedBooking.id === freeListingTarget.id) {
+        setSelectedBooking(prev => ({ ...prev, isFreeListing: true, freeListingFee: feeNum }));
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to publish to Free Listing');
+    } finally {
+      setPublishingFreeListing(false);
+    }
+  };
+
+  const handleUnpublishFreeListing = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to remove this ride from Free Listing?')) return;
+    try {
+      await apiClient.post(`/booking-workflow/admin/${bookingId}/unpublish-free-listing`);
+      alert('✓ Ride removed from Free Listing');
+      fetchBookingsWithAcceptedDrivers();
+      if (selectedBooking && selectedBooking.id === bookingId) {
+        setSelectedBooking(prev => ({ ...prev, isFreeListing: false }));
+      }
+    } catch (error) {
+      alert(error.response?.data?.error || 'Failed to remove from Free Listing');
+    }
+  };
 
   const matchesDriverSearch = (booking, query) => {
     if (!query || !query.trim()) return true;
@@ -62,6 +112,8 @@ export default function PendingDriverApproval() {
   };
 
   const filteredPendingBookings = bookingsWithAcceptedDrivers.filter(b => matchesDriverSearch(b, driverSearchQuery));
+  const freeListingBookings = bookingsWithAcceptedDrivers.filter(b => b.isFreeListing);
+  const filteredFreeListingBookings = freeListingBookings.filter(b => matchesDriverSearch(b, driverSearchQuery));
   const filteredAllocatedBookings = allocatedBookings.filter(b => matchesDriverSearch(b, driverSearchQuery));
   const filteredCancellationRequests = cancellationRequests.filter(b => matchesDriverSearch(b, driverSearchQuery));
   const filteredCancellationHistory = cancellationHistory.filter(b => matchesDriverSearch(b, driverSearchQuery));
@@ -308,8 +360,40 @@ export default function PendingDriverApproval() {
           <>
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{selectedBooking.selectedLeadPackageId ? 'Leads' : 'Drivers'} Who Accepted</h2>
             {acceptedDrivers.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center space-y-4">
                 <p className="text-gray-500 text-sm">No {selectedBooking.selectedLeadPackageId ? 'leads' : 'drivers'} have accepted yet</p>
+                <div className="max-w-md mx-auto p-4 bg-amber-50 border border-amber-200 rounded-xl text-left">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-amber-900 text-xs sm:text-sm">No drivers with active packages accepted?</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">Open this ride to ALL registered drivers via Free Listing with an unlock fee.</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    {selectedBooking.isFreeListing ? (
+                      <div className="flex items-center gap-2">
+                        <span className="bg-amber-200 text-amber-900 px-3 py-1 rounded-lg text-xs font-black">
+                          📢 Listed in Free Listing (₹{selectedBooking.freeListingFee})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUnpublishFreeListing(selectedBooking.id)}
+                          className="text-xs text-red-600 hover:text-red-800 font-bold underline cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openFreeListingModal(selectedBooking)}
+                        className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-4 py-2 rounded-lg text-xs shadow transition cursor-pointer"
+                      >
+                        📢 Publish to Free Listing
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -542,6 +626,17 @@ export default function PendingDriverApproval() {
               )}
             </button>
             <button
+              onClick={() => setActiveTab('FREE_LISTING')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${activeTab === 'FREE_LISTING' ? 'bg-[#0B192C] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              📢 Free Listing
+              {freeListingBookings.length > 0 && (
+                <span className="ml-2 bg-amber-400 text-black font-black px-2 py-0.5 rounded-full text-xs">
+                  {freeListingBookings.length}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('ALLOCATED')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap ${activeTab === 'ALLOCATED' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
@@ -657,19 +752,126 @@ export default function PendingDriverApproval() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <button 
-                          onClick={() => viewAcceptedDrivers(booking)}
-                          disabled={loading}
-                          className="bg-[#0B192C] text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] disabled:opacity-50 transition"
-                        >
-                          Review & Allocate
-                        </button>
+                        <div className="flex flex-col gap-1.5 min-w-[130px]">
+                          <button 
+                            onClick={() => viewAcceptedDrivers(booking)}
+                            disabled={loading}
+                            className="bg-[#0B192C] text-white px-3 py-1.5 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] disabled:opacity-50 transition"
+                          >
+                            Review & Allocate
+                          </button>
+                          {booking.isFreeListing ? (
+                            <div className="flex items-center justify-between gap-1 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded">
+                              <span className="text-[10px] font-black text-amber-900">
+                                📢 ₹{booking.freeListingFee}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnpublishFreeListing(booking.id)}
+                                className="text-[10px] text-red-600 hover:text-red-800 font-bold underline cursor-pointer"
+                                title="Remove from Free Listing"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openFreeListingModal(booking)}
+                              className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[11px] font-bold px-2 py-1 rounded-lg transition text-center cursor-pointer"
+                            >
+                              📢 Free Listing
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            </div>
+          </div>
+        )
+      ) : activeTab === 'FREE_LISTING' ? (
+        filteredFreeListingBookings.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">📢</span>
+            </div>
+            <p className="text-gray-700 font-bold text-sm">No rides currently in Free Listing</p>
+            <p className="text-gray-500 text-xs mt-1">When drivers don't accept rides under active packages, publish them to Free Listing from Pending Trips.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Trip Fare</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Unlock Fee</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredFreeListingBookings.map((booking, index) => (
+                    <tr key={booking.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-4"><p className="text-sm font-semibold text-gray-900">{index + 1}</p></td>
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-semibold text-gray-900">{booking.customer?.name}</p>
+                        <p className="text-xs text-gray-600">{booking.customer?.phone}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="space-y-1 max-w-[250px]">
+                          <p className="text-xs text-gray-900 font-medium truncate">{booking.pickupLocation}</p>
+                          <p className="text-xs text-gray-500 truncate">→ {booking.dropLocation}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-block bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-lg text-xs font-black">
+                          ₹{booking.freeListingFee}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        {booking.freeListingPaidBy ? (
+                          <span className="inline-block bg-green-100 text-green-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            Claimed & Paid
+                          </span>
+                        ) : (
+                          <span className="inline-block bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            Open for All Drivers
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openFreeListingModal(booking)}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-2.5 py-1.5 rounded-lg transition"
+                          >
+                            Edit Fee
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUnpublishFreeListing(booking.id)}
+                            className="text-xs text-red-600 hover:text-red-800 font-bold underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )
@@ -988,6 +1190,84 @@ export default function PendingDriverApproval() {
           </div>
         )
       ) : null}
+
+      {/* Free Listing Modal */}
+      {showFreeListingModal && freeListingTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 font-bold">📢</div>
+                <h3 className="font-bold text-lg text-gray-900">Publish to Free Listing</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFreeListingModal(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-200">
+              This ride will be visible to <strong>ALL drivers</strong> (even without active package subscriptions).
+              Customer phone and contact details remain hidden until a driver pays your unlock fee.
+            </p>
+
+            <div className="space-y-1.5 mb-4 text-xs bg-amber-50/60 p-3 rounded-xl border border-amber-200">
+              <p className="font-bold text-gray-800 truncate">Trip: {freeListingTarget.pickupLocation} → {freeListingTarget.dropLocation}</p>
+              <p className="text-gray-600">Customer: {freeListingTarget.customer?.name || 'Customer'}</p>
+              <p className="text-emerald-700 font-bold text-sm">Trip Fare: ₹{freeListingTarget.estimateAmount}</p>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-bold text-gray-700 mb-1">Driver Unlock Fee (₹)</label>
+              <p className="text-[11px] text-gray-500 mb-2">Amount the driver pays to unlock customer details and claim this ride:</p>
+              <div className="flex gap-2 mb-2">
+                {['30', '50', '80', '100'].map(amt => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setFreeListingFee(amt)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition border cursor-pointer ${freeListingFee === amt ? 'bg-[#0B192C] text-white border-[#0B192C]' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500 font-bold">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={freeListingFee}
+                  onChange={(e) => setFreeListingFee(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 text-sm font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0B192C]"
+                  placeholder="e.g. 50"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFreeListingModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-300 font-bold text-xs text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={publishingFreeListing}
+                onClick={handlePublishFreeListing}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xs shadow-md transition disabled:opacity-50 cursor-pointer"
+              >
+                {publishingFreeListing ? 'Publishing...' : '📢 Publish to All Drivers'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
