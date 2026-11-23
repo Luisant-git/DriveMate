@@ -28,9 +28,14 @@ export default function CityMultiSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Merge available cities with any previously selected cities that might not be in the list
+  const DEFAULT_CITIES = [
+    'Ahmedabad', 'Bengaluru', 'Chennai', 'Delhi', 'Hyderabad', 
+    'Jaipur', 'Kolkata', 'Mumbai', 'Pune', 'Surat', 'Vijayawada'
+  ];
+
+  // Merge available cities with any previously selected cities and default cities
   const allUniqueCities = Array.from(
-    new Set([...availableCities, ...selectedCities].filter(Boolean))
+    new Set([...DEFAULT_CITIES, ...availableCities, ...selectedCities].filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
 
   const filteredCities = allUniqueCities.filter(c =>

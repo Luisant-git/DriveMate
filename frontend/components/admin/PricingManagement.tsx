@@ -180,9 +180,24 @@ export default function PricingManagement() {
     setEditingMonthly(null);
   };
 
-  // Collect all known cities from packages, monthly pricing, and available service areas
+  const DEFAULT_CITIES = [
+    'Ahmedabad',
+    'Bengaluru',
+    'Chennai',
+    'Delhi',
+    'Hyderabad',
+    'Jaipur',
+    'Kolkata',
+    'Mumbai',
+    'Pune',
+    'Surat',
+    'Vijayawada'
+  ];
+
+  // Collect all known cities from default major cities, service areas, packages, and monthly pricing
   const allKnownCities = Array.from(
     new Set([
+      ...DEFAULT_CITIES,
       ...availableCities,
       ...packages.flatMap(p => p.cities || []),
       ...monthlyPricing.flatMap(m => m.cities || [])
@@ -215,7 +230,7 @@ export default function PricingManagement() {
         </div>
         <button 
           onClick={() => activeTab === 'MONTHLY' ? openMonthlyModal() : openModal()} 
-          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition w-full md:w-auto shadow-sm"
+          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition w-full md:w-auto shadow-sm cursor-pointer"
         >
           {activeTab === 'MONTHLY' ? '+ Add Monthly Pricing' : '+ Add Pricing'}
         </button>
@@ -223,32 +238,62 @@ export default function PricingManagement() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        <button onClick={() => setActiveTab('LOCAL')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'LOCAL' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('LOCAL')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap cursor-pointer ${activeTab === 'LOCAL' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Local Hourly Pricing ({local.length})
         </button>
-        <button onClick={() => setActiveTab('OUTSTATION')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'OUTSTATION' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('OUTSTATION')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap cursor-pointer ${activeTab === 'OUTSTATION' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Outstation Pricing ({outstation.length})
         </button>
-        <button onClick={() => setActiveTab('MONTHLY')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'MONTHLY' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+        <button onClick={() => setActiveTab('MONTHLY')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap cursor-pointer ${activeTab === 'MONTHLY' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
           Monthly Driver Pricing ({monthlyPricing.length})
         </button>
       </div>
 
-      {/* City Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 bg-gray-50 border border-gray-200 rounded-xl p-3">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">City Filter:</span>
+      {/* City Filter Toolbar (Responsive with Mobile Dropdown & Horizontal Pills) */}
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 sm:p-4 mb-4 md:mb-6 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#0B192C]/5 text-[#0B192C] flex items-center justify-center">
+              <svg className="w-4 h-4 text-[#0B192C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">City Filter:</span>
+              <span className="text-[11px] text-gray-500">
+                {selectedCityFilter === 'ALL'
+                  ? 'Showing all packages across all cities'
+                  : selectedCityFilter === 'DEFAULT_ALL'
+                  ? 'Showing universal packages without city restriction'
+                  : `Filtered for: ${selectedCityFilter}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Select for Mobile Screen */}
+          <div className="sm:hidden">
+            <select
+              value={selectedCityFilter}
+              onChange={(e) => setSelectedCityFilter(e.target.value)}
+              aria-label="City Filter"
+              className="text-xs font-bold bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-[#0B192C] outline-none"
+            >
+              <option value="ALL">All Cities</option>
+              <option value="DEFAULT_ALL">Universal (All Cities)</option>
+              {allKnownCities.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+        {/* Scrollable / Wrap Responsive Pills for All Screens */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
           <button
             type="button"
             onClick={() => setSelectedCityFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
               selectedCityFilter === 'ALL'
                 ? 'bg-[#0B192C] text-white shadow-xs'
                 : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
@@ -260,7 +305,7 @@ export default function PricingManagement() {
           <button
             type="button"
             onClick={() => setSelectedCityFilter('DEFAULT_ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
               selectedCityFilter === 'DEFAULT_ALL'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
@@ -275,7 +320,7 @@ export default function PricingManagement() {
               key={city}
               type="button"
               onClick={() => setSelectedCityFilter(city)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                 selectedCityFilter === city
                   ? 'bg-[#0B192C] text-white shadow-xs'
                   : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
@@ -653,74 +698,154 @@ export default function PricingManagement() {
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 md:p-6">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">{editingPkg ? 'Edit Pricing' : 'Add Pricing'}</h2>
-                <button 
-                  onClick={closeModal}
-                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition flex-shrink-0"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl sm:max-w-3xl lg:max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <div>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0B192C]"></span>
+                  {editingPkg ? 'Edit Pricing' : 'Add Pricing'}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Configure city-specific or universal hourly and outstation driver charges
+                </p>
               </div>
-              
-              <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-                {/* Multi-Select City Selector */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                    Applicable Cities
-                  </label>
+              <button 
+                onClick={closeModal}
+                className="w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center transition flex-shrink-0 cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Multi-Select City Selector (Full Width) */}
+                <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100/80">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Applicable Cities
+                    </label>
+                    <span className="text-[11px] text-gray-500 font-medium">Leave empty for All Cities</span>
+                  </div>
                   <CityMultiSelect
                     selectedCities={formData.cities}
                     onChange={(cities) => setFormData({ ...formData, cities })}
-                    availableCities={availableCities}
+                    availableCities={allKnownCities}
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <p className="text-[11px] text-gray-500 mt-1.5">
                     Leave empty to apply to all service cities, or choose one or more specific cities.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Service Type</label>
-                  <select value={formData.packageType} onChange={(e) => setFormData({...formData, packageType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required disabled={editingPkg}>
-                    <option value="LOCAL_HOURLY">Local Hourly</option>
-                    <option value="OUTSTATION">Outstation</option>
-                  </select>
+                {/* 2-Column Responsive Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Service Type *</label>
+                    <select 
+                      value={formData.packageType} 
+                      onChange={(e) => setFormData({...formData, packageType: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required 
+                      disabled={editingPkg}
+                    >
+                      <option value="LOCAL_HOURLY">Local Hourly</option>
+                      <option value="OUTSTATION">Outstation</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Hours *</label>
+                    <input 
+                      type="number" 
+                      value={formData.hours} 
+                      onChange={(e) => setFormData({...formData, hours: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required 
+                      placeholder="e.g. 4" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Minimum Charge (Scheduled) (₹) *</label>
+                    <input 
+                      type="number" 
+                      value={formData.minimumCharge} 
+                      onChange={(e) => setFormData({...formData, minimumCharge: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required 
+                      placeholder="e.g. 500" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Immediate Charge (₹)</label>
+                    <input 
+                      type="number" 
+                      value={formData.immediateCharge} 
+                      onChange={(e) => setFormData({...formData, immediateCharge: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      placeholder="e.g. 550 (Optional)" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Minimum KM</label>
+                    <input 
+                      type="number" 
+                      value={formData.minimumKm} 
+                      onChange={(e) => setFormData({...formData, minimumKm: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      placeholder="e.g. 40" 
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Extra Per Hour (Scheduled) (₹) *</label>
+                    <input 
+                      type="number" 
+                      value={formData.extraPerHour} 
+                      onChange={(e) => setFormData({...formData, extraPerHour: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required 
+                      placeholder="e.g. 100" 
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Extra Per Hour (Immediate) (₹)</label>
+                    <input 
+                      type="number" 
+                      value={formData.extraPerHourImm} 
+                      onChange={(e) => setFormData({...formData, extraPerHourImm: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      placeholder="e.g. 110 (Optional)" 
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Hours</label>
-                  <input type="number" value={formData.hours} onChange={(e) => setFormData({...formData, hours: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 4" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum Charge (Scheduled) (₹)</label>
-                  <input type="number" value={formData.minimumCharge} onChange={(e) => setFormData({...formData, minimumCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Immediate Charge (₹)</label>
-                  <input type="number" value={formData.immediateCharge} onChange={(e) => setFormData({...formData, immediateCharge: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 550 (Optional)" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum KM</label>
-                  <input type="number" value={formData.minimumKm} onChange={(e) => setFormData({...formData, minimumKm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 40" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (Scheduled) (₹)</label>
-                  <input type="number" value={formData.extraPerHour} onChange={(e) => setFormData({...formData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 100" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (Immediate) (₹)</label>
-                  <input type="number" value={formData.extraPerHourImm} onChange={(e) => setFormData({...formData, extraPerHourImm: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 110 (Optional)" />
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <button type="button" onClick={closeModal} className="flex-1 px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                  <button 
+                    type="button" 
+                    onClick={closeModal} 
+                    className="flex-1 py-2.5 text-xs sm:text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition cursor-pointer"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="flex-1 px-4 py-2 text-xs font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62]">
-                    {editingPkg ? 'Update' : 'Add'}
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-2.5 text-xs sm:text-sm font-bold text-white bg-[#0B192C] rounded-xl hover:bg-[#1E3E62] transition shadow-sm cursor-pointer"
+                  >
+                    {editingPkg ? 'Update Pricing' : 'Add Pricing'}
                   </button>
                 </div>
               </form>
@@ -731,96 +856,168 @@ export default function PricingManagement() {
 
       {/* MONTHLY PRICING MODAL */}
       {showMonthlyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 md:p-6">
-              <div className="flex justify-between items-center mb-4 md:mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">{editingMonthly ? 'Edit Monthly Pricing' : 'Add Monthly Pricing'}</h2>
-                <button 
-                  onClick={closeMonthlyModal}
-                  className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition flex-shrink-0"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl sm:max-w-3xl lg:max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <div>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                  {editingMonthly ? 'Edit Monthly Pricing' : 'Add Monthly Pricing'}
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Configure city-specific monthly driver pricing packages
+                </p>
               </div>
-              
-              <form onSubmit={handleMonthlySubmit} className="space-y-3 md:space-y-4">
-                {/* Multi-Select City Selector */}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                    Applicable Cities
-                  </label>
+              <button 
+                onClick={closeMonthlyModal}
+                className="w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center transition flex-shrink-0 cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto">
+              <form onSubmit={handleMonthlySubmit} className="space-y-4">
+                {/* Multi-Select City Selector (Full Width) */}
+                <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100/80">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Applicable Cities
+                    </label>
+                    <span className="text-[11px] text-gray-500 font-medium">Leave empty for All Cities</span>
+                  </div>
                   <CityMultiSelect
                     selectedCities={monthlyFormData.cities}
                     onChange={(cities) => setMonthlyFormData({ ...monthlyFormData, cities })}
-                    availableCities={availableCities}
+                    availableCities={allKnownCities}
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <p className="text-[11px] text-gray-500 mt-1.5">
                     Leave empty to apply to all service cities, or choose one or more specific cities.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Vehicle Type</label>
-                  <select value={monthlyFormData.vehicleType} onChange={(e) => setMonthlyFormData({...monthlyFormData, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
-                    <option value="Mini">Mini</option>
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV/MPV">SUV/MPV</option>
-                    <option value="Luxury Car">Luxury Car</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Hours Per Day</label>
-                  <select value={monthlyFormData.hoursPerDay} onChange={(e) => setMonthlyFormData({...monthlyFormData, hoursPerDay: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
-                    <option value="8">8 Hours</option>
-                    <option value="10">10 Hours</option>
-                    <option value="12">12 Hours</option>
-                    <option value="1 day">1 Day</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Days Per Week</label>
-                  <select value={monthlyFormData.daysPerWeek} onChange={(e) => setMonthlyFormData({...monthlyFormData, daysPerWeek: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
-                    {monthlyFormData.hoursPerDay === '1 day' ? (
-                      <option value="12">12 Hours</option>
-                    ) : (
-                      <>
-                        <option value="5">5 Days</option>
-                        <option value="6">6 Days</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-                {monthlyFormData.hoursPerDay !== '1 day' && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Charge for 5 Days (₹)</label>
-                      <input type="number" value={monthlyFormData.charge5Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 18000" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Charge for 6 Days (₹)</label>
-                      <input type="number" value={monthlyFormData.charge6Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge6Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 20000" />
-                    </div>
-                  </>
-                )}
-                {monthlyFormData.hoursPerDay === '1 day' && (
+                {/* 2-Column Responsive Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Charge (₹)</label>
-                    <input type="number" value={monthlyFormData.charge5Days} onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" placeholder="e.g. 850" />
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Vehicle Type *</label>
+                    <select 
+                      value={monthlyFormData.vehicleType} 
+                      onChange={(e) => setMonthlyFormData({...monthlyFormData, vehicleType: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required
+                    >
+                      <option value="Mini">Mini</option>
+                      <option value="Sedan">Sedan</option>
+                      <option value="SUV/MPV">SUV/MPV</option>
+                      <option value="Luxury Car">Luxury Car</option>
+                    </select>
                   </div>
-                )}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Extra Per Hour (₹)</label>
-                  <input type="number" value={monthlyFormData.extraPerHour} onChange={(e) => setMonthlyFormData({...monthlyFormData, extraPerHour: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 90" />
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Hours Per Day *</label>
+                    <select 
+                      value={monthlyFormData.hoursPerDay} 
+                      onChange={(e) => setMonthlyFormData({...monthlyFormData, hoursPerDay: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required
+                    >
+                      <option value="8">8 Hours</option>
+                      <option value="10">10 Hours</option>
+                      <option value="12">12 Hours</option>
+                      <option value="1 day">1 Day</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Days Per Week *</label>
+                    <select 
+                      value={monthlyFormData.daysPerWeek} 
+                      onChange={(e) => setMonthlyFormData({...monthlyFormData, daysPerWeek: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required
+                    >
+                      {monthlyFormData.hoursPerDay === '1 day' ? (
+                        <option value="12">12 Hours</option>
+                      ) : (
+                        <>
+                          <option value="5">5 Days</option>
+                          <option value="6">6 Days</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Extra Per Hour (₹) *</label>
+                    <input 
+                      type="number" 
+                      value={monthlyFormData.extraPerHour} 
+                      onChange={(e) => setMonthlyFormData({...monthlyFormData, extraPerHour: e.target.value})} 
+                      className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                      required 
+                      placeholder="e.g. 90" 
+                    />
+                  </div>
+
+                  {monthlyFormData.hoursPerDay !== '1 day' ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Charge for 5 Days (₹)</label>
+                        <input 
+                          type="number" 
+                          value={monthlyFormData.charge5Days} 
+                          onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} 
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                          placeholder="e.g. 18000" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Charge for 6 Days (₹)</label>
+                        <input 
+                          type="number" 
+                          value={monthlyFormData.charge6Days} 
+                          onChange={(e) => setMonthlyFormData({...monthlyFormData, charge6Days: e.target.value})} 
+                          className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                          placeholder="e.g. 20000" 
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-700 uppercase mb-1.5">Charge (₹) *</label>
+                      <input 
+                        type="number" 
+                        value={monthlyFormData.charge5Days} 
+                        onChange={(e) => setMonthlyFormData({...monthlyFormData, charge5Days: e.target.value})} 
+                        className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C] bg-white font-medium shadow-xs" 
+                        placeholder="e.g. 850" 
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2 pt-4">
-                  <button type="button" onClick={closeMonthlyModal} className="flex-1 px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                  <button 
+                    type="button" 
+                    onClick={closeMonthlyModal} 
+                    className="flex-1 py-2.5 text-xs sm:text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition cursor-pointer"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="flex-1 px-4 py-2 text-xs font-bold text-white bg-[#0B192C] rounded-lg hover:bg-[#1E3E62]">
-                    {editingMonthly ? 'Update' : 'Add'}
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-2.5 text-xs sm:text-sm font-bold text-white bg-[#0B192C] rounded-xl hover:bg-[#1E3E62] transition shadow-sm cursor-pointer"
+                  >
+                    {editingMonthly ? 'Update Pricing' : 'Add Monthly Pricing'}
                   </button>
                 </div>
               </form>
