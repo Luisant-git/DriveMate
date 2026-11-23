@@ -21,14 +21,15 @@ export async function calculateFare(
   hours: number,
   distance: number = 0,
   isOutstation: boolean = false,
-  isImmediate: boolean = false
+  isImmediate: boolean = false,
+  city?: string
 ): Promise<FareBreakdown | null> {
   try {
     const packageType = isOutstation ? 'OUTSTATION' : 'LOCAL_HOURLY';
     const roundedHours = Math.ceil(hours);
     
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType, hours: roundedHours, distance, isImmediate }
+      params: { packageType, hours: roundedHours, distance, isImmediate, ...(city && { city }) }
     });
     
     if (response.data.success && response.data.pricing) {
@@ -65,7 +66,8 @@ export async function calculateFare(
 export async function calculateOutstationFareByDistance(
   distanceKm: number,
   isImmediate: boolean = false,
-  selectedHours?: number
+  selectedHours?: number,
+  city?: string
 ): Promise<FareBreakdown | null> {
   try {
     // If selectedHours is provided and > 0, use it. Otherwise determine minimum hours based on distance
@@ -79,7 +81,7 @@ export async function calculateOutstationFareByDistance(
     }
     
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType: 'OUTSTATION', hours, distance: distanceKm, isImmediate }
+      params: { packageType: 'OUTSTATION', hours, distance: distanceKm, isImmediate, ...(city && { city }) }
     });
     
     if (response.data.success && response.data.pricing) {
@@ -116,14 +118,15 @@ export async function calculateOutstationFareByDistance(
 export async function calculateLocalFareByDistance(
   distanceKm: number,
   isImmediate: boolean = false,
-  selectedHours?: number
+  selectedHours?: number,
+  city?: string
 ): Promise<FareBreakdown | null> {
   try {
     // Base hours must exist in LOCAL_HOURLY pricing — the backend overrides it
     // with the package required by the distance (Min KM bands) or requested hours
     const hours = selectedHours && selectedHours > 0 ? selectedHours : 4;
     const response = await axios.get(`${API_URL}/api/pricing-packages/estimate`, {
-      params: { packageType: 'LOCAL_HOURLY', hours, distance: distanceKm, isImmediate }
+      params: { packageType: 'LOCAL_HOURLY', hours, distance: distanceKm, isImmediate, ...(city && { city }) }
     });
     
     if (response.data.success && response.data.pricing) {

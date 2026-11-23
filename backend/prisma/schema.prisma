@@ -430,8 +430,8 @@ model PricingPackage {
   updatedAt       DateTime @updatedAt
   immediateCharge Float?
   extraPerHourImm Float?
+  cities          String[] @default([])
 
-  @@unique([packageType, hours])
   @@map("pricing_packages")
 }
 
@@ -461,8 +461,8 @@ model MonthlyPricing {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  cities       String[] @default([])
 
-  @@unique([vehicleType, hoursPerDay, daysPerWeek])
   @@map("monthly_pricing")
 }
 

@@ -2,7 +2,15 @@ import prisma from '../config/database.js';
 
 export const getAllPricingPackages = async (req, res) => {
   try {
+    const { city } = req.query;
+    let where = {};
+    if (city && city.trim() && city.toUpperCase() !== 'ALL') {
+      where = {
+        cities: { has: city.trim() }
+      };
+    }
     const pricing = await prisma.pricingPackage.findMany({
+      where,
       orderBy: [{ packageType: 'asc' }, { hours: 'asc' }]
     });
     res.json({ success: true, pricing });
@@ -13,8 +21,12 @@ export const getAllPricingPackages = async (req, res) => {
 
 export const createPricingPackage = async (req, res) => {
   try {
-    const { packageType, hours, minimumCharge, immediateCharge, minimumKm, extraPerHour, extraPerHourImm, description } = req.body;
+    const { packageType, hours, minimumCharge, immediateCharge, minimumKm, extraPerHour, extraPerHourImm, description, cities } = req.body;
     
+    const parsedCities = Array.isArray(cities) 
+      ? cities.map(c => String(c).trim()).filter(Boolean) 
+      : (typeof cities === 'string' && cities.trim() ? [cities.trim()] : []);
+
     const data = {
       packageType,
       hours: parseInt(hours),
@@ -22,7 +34,8 @@ export const createPricingPackage = async (req, res) => {
       immediateCharge: immediateCharge ? parseFloat(immediateCharge) : null,
       minimumKm: minimumKm && minimumKm !== '' ? parseInt(minimumKm) : null,
       extraPerHour: parseFloat(extraPerHour),
-      extraPerHourImm: extraPerHourImm ? parseFloat(extraPerHourImm) : null
+      extraPerHourImm: extraPerHourImm ? parseFloat(extraPerHourImm) : null,
+      cities: parsedCities
     };
     
     if (description) data.description = description;
@@ -38,7 +51,7 @@ export const createPricingPackage = async (req, res) => {
 export const updatePricingPackage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { minimumCharge, immediateCharge, minimumKm, extraPerHour, extraPerHourImm, description, isActive } = req.body;
+    const { packageType, hours, minimumCharge, immediateCharge, minimumKm, extraPerHour, extraPerHourImm, description, isActive, cities } = req.body;
     
     const data = {
       minimumCharge: parseFloat(minimumCharge),
@@ -46,11 +59,17 @@ export const updatePricingPackage = async (req, res) => {
       extraPerHour: parseFloat(extraPerHour)
     };
     
+    if (packageType !== undefined) data.packageType = packageType;
+    if (hours !== undefined) data.hours = parseInt(hours);
     if (immediateCharge !== undefined) data.immediateCharge = immediateCharge ? parseFloat(immediateCharge) : null;
     if (extraPerHourImm !== undefined) data.extraPerHourImm = extraPerHourImm ? parseFloat(extraPerHourImm) : null;
-    
     if (description !== undefined) data.description = description;
     if (isActive !== undefined) data.isActive = isActive;
+    if (cities !== undefined) {
+      data.cities = Array.isArray(cities) 
+        ? cities.map(c => String(c).trim()).filter(Boolean) 
+        : [];
+    }
     
     const pricing = await prisma.pricingPackage.update({
       where: { id },
@@ -75,15 +94,38 @@ export const deletePricingPackage = async (req, res) => {
 
 export const getEstimateByPackage = async (req, res) => {
   try {
-    const { packageType, hours, distance, isImmediate } = req.query;
+    const { packageType, hours, distance, isImmediate, city } = req.query;
 
-    const allPackages = await prisma.pricingPackage.findMany({
+    let allPackages = await prisma.pricingPackage.findMany({
       where: { packageType, isActive: true },
       orderBy: { hours: 'asc' }
     });
 
     if (!allPackages || allPackages.length === 0) {
       return res.status(404).json({ success: false, error: 'Pricing not found' });
+    }
+
+    // City-wise matching:
+    // If a city is passed, prioritize packages configured for this city.
+    // Otherwise fallback to default packages (where cities is empty)
+    if (city && city.trim()) {
+      const targetCity = city.trim().toLowerCase();
+      const cityPackages = allPackages.filter(p => 
+        Array.isArray(p.cities) && p.cities.some(c => c.toLowerCase() === targetCity)
+      );
+      if (cityPackages.length > 0) {
+        allPackages = cityPackages;
+      } else {
+        const defaultPackages = allPackages.filter(p => !p.cities || p.cities.length === 0);
+        if (defaultPackages.length > 0) {
+          allPackages = defaultPackages;
+        }
+      }
+    } else {
+      const defaultPackages = allPackages.filter(p => !p.cities || p.cities.length === 0);
+      if (defaultPackages.length > 0) {
+        allPackages = defaultPackages;
+      }
     }
 
     const requestedHours = parseInt(hours) || 0;

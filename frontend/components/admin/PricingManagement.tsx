@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import CityMultiSelect from './CityMultiSelect';
 
 const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000';
 
 export default function PricingManagement() {
   const [packages, setPackages] = useState([]);
   const [monthlyPricing, setMonthlyPricing] = useState([]);
+  const [availableCities, setAvailableCities] = useState([]);
+  const [selectedCityFilter, setSelectedCityFilter] = useState('ALL');
   const [activeTab, setActiveTab] = useState('LOCAL');
   const [showModal, setShowModal] = useState(false);
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
@@ -18,7 +21,8 @@ export default function PricingManagement() {
     immediateCharge: '',
     minimumKm: '',
     extraPerHour: '100',
-    extraPerHourImm: ''
+    extraPerHourImm: '',
+    cities: []
   });
   const [monthlyFormData, setMonthlyFormData] = useState({
     vehicleType: 'Mini',
@@ -26,18 +30,32 @@ export default function PricingManagement() {
     daysPerWeek: '5',
     charge5Days: '',
     charge6Days: '',
-    extraPerHour: '90'
+    extraPerHour: '90',
+    cities: []
   });
 
   useEffect(() => {
     fetchPackages();
     fetchMonthlyPricing();
+    fetchAvailableCities();
   }, []);
+
+  const fetchAvailableCities = async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/api/service-areas`);
+      if (data && data.areas) {
+        const uniqueCities = Array.from(new Set(data.areas.map(a => a.city).filter(Boolean)));
+        setAvailableCities(uniqueCities);
+      }
+    } catch (error) {
+      console.error('Error fetching service area cities:', error);
+    }
+  };
 
   const fetchPackages = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/api/pricing-packages`);
-      setPackages(data.pricing);
+      setPackages(data.pricing || []);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -46,7 +64,7 @@ export default function PricingManagement() {
   const fetchMonthlyPricing = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/api/monthly-pricing`);
-      setMonthlyPricing(data.pricing);
+      setMonthlyPricing(data.pricing || []);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -63,7 +81,7 @@ export default function PricingManagement() {
       fetchPackages();
       closeModal();
     } catch (error) {
-      alert(error.response?.data?.error || 'Error');
+      alert(error.response?.data?.error || 'Error saving pricing package');
     }
   };
 
@@ -84,11 +102,21 @@ export default function PricingManagement() {
         immediateCharge: pkg.immediateCharge || '',
         minimumKm: pkg.minimumKm || '',
         extraPerHour: pkg.extraPerHour,
-        extraPerHourImm: pkg.extraPerHourImm || ''
+        extraPerHourImm: pkg.extraPerHourImm || '',
+        cities: pkg.cities || []
       });
     } else {
       setEditingPkg(null);
-      setFormData({ packageType: 'LOCAL_HOURLY', hours: '', minimumCharge: '', immediateCharge: '', minimumKm: '', extraPerHour: '100', extraPerHourImm: '' });
+      setFormData({
+        packageType: activeTab === 'OUTSTATION' ? 'OUTSTATION' : 'LOCAL_HOURLY',
+        hours: '',
+        minimumCharge: '',
+        immediateCharge: '',
+        minimumKm: '',
+        extraPerHour: '100',
+        extraPerHourImm: '',
+        cities: selectedCityFilter !== 'ALL' && selectedCityFilter !== 'DEFAULT_ALL' ? [selectedCityFilter] : []
+      });
     }
     setShowModal(true);
   };
@@ -109,7 +137,7 @@ export default function PricingManagement() {
       fetchMonthlyPricing();
       closeMonthlyModal();
     } catch (error) {
-      alert(error.response?.data?.error || 'Error');
+      alert(error.response?.data?.error || 'Error saving monthly pricing');
     }
   };
 
@@ -129,11 +157,20 @@ export default function PricingManagement() {
         daysPerWeek: pricing.daysPerWeek,
         charge5Days: pricing.charge5Days || '',
         charge6Days: pricing.charge6Days || '',
-        extraPerHour: pricing.extraPerHour
+        extraPerHour: pricing.extraPerHour,
+        cities: pricing.cities || []
       });
     } else {
       setEditingMonthly(null);
-      setMonthlyFormData({ vehicleType: 'Mini', hoursPerDay: '8', daysPerWeek: '5', charge5Days: '', charge6Days: '', extraPerHour: '90' });
+      setMonthlyFormData({
+        vehicleType: 'Mini',
+        hoursPerDay: '8',
+        daysPerWeek: '5',
+        charge5Days: '',
+        charge6Days: '',
+        extraPerHour: '90',
+        cities: selectedCityFilter !== 'ALL' && selectedCityFilter !== 'DEFAULT_ALL' ? [selectedCityFilter] : []
+      });
     }
     setShowMonthlyModal(true);
   };
@@ -143,43 +180,127 @@ export default function PricingManagement() {
     setEditingMonthly(null);
   };
 
+  // Collect all known cities from packages, monthly pricing, and available service areas
+  const allKnownCities = Array.from(
+    new Set([
+      ...availableCities,
+      ...packages.flatMap(p => p.cities || []),
+      ...monthlyPricing.flatMap(m => m.cities || [])
+    ].filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const matchesCity = (item) => {
+    if (selectedCityFilter === 'ALL') return true;
+    if (selectedCityFilter === 'DEFAULT_ALL') {
+      return !item.cities || item.cities.length === 0;
+    }
+    return Array.isArray(item.cities) && item.cities.includes(selectedCityFilter);
+  };
+
   const local = packages.filter(p => p.packageType === 'LOCAL_HOURLY').sort((a, b) => a.hours - b.hours);
   const outstation = packages.filter(p => p.packageType === 'OUTSTATION').sort((a, b) => a.hours - b.hours);
+
+  const filteredLocal = local.filter(matchesCity);
+  const filteredOutstation = outstation.filter(matchesCity);
+  const filteredMonthly = monthlyPricing.filter(matchesCity);
 
   return (
     <div className="px-4 md:px-6 py-4 md:py-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-900">Pricing Charges</h2>
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Pricing Charges</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Configure hourly, outstation, and monthly driver charges city-wise
+          </p>
+        </div>
         <button 
           onClick={() => activeTab === 'MONTHLY' ? openMonthlyModal() : openModal()} 
-          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition w-full md:w-auto"
+          className="bg-[#0B192C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#1E3E62] transition w-full md:w-auto shadow-sm"
         >
-          {activeTab === 'MONTHLY' ? 'Add Monthly Pricing' : 'Add Pricing'}
+          {activeTab === 'MONTHLY' ? '+ Add Monthly Pricing' : '+ Add Pricing'}
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4 md:mb-6 overflow-x-auto pb-2">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         <button onClick={() => setActiveTab('LOCAL')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'LOCAL' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-          Local Hourly Pricing
+          Local Hourly Pricing ({local.length})
         </button>
         <button onClick={() => setActiveTab('OUTSTATION')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'OUTSTATION' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-          Outstation Pricing
+          Outstation Pricing ({outstation.length})
         </button>
         <button onClick={() => setActiveTab('MONTHLY')} className={`px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition whitespace-nowrap ${activeTab === 'MONTHLY' ? 'bg-[#0B192C] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-          Monthly Driver Pricing
+          Monthly Driver Pricing ({monthlyPricing.length})
         </button>
+      </div>
+
+      {/* City Filter Toolbar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 bg-gray-50 border border-gray-200 rounded-xl p-3">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">City Filter:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setSelectedCityFilter('ALL')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              selectedCityFilter === 'ALL'
+                ? 'bg-[#0B192C] text-white shadow-xs'
+                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >
+            All Cities
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedCityFilter('DEFAULT_ALL')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              selectedCityFilter === 'DEFAULT_ALL'
+                ? 'bg-purple-700 text-white shadow-xs'
+                : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+            }`}
+            title="Applies to all cities without restriction"
+          >
+            Universal (All Cities)
+          </button>
+
+          {allKnownCities.map(city => (
+            <button
+              key={city}
+              type="button"
+              onClick={() => setSelectedCityFilter(city)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedCityFilter === city
+                  ? 'bg-[#0B192C] text-white shadow-xs'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {city}
+            </button>
+          ))}
+        </div>
       </div>
 
       {activeTab === 'MONTHLY' && (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-3 flex justify-between items-center">
           <h3 className="text-sm font-bold text-blue-900 uppercase">Monthly Driver Pricing</h3>
+          <span className="text-xs font-semibold text-blue-800">
+            Showing {filteredMonthly.length} of {monthlyPricing.length} items
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">City / Coverage</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Vehicle Type</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Hours/Day</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Days/Week</th>
@@ -190,22 +311,50 @@ export default function PricingManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {monthlyPricing.length === 0 ? (
+            {filteredMonthly.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <p className="text-gray-500 text-sm">No monthly pricing added yet</p>
+                  <p className="text-gray-500 text-sm">
+                    {selectedCityFilter !== 'ALL'
+                      ? `No monthly pricing configured for "${selectedCityFilter}"`
+                      : 'No monthly pricing added yet'}
+                  </p>
+                  {selectedCityFilter !== 'ALL' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCityFilter('ALL')}
+                      className="mt-2 text-xs text-blue-600 hover:underline font-bold"
+                    >
+                      Show All Cities
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
-              monthlyPricing.map((pricing, index) => (
+              filteredMonthly.map((pricing, index) => (
                 <tr key={pricing.id} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
+                  </td>
+                  <td className="px-4 py-4">
+                    {pricing.cities && pricing.cities.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {pricing.cities.map(c => (
+                          <span key={c} className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        All Cities
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-gray-900">{pricing.vehicleType}</p>
@@ -258,14 +407,18 @@ export default function PricingManagement() {
 
       {activeTab === 'LOCAL' && (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
           <h3 className="text-sm font-bold text-gray-900 uppercase">Local Hourly Pricing</h3>
+          <span className="text-xs font-semibold text-gray-600">
+            Showing {filteredLocal.length} of {local.length} packages
+          </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px]">
+          <table className="w-full min-w-[850px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">City / Coverage</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Hours</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Min KM</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Min Charge (Sch)</th>
@@ -276,22 +429,50 @@ export default function PricingManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {local.length === 0 ? (
+            {filteredLocal.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <p className="text-gray-500 text-sm">No pricing added yet</p>
+                  <p className="text-gray-500 text-sm">
+                    {selectedCityFilter !== 'ALL'
+                      ? `No local pricing configured for "${selectedCityFilter}"`
+                      : 'No pricing added yet'}
+                  </p>
+                  {selectedCityFilter !== 'ALL' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCityFilter('ALL')}
+                      className="mt-2 text-xs text-blue-600 hover:underline font-bold"
+                    >
+                      Show All Cities
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
-              local.map((pkg, index) => (
+              filteredLocal.map((pkg, index) => (
                 <tr key={pkg.id} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
+                  </td>
+                  <td className="px-4 py-4">
+                    {pkg.cities && pkg.cities.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {pkg.cities.map(c => (
+                          <span key={c} className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        All Cities
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
@@ -349,14 +530,18 @@ export default function PricingManagement() {
 
       {activeTab === 'OUTSTATION' && (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
           <h3 className="text-sm font-bold text-gray-900 uppercase">Outstation Pricing</h3>
+          <span className="text-xs font-semibold text-gray-600">
+            Showing {filteredOutstation.length} of {outstation.length} packages
+          </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
+          <table className="w-full min-w-[850px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">S.No</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">City / Coverage</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Hours</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Min KM</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Charge (Sch)</th>
@@ -367,22 +552,50 @@ export default function PricingManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {outstation.length === 0 ? (
+            {filteredOutstation.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                     </svg>
                   </div>
-                  <p className="text-gray-500 text-sm">No pricing added yet</p>
+                  <p className="text-gray-500 text-sm">
+                    {selectedCityFilter !== 'ALL'
+                      ? `No outstation pricing configured for "${selectedCityFilter}"`
+                      : 'No pricing added yet'}
+                  </p>
+                  {selectedCityFilter !== 'ALL' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCityFilter('ALL')}
+                      className="mt-2 text-xs text-blue-600 hover:underline font-bold"
+                    >
+                      Show All Cities
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (
-              outstation.map((pkg, index) => (
+              filteredOutstation.map((pkg, index) => (
                 <tr key={pkg.id} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-4">
                     <p className="text-sm font-semibold text-gray-900">{index + 1}</p>
+                  </td>
+                  <td className="px-4 py-4">
+                    {pkg.cities && pkg.cities.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {pkg.cities.map(c => (
+                          <span key={c} className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        All Cities
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
@@ -456,6 +669,21 @@ export default function PricingManagement() {
               </div>
               
               <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+                {/* Multi-Select City Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                    Applicable Cities
+                  </label>
+                  <CityMultiSelect
+                    selectedCities={formData.cities}
+                    onChange={(cities) => setFormData({ ...formData, cities })}
+                    availableCities={availableCities}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Leave empty to apply to all service cities, or choose one or more specific cities.
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Service Type</label>
                   <select value={formData.packageType} onChange={(e) => setFormData({...formData, packageType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required disabled={editingPkg}>
@@ -465,7 +693,7 @@ export default function PricingManagement() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Hours</label>
-                  <input type="number" value={formData.hours} onChange={(e) => setFormData({...formData, hours: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required disabled={editingPkg} placeholder="e.g. 4" />
+                  <input type="number" value={formData.hours} onChange={(e) => setFormData({...formData, hours: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required placeholder="e.g. 4" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Minimum Charge (Scheduled) (₹)</label>
@@ -519,6 +747,21 @@ export default function PricingManagement() {
               </div>
               
               <form onSubmit={handleMonthlySubmit} className="space-y-3 md:space-y-4">
+                {/* Multi-Select City Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                    Applicable Cities
+                  </label>
+                  <CityMultiSelect
+                    selectedCities={monthlyFormData.cities}
+                    onChange={(cities) => setMonthlyFormData({ ...monthlyFormData, cities })}
+                    availableCities={availableCities}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Leave empty to apply to all service cities, or choose one or more specific cities.
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Vehicle Type</label>
                   <select value={monthlyFormData.vehicleType} onChange={(e) => setMonthlyFormData({...monthlyFormData, vehicleType: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B192C]/5" required>
