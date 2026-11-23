@@ -3,6 +3,8 @@ import apiClient from '../../api/axiosConfig.js';
 import { API_BASE_URL } from '../../api/config.js';
 import LocationAutocomplete from '../../components/LocationAutocomplete';
 import { calculateFare, parseDurationToHours } from '../../utils/fareCalculator';
+import { calculateDistance } from '../../utils/distanceCalculator';
+import UberVehicleSelector from '../../components/customer/UberVehicleSelector';
 import TermsAndConditions from '../../components/TermsAndConditions';
 
 export default function BookingWorkflow() {
@@ -20,6 +22,19 @@ export default function BookingWorkflow() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [processingBookings, setProcessingBookings] = useState(new Set()); // Track which bookings are being processed
   const [customersList, setCustomersList] = useState([]);
+
+  // Pricing & Estimation States (synced with Customer Portal)
+  const [pricingPackages, setPricingPackages] = useState([]);
+  const [monthlyPricingList, setMonthlyPricingList] = useState([]);
+  const [localUsageOptions, setLocalUsageOptions] = useState([
+    '4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'
+  ]);
+  const [calculatedDistance, setCalculatedDistance] = useState(null);
+
+  const OUTSTATION_USAGE_OPTIONS = [
+    '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '14 Hrs', '16 Hrs', '18 Hrs', '20 Hrs', '22 Hrs', '24 Hrs',
+    '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days'
+  ];
   
   // Create Booking State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,29 +74,169 @@ export default function BookingWorkflow() {
     fetchPackages();
     fetchLeadPackages();
     fetchCustomers();
+    fetchPricingPackages();
+    fetchMonthlyPricing();
   }, [filters]);
+
+  const fetchPricingPackages = async () => {
+    try {
+      const res = await apiClient.get('/pricing-packages');
+      if (res.data?.success) {
+        const pkgs = res.data.pricing || [];
+        setPricingPackages(pkgs);
+        const localHours = Array.from(new Set(
+          pkgs.filter((p) => p.packageType === 'LOCAL_HOURLY' && p.isActive)
+              .map((p) => Number(p.hours))
+              .filter((h) => h > 0)
+        )).sort((a, b) => a - b);
+        if (localHours.length > 0) {
+          setLocalUsageOptions(localHours.map((h) => `${h} Hrs`));
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching pricing packages:', e);
+    }
+  };
+
+  const fetchMonthlyPricing = async () => {
+    try {
+      const res = await apiClient.get('/monthly-pricing');
+      if (res.data?.success) {
+        setMonthlyPricingList(res.data.pricing || []);
+      }
+    } catch (e) {
+      console.error('Error fetching monthly pricing:', e);
+    }
+  };
+
+  const getMonthlyPricingDetails = (vehicleType, hoursPerDay, daysPerWeek) => {
+    const vType = (vehicleType || 'Hatchback').toLowerCase();
+    const hPerDay = String(hoursPerDay || '8').toLowerCase();
+    const dPerWeek = String(daysPerWeek || '6');
+
+    const match = monthlyPricingList.find(p =>
+      p.isActive &&
+      (p.vehicleType?.toLowerCase() === vType ||
+       (vType === 'hatchback' && p.vehicleType?.toLowerCase() === 'sedan') ||
+       (vType === 'suv' && p.vehicleType?.toLowerCase().includes('suv'))) &&
+      String(p.hoursPerDay).toLowerCase() === hPerDay &&
+      (String(p.daysPerWeek) === dPerWeek || String(p.daysPerWeek).includes(dPerWeek))
+    ) || monthlyPricingList.find(p =>
+      p.isActive &&
+      String(p.hoursPerDay).toLowerCase() === hPerDay
+    );
+
+    let price = 0;
+    let extraHr = 90;
+
+    if (match) {
+      extraHr = match.extraPerHour || 90;
+      if (dPerWeek === '6' && match.charge6Days) {
+        price = match.charge6Days;
+      } else if (dPerWeek === '5' && match.charge5Days) {
+        price = match.charge5Days;
+      } else {
+        price = match.charge6Days || match.charge5Days || 0;
+      }
+    }
+
+    if (!price || price === 0) {
+      const hoursNum = hPerDay === '1 day' ? 12 : (parseInt(hPerDay) || 8);
+      const daysNum = dPerWeek === '12' ? 1 : (parseInt(dPerWeek) || 6);
+      price = hoursNum * daysNum * 4 * 100;
+    }
+
+    return { price, extraHr, hasAdminPricing: Boolean(match) };
+  };
 
   useEffect(() => {
     const calculateEstimate = async () => {
       if (!showCreateModal) return;
 
+      // Monthly Driver
       if (createForm.driverType === 'Monthly Driver') {
-        const h = parseInt(createForm.hoursPerDay) || 8;
-        const d = parseInt(createForm.daysPerWeek) || 6;
-        const monthlyTotal = h * d * 4 * 100;
-        setCalculatedFareInfo(null);
+        const monthlyDetails = getMonthlyPricingDetails(
+          createForm.vehicleType,
+          createForm.hoursPerDay,
+          createForm.daysPerWeek
+        );
+        setCalculatedFareInfo({
+          baseFare: monthlyDetails.price,
+          extraHours: 0,
+          extraHourCharge: 0,
+          totalFare: monthlyDetails.price,
+          packageType: 'LOCAL',
+          description: `Monthly Plan • ${createForm.vehicleType || 'Hatchback'} • ${createForm.hoursPerDay} hrs/day • ${createForm.daysPerWeek} days/week`,
+          scheduledCharge: monthlyDetails.price,
+          immediateCharge: monthlyDetails.price,
+          extraPerHourSch: monthlyDetails.extraHr,
+          extraPerHourImm: monthlyDetails.extraHr
+        });
         setCreateForm(prev => ({
           ...prev,
-          estimateAmount: monthlyTotal.toString()
+          estimateAmount: monthlyDetails.price.toString()
         }));
         return;
       }
-      
+
+      // Check distance if pickup and drop are provided
+      let dist = calculatedDistance || 0;
+      if (createForm.pickupLocation && createForm.dropLocation && (!calculatedDistance || calculatedDistance === 0)) {
+        try {
+          const res = await calculateDistance(createForm.pickupLocation, createForm.dropLocation);
+          if (res?.distance) {
+            dist = res.distance;
+            setCalculatedDistance(res.distance);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       const isOutstation = createForm.serviceType === 'Outstation';
       const isImmediate = createForm.whenNeeded === 'Immediately';
-      const hours = parseDurationToHours(createForm.duration);
-      
-      const fareInfo = await calculateFare(hours, 0, isOutstation, isImmediate);
+      const durationStr = createForm.duration || (isOutstation ? '8 Hrs' : '4 Hrs');
+      const isDayOption = durationStr.toLowerCase().includes('day');
+
+      // Extract city from pickup location for city-wise pricing
+      let cityParam = undefined;
+      if (createForm.pickupLocation) {
+        const parts = createForm.pickupLocation.split(',').map(s => s.trim());
+        if (parts.length > 1) {
+          cityParam = parts[parts.length - 2] || parts[0];
+        } else {
+          cityParam = parts[0];
+        }
+      }
+
+      // Multi-day outstation calculation (e.g. 1 Day, 2 Days, etc.)
+      if (isOutstation && isDayOption) {
+        const days = parseInt(durationStr, 10) || 1;
+        const baseHours = dist >= 300 ? 12 : dist >= 151 ? 10 : 8;
+        const breakdown = await calculateFare(baseHours, dist, true, isImmediate, cityParam);
+        if (breakdown) {
+          const dailyRate = breakdown.totalFare;
+          const total = dailyRate * days;
+          setCalculatedFareInfo({
+            ...breakdown,
+            totalFare: total,
+            description: `${breakdown.description.replace(/ \+ \d+ Extra Hrs?/, '')} • ${days} Day${days > 1 ? 's' : ''}`,
+            scheduledCharge: (breakdown.scheduledCharge || dailyRate) * days,
+            immediateCharge: (breakdown.immediateCharge || dailyRate) * days,
+            extraHours: 0,
+            extraHourCharge: 0
+          });
+          setCreateForm(prev => ({
+            ...prev,
+            estimateAmount: total.toString()
+          }));
+        }
+        return;
+      }
+
+      // Standard hourly calculation (Local or Outstation)
+      const hours = parseDurationToHours(durationStr);
+      const fareInfo = await calculateFare(hours, dist, isOutstation, isImmediate, cityParam);
       if (fareInfo) {
         setCalculatedFareInfo(fareInfo);
         setCreateForm(prev => ({
@@ -98,10 +253,15 @@ export default function BookingWorkflow() {
     createForm.duration,
     createForm.serviceType,
     createForm.whenNeeded,
+    createForm.tripType,
     createForm.driverType,
     createForm.hoursPerDay,
     createForm.daysPerWeek,
-    showCreateModal
+    createForm.vehicleType,
+    createForm.pickupLocation,
+    createForm.dropLocation,
+    showCreateModal,
+    monthlyPricingList
   ]);
 
   const fetchCustomers = async () => {
@@ -842,7 +1002,14 @@ export default function BookingWorkflow() {
                 <div className="flex gap-2">
                   <button 
                     type="button"
-                    onClick={() => setCreateForm({...createForm, serviceType: 'Local - Hourly', duration: '4 Hrs'})}
+                    onClick={() => {
+                      const nextDuration = localUsageOptions[0] || '4 Hrs';
+                      setCreateForm(prev => ({
+                        ...prev,
+                        serviceType: 'Local - Hourly',
+                        duration: nextDuration
+                      }));
+                    }}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
                       createForm.serviceType === 'Local - Hourly' ? 'bg-[#0B192C] text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
@@ -851,7 +1018,13 @@ export default function BookingWorkflow() {
                   </button>
                   <button 
                     type="button"
-                    onClick={() => setCreateForm({...createForm, serviceType: 'Outstation', duration: '8 Hrs'})}
+                    onClick={() => {
+                      setCreateForm(prev => ({
+                        ...prev,
+                        serviceType: 'Outstation',
+                        duration: '8 Hrs'
+                      }));
+                    }}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold transition ${
                       createForm.serviceType === 'Outstation' ? 'bg-[#0B192C] text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
@@ -861,13 +1034,13 @@ export default function BookingWorkflow() {
                 </div>
               </div>
 
-              {/* Trip Type Buttons - One Way / Round Trip (For BOTH Local and Outstation) */}
+              {/* Trip Type Buttons - One Way / Round Trip */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Trip Type</label>
                 <div className="flex gap-2">
                   <button 
                     type="button"
-                    onClick={() => setCreateForm({...createForm, tripType: 'One Way'})}
+                    onClick={() => setCreateForm(prev => ({ ...prev, tripType: 'One Way' }))}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
                       createForm.tripType === 'One Way' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                     }`}
@@ -876,7 +1049,7 @@ export default function BookingWorkflow() {
                   </button>
                   <button 
                     type="button"
-                    onClick={() => setCreateForm({...createForm, tripType: 'Round Trip'})}
+                    onClick={() => setCreateForm(prev => ({ ...prev, tripType: 'Round Trip' }))}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
                       createForm.tripType === 'Round Trip' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                     }`}
@@ -885,7 +1058,6 @@ export default function BookingWorkflow() {
                   </button>
                 </div>
               </div>
-
 
               {/* Customer Selection */}
               <div className="relative">
@@ -951,7 +1123,14 @@ export default function BookingWorkflow() {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pickup Location *</label>
                 <LocationAutocomplete 
                   value={createForm.pickupLocation} 
-                  onChange={value => setCreateForm({...createForm, pickupLocation: value})} 
+                  onChange={value => {
+                    setCreateForm(prev => ({ ...prev, pickupLocation: value }));
+                    if (value && createForm.dropLocation) {
+                      calculateDistance(value, createForm.dropLocation).then(r => {
+                        if (r?.distance) setCalculatedDistance(r.distance);
+                      }).catch(() => {});
+                    }
+                  }} 
                   placeholder="Enter pickup address" 
                   className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                   showMyLocation={false} 
@@ -960,10 +1139,19 @@ export default function BookingWorkflow() {
               
               {!(createForm.serviceType === 'Local - Hourly' && createForm.tripType === 'Round Trip') ? (
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Drop Location {createForm.tripType === 'One Way' ? '*' : '(Optional)'}</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">
+                    Drop Location {createForm.serviceType === 'Outstation' || createForm.tripType === 'One Way' ? '*' : '(Optional)'}
+                  </label>
                   <LocationAutocomplete 
                     value={createForm.dropLocation} 
-                    onChange={value => setCreateForm({...createForm, dropLocation: value})} 
+                    onChange={value => {
+                      setCreateForm(prev => ({ ...prev, dropLocation: value }));
+                      if (createForm.pickupLocation && value) {
+                        calculateDistance(createForm.pickupLocation, value).then(r => {
+                          if (r?.distance) setCalculatedDistance(r.distance);
+                        }).catch(() => {});
+                      }
+                    }} 
                     placeholder="Enter drop address" 
                     className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                     showMyLocation={false} 
@@ -984,7 +1172,7 @@ export default function BookingWorkflow() {
                     type="button"
                     onClick={() => setCreateForm({...createForm, whenNeeded: 'Immediately'})}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                      createForm.whenNeeded === 'Immediately' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      createForm.whenNeeded === 'Immediately' ? 'bg-[#0B192C] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     Immediately
@@ -993,7 +1181,7 @@ export default function BookingWorkflow() {
                     type="button"
                     onClick={() => setCreateForm({...createForm, whenNeeded: 'Schedule'})}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
-                      createForm.whenNeeded === 'Schedule' ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      createForm.whenNeeded === 'Schedule' ? 'bg-[#0B192C] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     Schedule Later
@@ -1016,7 +1204,7 @@ export default function BookingWorkflow() {
                   </div>
                   {createForm.tripType === 'Round Trip' && (
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date *</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date & Time *</label>
                       <div className="flex gap-2">
                         <input 
                           type="date" 
@@ -1079,7 +1267,9 @@ export default function BookingWorkflow() {
                 <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-xl p-3.5 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-700 uppercase">Monthly Driver Configuration</span>
-                    <span className="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">₹100 / hr rate</span>
+                    <span className="text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">
+                      Extra Per Hour: Rs. {getMonthlyPricingDetails(createForm.vehicleType, createForm.hoursPerDay, createForm.daysPerWeek).extraHr}/-
+                    </span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -1089,8 +1279,8 @@ export default function BookingWorkflow() {
                         onChange={e => setCreateForm({...createForm, hoursPerDay: e.target.value})}
                         className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
                       >
-                        {['8', '9', '10', '11', '12'].map(h => (
-                          <option key={h} value={h}>{h} Hours / Day</option>
+                        {['8', '9', '10', '11', '12', '1 day'].map(h => (
+                          <option key={h} value={h}>{h === '1 day' ? '1 Day (12 Hrs)' : `${h} Hours / Day`}</option>
                         ))}
                       </select>
                     </div>
@@ -1101,17 +1291,20 @@ export default function BookingWorkflow() {
                         onChange={e => setCreateForm({...createForm, daysPerWeek: e.target.value})}
                         className="w-full bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none"
                       >
-                        {['5', '6', '7'].map(d => (
-                          <option key={d} value={d}>{d} Days / Week</option>
-                        ))}
+                        {createForm.hoursPerDay === '1 day' ? (
+                          <option value="12">12 Hours</option>
+                        ) : (
+                          ['5', '6', '7'].map(d => (
+                            <option key={d} value={d}>{d} Days / Week</option>
+                          ))
+                        )}
                       </select>
                     </div>
                   </div>
                   <div className="pt-2 border-t border-green-200/60 flex items-center justify-between text-xs text-gray-700">
-                    <span>Monthly Estimate:</span>
-                    <span className="font-bold text-green-900">
-                      ₹{parseInt(createForm.hoursPerDay || '8') * parseInt(createForm.daysPerWeek || '6') * 4 * 100}
-                      <span className="text-[10px] text-gray-500 font-normal ml-1">({createForm.hoursPerDay}h × {createForm.daysPerWeek}d × 4w)</span>
+                    <span>Monthly Charges:</span>
+                    <span className="font-bold text-green-900 text-sm">
+                      ₹{createForm.estimateAmount || getMonthlyPricingDetails(createForm.vehicleType, createForm.hoursPerDay, createForm.daysPerWeek).price}
                     </span>
                   </div>
                 </div>
@@ -1122,14 +1315,14 @@ export default function BookingWorkflow() {
                   <select 
                     value={createForm.duration} 
                     onChange={e => setCreateForm({...createForm, duration: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
                   >
                     {createForm.serviceType === 'Local - Hourly' ? (
-                      ['4 Hrs', '5 Hrs', '6 Hrs', '7 Hrs', '8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs'].map(option => (
+                      localUsageOptions.map(option => (
                         <option key={option} value={option}>{option}</option>
                       ))
                     ) : (
-                      ['8 Hrs', '9 Hrs', '10 Hrs', '11 Hrs', '12 Hrs', '13 Hrs', '14 Hrs', '15 Hrs', '16 Hrs', '17 Hrs', '18 Hrs', '19 Hrs', '20 Hrs', '21 Hrs', '22 Hrs', '23 Hrs', '24 Hrs', '1 Day', '2 Days', '3 Days', '4 Days', '5 Days', '6 Days', '7 Days', '8 Days', '9 Days', '10 Days', '11 Days', '12 Days', '13 Days', '14 Days', '15 Days', '16 Days', '17 Days', '18 Days', '19 Days', '20 Days', '21 Days', '22 Days', '23 Days', '24 Days', '25 Days', '26 Days', '27 Days', '28 Days', '29 Days', '30 Days'].map(option => (
+                      OUTSTATION_USAGE_OPTIONS.map(option => (
                         <option key={option} value={option}>{option}</option>
                       ))
                     )}
@@ -1137,33 +1330,26 @@ export default function BookingWorkflow() {
                 </div>
               )}
 
-              {/* Car Type & Vehicle Type */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Car Type (Transmission)</label>
-                  <select 
-                    value={createForm.carType} 
-                    onChange={e => setCreateForm({...createForm, carType: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
+              {/* 3D Vehicle Selector & Transmission (Synced with Customer Portal) */}
+              <div className="bg-gray-50/70 p-3.5 rounded-2xl border border-gray-200 space-y-2">
+                <UberVehicleSelector
+                  vehicleType={createForm.vehicleType}
+                  carType={createForm.carType}
+                  onSelectVehicle={(vehicle) => setCreateForm(prev => ({ ...prev, vehicleType: vehicle }))}
+                  onSelectTransmission={(trans) => setCreateForm(prev => ({ ...prev, carType: trans }))}
+                />
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm(prev => ({ ...prev, vehicleType: 'Luxury' }))}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                      createForm.vehicleType === 'Luxury'
+                        ? 'bg-[#0B192C] text-white border-[#0B192C] shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
+                    }`}
                   >
-                    <option value="Manual">Manual</option>
-                    <option value="Automatic">Automatic</option>
-                    <option value="Both">Both (Manual / Automatic)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Vehicle Type</label>
-                  <select 
-                    value={createForm.vehicleType} 
-                    onChange={e => setCreateForm({...createForm, vehicleType: e.target.value})} 
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none bg-white font-medium"
-                  >
-                    <option value="Hatchback">Hatchback</option>
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV">SUV</option>
-                    <option value="MPV">MPV</option>
-                    <option value="Luxury">Luxury</option>
-                  </select>
+                    ✨ Luxury / Premium Car
+                  </button>
                 </div>
               </div>
 
@@ -1197,16 +1383,35 @@ export default function BookingWorkflow() {
                 </div>
               </div>
 
-              {/* Extra Hour Charge note */}
-              {calculatedFareInfo && (calculatedFareInfo.extraPerHourSch || calculatedFareInfo.extraPerHourImm) && createForm.driverType !== 'Monthly Driver' && (
-                <div className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Extra Hour Charge:
-                  </span>
-                  <span className="text-gray-900 font-bold">
-                    ₹{createForm.whenNeeded === 'Immediately' ? (calculatedFareInfo.extraPerHourImm || calculatedFareInfo.extraPerHourSch) : calculatedFareInfo.extraPerHourSch}/hr
-                  </span>
+              {/* Dynamic Fare Breakdown Card matching Customer Portal */}
+              {calculatedFareInfo && createForm.driverType !== 'Monthly Driver' && (
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-emerald-900">
+                      {calculatedFareInfo.description || `${createForm.duration} Trip`}
+                    </span>
+                    <span className="font-black text-sm text-emerald-800">
+                      ₹{createForm.estimateAmount}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-200/60 text-[11px]">
+                    <span className="bg-white px-2 py-0.5 rounded border border-emerald-200 text-gray-700">
+                      Base ({calculatedFareInfo.hours || parseDurationToHours(createForm.duration)}h): ₹{calculatedFareInfo.baseFare || calculatedFareInfo.totalFare}
+                    </span>
+                    {calculatedFareInfo.extraHours > 0 && (
+                      <span className="bg-white px-2 py-0.5 rounded border border-emerald-200 text-gray-700">
+                        Extra ({calculatedFareInfo.extraHours}h): +₹{calculatedFareInfo.extraHourCharge}
+                      </span>
+                    )}
+                    <span className="bg-white px-2 py-0.5 rounded border border-emerald-200 font-bold text-emerald-900">
+                      Extra Hour Charge: ₹{createForm.whenNeeded === 'Immediately' ? (calculatedFareInfo.extraPerHourImm || calculatedFareInfo.extraPerHourSch || 100) : (calculatedFareInfo.extraPerHourSch || 90)}/hr
+                    </span>
+                    {calculatedDistance && (
+                      <span className="bg-white px-2 py-0.5 rounded border border-emerald-200 font-bold text-blue-700">
+                        Distance: {Math.round(calculatedDistance)} KM
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
