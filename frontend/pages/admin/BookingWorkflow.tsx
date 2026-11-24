@@ -721,180 +721,215 @@ export default function BookingWorkflow() {
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1200px]">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">From Date & Time</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">To Date & Time</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Route</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Source</th>
-                      {/* <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th> */}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredBookings.map(booking => {
-                      const startDate = new Date(booking.startDateTime);
-                      const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
-                      const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
-                      const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
-                      const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                      
-                      return (
-                        <tr key={booking.id} className="hover:bg-gray-50 transition">
-                          <td className="px-4 py-4">
-                            <p className="text-sm text-gray-500">{formattedTime}</p>
-                            <p className="text-xs text-gray-400">{formattedDate}</p>
-                          </td>
-                          <td className="px-4 py-4">
-                            {booking.endDateTime ? (
-                              <>
-                                <p className="text-sm text-gray-500">{formattedReturnTime}</p>
-                                <p className="text-xs text-gray-400">{formattedReturnDate}</p>
-                              </>
-                            ) : (
-                              <span className="text-xs text-gray-400">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            {booking.estimateAmount && (
-                              <p className="text-base font-bold text-gray-900">₹{booking.estimateAmount}</p>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className="inline-block bg-yellow-100 text-yellow-700 text-xs px-2.5 py-1 rounded-full font-medium">PENDING</span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="space-y-1">
-                              <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-medium ${
-                                booking.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                              }`}>
-                                {booking.paymentStatus || 'UNPAID'}
-                              </span>
-                              {booking.paymentMethod && (
-                                <div>
-                                  <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.paymentMethod}</span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                                <span className="text-gray-700 font-semibold text-xs">{booking.customer?.name?.charAt(0) || 'C'}</span>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-gray-900">{booking.customer?.name || 'N/A'}</p>
-                                <p className="text-xs text-gray-600">{booking.customer?.phone || 'N/A'}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="space-y-1">
-                              <div className="flex items-start gap-2">
-                                <div className="w-2 h-2 bg-gray-900 rounded-full mt-1 flex-shrink-0"></div>
-                                <p className="text-xs text-gray-900 font-medium">{booking.pickupLocation}</p>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <div className="w-2 h-2 bg-gray-900 rounded-full mt-1 flex-shrink-0"></div>
-                                <p className="text-xs text-gray-900 font-medium">{booking.dropLocation}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="space-y-1">
-                              <span className="inline-block bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.serviceType}</span>
-                              {booking.tripType && (
-                                <div>
-                                  <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-full font-medium">{booking.tripType}</span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={`inline-block text-[10px] px-2.5 py-1.5 rounded-md font-bold uppercase tracking-wider ${
-                              booking.customer?.email?.includes('@temp.com') ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                            }`}>
-                              {booking.customer?.email?.includes('@temp.com') ? 'Admin Booking' : 'Online Booking'}
+            <>
+              {/* Mobile & Tablet Responsive Card Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 xl:hidden">
+                {filteredBookings.map(booking => {
+                  const startDate = new Date(booking.startDateTime);
+                  const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                  const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
+                  const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                  const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                  const isAdminBooking = booking.customer?.email?.includes('@temp.com');
+
+                  return (
+                    <div key={booking.id} className="bg-white rounded-2xl shadow-xs border border-gray-200 p-4 space-y-3 hover:shadow-md transition">
+                      {/* Top: Customer & Fare */}
+                      <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                            {booking.customer?.name?.charAt(0) || 'C'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-[#0F172A] leading-tight">{booking.customer?.name || 'N/A'}</p>
+                            <a href={`tel:${booking.customer?.phone}`} className="text-xs text-blue-600 font-semibold hover:underline">
+                              {booking.customer?.phone || 'N/A'}
+                            </a>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-base font-black text-gray-900 leading-tight">
+                            ₹{booking.estimateAmount || 0}
+                          </p>
+                          <span className="inline-block bg-yellow-100 text-yellow-800 text-[10px] font-black px-2 py-0.5 rounded-full mt-0.5">
+                            PENDING
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Route Details */}
+                      <div className="space-y-2 bg-gray-50/70 p-2.5 rounded-xl border border-gray-100 text-xs">
+                        <div className="flex items-start gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 shrink-0"></span>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Pickup</span>
+                            <p className="text-xs font-semibold text-gray-800 break-words">{booking.pickupLocation}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 pt-1 border-t border-gray-200/50">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 mt-1 shrink-0"></span>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Drop</span>
+                            <p className="text-xs font-semibold text-gray-800 break-words">{booking.dropLocation}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Badges: Type & Payment & Source */}
+                      <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 text-xs">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="bg-blue-50 text-blue-800 font-bold px-2 py-0.5 rounded-md text-[11px] border border-blue-200">
+                            {booking.serviceType}
+                          </span>
+                          {booking.tripType && (
+                            <span className="bg-gray-100 text-gray-700 font-bold px-2 py-0.5 rounded-md text-[11px] border border-gray-200">
+                              {booking.tripType}
                             </span>
-                          </td>
-                          {false && (
-                          <td className="px-4 py-4">
-                            {!booking.selectedPackageType && !booking.selectedLeadPackageId ? (
-                              <div className="space-y-2">
-                                <select
-                                  onChange={(e) => e.target.value && fetchAvailableDrivers(booking.id, e.target.value)}
-                                  disabled={loading}
-                                  className="w-full bg-[#0B192C] text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] disabled:opacity-50 transition cursor-pointer"
-                                  defaultValue=""
-                                >
-                                  <option value="" disabled className="bg-white text-black">Select Package</option>
-                                  <optgroup label="Driver Packages" className="bg-white text-black">
-                                    {packages.map(pkg => (
-                                      <option key={pkg.id} value={pkg.id} className="bg-white text-black">
-                                        {pkg.name} - ₹{pkg.price}
-                                      </option>
-                                    ))}
-                                  </optgroup>
-                                  <optgroup label="Lead Packages" className="bg-white text-black">
-                                    {leadPackages.map(pkg => (
-                                      <option key={`lead-${pkg.id}`} value={`lead-${pkg.id}`} className="bg-white text-black">
-                                        {pkg.name} - ₹{pkg.price} (Lead)
-                                      </option>
-                                    ))}
-                                  </optgroup>
-                                </select>
-                                
-                                {bookingDrivers[booking.id] && (
-                                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                    <p className="text-xs font-semibold text-gray-700 mb-2">
-                                      {bookingDrivers[booking.id].packageName}: {bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length} Available
-                                    </p>
-                                    {(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads > 0 : bookingDrivers[booking.id].drivers.length > 0) ? (
-                                      <button 
-                                        onClick={() => reviewBooking(booking.id, bookingDrivers[booking.id].packageType, bookingDrivers[booking.id].packageId, bookingDrivers[booking.id].isLeadPackage)} 
-                                        disabled={loading || processingBookings.has(booking.id)}
-                                        className="w-full bg-green-600 text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                      >
-                                        {processingBookings.has(booking.id) ? 'Sending...' : `Send to ${bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length} ${bookingDrivers[booking.id].isLeadPackage ? 'Lead' : 'Driver'}${(bookingDrivers[booking.id].isLeadPackage ? bookingDrivers[booking.id].leads : bookingDrivers[booking.id].drivers.length) !== 1 ? 's' : ''}`}
-                                      </button>
-                                    ) : (
-                                      <p className="text-xs text-red-600">No {bookingDrivers[booking.id].isLeadPackage ? 'leads' : 'drivers'} available</p>
-                                    )}
+                          )}
+                          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                            booking.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                            {booking.paymentStatus || 'UNPAID'} {booking.paymentMethod ? `• ${booking.paymentMethod}` : ''}
+                          </span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          isAdminBooking ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                        }`}>
+                          {isAdminBooking ? 'Admin Booking' : 'Online Booking'}
+                        </span>
+                      </div>
+
+                      {/* Timings */}
+                      <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between text-[11px] text-gray-500 font-medium gap-1">
+                        <span className="flex items-center gap-1">
+                          🕒 <span className="font-bold text-gray-700">{formattedTime}</span>, {formattedDate}
+                        </span>
+                        {booking.endDateTime && (
+                          <span className="flex items-center gap-1 text-purple-700 font-semibold">
+                            🏠 <span className="font-bold">{formattedReturnTime}</span>, {formattedReturnDate}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden xl:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1050px]">
+                    <thead className="bg-gray-50/80 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">From Date & Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">To Date & Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Payment</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Route</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredBookings.map(booking => {
+                        const startDate = new Date(booking.startDateTime);
+                        const formattedDate = startDate.toLocaleDateString('en-GB').replace(/\//g, '-');
+                        const formattedTime = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const endDate = booking.endDateTime ? new Date(booking.endDateTime) : null;
+                        const formattedReturnDate = endDate ? endDate.toLocaleDateString('en-GB').replace(/\//g, '-') : '';
+                        const formattedReturnTime = endDate ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                        
+                        return (
+                          <tr key={booking.id} className="hover:bg-gray-50/80 transition">
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <p className="text-sm font-bold text-gray-800">{formattedTime}</p>
+                              <p className="text-xs text-gray-500">{formattedDate}</p>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              {booking.endDateTime ? (
+                                <>
+                                  <p className="text-sm font-bold text-gray-800">{formattedReturnTime}</p>
+                                  <p className="text-xs text-gray-500">{formattedReturnDate}</p>
+                                </>
+                              ) : (
+                                <span className="text-xs text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              {booking.estimateAmount && (
+                                <p className="text-base font-black text-gray-900">₹{booking.estimateAmount}</p>
+                              )}
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2.5 py-1 rounded-full font-bold">PENDING</span>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="space-y-1">
+                                <span className={`inline-block text-xs px-2.5 py-1 rounded-full font-bold ${
+                                  booking.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {booking.paymentStatus || 'UNPAID'}
+                                </span>
+                                {booking.paymentMethod && (
+                                  <div>
+                                    <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2.5 py-0.5 rounded-full font-medium">{booking.paymentMethod}</span>
                                   </div>
                                 )}
                               </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <div className="bg-green-50 rounded-lg p-2">
-                                  <p className="text-xs font-medium text-green-800">
-                                    ✓ Sent to {booking.selectedLeadPackageId ? `${booking.selectedPackageType || 'LOCAL'} Leads` : `${booking.selectedPackageType} Drivers`}
-                                  </p>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 bg-[#0F172A] text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                                  <span>{booking.customer?.name?.charAt(0) || 'C'}</span>
                                 </div>
-                                <button 
-                                  onClick={() => viewResponses(booking.id, !!booking.selectedLeadPackageId)} 
-                                  className="w-full bg-[#0B192C] text-white px-3 py-2 rounded-lg font-semibold text-xs hover:bg-[#1E3E62] transition"
-                                >
-                                  View ({booking.selectedLeadPackageId ? (booking.leadResponses?.length || 0) : (booking.driverResponses?.length || 0)})
-                                </button>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-bold text-[#0F172A] truncate">{booking.customer?.name || 'N/A'}</p>
+                                  <a href={`tel:${booking.customer?.phone}`} className="text-xs text-blue-600 hover:underline">
+                                    {booking.customer?.phone || 'N/A'}
+                                  </a>
+                                </div>
                               </div>
-                            )}
-                          </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="px-4 py-3.5 max-w-[240px]">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex items-start gap-1.5" title={booking.pickupLocation}>
+                                  <div className="w-2 h-2 bg-emerald-500 rounded-full mt-1 shrink-0"></div>
+                                  <p className="text-xs text-gray-900 font-medium truncate">{booking.pickupLocation}</p>
+                                </div>
+                                <div className="flex items-start gap-1.5" title={booking.dropLocation}>
+                                  <div className="w-2 h-2 bg-red-500 rounded-full mt-1 shrink-0"></div>
+                                  <p className="text-xs text-gray-500 font-medium truncate">{booking.dropLocation}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <div className="space-y-1">
+                                <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2.5 py-0.5 rounded-md font-bold">{booking.serviceType}</span>
+                                {booking.tripType && (
+                                  <div>
+                                    <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-md font-medium">{booking.tripType}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
+                              <span className={`inline-block text-[10px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider ${
+                                booking.customer?.email?.includes('@temp.com') ? 'bg-purple-100 text-purple-700 border border-purple-200' : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                              }`}>
+                                {booking.customer?.email?.includes('@temp.com') ? 'Admin Booking' : 'Online Booking'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       ) : (
