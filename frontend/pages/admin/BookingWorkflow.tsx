@@ -1191,9 +1191,11 @@ export default function BookingWorkflow() {
 
               {/* Date & Time fields */}
               {createForm.whenNeeded === 'Schedule' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={`grid grid-cols-1 ${createForm.serviceType === 'Outstation' && createForm.tripType === 'Round Trip' ? 'sm:grid-cols-2' : ''} gap-4`}>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Pickup Date & Time *</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">
+                      {createForm.serviceType === 'Outstation' && createForm.tripType === 'Round Trip' ? 'Departure (Pickup) Date & Time *' : 'Pickup Date & Time *'}
+                    </label>
                     <input 
                       required 
                       type="datetime-local" 
@@ -1202,7 +1204,8 @@ export default function BookingWorkflow() {
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#0B192C] outline-none" 
                     />
                   </div>
-                  {createForm.tripType === 'Round Trip' && (
+                  {/* Return Date is ONLY for Outstation Round Trip (synced with Customer Portal) */}
+                  {createForm.serviceType === 'Outstation' && createForm.tripType === 'Round Trip' && (
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date & Time *</label>
                       <div className="flex gap-2">
@@ -1223,9 +1226,10 @@ export default function BookingWorkflow() {
                   )}
                 </div>
               ) : (
-                createForm.tripType === 'Round Trip' && (
+                /* Immediately: Only Outstation Round Trip needs return date */
+                createForm.serviceType === 'Outstation' && createForm.tripType === 'Round Trip' && (
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date & Time (Round Trip)</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">Return Date & Time (Outstation Round Trip)</label>
                     <div className="flex gap-2">
                       <input 
                         type="date" 
