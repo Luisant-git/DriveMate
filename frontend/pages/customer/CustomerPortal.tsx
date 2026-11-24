@@ -1929,15 +1929,15 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ customer: initialCustom
                 )}
 
                 {/* Header & Tabs */}
-                <div className="bg-white px-4 sm:px-6 pt-2 pb-2 border-b border-gray-100 flex justify-between items-center shrink-0">
+                <div className="bg-[#FFFFFF] px-4 sm:px-6 pt-2.5 pb-2.5 border-b border-[#E2E8F0] flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-2">
-                        <h2 className="text-lg sm:text-xl font-bold">SNP</h2>
+                        <h2 className="text-lg sm:text-xl font-black text-[#0F172A]">SNP</h2>
                     </div>
                     <div className="flex gap-1.5 sm:gap-2 text-xs font-bold">
-                        <button onClick={() => setActiveTab('BOOK')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'BOOK' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Book</button>
-                        <button onClick={() => setActiveTab('TRIPS')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'TRIPS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Trips</button>
-                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'JOBS' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Hiring</button>
-                        <button onClick={() => setActiveTab('PROFILE')} className={`px-2.5 sm:px-3 py-1.5 rounded-full ${activeTab === 'PROFILE' ? 'bg-[#0B192C] text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:text-[#0B192C]'}`}>Profile</button>
+                        <button onClick={() => setActiveTab('BOOK')} className={`px-3 py-1.5 rounded-full transition cursor-pointer ${activeTab === 'BOOK' ? 'bg-[#0F172A] text-white shadow-xs' : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-[#E2E8F0]'}`}>Book</button>
+                        <button onClick={() => setActiveTab('TRIPS')} className={`px-3 py-1.5 rounded-full transition cursor-pointer ${activeTab === 'TRIPS' ? 'bg-[#0F172A] text-white shadow-xs' : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-[#E2E8F0]'}`}>Trips</button>
+                        <button onClick={() => { setActiveTab('JOBS'); fetchMyJobs(); }} className={`px-3 py-1.5 rounded-full transition cursor-pointer ${activeTab === 'JOBS' ? 'bg-[#0F172A] text-white shadow-xs' : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-[#E2E8F0]'}`}>Hiring</button>
+                        <button onClick={() => setActiveTab('PROFILE')} className={`px-3 py-1.5 rounded-full transition cursor-pointer ${activeTab === 'PROFILE' ? 'bg-[#0F172A] text-white shadow-xs' : 'bg-[#F1F5F9] text-[#0F172A] hover:bg-[#E2E8F0]'}`}>Profile</button>
                     </div>
                 </div>
 
